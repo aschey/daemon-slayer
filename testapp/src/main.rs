@@ -1,4 +1,4 @@
-use daemon_slayer::{define_service, windows::Manager};
+use daemon_slayer::{define_service, platform::Manager};
 
 const SERVICE_NAME: &str = "daemon_slayer_test_service";
 
@@ -19,7 +19,8 @@ pub fn handle_service(
     0
 }
 
-pub fn main() {
+#[tokio::main]
+pub async fn main() {
     let manager = Manager::new(SERVICE_NAME);
     let args: Vec<String> = std::env::args().collect();
     let arg = if args.len() > 1 { &args[1] } else { "" };

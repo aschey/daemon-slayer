@@ -1,8 +1,7 @@
 use std::{env, thread, time::Duration};
 
 use assert_cmd::Command;
-use daemon_slayer::windows::Manager;
-use windows_service::service::ServiceState;
+use daemon_slayer::{platform::Manager, service_state::ServiceState};
 
 #[test]
 fn test_service() {
@@ -21,7 +20,7 @@ fn test_service() {
         loop {
             let status = manager.query_status();
             println!("Waiting for uninstall: {status:?}");
-            if status.is_err() {
+            if status == ServiceState::NotInstalled {
                 break;
             }
             thread::sleep(Duration::from_millis(100));
@@ -37,10 +36,8 @@ fn test_service() {
     loop {
         let status = manager.query_status();
         println!("Waiting for start: {status:?}");
-        if let Ok(status) = status {
-            if status.current_state == ServiceState::Running {
-                break;
-            }
+        if status == ServiceState::Started {
+            break;
         }
         thread::sleep(Duration::from_millis(100));
     }
@@ -49,10 +46,8 @@ fn test_service() {
     loop {
         let status = manager.query_status();
         println!("Waiting for stop: {status:?}");
-        if let Ok(status) = status {
-            if status.current_state == ServiceState::Stopped {
-                break;
-            }
+        if status == ServiceState::Stopped {
+            break;
         }
         thread::sleep(Duration::from_millis(100));
     }
@@ -65,7 +60,7 @@ fn test_service() {
     loop {
         let status = manager.query_status();
         println!("Waiting for uninstall: {status:?}");
-        if status.is_err() {
+        if status == ServiceState::NotInstalled {
             break;
         }
         thread::sleep(Duration::from_millis(100));
