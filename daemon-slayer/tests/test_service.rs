@@ -2,7 +2,7 @@ use std::{env, thread, time::Duration};
 
 use assert_cmd::Command;
 use daemon_slayer::{
-    platform::Manager, service_manager::ServiceManager, service_state::ServiceState,
+    platform::Manager, service_manager::ServiceManager, service_status::ServiceStatus,
 };
 
 #[test]
@@ -15,14 +15,14 @@ fn test_service() {
         .unwrap();
 
     let manager = Manager::new("daemon_slayer_test_service");
-    if manager.query_status() != ServiceState::NotInstalled {
+    if manager.query_status() != ServiceStatus::NotInstalled {
         manager.stop();
         manager.uninstall();
 
         loop {
             let status = manager.query_status();
             println!("Waiting for uninstall: {status:?}");
-            if status == ServiceState::NotInstalled {
+            if status == ServiceStatus::NotInstalled {
                 break;
             }
             thread::sleep(Duration::from_millis(100));
@@ -38,7 +38,7 @@ fn test_service() {
     loop {
         let status = manager.query_status();
         println!("Waiting for start: {status:?}");
-        if status == ServiceState::Started {
+        if status == ServiceStatus::Started {
             break;
         }
         thread::sleep(Duration::from_millis(100));
@@ -48,7 +48,7 @@ fn test_service() {
     loop {
         let status = manager.query_status();
         println!("Waiting for stop: {status:?}");
-        if status == ServiceState::Stopped {
+        if status == ServiceStatus::Stopped {
             break;
         }
         thread::sleep(Duration::from_millis(100));
@@ -62,7 +62,7 @@ fn test_service() {
     loop {
         let status = manager.query_status();
         println!("Waiting for uninstall: {status:?}");
-        if status == ServiceState::NotInstalled {
+        if status == ServiceStatus::NotInstalled {
             break;
         }
         thread::sleep(Duration::from_millis(100));

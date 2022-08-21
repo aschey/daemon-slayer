@@ -1,4 +1,4 @@
-use crate::service_state::ServiceState;
+use crate::service_status::ServiceStatus;
 
 pub trait ServiceManager {
     fn new<T: Into<String>>(service_name: T) -> Self;
@@ -6,5 +6,5 @@ pub trait ServiceManager {
     fn uninstall(&self);
     fn start(&self);
     fn stop(&self);
-    fn query_status(&self) -> ServiceState;
+    fn query_status(&self) -> ServiceStatus;
 }

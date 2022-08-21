@@ -6,7 +6,7 @@ use systemd_client::{
     UnitLoadStateType, UnitSubStateType,
 };
 
-use crate::{service_manager::ServiceManager, service_state::ServiceState};
+use crate::{service_manager::ServiceManager, service_status::ServiceStatus};
 
 #[macro_export]
 macro_rules! define_service {
@@ -92,7 +92,7 @@ impl ServiceManager for Manager {
     }
 
     fn stop(&self) {
-        if self.query_status() == ServiceState::Started {
+        if self.query_status() == ServiceStatus::Started {
             let client = manager::build_blocking_proxy().unwrap();
             client
                 .stop_unit(&format!("{}.service", self.service_name), "replace")
@@ -100,7 +100,7 @@ impl ServiceManager for Manager {
         }
     }
 
-    fn query_status(&self) -> ServiceState {
+    fn query_status(&self) -> ServiceStatus {
         let client = manager::build_blocking_proxy().unwrap();
         client.reload().unwrap();
         client.reset_failed().unwrap();
@@ -113,10 +113,10 @@ impl ServiceManager for Manager {
         let props = client.get_properties().unwrap();
         match (props.load_state, props.active_state, props.sub_state) {
             (UnitLoadStateType::Loaded, UnitActiveStateType::Active, UnitSubStateType::Running) => {
-                ServiceState::Started
+                ServiceStatus::Started
             }
-            (UnitLoadStateType::NotFound, _, _) => ServiceState::NotInstalled,
-            _ => ServiceState::Stopped,
+            (UnitLoadStateType::NotFound, _, _) => ServiceStatus::NotInstalled,
+            _ => ServiceStatus::Stopped,
         }
     }
 }

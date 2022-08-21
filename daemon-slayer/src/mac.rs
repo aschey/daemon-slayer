@@ -7,7 +7,7 @@ use std::{
 
 use launchd::Launchd;
 
-use crate::service_state::ServiceState;
+use crate::service_status::ServiceStatus;
 
 #[macro_export]
 macro_rules! define_service {
@@ -95,10 +95,10 @@ impl Manager {
         self.run_launchctl(vec!["stop", &self.service_name]);
     }
 
-    pub fn query_status(&self) -> ServiceState {
+    pub fn query_status(&self) -> ServiceStatus {
         let output = self.run_launchctl(vec!["print", &format!("system/{}", self.service_name)]);
         if output.starts_with("Could not find service") {
-            return ServiceState::NotInstalled;
+            return ServiceStatus::NotInstalled;
         }
         let s = output
             .split('\n')
@@ -114,14 +114,10 @@ impl Manager {
             .collect::<Vec<_>>();
 
         if s[0].trim() == "running" {
-            ServiceState::Started
+            ServiceStatus::Started
         } else {
-            ServiceState::Stopped
+            ServiceStatus::Stopped
         }
-    }
-
-    pub fn is_installed(&self) -> bool {
-        self.query_status() != ServiceState::NotInstalled
     }
 
     fn run_launchctl(&self, args: Vec<&str>) -> String {

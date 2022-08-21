@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ServiceState {
+pub enum ServiceStatus {
     Started,
     Stopped,
     NotInstalled,

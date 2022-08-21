@@ -8,7 +8,7 @@ use windows_service::{
     service_manager::{ServiceManager as WindowsServiceManager, ServiceManagerAccess},
 };
 
-use crate::{service_manager::ServiceManager, service_state::ServiceState};
+use crate::{service_manager::ServiceManager, service_status::ServiceStatus};
 
 #[macro_export]
 macro_rules! define_service {
@@ -171,7 +171,7 @@ impl ServiceManager for Manager {
         let _ = service.stop();
     }
 
-    fn query_status(&self) -> ServiceState {
+    fn query_status(&self) -> ServiceStatus {
         let service_access = ServiceAccess::QUERY_STATUS
             | ServiceAccess::STOP
             | ServiceAccess::DELETE
@@ -181,12 +181,12 @@ impl ServiceManager for Manager {
             .open_service(&self.service_name, service_access)
         {
             Ok(service) => service,
-            Err(_) => return ServiceState::NotInstalled,
+            Err(_) => return ServiceStatus::NotInstalled,
         };
         match service.query_status().unwrap().current_state {
             windows_service::service::ServiceState::Stopped
-            | windows_service::service::ServiceState::StartPending => ServiceState::Stopped,
-            _ => ServiceState::Started,
+            | windows_service::service::ServiceState::StartPending => ServiceStatus::Stopped,
+            _ => ServiceStatus::Started,
         }
     }
 }
