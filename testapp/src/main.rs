@@ -1,4 +1,4 @@
-use daemon_slayer::{define_service, platform::Manager};
+use daemon_slayer::{define_service, platform::Manager, service_manager::ServiceManager};
 
 const SERVICE_NAME: &str = "daemon_slayer_test_service";
 

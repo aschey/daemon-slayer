@@ -1,4 +1,4 @@
-use std::{env::current_exe, ffi::OsString};
+use std::env::current_exe;
 
 use systemd_client::{
     create_unit_configuration_file, delete_unit_configuration_file, manager, unit,
@@ -6,7 +6,7 @@ use systemd_client::{
     UnitLoadStateType, UnitSubStateType,
 };
 
-use crate::service_state::ServiceState;
+use crate::{service_manager::ServiceManager, service_state::ServiceState};
 
 #[macro_export]
 macro_rules! define_service {
@@ -51,75 +51,62 @@ macro_rules! define_service {
 }
 
 pub struct Manager {
-    service_name: OsString,
+    service_name: String,
 }
-impl Manager {
-    pub fn new<T: Into<OsString>>(service_name: T) -> Self {
+impl ServiceManager for Manager {
+    fn new<T: Into<String>>(service_name: T) -> Self {
         Self {
             service_name: service_name.into(),
         }
     }
 
-    pub fn install<T: Into<OsString>>(&self, args: Vec<T>) {
-        let mut service_binary_path = vec![current_exe().unwrap().to_string_lossy().to_string()];
+    fn install<'a, T: Into<&'a str>>(&self, args: impl IntoIterator<Item = T>) {
         let unit_config = UnitConfiguration::builder().description("test service");
-        let service_args_: Vec<OsString> = args.into_iter().map(|a| a.into()).collect();
-        let mut service_args: Vec<String> = service_args_
-            .into_iter()
-            .map(|a| a.to_string_lossy().to_string())
+
+        let path_str = current_exe().unwrap().to_string_lossy().to_string();
+        let service_args = std::iter::once(&path_str[..])
+            .chain(args.into_iter().map(|a| a.into()))
             .collect();
-        service_binary_path.append(&mut service_args);
-        let service_config = ServiceConfiguration::builder()
-            .exec_start(service_binary_path.iter().map(AsRef::as_ref).collect());
+        let service_config = ServiceConfiguration::builder().exec_start(service_args);
         let svc_unit = ServiceUnitConfiguration::builder()
             .unit(unit_config)
             .service(service_config)
             .build();
         let svc_unit_literal = format!("{}", svc_unit);
         create_unit_configuration_file(
-            &format!("{}.service", self.service_name.to_string_lossy().to_owned()),
+            &format!("{}.service", self.service_name),
             svc_unit_literal.as_bytes(),
         )
         .unwrap();
     }
 
-    pub fn uninstall(&self) {
-        let _ = delete_unit_configuration_file(&format!(
-            "{}.service",
-            self.service_name.to_string_lossy().to_owned()
-        ));
+    fn uninstall(&self) {
+        let _ = delete_unit_configuration_file(&format!("{}.service", self.service_name));
     }
 
-    pub fn start(&self) {
+    fn start(&self) {
         let client = manager::build_blocking_proxy().unwrap();
         client
-            .start_unit(
-                &format!("{}.service", self.service_name.to_string_lossy().to_owned()),
-                "replace",
-            )
+            .start_unit(&format!("{}.service", self.service_name), "replace")
             .unwrap();
     }
 
-    pub fn stop(&self) {
-        let client = manager::build_blocking_proxy().unwrap();
-        client
-            .stop_unit(
-                &format!("{}.service", self.service_name.to_string_lossy().to_owned()),
-                "replace",
-            )
-            .unwrap();
+    fn stop(&self) {
+        if self.query_status() == ServiceState::Started {
+            let client = manager::build_blocking_proxy().unwrap();
+            client
+                .stop_unit(&format!("{}.service", self.service_name), "replace")
+                .unwrap();
+        }
     }
 
-    pub fn query_status(&self) -> ServiceState {
+    fn query_status(&self) -> ServiceState {
         let client = manager::build_blocking_proxy().unwrap();
         client.reload().unwrap();
         client.reset_failed().unwrap();
 
         let svc_unit_path = client
-            .load_unit(&format!(
-                "{}.service",
-                self.service_name.to_string_lossy().to_owned()
-            ))
+            .load_unit(&format!("{}.service", self.service_name))
             .unwrap();
 
         let client = unit::build_blocking_proxy(svc_unit_path).unwrap();
@@ -131,9 +118,5 @@ impl Manager {
             (UnitLoadStateType::NotFound, _, _) => ServiceState::NotInstalled,
             _ => ServiceState::Stopped,
         }
-    }
-
-    pub fn is_installed(&self) -> bool {
-        self.query_status() != ServiceState::NotInstalled
     }
 }

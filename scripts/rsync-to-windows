@@ -1,0 +1,2 @@
+#!/usr/bin/env sh
+rsync -arv -e 'ssh -p 22220' --progress --exclude target --exclude .git /home/aschey/code/daemon-slayer/ Quickemu@localhost:/c/Users/Quickemu/code/daemon-slayer2

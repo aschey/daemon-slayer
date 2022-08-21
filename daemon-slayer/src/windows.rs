@@ -4,14 +4,11 @@ use std::{
 };
 
 use windows_service::{
-    service::{
-        ServiceAccess, ServiceErrorControl, ServiceInfo, ServiceStartType,
-        ServiceType,
-    },
-    service_manager::{ServiceManager, ServiceManagerAccess},
+    service::{ServiceAccess, ServiceErrorControl, ServiceInfo, ServiceStartType, ServiceType},
+    service_manager::{ServiceManager as WindowsServiceManager, ServiceManagerAccess},
 };
 
-use crate::service_state::ServiceState;
+use crate::{service_manager::ServiceManager, service_state::ServiceState};
 
 #[macro_export]
 macro_rules! define_service {
@@ -91,20 +88,21 @@ macro_rules! define_service {
 }
 
 pub struct Manager {
-    service_manager: ServiceManager,
+    service_manager: WindowsServiceManager,
     service_name: String,
 }
-impl Manager {
-    pub fn new<T: Into<String>>(service_name: T) -> Self {
+impl ServiceManager for Manager {
+    fn new<T: Into<String>>(service_name: T) -> Self {
         let manager_access = ServiceManagerAccess::CONNECT | ServiceManagerAccess::CREATE_SERVICE;
-        let service_manager = ServiceManager::local_computer(None::<&str>, manager_access).unwrap();
+        let service_manager =
+            WindowsServiceManager::local_computer(None::<&str>, manager_access).unwrap();
         Self {
             service_manager,
             service_name: service_name.into(),
         }
     }
 
-    pub fn install<T: Into<String>>(&self, args: Vec<T>) {
+    fn install<'a, T: Into<&'a str>>(&self, args: impl IntoIterator<Item = T>) {
         let service_access =
             ServiceAccess::QUERY_STATUS | ServiceAccess::STOP | ServiceAccess::DELETE;
         if self
@@ -137,7 +135,7 @@ impl Manager {
         }
     }
 
-    pub fn uninstall(&self) {
+    fn uninstall(&self) {
         let service_access = ServiceAccess::QUERY_STATUS
             | ServiceAccess::STOP
             | ServiceAccess::DELETE
@@ -149,7 +147,7 @@ impl Manager {
         service.delete().unwrap();
     }
 
-    pub fn start(&self) {
+    fn start(&self) {
         let service_access = ServiceAccess::QUERY_STATUS
             | ServiceAccess::STOP
             | ServiceAccess::DELETE
@@ -161,7 +159,7 @@ impl Manager {
         service.start(&[OsStr::new("Started")]).unwrap();
     }
 
-    pub fn stop(&self) {
+    fn stop(&self) {
         let service_access = ServiceAccess::QUERY_STATUS
             | ServiceAccess::STOP
             | ServiceAccess::DELETE
@@ -173,24 +171,22 @@ impl Manager {
         let _ = service.stop();
     }
 
-    pub fn query_status(&self) -> ServiceState  {
+    fn query_status(&self) -> ServiceState {
         let service_access = ServiceAccess::QUERY_STATUS
             | ServiceAccess::STOP
             | ServiceAccess::DELETE
             | ServiceAccess::START;
         let service = match self
             .service_manager
-            .open_service(&self.service_name, service_access) {
-                Ok(service) => service,
-                Err(_) => return ServiceState::NotInstalled
-            };
+            .open_service(&self.service_name, service_access)
+        {
+            Ok(service) => service,
+            Err(_) => return ServiceState::NotInstalled,
+        };
         match service.query_status().unwrap().current_state {
-            windows_service::service::ServiceState::Stopped | windows_service::service::ServiceState::StartPending =>ServiceState::Stopped,
-           _ => ServiceState::Started,
+            windows_service::service::ServiceState::Stopped
+            | windows_service::service::ServiceState::StartPending => ServiceState::Stopped,
+            _ => ServiceState::Started,
         }
-    }
-
-    pub fn is_installed(&self) -> bool {
-    self.query_status() != ServiceState::NotInstalled
     }
 }
