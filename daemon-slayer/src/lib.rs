@@ -2,17 +2,23 @@
 mod linux;
 #[cfg(target_os = "macos")]
 mod mac;
+#[cfg(unix)]
+pub mod unix_macros;
 #[cfg(windows)]
 mod windows;
+#[cfg(windows)]
+pub mod windows_macros;
 
 #[cfg(windows)]
 pub mod platform {
     pub use crate::windows::Manager;
+    pub use crate::windows_macros;
 }
 
 #[cfg(target_os = "linux")]
 pub mod platform {
     pub use crate::linux::Manager;
+    pub use crate::unix_macros;
 }
 
 #[cfg(target_os = "macos")]
@@ -30,9 +36,9 @@ pub use windows_service;
 pub use futures;
 #[cfg(unix)]
 pub use signal_hook;
-#[cfg(unix)]
+#[cfg(all(unix, feature = "tokio"))]
 pub use signal_hook_tokio;
-#[cfg(unix)]
+#[cfg(all(unix, feature = "tokio"))]
 pub use tokio;
 
 pub mod service_config;
