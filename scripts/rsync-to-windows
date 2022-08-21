@@ -1,2 +1,9 @@
 #!/usr/bin/env sh
-rsync -arv -e 'ssh -p 22220' --progress --exclude target --exclude .git /home/aschey/code/daemon-slayer/ Quickemu@localhost:/c/Users/Quickemu/code/daemon-slayer2
+source $(dirname $0)/.env
+sshpass -p "${QUICKEMU_PASSWORD}" ssh -p 22220 Quickemu@localhost << EOF
+if not exist "C:\Users\Quickemu\daemon-slayer" (
+    mkdir "C:\Users\Quickemu\daemon-slayer"
+)
+EOF
+echo
+rsync -arv -e "sshpass -p ${QUICKEMU_PASSWORD} ssh -p 22220" --progress --exclude target --exclude .git ./ Quickemu@localhost:/c/Users/Quickemu/daemon-slayer

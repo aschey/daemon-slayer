@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-rsync -arv -e 'ssh -p 22220' --progress --exclude target --exclude .git Quickemu@localhost:/c/Users/Quickemu/code/daemon-slayer2/ /home/aschey/code/daemon-slayer
+rsync -arv -e "sshpass -p ${QUICKEMU_PASSWORD} ssh -p 22220" --progress --exclude target --exclude .git Quickemu@localhost:/c/Users/Quickemu/daemon-slayer/ .
