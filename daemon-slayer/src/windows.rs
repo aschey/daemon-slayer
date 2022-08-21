@@ -92,10 +92,10 @@ macro_rules! define_service {
 
 pub struct Manager {
     service_manager: ServiceManager,
-    service_name: OsString,
+    service_name: String,
 }
 impl Manager {
-    pub fn new<T: Into<OsString>>(service_name: T) -> Self {
+    pub fn new<T: Into<String>>(service_name: T) -> Self {
         let manager_access = ServiceManagerAccess::CONNECT | ServiceManagerAccess::CREATE_SERVICE;
         let service_manager = ServiceManager::local_computer(None::<&str>, manager_access).unwrap();
         Self {
@@ -104,7 +104,7 @@ impl Manager {
         }
     }
 
-    pub fn install<T: Into<OsString>>(&self, args: Vec<T>) {
+    pub fn install<T: Into<String>>(&self, args: Vec<T>) {
         let service_access =
             ServiceAccess::QUERY_STATUS | ServiceAccess::STOP | ServiceAccess::DELETE;
         if self
@@ -121,7 +121,7 @@ impl Manager {
                 start_type: ServiceStartType::OnDemand,
                 error_control: ServiceErrorControl::Normal,
                 executable_path: service_binary_path,
-                launch_arguments: args.into_iter().map(|a| a.into()).collect(),
+                launch_arguments: args.into_iter().map(|a| OsString::from(a.into())).collect(),
                 dependencies: vec![],
                 account_name: None, // run as System
                 account_password: None,
