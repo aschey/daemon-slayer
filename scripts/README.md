@@ -18,7 +18,7 @@ Install [Quickemu](https://github.com/quickemu-project/quickemu)
    7. Optionally, click on properties and change the startup type to automatic so it starts on boot.
    8. Quickemu should've already configured the settings so SSH will work without additional configuration.
    9. Look for the windows-10.ports file in the windows-10 folder created by Quickemu on the host machine. It should have an entry like this: `ssh,22220` that specifies the ssh port.
-   10. Try to ssh into the VM from the host machine like this: `ssh -p 22220 (or your port if it's different) Quickemu@localhost`. When prompted for the password, it should be `quickemu`. (Quickemu docs explain this bit as well)
+   10. Try to ssh into the VM from the host machine like this: `ssh -p 22220 Quickemu@localhost`. When prompted for the password, it should be `quickemu`. (Quickemu docs explain this bit as well)
 6. Install rsync
    1. Open the [msys download page](https://repo.msys2.org/msys/x86_64/).
    2. Download rsync-{CURRENT_VERSION}.pkg.tar.zst.
@@ -31,3 +31,12 @@ Install [Quickemu](https://github.com/quickemu-project/quickemu)
    9. Open a terminal and verify rsync works.
 
 Everything should be working at this point. Use the `rsync-from-windows` script to copy from the Windows VM to the host machine and use `rsync-to-windows` to do the opposite.
+
+## Mac Setup
+
+1. Follow Mac setup instructions on the Quickemu docs
+2. Install [Rust](https://www.rust-lang.org/tools/install)
+3. Enable the OpenSSH server
+   1. Open System Preferences -> Sharing and then check Remote Login. This should enable ssh access.
+   2. Reboot.
+   3. When running the Quickemu script, make sure to change the port to 22221 using the `--ssh-port` flash so it doesn't conflict with the Windows port.
