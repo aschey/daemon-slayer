@@ -5,5 +5,5 @@ $(dirname $0)/rsync-to-mac
 sshpass -p "${QUICKEMU_MAC_PASSWORD}" ssh -p 22221 "${QUICKEMU_MAC_USERNAME}@localhost" << EOF
 cd ~/daemon-slayer
 cargo build
-cargo test
+echo "${QUICKEMU_MAC_PASSWORD}" | sudo -S cargo test
 EOF
