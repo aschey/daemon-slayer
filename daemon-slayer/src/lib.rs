@@ -35,5 +35,6 @@ pub use signal_hook_tokio;
 #[cfg(unix)]
 pub use tokio;
 
+pub mod service_config;
 pub mod service_manager;
 pub mod service_status;

@@ -1,12 +1,12 @@
-use std::env::current_exe;
-
 use systemd_client::{
     create_unit_configuration_file, delete_unit_configuration_file, manager, unit,
     ServiceConfiguration, ServiceUnitConfiguration, UnitActiveStateType, UnitConfiguration,
     UnitLoadStateType, UnitSubStateType,
 };
 
-use crate::{service_manager::ServiceManager, service_status::ServiceStatus};
+use crate::{
+    service_config::ServiceConfig, service_manager::ServiceManager, service_status::ServiceStatus,
+};
 
 #[macro_export]
 macro_rules! define_service {
@@ -40,7 +40,7 @@ macro_rules! define_service {
                     }
                 });
 
-                $service_main_func(vec![], sender, receiver)
+                $service_main_func(sender, receiver)
             }
 
             pub fn $service_func_name()  {
@@ -51,43 +51,41 @@ macro_rules! define_service {
 }
 
 pub struct Manager {
-    service_name: String,
+    config: ServiceConfig,
+}
+
+impl Manager {
+    fn service_file_name(&self) -> String {
+        format!("{}.service", self.config.name)
+    }
 }
 impl ServiceManager for Manager {
-    fn new<T: Into<String>>(service_name: T) -> Self {
-        Self {
-            service_name: service_name.into(),
-        }
+    fn new(config: ServiceConfig) -> Self {
+        Self { config }
     }
 
-    fn install<'a, T: Into<&'a str>>(&self, args: impl IntoIterator<Item = T>) {
-        let unit_config = UnitConfiguration::builder().description("test service");
+    fn install(&self) {
+        let unit_config = UnitConfiguration::builder().description(&self.config.description);
 
-        let path_str = current_exe().unwrap().to_string_lossy().to_string();
-        let service_args = std::iter::once(&path_str[..])
-            .chain(args.into_iter().map(|a| a.into()))
-            .collect();
-        let service_config = ServiceConfiguration::builder().exec_start(service_args);
+        let service_config = ServiceConfiguration::builder()
+            .exec_start(self.config.full_args_iter().map(|a| &a[..]).collect());
         let svc_unit = ServiceUnitConfiguration::builder()
             .unit(unit_config)
             .service(service_config)
             .build();
         let svc_unit_literal = format!("{}", svc_unit);
-        create_unit_configuration_file(
-            &format!("{}.service", self.service_name),
-            svc_unit_literal.as_bytes(),
-        )
-        .unwrap();
+        create_unit_configuration_file(&self.service_file_name(), svc_unit_literal.as_bytes())
+            .unwrap();
     }
 
     fn uninstall(&self) {
-        let _ = delete_unit_configuration_file(&format!("{}.service", self.service_name));
+        let _ = delete_unit_configuration_file(&self.service_file_name());
     }
 
     fn start(&self) {
         let client = manager::build_blocking_proxy().unwrap();
         client
-            .start_unit(&format!("{}.service", self.service_name), "replace")
+            .start_unit(&self.service_file_name(), "replace")
             .unwrap();
     }
 
@@ -95,7 +93,7 @@ impl ServiceManager for Manager {
         if self.query_status() == ServiceStatus::Started {
             let client = manager::build_blocking_proxy().unwrap();
             client
-                .stop_unit(&format!("{}.service", self.service_name), "replace")
+                .stop_unit(&self.service_file_name(), "replace")
                 .unwrap();
         }
     }
@@ -105,9 +103,7 @@ impl ServiceManager for Manager {
         client.reload().unwrap();
         client.reset_failed().unwrap();
 
-        let svc_unit_path = client
-            .load_unit(&format!("{}.service", self.service_name))
-            .unwrap();
+        let svc_unit_path = client.load_unit(&self.service_file_name()).unwrap();
 
         let client = unit::build_blocking_proxy(svc_unit_path).unwrap();
         let props = client.get_properties().unwrap();

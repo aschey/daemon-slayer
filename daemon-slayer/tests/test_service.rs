@@ -2,7 +2,8 @@ use std::{env, thread, time::Duration};
 
 use assert_cmd::Command;
 use daemon_slayer::{
-    platform::Manager, service_manager::ServiceManager, service_status::ServiceStatus,
+    platform::Manager, service_config::ServiceConfig, service_manager::ServiceManager,
+    service_status::ServiceStatus,
 };
 
 #[test]
@@ -14,7 +15,7 @@ fn test_service() {
         .output()
         .unwrap();
 
-    let manager = Manager::new("daemon_slayer_test_service");
+    let manager = Manager::new(ServiceConfig::new("daemon_slayer_test_service"));
     if manager.query_status() != ServiceStatus::NotInstalled {
         manager.stop();
         manager.uninstall();

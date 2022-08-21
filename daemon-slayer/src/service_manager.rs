@@ -1,8 +1,8 @@
-use crate::service_status::ServiceStatus;
+use crate::{service_config::ServiceConfig, service_status::ServiceStatus};
 
 pub trait ServiceManager {
-    fn new<T: Into<String>>(service_name: T) -> Self;
-    fn install<'a, T: Into<&'a str>>(&self, args: impl IntoIterator<Item = T>);
+    fn new(config: ServiceConfig) -> Self;
+    fn install(&self);
     fn uninstall(&self);
     fn start(&self);
     fn stop(&self);

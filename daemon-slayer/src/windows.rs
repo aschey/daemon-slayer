@@ -1,14 +1,11 @@
-use std::{
-    env::current_exe,
-    ffi::{OsStr, OsString},
-};
-
 use windows_service::{
     service::{ServiceAccess, ServiceErrorControl, ServiceInfo, ServiceStartType, ServiceType},
     service_manager::{ServiceManager as WindowsServiceManager, ServiceManagerAccess},
 };
 
-use crate::{service_manager::ServiceManager, service_status::ServiceStatus};
+use crate::{
+    service_config::ServiceConfig, service_manager::ServiceManager, service_status::ServiceStatus,
+};
 
 #[macro_export]
 macro_rules! define_service {
@@ -17,7 +14,7 @@ macro_rules! define_service {
             $crate::windows_service::define_windows_service!([<func_ $service_func_name>], handle_service_main);
         }
 
-        pub fn handle_service_main(args: Vec<std::ffi::OsString>) {
+        pub fn handle_service_main(_: Vec<std::ffi::OsString>) {
             // Create a channel to be able to poll a stop event from the service worker loop.
             let (sender, receiver) = $define_handler;
             let sender_ = sender.clone();
@@ -56,7 +53,7 @@ macro_rules! define_service {
                 })
                 .unwrap();
 
-                let exit_code = $service_main_func(args, sender, receiver);
+                let exit_code = $service_main_func(sender, receiver);
 
                 status_handle.set_service_status($crate::windows_service::service::ServiceStatus {
                     service_type:  $crate::windows_service::service::ServiceType::OWN_PROCESS,
@@ -81,7 +78,7 @@ macro_rules! define_service {
                     $on_stop(&sender_);
                 }).unwrap();
 
-                $service_main_func(vec![], sender, receiver)
+                $service_main_func(sender, receiver)
             }
         }
     };
@@ -89,37 +86,35 @@ macro_rules! define_service {
 
 pub struct Manager {
     service_manager: WindowsServiceManager,
-    service_name: String,
+    config: ServiceConfig,
 }
 impl ServiceManager for Manager {
-    fn new<T: Into<String>>(service_name: T) -> Self {
+    fn new(config: ServiceConfig) -> Self {
         let manager_access = ServiceManagerAccess::CONNECT | ServiceManagerAccess::CREATE_SERVICE;
         let service_manager =
             WindowsServiceManager::local_computer(None::<&str>, manager_access).unwrap();
         Self {
             service_manager,
-            service_name: service_name.into(),
+            config,
         }
     }
 
-    fn install<'a, T: Into<&'a str>>(&self, args: impl IntoIterator<Item = T>) {
+    fn install(&self) {
         let service_access =
             ServiceAccess::QUERY_STATUS | ServiceAccess::STOP | ServiceAccess::DELETE;
         if self
             .service_manager
-            .open_service(&self.service_name, service_access)
+            .open_service(&self.config.name, service_access)
             .is_err()
         {
-            let service_binary_path = current_exe().unwrap();
-
             let service_info = ServiceInfo {
-                name: OsString::from(&self.service_name),
-                display_name: OsString::from(&self.service_name),
+                name: (&self.config.name).into(),
+                display_name: (&self.config.display_name).into(),
                 service_type: ServiceType::OWN_PROCESS,
                 start_type: ServiceStartType::OnDemand,
                 error_control: ServiceErrorControl::Normal,
-                executable_path: service_binary_path,
-                launch_arguments: args.into_iter().map(|a| OsString::from(a.into())).collect(),
+                executable_path: (&self.config.program).into(),
+                launch_arguments: self.config.args_iter().map(Into::into).collect(),
                 dependencies: vec![],
                 account_name: None, // run as System
                 account_password: None,
@@ -131,32 +126,27 @@ impl ServiceManager for Manager {
                     ServiceAccess::CHANGE_CONFIG | ServiceAccess::START,
                 )
                 .unwrap();
-            service.set_description(&self.service_name).unwrap();
+            service.set_description(&self.config.description).unwrap();
         }
     }
 
     fn uninstall(&self) {
-        let service_access = ServiceAccess::QUERY_STATUS
-            | ServiceAccess::STOP
-            | ServiceAccess::DELETE
-            | ServiceAccess::START;
+        let service_access =
+            ServiceAccess::QUERY_STATUS | ServiceAccess::STOP | ServiceAccess::DELETE;
         let service = self
             .service_manager
-            .open_service(&self.service_name, service_access)
+            .open_service(&self.config.name, service_access)
             .unwrap();
         service.delete().unwrap();
     }
 
     fn start(&self) {
-        let service_access = ServiceAccess::QUERY_STATUS
-            | ServiceAccess::STOP
-            | ServiceAccess::DELETE
-            | ServiceAccess::START;
+        let service_access = ServiceAccess::QUERY_STATUS | ServiceAccess::START;
         let service = self
             .service_manager
-            .open_service(&self.service_name, service_access)
+            .open_service(&self.config.name, service_access)
             .unwrap();
-        service.start(&[OsStr::new("Started")]).unwrap();
+        service.start::<String>(&[]).unwrap();
     }
 
     fn stop(&self) {
@@ -166,7 +156,7 @@ impl ServiceManager for Manager {
             | ServiceAccess::START;
         let service = self
             .service_manager
-            .open_service(&self.service_name, service_access)
+            .open_service(&self.config.name, service_access)
             .unwrap();
         let _ = service.stop();
     }
@@ -178,7 +168,7 @@ impl ServiceManager for Manager {
             | ServiceAccess::START;
         let service = match self
             .service_manager
-            .open_service(&self.service_name, service_access)
+            .open_service(&self.config.name, service_access)
         {
             Ok(service) => service,
             Err(_) => return ServiceStatus::NotInstalled,
