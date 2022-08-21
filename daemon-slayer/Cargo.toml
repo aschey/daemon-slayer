@@ -20,5 +20,8 @@ signal-hook-tokio = {version = "0.3.1", features = ["futures-v0_3"]}
 systemd_client = {git = "https://github.com/aschey/systemd-client", rev = "acd8edf737de8bd1b57df65e5d333f2c73c76060"}
 tokio = {version = "1.20.1", features = ["rt-multi-thread"]}
 
+[target.'cfg(target_os = "macos")'.dependencies]
+launchd = "0.2.0"
+
 [dev-dependencies]
 assert_cmd = "2.0.4"
