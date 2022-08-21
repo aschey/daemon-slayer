@@ -5,11 +5,13 @@ use std::{
 
 use windows_service::{
     service::{
-        ServiceAccess, ServiceErrorControl, ServiceInfo, ServiceStartType, ServiceStatus,
+        ServiceAccess, ServiceErrorControl, ServiceInfo, ServiceStartType,
         ServiceType,
     },
     service_manager::{ServiceManager, ServiceManagerAccess},
 };
+
+use crate::service_state::ServiceState;
 
 #[macro_export]
 macro_rules! define_service {
@@ -171,24 +173,24 @@ impl Manager {
         let _ = service.stop();
     }
 
-    pub fn query_status(&self) -> windows_service::Result<ServiceStatus> {
+    pub fn query_status(&self) -> ServiceState  {
         let service_access = ServiceAccess::QUERY_STATUS
             | ServiceAccess::STOP
             | ServiceAccess::DELETE
             | ServiceAccess::START;
-        let service = self
+        let service = match self
             .service_manager
-            .open_service(&self.service_name, service_access)?;
-        service.query_status()
+            .open_service(&self.service_name, service_access) {
+                Ok(service) => service,
+                Err(_) => return ServiceState::NotInstalled
+            };
+        match service.query_status().unwrap().current_state {
+            windows_service::service::ServiceState::Stopped | windows_service::service::ServiceState::StartPending =>ServiceState::Stopped,
+           _ => ServiceState::Started,
+        }
     }
 
     pub fn is_installed(&self) -> bool {
-        let service_access = ServiceAccess::QUERY_STATUS
-            | ServiceAccess::STOP
-            | ServiceAccess::DELETE
-            | ServiceAccess::START;
-        self.service_manager
-            .open_service(&self.service_name, service_access)
-            .is_ok()
+    self.query_status() != ServiceState::NotInstalled
     }
 }
