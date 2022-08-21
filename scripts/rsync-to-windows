@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 source $(dirname $0)/.env
+
 sshpass -p "${QUICKEMU_PASSWORD}" ssh -p 22220 Quickemu@localhost << EOF
 if not exist "C:\Users\Quickemu\daemon-slayer" (
     mkdir "C:\Users\Quickemu\daemon-slayer"
