@@ -59,8 +59,11 @@ pub async fn run_app() {
             manager.stop().unwrap();
             manager.uninstall().unwrap();
         }
-        "-r" => run_service().await,
+        "-r" => {
+            run_service().await;
+        },
         _ => {
+            #[cfg(feature = "direct")]
             run_service_main().await;
         }
     }

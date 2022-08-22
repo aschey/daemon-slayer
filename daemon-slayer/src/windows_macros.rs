@@ -129,8 +129,9 @@ macro_rules! define_service {
         }
 
         $crate::paste::paste! {
-            pub async fn $service_func_name() {
+            pub async fn $service_func_name() -> u32 {
                 $crate::windows_service::service_dispatcher::start($service_handler::get_service_name(), [<func_ $service_func_name>]).unwrap();
+                0
             }
 
             pub async fn [<$service_func_name _main>]() -> u32 {
@@ -161,8 +162,9 @@ macro_rules! define_service {
         }
 
         $crate::paste::paste! {
-            pub fn $service_func_name() {
+            pub fn $service_func_name() -> u32 {
                 $crate::windows_service::service_dispatcher::start($service_handler::get_service_name(), [<func_ $service_func_name>]).unwrap();
+                0
             }
 
             $crate::__internal_direct_handler!([<$service_func_name _main>], $service_handler);

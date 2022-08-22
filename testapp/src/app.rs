@@ -56,7 +56,9 @@ pub fn run_app() {
             manager.stop().unwrap();
             manager.uninstall().unwrap();
         }
-        "-r" => run_service(),
+        "-r" => {
+            run_service();
+        }
         _ => {
             #[cfg(feature = "direct")]
             run_service_main();
