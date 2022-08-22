@@ -1,11 +1,11 @@
 #[cfg(feature = "async-tokio")]
 #[macro_export]
 macro_rules! define_service {
-    ($service_name:ident, $service_func_name:ident, $define_handler:expr, $on_stop:expr, $service_main_func:ident) => {
+    ($service_func_name:ident, $service_handler:ident) => {
         $crate::paste::paste! {
             pub async fn [<$service_func_name _main>]() -> u32 {
-                let (sender, receiver) = $define_handler;
-                let sender_ = sender.clone();
+                let mut handler = $service_handler::new();
+                let stop_handler = handler.get_stop_handler();
 
                 let signals = $crate::signal_hook_tokio::Signals::new(&[
                     $crate::signal_hook::consts::signal::SIGHUP,
@@ -27,14 +27,14 @@ macro_rules! define_service {
                             | $crate::signal_hook::consts::signal::SIGINT
                             | $crate::signal_hook::consts::signal::SIGQUIT
                             | $crate::signal_hook::consts::signal::SIGHUP => {
-                                $on_stop(sender_.clone()).await;
+                                stop_handler().await;
                             }
                             _ => {}
                         }
                     }
                 });
 
-                let status = $service_main_func(sender, receiver).await;
+                let status = handler.run_service().await;
                 signals_handle.close();
                 signals_task.await.unwrap();
                 status
@@ -50,11 +50,11 @@ macro_rules! define_service {
 #[cfg(not(feature = "async-tokio"))]
 #[macro_export]
 macro_rules! define_service {
-    ($service_name:ident, $service_func_name:ident, $define_handler:expr, $on_stop:expr, $service_main_func:ident) => {
+    ($service_func_name:ident, $service_handler:ident) => {
         $crate::paste::paste! {
             pub fn [<$service_func_name _main>]() -> u32 {
-                let (sender, receiver) = $define_handler;
-                let sender_ = sender.clone();
+                let mut handler = $service_handler::new();
+                let stop_handler = handler.get_stop_handler();
 
                 std::thread::spawn(move || {
                     let mut signals = $crate::signal_hook::iterator::Signals::new(&[
@@ -71,14 +71,14 @@ macro_rules! define_service {
                             | $crate::signal_hook::consts::signal::SIGINT
                             | $crate::signal_hook::consts::signal::SIGQUIT
                             | $crate::signal_hook::consts::signal::SIGHUP => {
-                                $on_stop(sender_.clone());
+                                stop_handler();
                             }
                             _ => {}
                         }
                     }
                 });
 
-                $service_main_func(sender, receiver)
+                handler.run_service()
             }
 
             pub fn $service_func_name()  {
