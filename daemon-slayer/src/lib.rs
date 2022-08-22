@@ -27,6 +27,7 @@ pub mod platform {
 }
 
 pub use paste;
+#[cfg(any(unix, feature = "direct"))]
 pub use signal_hook;
 #[cfg(windows)]
 pub use windows_service;

@@ -9,11 +9,11 @@ use daemon_slayer::{
 #[test]
 fn test_service() {
     // Run a build to ensure test app is up-to-date
-    Command::new("cargo")
-        .arg("build")
-        .current_dir(env::var("CARGO_WORKSPACE_DIR").unwrap())
-        .output()
-        .unwrap();
+    // Command::new("cargo")
+    //     .arg("build")
+    //     .current_dir(env::var("CARGO_WORKSPACE_DIR").unwrap())
+    //     .output()
+    //     .unwrap();
 
     let manager = Manager::new(ServiceConfig::new("daemon_slayer_test_service")).unwrap();
     if manager.query_status().unwrap() != ServiceStatus::NotInstalled {

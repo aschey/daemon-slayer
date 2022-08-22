@@ -59,6 +59,59 @@ macro_rules! __internal_utils {
     };
 }
 
+#[cfg(all(feature = "async-tokio", feature = "direct"))]
+#[macro_export]
+macro_rules! __internal_direct_handler {
+    ($func_name: ident, $service_handler: ident) => {
+        pub async fn $func_name() -> u32 {
+            let mut handler = $service_handler::new();
+            let stop_handler = handler.get_stop_handler();
+            $crate::tokio::spawn(async move {
+                $crate::tokio::signal::ctrl_c().await.unwrap();
+                stop_handler().await;
+            });
+
+            handler.run_service().await
+        }
+    };
+}
+
+#[cfg(all(not(feature = "async-tokio"), feature = "direct"))]
+#[macro_export]
+macro_rules! __internal_direct_handler {
+    ($func_name: ident, $service_handler: ident) => {
+        pub fn $func_name() -> u32 {
+            let mut handler = $service_handler::new();
+            let stop_handler = handler.get_stop_handler();
+            std::thread::spawn(move || {
+                let term = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+                $crate::signal_hook::flag::register(
+                    $crate::signal_hook::consts::SIGTERM,
+                    std::sync::Arc::clone(&term),
+                )
+                .unwrap();
+                $crate::signal_hook::flag::register(
+                    $crate::signal_hook::consts::SIGINT,
+                    std::sync::Arc::clone(&term),
+                )
+                .unwrap();
+                while !term.load(std::sync::atomic::Ordering::Relaxed) {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+                stop_handler();
+            });
+
+            handler.run_service()
+        }
+    };
+}
+
+#[cfg(not(feature = "direct"))]
+#[macro_export]
+macro_rules! __internal_direct_handler {
+    ($func_name: ident, $service_handler: ident) => {};
+}
+
 #[cfg(feature = "async-tokio")]
 #[macro_export]
 macro_rules! define_service {
@@ -112,23 +165,7 @@ macro_rules! define_service {
                 $crate::windows_service::service_dispatcher::start($service_handler::get_service_name(), [<func_ $service_func_name>]).unwrap();
             }
 
-            pub fn [<$service_func_name _main>]() -> u32 {
-                let mut handler = $service_handler::new();
-                let stop_handler = handler.get_stop_handler();
-                std::thread::spawn(move || {
-                    let term = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-                    $crate::signal_hook::flag::register($crate::signal_hook::consts::SIGTERM, std::sync::Arc::clone(&term)).unwrap();
-                    $crate::signal_hook::flag::register($crate::signal_hook::consts::SIGINT, std::sync::Arc::clone(&term)).unwrap();
-                    while !term.load(std::sync::atomic::Ordering::Relaxed) {
-                        std::thread::sleep(std::time::Duration::from_millis(10));
-                    }
-                    stop_handler();
-                });
-
-
-
-                handler.run_service()
-            }
+            $crate::__internal_direct_handler!([<$service_func_name _main>], $service_handler);
         }
     };
 }

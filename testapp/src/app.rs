@@ -58,6 +58,7 @@ pub fn run_app() {
         }
         "-r" => run_service(),
         _ => {
+            #[cfg(feature = "direct")]
             run_service_main();
         }
     }
