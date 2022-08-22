@@ -1,15 +1,20 @@
+use eyre::Context;
 use systemd_client::{
-    create_unit_configuration_file, delete_unit_configuration_file, manager, unit,
-    ServiceConfiguration, ServiceUnitConfiguration, UnitActiveStateType, UnitConfiguration,
+    create_unit_configuration_file, delete_unit_configuration_file,
+    manager::{self, SystemdManagerProxyBlocking},
+    unit, ServiceConfiguration, ServiceUnitConfiguration, UnitActiveStateType, UnitConfiguration,
     UnitLoadStateType, UnitSubStateType,
 };
 
 use crate::{
-    service_config::ServiceConfig, service_manager::ServiceManager, service_status::ServiceStatus,
+    service_config::ServiceConfig,
+    service_manager::{Result, ServiceManager},
+    service_status::ServiceStatus,
 };
 
 pub struct Manager {
     config: ServiceConfig,
+    client: SystemdManagerProxyBlocking<'static>,
 }
 
 impl Manager {
@@ -18,11 +23,13 @@ impl Manager {
     }
 }
 impl ServiceManager for Manager {
-    fn new(config: ServiceConfig) -> Self {
-        Self { config }
+    fn new(config: ServiceConfig) -> Result<Self> {
+        let client =
+            manager::build_blocking_proxy().wrap_err_with(|| "Error creating systemd proxy")?;
+        Ok(Self { config, client })
     }
 
-    fn install(&self) {
+    fn install(&self) -> Result<()> {
         let unit_config = UnitConfiguration::builder().description(&self.config.description);
 
         let service_config = ServiceConfiguration::builder()
@@ -32,45 +39,62 @@ impl ServiceManager for Manager {
             .service(service_config)
             .build();
         let svc_unit_literal = format!("{}", svc_unit);
+
         create_unit_configuration_file(&self.service_file_name(), svc_unit_literal.as_bytes())
-            .unwrap();
+            .wrap_err_with(|| "Error creating systemd config file")?;
+        Ok(())
     }
 
-    fn uninstall(&self) {
-        let _ = delete_unit_configuration_file(&self.service_file_name());
+    fn uninstall(&self) -> Result<()> {
+        delete_unit_configuration_file(&self.service_file_name())
+            .wrap_err_with(|| "Error removing systemd config file")?;
+        Ok(())
     }
 
-    fn start(&self) {
-        let client = manager::build_blocking_proxy().unwrap();
-        client
+    fn start(&self) -> Result<()> {
+        self.client
             .start_unit(&self.service_file_name(), "replace")
-            .unwrap();
+            .wrap_err_with(|| "Error starting systemd unit")?;
+        Ok(())
     }
 
-    fn stop(&self) {
-        if self.query_status() == ServiceStatus::Started {
-            let client = manager::build_blocking_proxy().unwrap();
-            client
+    fn stop(&self) -> Result<()> {
+        if self.query_status()? == ServiceStatus::Started {
+            self.client
                 .stop_unit(&self.service_file_name(), "replace")
-                .unwrap();
+                .wrap_err_with(|| "Error stopping systemd unit")?;
         }
+
+        Ok(())
     }
 
-    fn query_status(&self) -> ServiceStatus {
-        let client = manager::build_blocking_proxy().unwrap();
-        client.reload().unwrap();
-        client.reset_failed().unwrap();
+    fn query_status(&self) -> Result<ServiceStatus> {
+        self.client
+            .reload()
+            .wrap_err_with(|| "Error reloading systemd units")?;
 
-        let svc_unit_path = client.load_unit(&self.service_file_name()).unwrap();
+        self.client
+            .reset_failed()
+            .wrap_err_with(|| "Error reseting failed unit state")?;
 
-        let client = unit::build_blocking_proxy(svc_unit_path).unwrap();
-        let props = client.get_properties().unwrap();
+        let svc_unit_path = self
+            .client
+            .load_unit(&self.service_file_name())
+            .wrap_err_with(|| "Error loading systemd unit")?;
+
+        let unit_client = unit::build_blocking_proxy(svc_unit_path)
+            .wrap_err_with(|| "Error creating unit client")?;
+
+        let props = unit_client
+            .get_properties()
+            .wrap_err_with(|| "Error getting properties")?;
+
         match (props.load_state, props.active_state, props.sub_state) {
             (UnitLoadStateType::Loaded, UnitActiveStateType::Active, UnitSubStateType::Running) => {
-                ServiceStatus::Started
+                Ok(ServiceStatus::Started)
             }
-            (UnitLoadStateType::NotFound, _, _) => ServiceStatus::NotInstalled,
-            _ => ServiceStatus::Stopped,
+            (UnitLoadStateType::NotFound, _, _) => Ok(ServiceStatus::NotInstalled),
+            _ => Ok(ServiceStatus::Stopped),
         }
     }
 }

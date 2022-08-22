@@ -27,7 +27,7 @@ macro_rules! define_service {
                             | $crate::signal_hook::consts::signal::SIGINT
                             | $crate::signal_hook::consts::signal::SIGQUIT
                             | $crate::signal_hook::consts::signal::SIGHUP => {
-                                $on_stop(&sender_);
+                                $on_stop(sender_.clone()).await;
                             }
                             _ => {}
                         }
@@ -71,7 +71,7 @@ macro_rules! define_service {
                             | $crate::signal_hook::consts::signal::SIGINT
                             | $crate::signal_hook::consts::signal::SIGQUIT
                             | $crate::signal_hook::consts::signal::SIGHUP => {
-                                $on_stop(&sender_);
+                                $on_stop(sender_.clone());
                             }
                             _ => {}
                         }

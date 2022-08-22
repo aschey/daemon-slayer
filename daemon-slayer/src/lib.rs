@@ -32,7 +32,7 @@ pub use paste;
 #[cfg(windows)]
 pub use windows_service;
 
-#[cfg(unix)]
+#[cfg(feature = "async-tokio")]
 pub use futures;
 #[cfg(unix)]
 pub use signal_hook;

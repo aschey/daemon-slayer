@@ -232,6 +232,7 @@ dependencies = [
  "assert_cmd",
  "clap",
  "ctrlc",
+ "eyre",
  "futures",
  "launchd",
  "paste",
@@ -239,6 +240,7 @@ dependencies = [
  "signal-hook-tokio",
  "systemd_client",
  "tokio",
+ "tracing",
  "windows-service",
 ]
 
@@ -331,6 +333,16 @@ name = "event-listener"
 version = "2.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
+
+[[package]]
+name = "eyre"
+version = "0.6.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c2b6b5a29c02cdc822728b7d7b8ae1bab3e3b05d44522770ddd49722eeac7eb"
+dependencies = [
+ "indenter",
+ "once_cell",
+]
 
 [[package]]
 name = "fastrand"
@@ -476,6 +488,12 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
+name = "indenter"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexmap"
@@ -1056,7 +1074,7 @@ dependencies = [
 [[package]]
 name = "systemd_client"
 version = "0.2.1"
-source = "git+https://github.com/aschey/systemd-client?rev=acd8edf737de8bd1b57df65e5d333f2c73c76060#acd8edf737de8bd1b57df65e5d333f2c73c76060"
+source = "git+https://github.com/aschey/systemd-client?rev=964f544fe7a24dc59429f3534f8b58fd13a7d627#964f544fe7a24dc59429f3534f8b58fd13a7d627"
 dependencies = [
  "thiserror",
  "tracing",

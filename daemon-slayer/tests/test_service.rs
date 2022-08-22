@@ -15,13 +15,13 @@ fn test_service() {
         .output()
         .unwrap();
 
-    let manager = Manager::new(ServiceConfig::new("daemon_slayer_test_service"));
-    if manager.query_status() != ServiceStatus::NotInstalled {
-        manager.stop();
-        manager.uninstall();
+    let manager = Manager::new(ServiceConfig::new("daemon_slayer_test_service")).unwrap();
+    if manager.query_status().unwrap() != ServiceStatus::NotInstalled {
+        manager.stop().unwrap();
+        manager.uninstall().unwrap();
 
         loop {
-            let status = manager.query_status();
+            let status = manager.query_status().unwrap();
             println!("Waiting for uninstall: {status:?}");
             if status == ServiceStatus::NotInstalled {
                 break;
@@ -37,17 +37,17 @@ fn test_service() {
         .unwrap();
 
     loop {
-        let status = manager.query_status();
+        let status = manager.query_status().unwrap();
         println!("Waiting for start: {status:?}");
         if status == ServiceStatus::Started {
             break;
         }
         thread::sleep(Duration::from_millis(100));
     }
-    manager.stop();
+    manager.stop().unwrap();
 
     loop {
-        let status = manager.query_status();
+        let status = manager.query_status().unwrap();
         println!("Waiting for stop: {status:?}");
         if status == ServiceStatus::Stopped {
             break;
@@ -61,7 +61,7 @@ fn test_service() {
         .output()
         .unwrap();
     loop {
-        let status = manager.query_status();
+        let status = manager.query_status().unwrap();
         println!("Waiting for uninstall: {status:?}");
         if status == ServiceStatus::NotInstalled {
             break;
