@@ -36,9 +36,9 @@ pub use windows_service;
 pub use futures;
 #[cfg(unix)]
 pub use signal_hook;
-#[cfg(all(unix, feature = "tokio"))]
+#[cfg(all(unix, feature = "async-tokio"))]
 pub use signal_hook_tokio;
-#[cfg(all(unix, feature = "tokio"))]
+#[cfg(feature = "async-tokio")]
 pub use tokio;
 
 pub mod service_config;

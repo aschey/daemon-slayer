@@ -8,13 +8,16 @@ const SERVICE_NAME: &str = "daemon_slayer_test_service";
 define_service!(
     SERVICE_NAME,
     run_service,
-    std::sync::mpsc::channel(),
-    |sender: &std::sync::mpsc::Sender<()>| sender.send(()).unwrap(),
+    tokio::sync::mpsc::channel(32),
+    |sender: &tokio::sync::mpsc::Sender<()>| sender.blocking_send(()).unwrap(),
     handle_service
 );
 
-pub fn handle_service(_: std::sync::mpsc::Sender<()>, rx: std::sync::mpsc::Receiver<()>) -> u32 {
-    rx.recv().unwrap();
+pub async fn handle_service(
+    _: tokio::sync::mpsc::Sender<()>,
+    mut rx: tokio::sync::mpsc::Receiver<()>,
+) -> u32 {
+    rx.recv().await.unwrap();
     0
 }
 
@@ -41,7 +44,7 @@ pub async fn main() {
             manager.stop();
             manager.uninstall();
         }
-        "-r" => run_service(),
+        "-r" => run_service().await,
         _ => {}
     }
 }

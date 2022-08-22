@@ -7,4 +7,4 @@ version = "0.1.0"
 
 [dependencies]
 daemon-slayer = {path = "../daemon-slayer"}
-tokio = {version = "1.20.1", features = ["rt-multi-thread", "macros"]}
+tokio = {version = "1.20.1", features = ["rt-multi-thread", "macros", "sync"]}
