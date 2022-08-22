@@ -5,8 +5,7 @@ version = "0.1.0"
 
 [features]
 async-tokio = ["tokio", "daemon-slayer/async-tokio"]
-default = ["sync"]
-sync = ["daemon-slayer/sync"]
+
 [dependencies]
 daemon-slayer = {path = "../daemon-slayer", default_features = false}
 tokio = {version = "1.20.1", features = ["rt-multi-thread", "macros", "sync"], optional = true}

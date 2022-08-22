@@ -115,10 +115,17 @@ macro_rules! define_service {
             pub fn [<$service_func_name _main>]() -> u32 {
                 let mut handler = $service_handler::new();
                 let stop_handler = handler.get_stop_handler();
-                $crate::ctrlc::set_handler(move || {
+                std::thread::spawn(move || {
+                    let term = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+                    $crate::signal_hook::flag::register($crate::signal_hook::consts::SIGTERM, std::sync::Arc::clone(&term)).unwrap();
+                    $crate::signal_hook::flag::register($crate::signal_hook::consts::SIGINT, std::sync::Arc::clone(&term)).unwrap();
+                    while !term.load(std::sync::atomic::Ordering::Relaxed) {
+                        std::thread::sleep(std::time::Duration::from_millis(10));
+                    }
                     stop_handler();
-                })
-                .unwrap();
+                });
+
+
 
                 handler.run_service()
             }

@@ -26,9 +26,8 @@ pub mod platform {
     pub use crate::mac::Manager;
 }
 
-#[cfg(all(windows, feature = "sync"))]
-pub use ctrlc;
 pub use paste;
+pub use signal_hook;
 #[cfg(windows)]
 pub use windows_service;
 
