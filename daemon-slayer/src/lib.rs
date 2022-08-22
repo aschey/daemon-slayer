@@ -26,12 +26,14 @@ pub mod platform {
     pub use crate::mac::Manager;
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "sync"))]
 pub use ctrlc;
 pub use paste;
 #[cfg(windows)]
 pub use windows_service;
 
+#[cfg(feature = "async-tokio")]
+pub use async_trait;
 #[cfg(feature = "async-tokio")]
 pub use futures;
 #[cfg(unix)]
