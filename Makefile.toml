@@ -1,0 +1,10 @@
+[tasks.test]
+args = ["hack", "--feature-powerset", "test", "--", "--nocapture"]
+clear = true
+command = "cargo"
+install_crate = "cargo-hack"
+
+[tasks.clippy]
+args = ["hack", "--feature-powerset", "--no-dev-deps", "clippy", "--", "-D", "warnings"]
+command = "cargo"
+install_crate = "cargo-hack"

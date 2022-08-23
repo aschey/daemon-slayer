@@ -33,6 +33,7 @@ macro_rules! __internal_direct_handler {
 macro_rules! define_service {
     ($service_func_name:ident, $service_handler:ident) => {
         pub async fn $service_func_name() -> u32 {
+            use daemon_slayer::service_manager::{ServiceHandler, StopHandler};
             let mut handler = $service_handler::new();
             let stop_handler = handler.get_stop_handler();
 
@@ -78,6 +79,7 @@ macro_rules! define_service {
 macro_rules! define_service {
     ($service_func_name:ident, $service_handler:ident) => {
         pub fn $service_func_name() -> u32 {
+            use daemon_slayer::service_manager::{ServiceHandler, StopHandler};
             let mut handler = $service_handler::new();
             let stop_handler = handler.get_stop_handler();
 

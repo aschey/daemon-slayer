@@ -3,14 +3,16 @@ use daemon_slayer::{
     platform::Manager, service_config::ServiceConfig, service_manager::ServiceManager,
     service_status::ServiceStatus,
 };
-use std::{env, thread, time::Duration};
+use std::{thread, time::Duration};
 
 #[test]
 fn test_service() {
     let manager = Manager::new(ServiceConfig::new("daemon_slayer_test_service")).unwrap();
     if manager.query_status().unwrap() != ServiceStatus::NotInstalled {
         manager.stop().unwrap();
+        thread::sleep(Duration::from_millis(100));
         manager.uninstall().unwrap();
+        thread::sleep(Duration::from_millis(100));
 
         loop {
             let status = manager.query_status().unwrap();
@@ -60,4 +62,5 @@ fn test_service() {
         }
         thread::sleep(Duration::from_millis(100));
     }
+    thread::sleep(Duration::from_millis(100));
 }

@@ -24,8 +24,7 @@ impl Manager {
 }
 impl ServiceManager for Manager {
     fn new(config: ServiceConfig) -> Result<Self> {
-        let client =
-            manager::build_blocking_proxy().wrap_err_with(|| "Error creating systemd proxy")?;
+        let client = manager::build_blocking_proxy().wrap_err("Error creating systemd proxy")?;
         Ok(Self { config, client })
     }
 
@@ -41,20 +40,20 @@ impl ServiceManager for Manager {
         let svc_unit_literal = format!("{}", svc_unit);
 
         create_unit_configuration_file(&self.service_file_name(), svc_unit_literal.as_bytes())
-            .wrap_err_with(|| "Error creating systemd config file")?;
+            .wrap_err("Error creating systemd config file")?;
         Ok(())
     }
 
     fn uninstall(&self) -> Result<()> {
         delete_unit_configuration_file(&self.service_file_name())
-            .wrap_err_with(|| "Error removing systemd config file")?;
+            .wrap_err("Error removing systemd config file")?;
         Ok(())
     }
 
     fn start(&self) -> Result<()> {
         self.client
             .start_unit(&self.service_file_name(), "replace")
-            .wrap_err_with(|| "Error starting systemd unit")?;
+            .wrap_err("Error starting systemd unit")?;
         Ok(())
     }
 
@@ -62,7 +61,7 @@ impl ServiceManager for Manager {
         if self.query_status()? == ServiceStatus::Started {
             self.client
                 .stop_unit(&self.service_file_name(), "replace")
-                .wrap_err_with(|| "Error stopping systemd unit")?;
+                .wrap_err("Error stopping systemd unit")?;
         }
 
         Ok(())
@@ -71,23 +70,23 @@ impl ServiceManager for Manager {
     fn query_status(&self) -> Result<ServiceStatus> {
         self.client
             .reload()
-            .wrap_err_with(|| "Error reloading systemd units")?;
+            .wrap_err("Error reloading systemd units")?;
 
         self.client
             .reset_failed()
-            .wrap_err_with(|| "Error reseting failed unit state")?;
+            .wrap_err("Error reseting failed unit state")?;
 
         let svc_unit_path = self
             .client
             .load_unit(&self.service_file_name())
-            .wrap_err_with(|| "Error loading systemd unit")?;
+            .wrap_err("Error loading systemd unit")?;
 
-        let unit_client = unit::build_blocking_proxy(svc_unit_path)
-            .wrap_err_with(|| "Error creating unit client")?;
+        let unit_client =
+            unit::build_blocking_proxy(svc_unit_path).wrap_err("Error creating unit client")?;
 
         let props = unit_client
             .get_properties()
-            .wrap_err_with(|| "Error getting properties")?;
+            .wrap_err("Error getting properties")?;
 
         match (props.load_state, props.active_state, props.sub_state) {
             (UnitLoadStateType::Loaded, UnitActiveStateType::Active, UnitSubStateType::Running) => {
