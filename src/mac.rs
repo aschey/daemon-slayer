@@ -4,10 +4,13 @@ use std::{
     process::{Command, Stdio},
 };
 
+use eyre::Context;
 use launchd::Launchd;
 
 use crate::{
-    service_config::ServiceConfig, service_manager::ServiceManager, service_status::ServiceStatus,
+    service_config::ServiceConfig,
+    service_manager::{Result, ServiceManager},
+    service_status::ServiceStatus,
 };
 
 pub struct Manager {
@@ -15,20 +18,22 @@ pub struct Manager {
 }
 
 impl Manager {
-    fn run_launchctl(&self, args: Vec<&str>) -> String {
+    fn run_launchctl(&self, args: Vec<&str>) -> Result<String> {
         let output = Command::new("launchctl")
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .args(args)
             .output()
-            .unwrap();
+            .wrap_err("Error running launchctl")?;
 
-        if output.status.success() {
-            String::from_utf8(output.stdout).unwrap()
+        let out_bytes = if output.status.success() {
+            output.stdout
         } else {
-            String::from_utf8(output.stderr).unwrap()
-        }
+            output.stderr
+        };
+        let out = String::from_utf8(out_bytes).wrap_err("Error reading output")?;
+        Ok(out)
     }
 
     fn get_plist_path(&self) -> PathBuf {
@@ -37,40 +42,44 @@ impl Manager {
 }
 
 impl ServiceManager for Manager {
-    fn new(config: ServiceConfig) -> Self {
-        Self { config }
+    fn new(config: ServiceConfig) -> Result<Self> {
+        Ok(Self { config })
     }
 
-    fn install(&self) {
+    fn install(&self) -> Result<()> {
         let file = Launchd::new(&self.config.name, &self.config.program)
-            .unwrap()
+            .wrap_err("Error creating config")?
             .with_program_arguments(self.config.args_iter().map(|a| a.to_owned()).collect());
 
         let path = self.get_plist_path();
-        file.to_writer_xml(std::fs::File::create(&path).unwrap())
-            .unwrap();
+        file.to_writer_xml(std::fs::File::create(&path).wrap_err("Error creating config file")?)
+            .wrap_err("Error writing config file")?;
 
-        self.run_launchctl(vec!["load", &path.to_string_lossy()]);
+        self.run_launchctl(vec!["load", &path.to_string_lossy()])?;
+        Ok(())
     }
 
-    fn uninstall(&self) {
+    fn uninstall(&self) -> Result<()> {
         let path = self.get_plist_path();
-        self.run_launchctl(vec!["unload", &path.to_string_lossy()]);
-        fs::remove_file(path).unwrap();
+        self.run_launchctl(vec!["unload", &path.to_string_lossy()])?;
+        fs::remove_file(path).wrap_err("Error removing config file")?;
+        Ok(())
     }
 
-    fn start(&self) {
-        self.run_launchctl(vec!["start", &self.config.name]);
+    fn start(&self) -> Result<()> {
+        self.run_launchctl(vec!["start", &self.config.name])?;
+        Ok(())
     }
 
-    fn stop(&self) {
-        self.run_launchctl(vec!["stop", &self.config.name]);
+    fn stop(&self) -> Result<()> {
+        self.run_launchctl(vec!["stop", &self.config.name])?;
+        Ok(())
     }
 
-    fn query_status(&self) -> ServiceStatus {
-        let output = self.run_launchctl(vec!["print", &format!("system/{}", self.config.name)]);
+    fn query_status(&self) -> Result<ServiceStatus> {
+        let output = self.run_launchctl(vec!["print", &format!("system/{}", self.config.name)])?;
         if output.starts_with("Could not find service") {
-            return ServiceStatus::NotInstalled;
+            return Ok(ServiceStatus::NotInstalled);
         }
         let s = output
             .split('\n')
@@ -80,15 +89,15 @@ impl ServiceManager for Manager {
                 line.split('=')
                     .collect::<Vec<_>>()
                     .get(1)
-                    .unwrap()
+                    .unwrap_or(&"")
                     .to_string()
             })
             .collect::<Vec<_>>();
 
         if s[0].trim() == "running" {
-            ServiceStatus::Started
+            Ok(ServiceStatus::Started)
         } else {
-            ServiceStatus::Stopped
+            Ok(ServiceStatus::Stopped)
         }
     }
 }
