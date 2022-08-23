@@ -1,20 +1,12 @@
-use std::{env, thread, time::Duration};
-
 use assert_cmd::Command;
 use daemon_slayer::{
     platform::Manager, service_config::ServiceConfig, service_manager::ServiceManager,
     service_status::ServiceStatus,
 };
+use std::{env, thread, time::Duration};
 
 #[test]
 fn test_service() {
-    // Run a build to ensure test app is up-to-date
-    // Command::new("cargo")
-    //     .arg("build")
-    //     .current_dir(env::var("CARGO_WORKSPACE_DIR").unwrap())
-    //     .output()
-    //     .unwrap();
-
     let manager = Manager::new(ServiceConfig::new("daemon_slayer_test_service")).unwrap();
     if manager.query_status().unwrap() != ServiceStatus::NotInstalled {
         manager.stop().unwrap();
@@ -30,7 +22,7 @@ fn test_service() {
         }
     }
 
-    Command::cargo_bin("testapp")
+    Command::cargo_bin("bin_fixture")
         .unwrap()
         .arg("-i")
         .output()
@@ -55,7 +47,7 @@ fn test_service() {
         thread::sleep(Duration::from_millis(100));
     }
 
-    Command::cargo_bin("testapp")
+    Command::cargo_bin("bin_fixture")
         .unwrap()
         .arg("-u")
         .output()

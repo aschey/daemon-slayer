@@ -17,6 +17,9 @@ futures = "0.3.23"
 paste = "1.0.8"
 tracing = "0.1.36"
 
+[[bin]]
+name = "bin_fixture"
+
 [target.'cfg(windows)'.dependencies]
 signal-hook = {version = "0.3.14", optional = true}
 tokio = {version = "1.20.1", features = ["rt-multi-thread", "signal"], optional = true}

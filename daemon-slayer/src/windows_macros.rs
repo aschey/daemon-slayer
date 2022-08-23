@@ -6,6 +6,8 @@ macro_rules! __internal_utils {
         }
     };
     (@start_service $handler_type: ident, $handler: ident, $on_stop: expr, $status_handle: ident) => {
+        use daemon_slayer::service_manager::{ServiceHandler, StopHandler};
+
         let stop_handler = $handler.get_stop_handler();
         let event_handler = move |control_event| -> $crate::windows_service::service_control_handler::ServiceControlHandlerResult {
             match control_event {
@@ -163,6 +165,7 @@ macro_rules! define_service {
 
         $crate::paste::paste! {
             pub fn $service_func_name() -> u32 {
+                use daemon_slayer::service_manager::{ServiceHandler, StopHandler};
                 $crate::windows_service::service_dispatcher::start($service_handler::get_service_name(), [<func_ $service_func_name>]).unwrap();
                 0
             }

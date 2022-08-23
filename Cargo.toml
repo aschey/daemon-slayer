@@ -1,3 +1,3 @@
 [workspace]
-members = ["daemon-slayer", "testapp"]
+members = ["daemon-slayer"]
 resolver = "2"
