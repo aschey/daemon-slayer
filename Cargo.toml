@@ -1,3 +1,39 @@
-[workspace]
-members = ["daemon-slayer"]
-resolver = "2"
+[package]
+edition = "2021"
+name = "daemon-slayer"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+async-tokio = ["tokio", "signal-hook-tokio", "async-trait"]
+default = ["async-tokio"]
+direct = ["signal-hook"]
+
+[dependencies]
+async-trait = {version = "0.1.57", optional = true}
+clap = "3.2.17"
+eyre = "0.6.8"
+futures = "0.3.23"
+paste = "1.0.8"
+tracing = "0.1.36"
+
+[[bin]]
+name = "bin_fixture"
+
+[target.'cfg(windows)'.dependencies]
+signal-hook = {version = "0.3.14", optional = true}
+tokio = {version = "1.20.1", features = ["rt-multi-thread", "signal", "macros", "sync"], optional = true}
+windows-service = "0.5"
+
+[target.'cfg(unix)'.dependencies]
+signal-hook = "0.3.14"
+signal-hook-tokio = {version = "0.3.1", features = ["futures-v0_3"], optional = true}
+systemd_client = {git = "https://github.com/aschey/systemd-client", rev = "964f544fe7a24dc59429f3534f8b58fd13a7d627"}
+tokio = {version = "1.20.1", features = ["rt-multi-thread", "macros", "sync"], optional = true}
+
+[target.'cfg(target_os = "macos")'.dependencies]
+launchd = "0.2.0"
+
+[dev-dependencies]
+assert_cmd = "2.0.4"

@@ -108,6 +108,7 @@ mod app {
 
 #[cfg(feature = "async-tokio")]
 mod app {
+    use async_trait::async_trait;
     use daemon_slayer::service_manager::{ServiceHandler, StopHandler};
     pub struct Handler {
         tx: tokio::sync::mpsc::Sender<()>,
