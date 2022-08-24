@@ -32,7 +32,7 @@ pub trait ServiceHandler {
     fn new() -> Self;
     fn get_service_name<'a>() -> &'a str;
     fn get_stop_handler(&mut self) -> StopHandler;
-    async fn run_service(&mut self) -> u32;
+    async fn run_service(mut self) -> u32;
 }
 
 #[cfg(not(feature = "async-tokio"))]
@@ -40,5 +40,5 @@ pub trait ServiceHandler {
     fn new() -> Self;
     fn get_service_name<'a>() -> &'a str;
     fn get_stop_handler(&mut self) -> StopHandler;
-    fn run_service(&mut self) -> u32;
+    fn run_service(mut self) -> u32;
 }

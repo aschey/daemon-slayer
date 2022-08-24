@@ -32,6 +32,21 @@ fn test_service() {
 
     loop {
         let status = manager.query_status().unwrap();
+        println!("Waiting for install: {status:?}");
+        if status != ServiceStatus::NotInstalled {
+            break;
+        }
+        thread::sleep(Duration::from_millis(100));
+    }
+
+    Command::cargo_bin("bin_fixture")
+        .unwrap()
+        .arg("-s")
+        .output()
+        .unwrap();
+
+    loop {
+        let status = manager.query_status().unwrap();
         println!("Waiting for start: {status:?}");
         if status == ServiceStatus::Started {
             break;

@@ -41,18 +41,25 @@ pub fn main() {
 
 #[cfg(feature = "async-tokio")]
 pub fn main() {
+    use daemon_slayer::{logging::LoggerBuilder, service_config::ServiceLevel};
+    use tracing_subscriber::util::SubscriberInitExt;
+
+    let (logger, _guard) = LoggerBuilder::new(Handler::get_service_name()).build();
+    logger.init();
+
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let config = ServiceConfig::new(Handler::get_service_name())
             .with_description("test service")
             .with_args(["-r"]);
+        //.with_service_level(ServiceLevel::User);
         let manager = Manager::new(config).unwrap();
+
         let args: Vec<String> = std::env::args().collect();
         let arg = if args.len() > 1 { &args[1] } else { "" };
         match arg {
             "-i" => {
                 manager.install().unwrap();
-                manager.start().unwrap();
             }
             "-s" => {
                 manager.start().unwrap();
@@ -66,6 +73,9 @@ pub fn main() {
             }
             "-r" => {
                 run_service().await;
+            }
+            "-q" => {
+                println!("{:?}", manager.query_status());
             }
             _ => {
                 #[cfg(feature = "direct")]
@@ -101,7 +111,7 @@ mod app {
             })
         }
 
-        fn run_service(&mut self) -> u32 {
+        fn run_service(mut self) -> u32 {
             self.rx.recv().unwrap();
             0
         }
@@ -113,6 +123,7 @@ mod app {
     use async_trait::async_trait;
     use daemon_slayer::service_manager::{ServiceHandler, StopHandler};
     use futures::{SinkExt, StreamExt};
+    use tracing::info;
     pub struct Handler {
         tx: futures::channel::mpsc::Sender<()>,
         rx: futures::channel::mpsc::Receiver<()>,
@@ -131,11 +142,15 @@ mod app {
             let tx = self.tx.clone();
             Box::new(move || {
                 let mut tx = tx.clone();
-                Box::pin(async move { tx.send(()).await.unwrap() })
+                Box::pin(async move {
+                    info!("stopping");
+                    tx.send(()).await.unwrap();
+                })
             })
         }
 
-        async fn run_service(&mut self) -> u32 {
+        async fn run_service(mut self) -> u32 {
+            info!("running service");
             self.rx.next().await;
             0
         }

@@ -1,11 +1,18 @@
 use std::env::current_exe;
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum ServiceLevel {
+    System,
+    User,
+}
+
 pub struct ServiceConfig {
     pub(crate) name: String,
     pub(crate) display_name: String,
     pub(crate) description: String,
     pub(crate) program: String,
     pub(crate) args: Vec<String>,
+    pub(crate) service_level: ServiceLevel,
 }
 
 impl ServiceConfig {
@@ -17,6 +24,7 @@ impl ServiceConfig {
             description: "".to_owned(),
             args: vec![],
             program: current_exe().unwrap().to_string_lossy().to_string(),
+            service_level: ServiceLevel::System,
         }
     }
 
@@ -40,10 +48,16 @@ impl ServiceConfig {
         self
     }
 
+    pub fn with_service_level(mut self, service_level: ServiceLevel) -> Self {
+        self.service_level = service_level;
+        self
+    }
+
     pub(crate) fn args_iter(&self) -> impl Iterator<Item = &String> {
         self.args.iter()
     }
 
+    #[cfg(target_os = "linux")]
     pub(crate) fn full_args_iter(&self) -> impl Iterator<Item = &String> {
         std::iter::once(&self.program).chain(self.args_iter())
     }

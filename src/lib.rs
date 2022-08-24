@@ -29,6 +29,7 @@ pub mod platform {
 pub use paste;
 #[cfg(any(unix, feature = "direct"))]
 pub use signal_hook;
+pub use tracing;
 #[cfg(windows)]
 pub use windows_service;
 
@@ -41,7 +42,8 @@ pub use futures;
 pub use signal_hook_tokio;
 #[cfg(feature = "async-tokio")]
 pub use tokio;
-
+#[cfg(feature = "logging")]
+pub mod logging;
 pub mod service_config;
 pub mod service_manager;
 pub mod service_status;
