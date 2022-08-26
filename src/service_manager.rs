@@ -6,11 +6,15 @@ use futures::Future;
 use std::pin::Pin;
 use std::{error::Error, result};
 
-use crate::{service_config::ServiceConfig, service_status::ServiceStatus};
+use crate::{service_builder::ServiceBuilder, service_status::ServiceStatus};
 
 pub type Result<T> = result::Result<T, Box<dyn Error>>;
 pub trait ServiceManager {
-    fn new(config: ServiceConfig) -> Result<Self>
+    fn builder(name: impl Into<String>) -> ServiceBuilder;
+    fn new(name: impl Into<String>) -> Result<Self>
+    where
+        Self: std::marker::Sized;
+    fn from_builder(builder: ServiceBuilder) -> Result<Self>
     where
         Self: std::marker::Sized;
     fn install(&self) -> Result<()>;

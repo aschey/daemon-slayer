@@ -12,13 +12,13 @@ use windows_service::{
 };
 
 use crate::{
-    service_config::{ServiceConfig, ServiceLevel},
+    service_builder::{ServiceBuilder, ServiceLevel},
     service_manager::{Result, ServiceManager},
     service_status::ServiceStatus,
 };
 
 pub struct Manager {
-    config: ServiceConfig,
+    config: ServiceBuilder,
 }
 
 impl Manager {
@@ -109,10 +109,17 @@ impl Manager {
 }
 
 impl ServiceManager for Manager {
-    fn new(config: ServiceConfig) -> Result<Self> {
-        Ok(Self { config })
+    fn builder(name: impl Into<String>) -> ServiceBuilder {
+        ServiceBuilder::new(name)
     }
 
+    fn new(name: impl Into<String>) -> Result<Self> {
+        ServiceBuilder::new(name).build()
+    }
+
+    fn from_builder(builder: ServiceBuilder) -> Result<Self> {
+        Ok(Self { config: builder })
+    }
     fn install(&self) -> Result<()> {
         if self.open_service(&self.config.name).is_err() {
             let service_info = ServiceInfo {

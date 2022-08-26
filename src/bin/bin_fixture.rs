@@ -2,7 +2,6 @@ use app::Handler;
 use daemon_slayer::{
     define_service,
     platform::Manager,
-    service_config::ServiceConfig,
     service_manager::{ServiceHandler, ServiceManager},
 };
 
@@ -41,7 +40,7 @@ pub fn main() {
 
 #[cfg(feature = "async-tokio")]
 pub fn main() {
-    use daemon_slayer::{logging::LoggerBuilder, service_config::ServiceLevel};
+    use daemon_slayer::{logging::LoggerBuilder, service_builder::ServiceLevel};
     use tracing_subscriber::util::SubscriberInitExt;
 
     let (logger, _guard) = LoggerBuilder::new(Handler::get_service_name()).build();
@@ -49,11 +48,12 @@ pub fn main() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let config = ServiceConfig::new(Handler::get_service_name())
-            .with_description("test service")
-            .with_args(["-r"]);
         //.with_service_level(ServiceLevel::User);
-        let manager = Manager::new(config).unwrap();
+        let manager = Manager::builder(Handler::get_service_name())
+            .with_description("test service")
+            .with_args(["-r"])
+            .build()
+            .unwrap();
 
         let args: Vec<String> = std::env::args().collect();
         let arg = if args.len() > 1 { &args[1] } else { "" };

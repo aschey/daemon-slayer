@@ -44,6 +44,6 @@ pub use signal_hook_tokio;
 pub use tokio;
 #[cfg(feature = "logging")]
 pub mod logging;
-pub mod service_config;
+pub mod service_builder;
 pub mod service_manager;
 pub mod service_status;
