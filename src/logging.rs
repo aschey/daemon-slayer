@@ -7,6 +7,7 @@ use tracing_appender::{
     non_blocking::{NonBlockingBuilder, WorkerGuard},
     rolling::{RollingFileAppender, Rotation},
 };
+use tracing_eventlog::{register, EventLogLayer};
 use tracing_subscriber::{
     fmt::{time::OffsetTime, Layer},
     prelude::__tracing_subscriber_SubscriberExt,
@@ -122,6 +123,11 @@ impl LoggerBuilder {
                     .with_filter(self.level_filter)
             })
             .with(tracing_error::ErrorLayer::default());
+
+        #[cfg(windows)]
+        register(&self.name).unwrap();
+        #[cfg(windows)]
+        let collector = collector.with(EventLogLayer::pretty(self.name).unwrap());
 
         (collector, guard)
     }
