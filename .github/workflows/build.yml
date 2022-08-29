@@ -19,4 +19,4 @@ jobs:
       - name: test
         run: |
           cargo install cargo-hack
-          cargo hack --feature-powerset --no-dev-deps build
+          cargo hack --feature-powerset --no-dev-deps test
