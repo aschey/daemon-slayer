@@ -24,4 +24,5 @@ jobs:
       - name: test
         run: |
           cargo install cargo-hack
+          cargo build
           ${{ matrix.sudo }} cargo hack --feature-powerset test -- --nocapture
