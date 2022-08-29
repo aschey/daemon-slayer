@@ -17,4 +17,6 @@ jobs:
         with:
           shared-key: cache-${{ hashFiles('**/Cargo.toml') }}
       - name: test
-        run: cargo build
+        run: |
+          cargo install cargo-hack
+          cargo hack --feature-powerset --no-dev-deps build

@@ -8,3 +8,8 @@ install_crate = "cargo-hack"
 args = ["hack", "--feature-powerset", "--no-dev-deps", "clippy", "--", "-D", "warnings"]
 command = "cargo"
 install_crate = "cargo-hack"
+
+[tasks.build-all]
+args = ["hack", "--feature-powerset", "--no-dev-deps", "build"]
+command = "cargo"
+install_crate = "cargo-hack"

@@ -9,7 +9,7 @@ version = "0.1.0"
 async-tokio = ["tokio", "signal-hook-tokio", "async-trait", "futures"]
 default = ["async-tokio", "logging"]
 direct = ["signal-hook"]
-logging = ["tracing-appender", "tracing-error", "tracing-subscriber", "time"]
+logging = ["tracing-appender", "tracing-error", "tracing-subscriber", "tracing-eventlog", "time"]
 
 [dependencies]
 async-trait = {version = "0.1.57", optional = true}
@@ -31,7 +31,7 @@ name = "bin_fixture"
 regex = "1.6.0"
 signal-hook = {version = "0.3.14", optional = true}
 tokio = {version = "1.20.1", features = ["rt-multi-thread", "signal"], optional = true}
-tracing-eventlog = {git = "https://github.com/aschey/tracing-eventlog", rev = "e87ec17edfb374101e1a9bda14b0e5b534d1cc56"}
+tracing-eventlog = {git = "https://github.com/aschey/tracing-eventlog", rev = "e87ec17edfb374101e1a9bda14b0e5b534d1cc56", optional = true}
 windows-service = {git = "https://github.com/aschey/windows-service-rs", rev = "467408c9aba7d8221e5cf5a9992765ad7abeeb55"}
 
 [target.'cfg(unix)'.dependencies]

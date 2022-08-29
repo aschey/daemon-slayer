@@ -1,16 +1,27 @@
 use app::Handler;
+#[cfg(feature = "logging")]
+use daemon_slayer::logging::LoggerBuilder;
 use daemon_slayer::{
     define_service,
     platform::Manager,
     service_manager::{ServiceHandler, ServiceManager},
 };
-
+#[cfg(feature = "logging")]
+use tracing_subscriber::util::SubscriberInitExt;
 #[cfg(not(feature = "async-tokio"))]
 pub fn main() {
-    let config = ServiceConfig::new(Handler::get_service_name())
+    #[cfg(feature = "logging")]
+    {
+        let (logger, _guard) = LoggerBuilder::new(Handler::get_service_name()).build();
+        logger.init();
+    }
+
+    let manager = Manager::builder(Handler::get_service_name())
         .with_description("test service")
-        .with_args(["-r"]);
-    let manager = Manager::new(config).unwrap();
+        .with_args(["-r"])
+        .build()
+        .unwrap();
+
     let args: Vec<String> = std::env::args().collect();
     let arg = if args.len() > 1 { &args[1] } else { "" };
     match arg {
@@ -40,11 +51,11 @@ pub fn main() {
 
 #[cfg(feature = "async-tokio")]
 pub fn main() {
-    use daemon_slayer::{logging::LoggerBuilder, service_builder::ServiceLevel};
-    use tracing_subscriber::util::SubscriberInitExt;
-
-    let (logger, _guard) = LoggerBuilder::new(Handler::get_service_name()).build();
-    logger.init();
+    #[cfg(feature = "logging")]
+    {
+        let (logger, _guard) = LoggerBuilder::new(Handler::get_service_name()).build();
+        logger.init();
+    }
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
@@ -111,7 +122,8 @@ mod app {
             })
         }
 
-        fn run_service(mut self) -> u32 {
+        fn run_service<F: FnOnce() + Send>(self, on_started: F) -> u32 {
+            on_started();
             self.rx.recv().unwrap();
             0
         }
@@ -149,8 +161,9 @@ mod app {
             })
         }
 
-        async fn run_service(mut self) -> u32 {
+        async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> u32 {
             info!("running service");
+            on_started();
             self.rx.next().await;
             0
         }

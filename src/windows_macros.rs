@@ -5,7 +5,7 @@ macro_rules! __internal_utils {
             $crate::windows_service::define_windows_service!([<func_ $service_func_name>], handle_service_main);
         }
     };
-    (@start_service $handler_type: ident, $handler: ident, $on_stop: expr, $status_handle: ident) => {
+    (@start_service $handler_type: ident, $handler: ident, $on_stop: expr, $status_handle: ident, $on_started: ident) => {
         use daemon_slayer::service_manager::{ServiceHandler, StopHandler};
 
         let stop_handler = $handler.get_stop_handler();
@@ -27,27 +27,30 @@ macro_rules! __internal_utils {
         };
 
         let $status_handle = match $crate::windows_service::service_control_handler::register($handler_type::get_service_name(), event_handler) {
-            Ok(handle) => handle,
+            Ok(handle) => std::sync::Arc::new(std::sync::Mutex::new(handle)),
             Err(e) => {
                 return;
             }
         };
+        let status_handle_ = $status_handle.clone();
+        let $on_started = move || {
+            status_handle_.lock().unwrap()
+                .set_service_status($crate::windows_service::service::ServiceStatus {
+                    service_type: $crate::windows_service::service::ServiceType::OWN_PROCESS,
+                    current_state: $crate::windows_service::service::ServiceState::Running,
+                    controls_accepted: $crate::windows_service::service::ServiceControlAccept::STOP,
+                    exit_code: $crate::windows_service::service::ServiceExitCode::Win32(0),
+                    checkpoint: 0,
+                    wait_hint: std::time::Duration::default(),
+                    process_id: None,
+                })
+                .unwrap();
+        };
 
-        $status_handle
-            .set_service_status($crate::windows_service::service::ServiceStatus {
-                service_type: $crate::windows_service::service::ServiceType::OWN_PROCESS,
-                current_state: $crate::windows_service::service::ServiceState::Running,
-                controls_accepted: $crate::windows_service::service::ServiceControlAccept::STOP,
-                exit_code: $crate::windows_service::service::ServiceExitCode::Win32(0),
-                checkpoint: 0,
-                wait_hint: std::time::Duration::default(),
-                process_id: None,
-            })
-            .unwrap();
     };
 
     (@stop_service $status_handle: ident, $exit_code: ident) => {
-        $status_handle
+        $status_handle.lock().unwrap()
             .set_service_status($crate::windows_service::service::ServiceStatus {
                 service_type: $crate::windows_service::service::ServiceType::OWN_PROCESS,
                 current_state: $crate::windows_service::service::ServiceState::Stopped,
@@ -73,7 +76,7 @@ macro_rules! __internal_direct_handler {
                 stop_handler().await;
             });
 
-            handler.run_service().await
+            handler.run_service(|| {}).await
         }
     };
 }
@@ -103,7 +106,7 @@ macro_rules! __internal_direct_handler {
                 stop_handler();
             });
 
-            handler.run_service()
+            handler.run_service(|| {})
         }
     };
 }
@@ -123,9 +126,9 @@ macro_rules! define_service {
         pub fn handle_service_main(_: Vec<std::ffi::OsString>) {
             let mut handler = $service_handler::new();
             let stop_handler = handler.get_stop_handler();
-            $crate::__internal_utils!(@start_service $service_handler, handler, $crate::futures::executor::block_on(async { stop_handler().await }), status_handle);
+            $crate::__internal_utils!(@start_service $service_handler, handler, $crate::futures::executor::block_on(async { stop_handler().await }), status_handle, on_started);
             let rt = $crate::tokio::runtime::Runtime::new().unwrap();
-            let exit_code = rt.block_on(async { handler.run_service().await });
+            let exit_code = rt.block_on(async { handler.run_service(on_started).await });
 
             $crate::__internal_utils!(@stop_service status_handle, exit_code);
         }
@@ -144,7 +147,7 @@ macro_rules! define_service {
                     stop_handler().await;
                 });
 
-                handler.run_service().await
+                handler.run_service(|| {}).await
             }
         }
     };
@@ -158,8 +161,8 @@ macro_rules! define_service {
         pub fn handle_service_main(_: Vec<std::ffi::OsString>) {
             let mut handler = $service_handler::new();
             let stop_handler = handler.get_stop_handler();
-            $crate::__internal_utils!(@start_service $service_handler, handler, stop_handler(), status_handle);
-            let exit_code = handler.run_service();
+            $crate::__internal_utils!(@start_service $service_handler, handler, stop_handler(), status_handle, on_started);
+            let exit_code = handler.run_service(on_started);
             $crate::__internal_utils!(@stop_service status_handle, exit_code);
         }
 
