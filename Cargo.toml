@@ -37,8 +37,10 @@ windows-service = {git = "https://github.com/aschey/windows-service-rs", rev = "
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3.14"
 signal-hook-tokio = {version = "0.3.1", features = ["futures-v0_3"], optional = true}
-systemd_client = {git = "https://github.com/aschey/systemd-client", rev = "964f544fe7a24dc59429f3534f8b58fd13a7d627"}
 tokio = {version = "1.20.1", features = ["rt-multi-thread"], optional = true}
+
+[target.'cfg(target_os="linux")'.dependencies]
+systemd_client = {git = "https://github.com/aschey/systemd-client", rev = "964f544fe7a24dc59429f3534f8b58fd13a7d627"}
 
 [target.'cfg(target_os = "macos")'.dependencies]
 launchd = "0.2.0"
