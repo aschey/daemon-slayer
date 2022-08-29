@@ -7,13 +7,13 @@ use systemd_client::{
 };
 
 use crate::{
-    service_config::ServiceConfig,
+    service_builder::ServiceBuilder,
     service_manager::{Result, ServiceManager},
     service_status::ServiceStatus,
 };
 
 pub struct Manager {
-    config: ServiceConfig,
+    config: ServiceBuilder,
     client: SystemdManagerProxyBlocking<'static>,
 }
 
@@ -23,9 +23,20 @@ impl Manager {
     }
 }
 impl ServiceManager for Manager {
-    fn new(config: ServiceConfig) -> Result<Self> {
+    fn builder(name: impl Into<String>) -> ServiceBuilder {
+        ServiceBuilder::new(name)
+    }
+
+    fn new(name: impl Into<String>) -> Result<Self> {
+        ServiceBuilder::new(name).build()
+    }
+
+    fn from_builder(builder: ServiceBuilder) -> Result<Self> {
         let client = manager::build_blocking_proxy().wrap_err("Error creating systemd proxy")?;
-        Ok(Self { config, client })
+        Ok(Self {
+            config: builder,
+            client,
+        })
     }
 
     fn install(&self) -> Result<()> {
