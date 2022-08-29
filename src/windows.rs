@@ -120,6 +120,7 @@ impl ServiceManager for Manager {
     fn from_builder(builder: ServiceBuilder) -> Result<Self> {
         Ok(Self { config: builder })
     }
+
     fn install(&self) -> Result<()> {
         if self.open_service(&self.config.name).is_err() {
             let service_info = ServiceInfo {

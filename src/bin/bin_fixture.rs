@@ -6,6 +6,7 @@ use daemon_slayer::{
     platform::Manager,
     service_manager::{ServiceHandler, ServiceManager},
 };
+use tracing::info;
 #[cfg(feature = "logging")]
 use tracing_subscriber::util::SubscriberInitExt;
 #[cfg(not(feature = "async-tokio"))]
@@ -52,11 +53,11 @@ pub fn main() {
 #[cfg(feature = "async-tokio")]
 pub fn main() {
     #[cfg(feature = "logging")]
-    {
-        let (logger, _guard) = LoggerBuilder::new(Handler::get_service_name()).build();
-        logger.init();
-    }
+    let (logger, _guard) = LoggerBuilder::new(Handler::get_service_name()).build();
+    #[cfg(feature = "logging")]
+    logger.init();
 
+    info!("running main");
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         //.with_service_level(ServiceLevel::User);
@@ -165,6 +166,7 @@ mod app {
             info!("running service");
             on_started();
             self.rx.next().await;
+            info!("stopping service");
             0
         }
     }

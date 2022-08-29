@@ -7,6 +7,7 @@ use tracing_appender::{
     non_blocking::{NonBlockingBuilder, WorkerGuard},
     rolling::{RollingFileAppender, Rotation},
 };
+#[cfg(windows)]
 use tracing_eventlog::{register, EventLogLayer};
 use tracing_subscriber::{
     fmt::{time::OffsetTime, Layer},

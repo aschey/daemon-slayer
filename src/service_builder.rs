@@ -13,7 +13,9 @@ pub enum ServiceLevel {
 
 pub struct ServiceBuilder {
     pub(crate) name: String,
+    #[cfg_attr(unix, allow(unused))]
     pub(crate) display_name: String,
+    #[cfg_attr(unix, allow(unused))]
     pub(crate) description: String,
     pub(crate) program: String,
     pub(crate) args: Vec<String>,
@@ -76,7 +78,7 @@ impl ServiceBuilder {
         self.args.iter()
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(unix)]
     pub(crate) fn full_args_iter(&self) -> impl Iterator<Item = &String> {
         std::iter::once(&self.program).chain(self.args_iter())
     }
