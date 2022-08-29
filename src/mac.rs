@@ -103,7 +103,7 @@ impl ServiceManager for Manager {
 
     fn query_status(&self) -> Result<ServiceStatus> {
         let output = self.run_launchctl(vec!["print", &format!("system/{}", self.config.name)])?;
-        if output.starts_with("bad request.") {
+        if output.contains("could not find service") {
             return Ok(ServiceStatus::NotInstalled);
         }
         let s = output
