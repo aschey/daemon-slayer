@@ -7,11 +7,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: macos-latest
-            sudo: sudo
-          - os: ubuntu-latest
-            sudo: sudo -E
       fail-fast: false
     name: Build and test
     runs-on: ${{ matrix.os }}
@@ -25,4 +20,4 @@ jobs:
         run: |
           cargo install cargo-hack
           cargo build
-          ${{ matrix.sudo }} cargo hack --feature-powerset test -- --nocapture
+          cargo hack --feature-powerset test -- --nocapture
