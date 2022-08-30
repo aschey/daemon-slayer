@@ -11,7 +11,7 @@ jobs:
           - os: macos-latest
             sudo: sudo
           - os: ubuntu-latest
-            sudo: sudo
+            sudo: sudo -E
       fail-fast: false
     name: Build and test
     runs-on: ${{ matrix.os }}
