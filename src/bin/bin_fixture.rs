@@ -68,6 +68,7 @@ pub fn main() {
             .unwrap();
 
         let args: Vec<String> = std::env::args().collect();
+        info!("args {:?}", args);
         let arg = if args.len() > 1 { &args[1] } else { "" };
         match arg {
             "-i" => {

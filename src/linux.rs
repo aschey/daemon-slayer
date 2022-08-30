@@ -2,8 +2,8 @@ use eyre::Context;
 use systemd_client::{
     create_unit_configuration_file, delete_unit_configuration_file,
     manager::{self, SystemdManagerProxyBlocking},
-    unit, ServiceConfiguration, ServiceUnitConfiguration, UnitActiveStateType, UnitConfiguration,
-    UnitLoadStateType, UnitSubStateType,
+    unit, NotifyAccess, ServiceConfiguration, ServiceType, ServiceUnitConfiguration,
+    UnitActiveStateType, UnitConfiguration, UnitLoadStateType, UnitSubStateType,
 };
 
 use crate::{
@@ -43,7 +43,9 @@ impl ServiceManager for Manager {
         let unit_config = UnitConfiguration::builder().description(&self.config.description);
 
         let service_config = ServiceConfiguration::builder()
-            .exec_start(self.config.full_args_iter().map(|a| &a[..]).collect());
+            .exec_start(self.config.full_args_iter().map(|a| &a[..]).collect())
+            .ty(ServiceType::Notify)
+            .notify_access(NotifyAccess::Main);
         let svc_unit = ServiceUnitConfiguration::builder()
             .unit(unit_config)
             .service(service_config)
