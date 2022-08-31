@@ -3,6 +3,7 @@ use daemon_slayer::cli::Cli;
 #[cfg(feature = "logging")]
 use daemon_slayer::logging::LoggerBuilder;
 use daemon_slayer::{
+    cli::CliCommand,
     platform::Manager,
     service_manager::{Service, ServiceHandler, ServiceManager, StopHandler},
 };
@@ -77,7 +78,6 @@ pub fn main() {
     info!("running main");
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        println!("aaa");
         //.with_service_level(ServiceLevel::User);
         let manager = Manager::builder(Handler::get_service_name())
             .with_description("test service")
