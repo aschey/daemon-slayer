@@ -8,66 +8,51 @@ use crate::{
     service_manager::{Service, ServiceHandler, ServiceManager},
 };
 
-pub struct Cli<H>
+pub struct Cli<'a, H>
 where
     H: Service + ServiceHandler,
 {
     _phantom: PhantomData<H>,
     manager: Manager,
-    commands: CliCommands,
+    commands: CliCommands<'a>,
 }
 
-pub struct CliCommands(HashMap<&'static str, CliCommand>);
+pub struct CliCommands<'a>(HashMap<&'static str, CliCommand<'a>>);
 
-impl CliCommands {
-    fn insert(&mut self, key: &'static str, value: CliCommand) {
+impl<'a> CliCommands<'a> {
+    fn insert(&mut self, key: &'static str, value: CliCommand<'a>) {
         self.0.insert(key, value);
     }
 }
 
-impl Default for CliCommands {
+impl<'a> Default for CliCommands<'a> {
     fn default() -> Self {
         let mut commands = HashMap::new();
-        commands.insert(
-            Commands::INSTALL,
-            CliCommand::Subcommand(Commands::INSTALL.to_owned()),
-        );
+        commands.insert(Commands::INSTALL, CliCommand::Subcommand(Commands::INSTALL));
         commands.insert(
             Commands::UNINSTALL,
-            CliCommand::Subcommand(Commands::UNINSTALL.to_owned()),
+            CliCommand::Subcommand(Commands::UNINSTALL),
         );
-        commands.insert(
-            Commands::START,
-            CliCommand::Subcommand(Commands::START.to_owned()),
-        );
-        commands.insert(
-            Commands::STATUS,
-            CliCommand::Subcommand(Commands::STATUS.to_owned()),
-        );
-        commands.insert(
-            Commands::STOP,
-            CliCommand::Subcommand(Commands::STOP.to_owned()),
-        );
-        commands.insert(
-            Commands::RUN,
-            CliCommand::Subcommand(Commands::RUN.to_owned()),
-        );
+        commands.insert(Commands::START, CliCommand::Subcommand(Commands::START));
+        commands.insert(Commands::STATUS, CliCommand::Subcommand(Commands::STATUS));
+        commands.insert(Commands::STOP, CliCommand::Subcommand(Commands::STOP));
+        commands.insert(Commands::RUN, CliCommand::Subcommand(Commands::RUN));
         commands.insert(Commands::DIRECT, CliCommand::Default);
         Self(commands)
     }
 }
 
-impl Deref for CliCommands {
-    type Target = HashMap<&'static str, CliCommand>;
+impl<'a> Deref for CliCommands<'a> {
+    type Target = HashMap<&'static str, CliCommand<'a>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-pub enum CliCommand {
-    Subcommand(String),
-    Arg { short: char, long: String },
+pub enum CliCommand<'a> {
+    Subcommand(&'a str),
+    Arg { short: char, long: &'a str },
     Default,
 }
 
@@ -83,7 +68,7 @@ impl Commands {
     const STOP: &'static str = "stop";
 }
 
-impl<H> Cli<H>
+impl<'a, H> Cli<'a, H>
 where
     H: Service + ServiceHandler,
 {
@@ -96,37 +81,37 @@ where
         }
     }
 
-    pub fn with_install_command(mut self, command: CliCommand) -> Self {
+    pub fn with_install_command(mut self, command: CliCommand<'a>) -> Self {
         self.commands.insert(Commands::INSTALL, command);
         self
     }
 
-    pub fn with_uninstall_command(mut self, command: CliCommand) -> Self {
+    pub fn with_uninstall_command(mut self, command: CliCommand<'a>) -> Self {
         self.commands.insert(Commands::UNINSTALL, command);
         self
     }
 
-    pub fn with_start_command(mut self, command: CliCommand) -> Self {
+    pub fn with_start_command(mut self, command: CliCommand<'a>) -> Self {
         self.commands.insert(Commands::START, command);
         self
     }
 
-    pub fn with_stop_command(mut self, command: CliCommand) -> Self {
+    pub fn with_stop_command(mut self, command: CliCommand<'a>) -> Self {
         self.commands.insert(Commands::STOP, command);
         self
     }
 
-    pub fn with_status_command(mut self, command: CliCommand) -> Self {
+    pub fn with_status_command(mut self, command: CliCommand<'a>) -> Self {
         self.commands.insert(Commands::STATUS, command);
         self
     }
 
-    pub fn with_direct_command(mut self, command: CliCommand) -> Self {
+    pub fn with_direct_command(mut self, command: CliCommand<'a>) -> Self {
         self.commands.insert(Commands::DIRECT, command);
         self
     }
 
-    pub fn with_run_command(mut self, command: CliCommand) -> Self {
+    pub fn with_run_command(mut self, command: CliCommand<'a>) -> Self {
         self.commands.insert(Commands::RUN, command);
         self
     }
@@ -153,7 +138,7 @@ where
                     )
                 }
                 CliCommand::Subcommand(subcommand) => {
-                    cmd = cmd.subcommand(clap::command!(subcommand))
+                    cmd = cmd.subcommand(clap::command!(*subcommand))
                 }
                 CliCommand::Default => {}
             }
