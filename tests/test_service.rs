@@ -27,7 +27,7 @@ fn test_service() {
 
     Command::cargo_bin("bin_fixture")
         .unwrap()
-        .arg("-i")
+        .arg("install")
         .output()
         .unwrap();
 
@@ -42,7 +42,7 @@ fn test_service() {
 
     Command::cargo_bin("bin_fixture")
         .unwrap()
-        .arg("-s")
+        .arg("start")
         .output()
         .unwrap();
 
@@ -67,7 +67,7 @@ fn test_service() {
 
     Command::cargo_bin("bin_fixture")
         .unwrap()
-        .arg("-u")
+        .arg("uninstall")
         .output()
         .unwrap();
     loop {

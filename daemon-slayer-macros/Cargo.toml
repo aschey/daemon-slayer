@@ -1,0 +1,19 @@
+[package]
+edition = "2021"
+name = "daemon-slayer-macros"
+version = "0.1.0"
+[lib]
+proc-macro = true
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+maybe-async = {git = "https://github.com/aschey/maybe-async-rs", rev = "36bb795e18e88aa0642164934d50d8c5ee05e26f", features = ["default_sync"]}
+proc-macro-crate = "1.2.1"
+proc-macro2 = "1.0.43"
+quote = "1.0.21"
+syn = "1.0.99"
+
+[features]
+async = ["maybe-async/is_async"]
+default = []
+direct = []

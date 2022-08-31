@@ -2,6 +2,6 @@
 **/*.rs.bk
 
 # build files
-/target
-/Cargo.lock
+target
+Cargo.lock
 .env

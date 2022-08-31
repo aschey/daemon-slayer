@@ -1,6 +1,4 @@
 #[cfg(feature = "async-tokio")]
-use async_trait::async_trait;
-#[cfg(feature = "async-tokio")]
 use futures::Future;
 #[cfg(feature = "async-tokio")]
 use std::pin::Pin;
@@ -17,6 +15,7 @@ pub trait ServiceManager {
     fn from_builder(builder: ServiceBuilder) -> Result<Self>
     where
         Self: std::marker::Sized;
+    fn display_name(&self) -> &str;
     fn install(&self) -> Result<()>;
     fn uninstall(&self) -> Result<()>;
     fn start(&self) -> Result<()>;
@@ -24,14 +23,13 @@ pub trait ServiceManager {
     fn query_status(&self) -> Result<ServiceStatus>;
 }
 
-#[cfg(feature = "async-tokio")]
+#[maybe_async::async_impl]
 pub type StopHandler = Box<dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
 
-#[cfg(not(feature = "async-tokio"))]
+#[maybe_async::sync_impl]
 pub type StopHandler = Box<dyn Fn() + Send>;
 
-#[cfg(feature = "async-tokio")]
-#[async_trait]
+#[maybe_async::maybe_async]
 pub trait ServiceHandler {
     fn new() -> Self;
     fn get_service_name<'a>() -> &'a str;
@@ -39,10 +37,9 @@ pub trait ServiceHandler {
     async fn run_service<F: FnOnce() + Send>(self, on_started: F) -> u32;
 }
 
-#[cfg(not(feature = "async-tokio"))]
-pub trait ServiceHandler {
-    fn new() -> Self;
-    fn get_service_name<'a>() -> &'a str;
-    fn get_stop_handler(&mut self) -> StopHandler;
-    fn run_service<F: FnOnce() + Send>(self, on_started: F) -> u32;
+#[maybe_async::maybe_async]
+pub trait Service {
+    async fn run_service_main() -> u32;
+    #[cfg(feature = "direct")]
+    async fn run_service_direct(self) -> u32;
 }

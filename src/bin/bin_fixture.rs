@@ -1,15 +1,18 @@
-use app::Handler;
+#[cfg(feature = "cli")]
+use daemon_slayer::cli::Cli;
 #[cfg(feature = "logging")]
 use daemon_slayer::logging::LoggerBuilder;
 use daemon_slayer::{
-    define_service,
     platform::Manager,
-    service_manager::{ServiceHandler, ServiceManager},
+    service_manager::{Service, ServiceHandler, ServiceManager, StopHandler},
 };
+#[cfg(feature = "async-tokio")]
+use futures::{SinkExt, StreamExt};
 use tracing::info;
 #[cfg(feature = "logging")]
 use tracing_subscriber::util::SubscriberInitExt;
-#[cfg(not(feature = "async-tokio"))]
+
+#[maybe_async::sync_impl]
 pub fn main() {
     #[cfg(feature = "logging")]
     {
@@ -22,35 +25,14 @@ pub fn main() {
         .with_args(["-r"])
         .build()
         .unwrap();
-
-    let args: Vec<String> = std::env::args().collect();
-    let arg = if args.len() > 1 { &args[1] } else { "" };
-    match arg {
-        "-i" => {
-            manager.install().unwrap();
-            manager.start().unwrap();
-        }
-        "-s" => {
-            manager.start().unwrap();
-        }
-        "-h" => {
-            manager.stop().unwrap();
-        }
-        "-u" => {
-            manager.stop().unwrap();
-            manager.uninstall().unwrap();
-        }
-        "-r" => {
-            run_service();
-        }
-        _ => {
-            #[cfg(feature = "direct")]
-            run_service_main();
-        }
+    #[cfg(feature = "cli")]
+    {
+        let cli = Cli::<Handler>::new(manager);
+        cli.handle_input();
     }
 }
 
-#[cfg(feature = "async-tokio")]
+#[maybe_async::async_impl]
 pub fn main() {
     #[cfg(feature = "logging")]
     let (logger, _guard) = LoggerBuilder::new(Handler::get_service_name()).build();
@@ -63,111 +45,82 @@ pub fn main() {
         //.with_service_level(ServiceLevel::User);
         let manager = Manager::builder(Handler::get_service_name())
             .with_description("test service")
-            .with_args(["-r"])
+            .with_args(["run"])
             .build()
             .unwrap();
-
-        let args: Vec<String> = std::env::args().collect();
-        let arg = if args.len() > 1 { &args[1] } else { "" };
-        match arg {
-            "-i" => {
-                manager.install().unwrap();
-            }
-            "-s" => {
-                manager.start().unwrap();
-            }
-            "-h" => {
-                manager.stop().unwrap();
-            }
-            "-u" => {
-                manager.stop().unwrap();
-                manager.uninstall().unwrap();
-            }
-            "-r" => {
-                run_service().await;
-            }
-            "-q" => {
-                println!("{:?}", manager.query_status());
-            }
-            _ => {
-                #[cfg(feature = "direct")]
-                run_service_main().await;
-            }
+        #[cfg(feature = "cli")]
+        {
+            let cli = Cli::<Handler>::new(manager);
+            cli.handle_input().await;
         }
     });
 }
 
-define_service!(run_service, Handler);
-
-#[cfg(not(feature = "async-tokio"))]
-mod app {
-    use daemon_slayer::service_manager::{ServiceHandler, StopHandler};
-    pub struct Handler {
-        tx: std::sync::mpsc::Sender<()>,
-        rx: std::sync::mpsc::Receiver<()>,
-    }
-
-    impl ServiceHandler for Handler {
-        fn new() -> Self {
-            let (tx, rx) = std::sync::mpsc::channel();
-            Self { tx, rx }
-        }
-        fn get_service_name<'a>() -> &'a str {
-            "daemon_slayer_test_service"
-        }
-
-        fn get_stop_handler(&mut self) -> StopHandler {
-            let tx = self.tx.clone();
-            Box::new(move || {
-                tx.send(()).unwrap();
-            })
-        }
-
-        fn run_service<F: FnOnce() + Send>(self, on_started: F) -> u32 {
-            on_started();
-            self.rx.recv().unwrap();
-            0
-        }
-    }
+#[maybe_async::sync_impl]
+#[derive(daemon_slayer_macros::Service)]
+pub struct Handler {
+    tx: std::sync::mpsc::Sender<()>,
+    rx: std::sync::mpsc::Receiver<()>,
 }
 
-#[cfg(feature = "async-tokio")]
-mod app {
-    use async_trait::async_trait;
-    use daemon_slayer::service_manager::{ServiceHandler, StopHandler};
-    use futures::{SinkExt, StreamExt};
-    use tracing::info;
-    pub struct Handler {
-        tx: futures::channel::mpsc::Sender<()>,
-        rx: futures::channel::mpsc::Receiver<()>,
+#[maybe_async::async_impl]
+#[derive(daemon_slayer_macros::Service)]
+pub struct Handler {
+    tx: futures::channel::mpsc::Sender<()>,
+    rx: futures::channel::mpsc::Receiver<()>,
+}
+
+#[maybe_async::maybe_async]
+impl ServiceHandler for Handler {
+    #[maybe_async::sync_impl]
+    fn new() -> Self {
+        let (tx, rx) = std::sync::mpsc::channel();
+        Self { tx, rx }
     }
-    #[async_trait]
-    impl ServiceHandler for Handler {
-        fn new() -> Self {
-            let (tx, rx) = futures::channel::mpsc::channel(32);
-            Self { tx, rx }
-        }
-        fn get_service_name<'a>() -> &'a str {
-            "daemon_slayer_test_service"
-        }
 
-        fn get_stop_handler(&mut self) -> StopHandler {
-            let tx = self.tx.clone();
-            Box::new(move || {
-                let mut tx = tx.clone();
-                Box::pin(async move {
-                    info!("stopping");
-                    tx.send(()).await.unwrap();
-                })
+    #[maybe_async::async_impl]
+    fn new() -> Self {
+        let (tx, rx) = futures::channel::mpsc::channel(32);
+        Self { tx, rx }
+    }
+
+    fn get_service_name<'a>() -> &'a str {
+        "daemon_slayer_test_service"
+    }
+
+    #[maybe_async::sync_impl]
+    fn get_stop_handler(&mut self) -> StopHandler {
+        let tx = self.tx.clone();
+        Box::new(move || {
+            tx.send(()).unwrap();
+        })
+    }
+
+    #[maybe_async::async_impl]
+    fn get_stop_handler(&mut self) -> StopHandler {
+        let tx = self.tx.clone();
+        Box::new(move || {
+            let mut tx = tx.clone();
+            Box::pin(async move {
+                info!("stopping");
+                tx.send(()).await.unwrap();
             })
-        }
+        })
+    }
 
-        async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> u32 {
-            info!("running service");
-            on_started();
-            self.rx.next().await;
-            info!("stopping service");
-            0
-        }
+    #[maybe_async::sync_impl]
+    fn run_service<F: FnOnce() + Send>(self, on_started: F) -> u32 {
+        on_started();
+        self.rx.recv().unwrap();
+        0
+    }
+
+    #[maybe_async::async_impl]
+    async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> u32 {
+        info!("running service");
+        on_started();
+        self.rx.next().await;
+        info!("stopping service");
+        0
     }
 }

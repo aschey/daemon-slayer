@@ -6,13 +6,10 @@ mod mac;
 pub mod unix_macros;
 #[cfg(windows)]
 mod windows;
-#[cfg(windows)]
-pub mod windows_macros;
 
 #[cfg(windows)]
 pub mod platform {
     pub use crate::windows::Manager;
-    pub use crate::windows_macros;
 }
 
 #[cfg(target_os = "linux")]
@@ -26,10 +23,11 @@ pub mod platform {
     pub use crate::mac::Manager;
 }
 
-pub use paste;
 #[cfg(any(unix, feature = "direct"))]
 pub use signal_hook;
-pub use tracing;
+#[cfg(all(unix, feature = "async-tokio"))]
+pub use signal_hook_tokio;
+
 #[cfg(windows)]
 pub use windows_service;
 
@@ -37,13 +35,18 @@ pub use windows_service;
 pub use async_trait;
 #[cfg(feature = "async-tokio")]
 pub use futures;
-
-#[cfg(all(unix, feature = "async-tokio"))]
-pub use signal_hook_tokio;
 #[cfg(feature = "async-tokio")]
 pub use tokio;
+
+pub use maybe_async;
+pub use paste;
+pub use tracing;
+
+#[cfg(feature = "cli")]
+pub mod cli;
 #[cfg(feature = "logging")]
 pub mod logging;
+
 pub mod service_builder;
 pub mod service_manager;
 pub mod service_status;
