@@ -22,13 +22,48 @@ pub fn main() {
 
     let manager = Manager::builder(Handler::get_service_name())
         .with_description("test service")
-        .with_args(["-r"])
+        .with_args(["run"])
         .build()
         .unwrap();
+
     #[cfg(feature = "cli")]
     {
         let cli = Cli::<Handler>::new(manager);
         cli.handle_input();
+    }
+    #[cfg(not(feature = "cli"))]
+    {
+        let args: Vec<String> = std::env::args().collect();
+        let arg = if args.len() > 1 { &args[1] } else { "" };
+        match arg {
+            "install" => {
+                manager.install().unwrap();
+                manager.start().unwrap();
+            }
+            "start" => {
+                manager.start().unwrap();
+            }
+            "stop" => {
+                manager.stop().unwrap();
+            }
+            "status" => {
+                println!("{:?}", manager.query_status().unwrap());
+            }
+            "uninstall" => {
+                manager.stop().unwrap();
+                manager.uninstall().unwrap();
+            }
+            "run" => {
+                Handler::run_service_main();
+            }
+            _ => {
+                #[cfg(feature = "direct")]
+                {
+                    let handler = Handler::new();
+                    handler.run_service_direct();
+                }
+            }
+        }
     }
 }
 
@@ -42,6 +77,7 @@ pub fn main() {
     info!("running main");
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
+        println!("aaa");
         //.with_service_level(ServiceLevel::User);
         let manager = Manager::builder(Handler::get_service_name())
             .with_description("test service")
@@ -51,7 +87,42 @@ pub fn main() {
         #[cfg(feature = "cli")]
         {
             let cli = Cli::<Handler>::new(manager);
-            cli.handle_input().await;
+            cli.handle_input().await.unwrap();
+        }
+        #[cfg(not(feature = "cli"))]
+        {
+            let args: Vec<String> = std::env::args().collect();
+            let arg = if args.len() > 1 { &args[1] } else { "" };
+            match arg {
+                "install" => {
+                    manager.install().unwrap();
+                    manager.start().unwrap();
+                }
+                "start" => {
+                    println!("here");
+                    manager.start().unwrap();
+                }
+                "stop" => {
+                    manager.stop().unwrap();
+                }
+                "status" => {
+                    println!("{:?}", manager.query_status().unwrap());
+                }
+                "uninstall" => {
+                    manager.stop().unwrap();
+                    manager.uninstall().unwrap();
+                }
+                "run" => {
+                    Handler::run_service_main().await;
+                }
+                _ => {
+                    #[cfg(feature = "direct")]
+                    {
+                        let handler = Handler::new();
+                        handler.run_service_direct().await;
+                    }
+                }
+            }
         }
     });
 }
@@ -119,6 +190,7 @@ impl ServiceHandler for Handler {
     async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> u32 {
         info!("running service");
         on_started();
+
         self.rx.next().await;
         info!("stopping service");
         0

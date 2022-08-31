@@ -37,7 +37,6 @@ pub(crate) fn define_service(ident: Ident) -> TokenStream {
                     // Handle stop
                     #crate_name::windows_service::service::ServiceControl::Stop => {
                         #stop_fn
-                        //#crate_name::futures::executor::block_on(async { stop_handler().await });
                         #crate_name::windows_service::service_control_handler::ServiceControlHandlerResult::NoError
                     }
 
