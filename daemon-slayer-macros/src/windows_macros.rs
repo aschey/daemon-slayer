@@ -4,16 +4,7 @@ use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
 use syn::Ident;
 
-pub(crate) fn define_service(ident: Ident) -> TokenStream {
-    let found_crate = crate_name("daemon-slayer").unwrap();
-
-    let crate_name = match found_crate {
-        FoundCrate::Itself => quote!(daemon_slayer),
-        FoundCrate::Name(name) => {
-            let ident = Ident::new(&name, Span::call_site());
-            quote!( #ident )
-        }
-    };
+pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream) -> TokenStream {
     let stop_fn = get_stop_fn(&crate_name);
     let direct_handler = get_direct_handler(&crate_name);
     let service_main = run_service_main(&crate_name);

@@ -37,6 +37,7 @@ impl<'a> Default for CliCommands<'a> {
         commands.insert(Commands::STATUS, CliCommand::Subcommand(Commands::STATUS));
         commands.insert(Commands::STOP, CliCommand::Subcommand(Commands::STOP));
         commands.insert(Commands::RUN, CliCommand::Subcommand(Commands::RUN));
+        #[cfg(feature = "direct")]
         commands.insert(Commands::DIRECT, CliCommand::Default);
         Self(commands)
     }
@@ -62,6 +63,7 @@ impl Commands {
     const INSTALL: &'static str = "install";
     const UNINSTALL: &'static str = "uninstall";
     const RUN: &'static str = "run";
+    #[cfg(feature = "direct")]
     const DIRECT: &'static str = "direct";
     const STATUS: &'static str = "status";
     const START: &'static str = "start";
@@ -106,6 +108,7 @@ where
         self
     }
 
+    #[cfg(feature = "direct")]
     pub fn with_direct_command(mut self, command: CliCommand<'a>) -> Self {
         self.commands.insert(Commands::DIRECT, command);
         self
@@ -171,6 +174,7 @@ where
                         info!("running...");
                         H::run_service_main().await;
                     }
+                    #[cfg(feature = "direct")]
                     Commands::DIRECT => {
                         let handler = H::new();
                         handler.run_service_direct().await;
