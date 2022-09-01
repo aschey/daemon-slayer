@@ -9,7 +9,7 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
         #[#crate_name::maybe_async::async_impl]
         impl #crate_name::Service for #ident {
             async fn run_service_main() -> u32 {
-                use #crate_name::service::{Handler, StopHandler};
+                use #crate_name::{Handler, StopHandler};
                 let mut handler = #ident::new();
                 let stop_handler = handler.get_stop_handler();
 
