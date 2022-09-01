@@ -2,15 +2,15 @@ use std::{collections::HashMap, ops::Deref};
 
 use super::{command::Command, service_commands::ServiceCommands};
 
-pub(crate) struct CliCommands(HashMap<&'static str, Command>);
+pub(crate) struct Commands(HashMap<&'static str, Command>);
 
-impl CliCommands {
+impl Commands {
     pub(crate) fn insert(&mut self, key: &'static str, value: Command) {
         self.0.insert(key, value);
     }
 }
 
-impl Default for CliCommands {
+impl Default for Commands {
     fn default() -> Self {
         let mut commands = HashMap::new();
         commands.insert(
@@ -69,7 +69,7 @@ impl Default for CliCommands {
     }
 }
 
-impl Deref for CliCommands {
+impl Deref for Commands {
     type Target = HashMap<&'static str, Command>;
 
     fn deref(&self) -> &Self::Target {

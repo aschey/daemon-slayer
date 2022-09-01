@@ -1,5 +1,5 @@
-use super::Result;
-use super::{builder::Builder, status::Status};
+use crate::Result;
+use crate::{Builder, Status};
 pub trait Manager {
     fn builder(name: impl Into<String>) -> Builder;
     fn new(name: impl Into<String>) -> Result<Self>

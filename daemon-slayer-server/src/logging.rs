@@ -22,7 +22,7 @@ pub struct LoggerGuard {
 
 pub enum Timezone {
     Local,
-    UTC,
+    Utc,
 }
 
 impl LoggerGuard {

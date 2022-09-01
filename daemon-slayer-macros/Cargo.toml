@@ -15,5 +15,4 @@ syn = "1.0.99"
 
 [features]
 async = ["maybe-async/is_async"]
-default = []
 direct = []

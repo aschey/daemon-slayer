@@ -24,7 +24,7 @@ mod platform {
 pub fn derive_service(input: TokenStream) -> TokenStream {
     let DeriveInput { ident, .. } = parse_macro_input!(input);
 
-    let found_crate = crate_name("daemon-slayer").unwrap();
+    let found_crate = crate_name("daemon-slayer-server").unwrap();
 
     let crate_name = match found_crate {
         FoundCrate::Itself => quote!(daemon_slayer),

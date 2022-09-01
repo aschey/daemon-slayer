@@ -1,17 +1,12 @@
 use std::{error::Error, marker::PhantomData};
 
-pub mod command;
-mod commands;
-mod service_commands;
-
 use clap::{Arg, ArgAction, ArgMatches};
 use tracing::info;
 
-use crate::service::{
-    Manager, ServiceManager, {Handler, Service},
-};
+use daemon_slayer_client::{Manager, ServiceManager};
+use daemon_slayer_server::{Handler, Service};
 
-use self::{command::Command, commands::CliCommands, service_commands::ServiceCommands};
+use crate::{command::Command, commands::Commands, service_commands::ServiceCommands};
 
 pub struct Cli<H>
 where
@@ -19,7 +14,7 @@ where
 {
     _phantom: PhantomData<H>,
     manager: ServiceManager,
-    commands: CliCommands,
+    commands: Commands,
 }
 
 impl<H> Cli<H>
@@ -27,7 +22,7 @@ where
     H: Service + Handler,
 {
     pub fn new(manager: ServiceManager) -> Self {
-        let mut commands = CliCommands::default();
+        let mut commands = Commands::default();
         let service_args = manager.args();
         if service_args.is_empty() {
             commands.insert(ServiceCommands::RUN, Command::Default);
@@ -189,7 +184,7 @@ where
                     }
                     #[cfg(feature = "console")]
                     ServiceCommands::CONSOLE => {
-                        crate::console::run()?;
+                        //crate::console::run()?;
                     }
                     #[cfg(feature = "direct")]
                     ServiceCommands::DIRECT => {

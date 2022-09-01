@@ -11,7 +11,7 @@ use windows_service::{
     },
 };
 
-use crate::service::{builder::Builder, manager::Manager, status::Status, Level, Result};
+use crate::{Builder, Level, Manager, Result, Status};
 
 pub struct ServiceManager {
     config: Builder,

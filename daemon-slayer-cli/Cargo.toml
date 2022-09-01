@@ -1,0 +1,23 @@
+[package]
+edition = "2021"
+name = "daemon-slayer-cli"
+version = "0.1.0"
+
+[features]
+async-tokio = ["tokio", "async-trait", "futures", "maybe-async/is_async"]
+console = ["tui", "crossterm"]
+direct = []
+
+[dependencies]
+async-trait = {version = "0.1.57", optional = true}
+clap = {version = "3.2.17", features = ["cargo"]}
+crossterm = {version = "0.25.0", optional = true}
+daemon-slayer-client = {path = "../daemon-slayer-client"}
+daemon-slayer-server = {path = "../daemon-slayer-server"}
+eyre = "0.6.8"
+futures = {version = "0.3.23", optional = true}
+maybe-async = {git = "https://github.com/aschey/maybe-async-rs", rev = "36bb795e18e88aa0642164934d50d8c5ee05e26f", features = ["default_sync"]}
+time = {version = "0.3.13", optional = true}
+tokio = {version = "1.20.1", features = ["rt-multi-thread"], optional = true}
+tracing = "0.1.36"
+tui = {version = "0.19.0", optional = true}

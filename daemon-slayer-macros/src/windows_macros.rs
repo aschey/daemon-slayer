@@ -13,7 +13,7 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
         #crate_name::windows_service::define_windows_service!(func_service_main, handle_service_main);
         
         pub fn handle_service_main(_: Vec<std::ffi::OsString>) {
-            use #crate_name::service::{Handler, StopHandler};
+            use #crate_name::{Handler, StopHandler};
 
             let mut handler = #ident::new();
             let stop_handler = handler.get_stop_handler();
@@ -72,7 +72,7 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
         }
 
         #[#crate_name::maybe_async::maybe_async]
-        impl #crate_name::service::Service for #ident {
+        impl #crate_name::Service for #ident {
             async fn run_service_main() -> u32 {
                 #crate_name::windows_service::service_dispatcher::start(#ident::get_service_name(), func_service_main).unwrap();
                 0

@@ -1,8 +1,9 @@
-#[cfg(feature = "cli")]
-use daemon_slayer::cli::Cli;
+use daemon_slayer_cli::Cli;
+use daemon_slayer_client::{Manager, ServiceManager};
+
+use daemon_slayer_server::{Handler, Service, StopHandler};
 #[cfg(feature = "logging")]
-use daemon_slayer::logging::LoggerBuilder;
-use daemon_slayer::service::{Handler, Manager, Service, ServiceManager, StopHandler};
+use daemon_slayer_server::{LoggerBuilder, LoggerGuard};
 #[cfg(feature = "async-tokio")]
 use futures::{SinkExt, StreamExt};
 use tracing::info;
@@ -23,45 +24,8 @@ pub fn main() {
         .build()
         .unwrap();
 
-    #[cfg(feature = "cli")]
-    {
-        let cli = Cli::<ServiceHandler>::new(manager);
-        cli.handle_input().unwrap();
-    }
-    #[cfg(not(feature = "cli"))]
-    {
-        let args: Vec<String> = std::env::args().collect();
-        let arg = if args.len() > 1 { &args[1] } else { "" };
-        match arg {
-            "install" => {
-                manager.install().unwrap();
-                manager.start().unwrap();
-            }
-            "start" => {
-                manager.start().unwrap();
-            }
-            "stop" => {
-                manager.stop().unwrap();
-            }
-            "status" => {
-                println!("{:?}", manager.query_status().unwrap());
-            }
-            "uninstall" => {
-                manager.stop().unwrap();
-                manager.uninstall().unwrap();
-            }
-            "run" => {
-                ServiceHandler::run_service_main();
-            }
-            _ => {
-                #[cfg(feature = "direct")]
-                {
-                    let handler = ServiceHandler::new();
-                    handler.run_service_direct();
-                }
-            }
-        }
-    }
+    let cli = Cli::<ServiceHandler>::new(manager);
+    cli.handle_input().unwrap();
 }
 
 #[maybe_async::async_impl]
@@ -80,58 +44,20 @@ pub fn main() {
             .with_args(["run"])
             .build()
             .unwrap();
-        #[cfg(feature = "cli")]
-        {
-            let cli = Cli::<ServiceHandler>::new(manager);
-            cli.handle_input().await.unwrap();
-        }
-        #[cfg(not(feature = "cli"))]
-        {
-            let args: Vec<String> = std::env::args().collect();
-            let arg = if args.len() > 1 { &args[1] } else { "" };
-            match arg {
-                "install" => {
-                    manager.install().unwrap();
-                    manager.start().unwrap();
-                }
-                "start" => {
-                    println!("here");
-                    manager.start().unwrap();
-                }
-                "stop" => {
-                    manager.stop().unwrap();
-                }
-                "status" => {
-                    println!("{:?}", manager.query_status().unwrap());
-                }
-                "uninstall" => {
-                    manager.stop().unwrap();
-                    manager.uninstall().unwrap();
-                }
-                "run" => {
-                    ServiceHandler::run_service_main().await;
-                }
-                _ => {
-                    #[cfg(feature = "direct")]
-                    {
-                        let handler = ServiceHandler::new();
-                        handler.run_service_direct().await;
-                    }
-                }
-            }
-        }
+        let cli = Cli::<ServiceHandler>::new(manager);
+        cli.handle_input().await.unwrap();
     });
 }
 
 #[maybe_async::sync_impl]
-#[derive(daemon_slayer_macros::Service)]
+#[derive(daemon_slayer_server::Service)]
 pub struct ServiceHandler {
     tx: std::sync::mpsc::Sender<()>,
     rx: std::sync::mpsc::Receiver<()>,
 }
 
 #[maybe_async::async_impl]
-#[derive(daemon_slayer_macros::Service)]
+#[derive(daemon_slayer_server::Service)]
 pub struct ServiceHandler {
     tx: futures::channel::mpsc::Sender<()>,
     rx: futures::channel::mpsc::Receiver<()>,

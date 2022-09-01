@@ -1,5 +1,5 @@
-use crate::service::manager::Manager;
-use crate::service::Result;
+use crate::Manager;
+use crate::Result;
 use std::env::current_exe;
 
 use super::platform::ServiceManager;

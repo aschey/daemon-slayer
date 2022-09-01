@@ -1,5 +1,5 @@
 use assert_cmd::Command;
-use daemon_slayer::service::{Manager, ServiceManager, Status};
+use daemon_slayer_client::{Manager, ServiceManager, Status};
 use std::{thread, time::Duration};
 
 #[test]
