@@ -1,9 +1,9 @@
-use daemon_slayer_cli::Cli;
-use daemon_slayer_client::{Manager, ServiceManager};
+use daemon_slayer::cli::Cli;
+use daemon_slayer::client::{Manager, ServiceManager};
 
-use daemon_slayer_server::{Handler, Service, StopHandler};
+use daemon_slayer::server::{Handler, Service, StopHandler};
 #[cfg(feature = "logging")]
-use daemon_slayer_server::{LoggerBuilder, LoggerGuard};
+use daemon_slayer::server::{LoggerBuilder, LoggerGuard};
 #[cfg(feature = "async-tokio")]
 use futures::{SinkExt, StreamExt};
 use tracing::info;
@@ -50,14 +50,14 @@ pub fn main() {
 }
 
 #[maybe_async::sync_impl]
-#[derive(daemon_slayer_server::Service)]
+#[derive(daemon_slayer::server::Service)]
 pub struct ServiceHandler {
     tx: std::sync::mpsc::Sender<()>,
     rx: std::sync::mpsc::Receiver<()>,
 }
 
 #[maybe_async::async_impl]
-#[derive(daemon_slayer_server::Service)]
+#[derive(daemon_slayer::server::Service)]
 pub struct ServiceHandler {
     tx: futures::channel::mpsc::Sender<()>,
     rx: futures::channel::mpsc::Receiver<()>,
