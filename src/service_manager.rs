@@ -16,6 +16,8 @@ pub trait ServiceManager {
     where
         Self: std::marker::Sized;
     fn display_name(&self) -> &str;
+    fn description(&self) -> &str;
+    fn args(&self) -> &Vec<String>;
     fn install(&self) -> Result<()>;
     fn uninstall(&self) -> Result<()>;
     fn start(&self) -> Result<()>;

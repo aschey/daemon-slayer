@@ -203,4 +203,12 @@ impl ServiceManager for Manager {
             self.get_service_status(&service, ServiceType::OWN_PROCESS)
         }
     }
+
+    fn args(&self) -> &Vec<String> {
+        &self.config.args
+    }
+
+    fn description(&self) -> &str {
+        &self.config.description
+    }
 }

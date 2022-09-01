@@ -113,4 +113,12 @@ impl ServiceManager for Manager {
     fn display_name(&self) -> &str {
         &self.config.display_name
     }
+
+    fn args(&self) -> &Vec<String> {
+        &self.config.args
+    }
+
+    fn description(&self) -> &str {
+        &self.config.description
+    }
 }

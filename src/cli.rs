@@ -8,52 +8,92 @@ use crate::{
     service_manager::{Service, ServiceHandler, ServiceManager},
 };
 
-pub struct Cli<'a, H>
+pub struct Cli<H>
 where
     H: Service + ServiceHandler,
 {
     _phantom: PhantomData<H>,
     manager: Manager,
-    commands: CliCommands<'a>,
+    commands: CliCommands,
 }
 
-pub struct CliCommands<'a>(HashMap<&'static str, CliCommand<'a>>);
+pub struct CliCommands(HashMap<&'static str, CliCommand>);
 
-impl<'a> CliCommands<'a> {
-    fn insert(&mut self, key: &'static str, value: CliCommand<'a>) {
+impl CliCommands {
+    fn insert(&mut self, key: &'static str, value: CliCommand) {
         self.0.insert(key, value);
     }
 }
 
-impl<'a> Default for CliCommands<'a> {
+impl Default for CliCommands {
     fn default() -> Self {
         let mut commands = HashMap::new();
-        commands.insert(Commands::INSTALL, CliCommand::Subcommand(Commands::INSTALL));
+        commands.insert(
+            Commands::INSTALL,
+            CliCommand::Subcommand {
+                name: Commands::INSTALL.to_owned(),
+                help_text: "Install the service using the system's service manager".to_owned(),
+            },
+        );
         commands.insert(
             Commands::UNINSTALL,
-            CliCommand::Subcommand(Commands::UNINSTALL),
+            CliCommand::Subcommand {
+                name: Commands::UNINSTALL.to_owned(),
+                help_text: "Uninstall the service from the system's service manager".to_owned(),
+            },
         );
-        commands.insert(Commands::START, CliCommand::Subcommand(Commands::START));
-        commands.insert(Commands::STATUS, CliCommand::Subcommand(Commands::STATUS));
-        commands.insert(Commands::STOP, CliCommand::Subcommand(Commands::STOP));
-        commands.insert(Commands::RUN, CliCommand::Subcommand(Commands::RUN));
+        commands.insert(
+            Commands::START,
+            CliCommand::Subcommand {
+                name: Commands::START.to_owned(),
+                help_text: "Start the service".to_owned(),
+            },
+        );
+        commands.insert(
+            Commands::STATUS,
+            CliCommand::Subcommand {
+                name: Commands::STATUS.to_owned(),
+                help_text: "Get the service's current status".to_owned(),
+            },
+        );
+        commands.insert(
+            Commands::STOP,
+            CliCommand::Subcommand {
+                name: Commands::STOP.to_owned(),
+                help_text: "Stop the service".to_owned(),
+            },
+        );
+        commands.insert(
+            Commands::RUN,
+            CliCommand::Subcommand {
+                name: Commands::RUN.to_owned(),
+                help_text: "".to_owned(),
+            },
+        );
         #[cfg(feature = "direct")]
         commands.insert(Commands::DIRECT, CliCommand::Default);
         Self(commands)
     }
 }
 
-impl<'a> Deref for CliCommands<'a> {
-    type Target = HashMap<&'static str, CliCommand<'a>>;
+impl Deref for CliCommands {
+    type Target = HashMap<&'static str, CliCommand>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-pub enum CliCommand<'a> {
-    Subcommand(&'a str),
-    Arg { short: char, long: &'a str },
+pub enum CliCommand {
+    Subcommand {
+        name: String,
+        help_text: String,
+    },
+    Arg {
+        short: Option<char>,
+        long: Option<String>,
+        help_text: Option<String>,
+    },
     Default,
 }
 
@@ -70,12 +110,46 @@ impl Commands {
     const STOP: &'static str = "stop";
 }
 
-impl<'a, H> Cli<'a, H>
+impl<H> Cli<H>
 where
     H: Service + ServiceHandler,
 {
     pub fn new(manager: Manager) -> Self {
-        let commands = CliCommands::default();
+        let mut commands = CliCommands::default();
+        let service_args = manager.args();
+        if service_args.is_empty() {
+            commands.insert(Commands::RUN, CliCommand::Default);
+            commands.insert(
+                Commands::DIRECT,
+                CliCommand::Subcommand {
+                    name: Commands::DIRECT.to_owned(),
+                    help_text: "Run the service directly".to_owned(),
+                },
+            )
+        } else {
+            // Already checked that args is not empty so this shouldn't fail
+            let first = service_args.first().unwrap();
+            if first.starts_with("--") {
+                commands.insert(
+                    Commands::RUN,
+                    CliCommand::Arg {
+                        short: None,
+                        long: Some(first.to_owned()),
+                        help_text: None,
+                    },
+                )
+            } else if first.starts_with('-') {
+                commands.insert(
+                    Commands::RUN,
+                    CliCommand::Arg {
+                        short: Some(first.replacen('-', "", 1).chars().next().unwrap()),
+                        long: None,
+                        help_text: None,
+                    },
+                )
+            }
+        }
+
         Self {
             manager,
             commands,
@@ -83,65 +157,85 @@ where
         }
     }
 
-    pub fn with_install_command(mut self, command: CliCommand<'a>) -> Self {
+    pub fn with_install_command(mut self, command: CliCommand) -> Self {
         self.commands.insert(Commands::INSTALL, command);
         self
     }
 
-    pub fn with_uninstall_command(mut self, command: CliCommand<'a>) -> Self {
+    pub fn with_uninstall_command(mut self, command: CliCommand) -> Self {
         self.commands.insert(Commands::UNINSTALL, command);
         self
     }
 
-    pub fn with_start_command(mut self, command: CliCommand<'a>) -> Self {
+    pub fn with_start_command(mut self, command: CliCommand) -> Self {
         self.commands.insert(Commands::START, command);
         self
     }
 
-    pub fn with_stop_command(mut self, command: CliCommand<'a>) -> Self {
+    pub fn with_stop_command(mut self, command: CliCommand) -> Self {
         self.commands.insert(Commands::STOP, command);
         self
     }
 
-    pub fn with_status_command(mut self, command: CliCommand<'a>) -> Self {
+    pub fn with_status_command(mut self, command: CliCommand) -> Self {
         self.commands.insert(Commands::STATUS, command);
         self
     }
 
     #[cfg(feature = "direct")]
-    pub fn with_direct_command(mut self, command: CliCommand<'a>) -> Self {
+    pub fn with_direct_command(mut self, command: CliCommand) -> Self {
         self.commands.insert(Commands::DIRECT, command);
         self
     }
 
-    pub fn with_run_command(mut self, command: CliCommand<'a>) -> Self {
+    pub fn with_run_command(mut self, command: CliCommand) -> Self {
         self.commands.insert(Commands::RUN, command);
         self
     }
 
     fn matches(m: &ArgMatches, cmd: &CliCommand, cmd_name: &'static str) -> bool {
         match cmd {
-            CliCommand::Arg { short: _, long: _ } => m.get_one::<bool>(cmd_name) == Some(&true),
-            CliCommand::Subcommand(_) => m.subcommand().map(|r| r.0) == Some(cmd_name),
+            CliCommand::Arg {
+                short: _,
+                long: _,
+                help_text: _,
+            } => m.get_one::<bool>(cmd_name) == Some(&true),
+            CliCommand::Subcommand {
+                name: _,
+                help_text: _,
+            } => m.subcommand().map(|r| r.0) == Some(cmd_name),
             CliCommand::Default => !m.args_present() && m.subcommand() == None,
         }
     }
 
     #[maybe_async::maybe_async]
     pub async fn handle_input(self) -> Result<(), Box<dyn Error>> {
-        let mut cmd = clap::Command::new(self.manager.display_name());
+        let mut cmd =
+            clap::Command::new(self.manager.display_name()).about(self.manager.description());
         for (name, command) in self.commands.iter() {
+            let hide = (*name) == Commands::RUN;
             match command {
-                CliCommand::Arg { short, long } => {
+                CliCommand::Arg {
+                    short,
+                    long,
+                    help_text,
+                } => {
+                    let mut arg = Arg::new(*name);
+                    if let Some(short) = short {
+                        arg = arg.short(*short);
+                    }
+                    if let Some(long) = long {
+                        arg = arg.long(long);
+                    }
+
                     cmd = cmd.arg(
-                        Arg::new(*name)
-                            .short(*short)
-                            .long(long)
-                            .action(ArgAction::SetTrue),
+                        arg.action(ArgAction::SetTrue)
+                            .help(help_text.as_ref().map(&String::as_ref))
+                            .hide(hide),
                     )
                 }
-                CliCommand::Subcommand(subcommand) => {
-                    cmd = cmd.subcommand(clap::command!(*subcommand))
+                CliCommand::Subcommand { name, help_text } => {
+                    cmd = cmd.subcommand(clap::command!(name).about(&**help_text).hide(hide))
                 }
                 CliCommand::Default => {}
             }
