@@ -1,25 +1,4 @@
-#[cfg(target_os = "linux")]
-mod linux;
-#[cfg(target_os = "macos")]
-mod mac;
-
-#[cfg(windows)]
-mod windows;
-
-#[cfg(windows)]
-pub mod platform {
-    pub use crate::windows::Manager;
-}
-
-#[cfg(target_os = "linux")]
-pub mod platform {
-    pub use crate::linux::Manager;
-}
-
-#[cfg(target_os = "macos")]
-pub mod platform {
-    pub use crate::mac::Manager;
-}
+pub mod service;
 
 #[cfg(any(unix, feature = "direct"))]
 pub use signal_hook;
@@ -45,9 +24,7 @@ pub use tracing;
 
 #[cfg(feature = "cli")]
 pub mod cli;
+#[cfg(feature = "console")]
+pub mod console;
 #[cfg(feature = "logging")]
 pub mod logging;
-
-pub mod service_builder;
-pub mod service_manager;
-pub mod service_status;

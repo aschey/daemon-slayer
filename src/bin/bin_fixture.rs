@@ -2,10 +2,7 @@
 use daemon_slayer::cli::Cli;
 #[cfg(feature = "logging")]
 use daemon_slayer::logging::LoggerBuilder;
-use daemon_slayer::{
-    platform::Manager,
-    service_manager::{Service, ServiceHandler, ServiceManager, StopHandler},
-};
+use daemon_slayer::service::{Handler, Manager, Service, ServiceManager, StopHandler};
 #[cfg(feature = "async-tokio")]
 use futures::{SinkExt, StreamExt};
 use tracing::info;
@@ -16,11 +13,11 @@ use tracing_subscriber::util::SubscriberInitExt;
 pub fn main() {
     #[cfg(feature = "logging")]
     {
-        let (logger, _guard) = LoggerBuilder::new(Handler::get_service_name()).build();
+        let (logger, _guard) = LoggerBuilder::new(ServiceHandler::get_service_name()).build();
         logger.init();
     }
 
-    let manager = Manager::builder(Handler::get_service_name())
+    let manager = ServiceManager::builder(ServiceHandler::get_service_name())
         .with_description("test service")
         .with_args(["run"])
         .build()
@@ -28,7 +25,7 @@ pub fn main() {
 
     #[cfg(feature = "cli")]
     {
-        let cli = Cli::<Handler>::new(manager);
+        let cli = Cli::<ServiceHandler>::new(manager);
         cli.handle_input().unwrap();
     }
     #[cfg(not(feature = "cli"))]
@@ -54,12 +51,12 @@ pub fn main() {
                 manager.uninstall().unwrap();
             }
             "run" => {
-                Handler::run_service_main();
+                ServiceHandler::run_service_main();
             }
             _ => {
                 #[cfg(feature = "direct")]
                 {
-                    let handler = Handler::new();
+                    let handler = ServiceHandler::new();
                     handler.run_service_direct();
                 }
             }
@@ -70,7 +67,7 @@ pub fn main() {
 #[maybe_async::async_impl]
 pub fn main() {
     #[cfg(feature = "logging")]
-    let (logger, _guard) = LoggerBuilder::new(Handler::get_service_name()).build();
+    let (logger, _guard) = LoggerBuilder::new(ServiceHandler::get_service_name()).build();
     #[cfg(feature = "logging")]
     logger.init();
 
@@ -78,14 +75,14 @@ pub fn main() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         //.with_service_level(ServiceLevel::User);
-        let manager = Manager::builder(Handler::get_service_name())
+        let manager = ServiceManager::builder(ServiceHandler::get_service_name())
             .with_description("test service")
             .with_args(["run"])
             .build()
             .unwrap();
         #[cfg(feature = "cli")]
         {
-            let cli = Cli::<Handler>::new(manager);
+            let cli = Cli::<ServiceHandler>::new(manager);
             cli.handle_input().await.unwrap();
         }
         #[cfg(not(feature = "cli"))]
@@ -112,12 +109,12 @@ pub fn main() {
                     manager.uninstall().unwrap();
                 }
                 "run" => {
-                    Handler::run_service_main().await;
+                    ServiceHandler::run_service_main().await;
                 }
                 _ => {
                     #[cfg(feature = "direct")]
                     {
-                        let handler = Handler::new();
+                        let handler = ServiceHandler::new();
                         handler.run_service_direct().await;
                     }
                 }
@@ -128,20 +125,20 @@ pub fn main() {
 
 #[maybe_async::sync_impl]
 #[derive(daemon_slayer_macros::Service)]
-pub struct Handler {
+pub struct ServiceHandler {
     tx: std::sync::mpsc::Sender<()>,
     rx: std::sync::mpsc::Receiver<()>,
 }
 
 #[maybe_async::async_impl]
 #[derive(daemon_slayer_macros::Service)]
-pub struct Handler {
+pub struct ServiceHandler {
     tx: futures::channel::mpsc::Sender<()>,
     rx: futures::channel::mpsc::Receiver<()>,
 }
 
 #[maybe_async::maybe_async]
-impl ServiceHandler for Handler {
+impl Handler for ServiceHandler {
     #[maybe_async::sync_impl]
     fn new() -> Self {
         let (tx, rx) = std::sync::mpsc::channel();

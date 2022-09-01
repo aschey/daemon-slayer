@@ -17,11 +17,11 @@ use crate::{
     service_status::ServiceStatus,
 };
 
-pub struct Manager {
+pub struct ServiceManager {
     config: ServiceBuilder,
 }
 
-impl Manager {
+impl ServiceManager {
     fn get_service_status(
         &self,
         service: &str,
@@ -108,7 +108,7 @@ impl Manager {
     }
 }
 
-impl ServiceManager for Manager {
+impl Manager for ServiceManager {
     fn builder(name: impl Into<String>) -> ServiceBuilder {
         ServiceBuilder::new(name)
     }

@@ -1,9 +1,8 @@
+use crate::service::manager::Manager;
+use crate::service::Result;
 use std::env::current_exe;
 
-use crate::{
-    platform,
-    service_manager::{Result, ServiceManager},
-};
+use super::platform::ServiceManager;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ServiceLevel {
@@ -11,7 +10,7 @@ pub enum ServiceLevel {
     User,
 }
 
-pub struct ServiceBuilder {
+pub struct Builder {
     pub(crate) name: String,
     #[cfg_attr(unix, allow(unused))]
     pub(crate) display_name: String,
@@ -22,7 +21,7 @@ pub struct ServiceBuilder {
     pub(crate) service_level: ServiceLevel,
 }
 
-impl ServiceBuilder {
+impl Builder {
     pub fn new(name: impl Into<String>) -> Self {
         let name = name.into();
         Self {
@@ -70,8 +69,8 @@ impl ServiceBuilder {
         }
     }
 
-    pub fn build(self) -> Result<platform::Manager> {
-        platform::Manager::from_builder(self)
+    pub fn build(self) -> Result<ServiceManager> {
+        ServiceManager::from_builder(self)
     }
 
     pub(crate) fn args_iter(&self) -> impl Iterator<Item = &String> {

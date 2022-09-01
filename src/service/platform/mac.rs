@@ -13,11 +13,11 @@ use crate::{
     service_status::ServiceStatus,
 };
 
-pub struct Manager {
+pub struct ServiceManager {
     config: ServiceBuilder,
 }
 
-impl Manager {
+impl ServiceManager {
     fn run_launchctl(&self, args: Vec<&str>) -> Result<String> {
         let output = Command::new("launchctl")
             .stdin(Stdio::null())
@@ -55,7 +55,7 @@ impl Manager {
     }
 }
 
-impl ServiceManager for Manager {
+impl Manager for ServiceManager {
     fn builder(name: impl Into<String>) -> ServiceBuilder {
         ServiceBuilder::new(name)
     }

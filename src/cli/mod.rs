@@ -7,27 +7,26 @@ mod service_commands;
 use clap::{Arg, ArgAction, ArgMatches};
 use tracing::info;
 
-use crate::{
-    linux::Manager,
-    service_manager::{Service, ServiceHandler, ServiceManager},
+use crate::service::{
+    Manager, ServiceManager, {Handler, Service},
 };
 
 use self::{command::Command, commands::CliCommands, service_commands::ServiceCommands};
 
 pub struct Cli<H>
 where
-    H: Service + ServiceHandler,
+    H: Service + Handler,
 {
     _phantom: PhantomData<H>,
-    manager: Manager,
+    manager: ServiceManager,
     commands: CliCommands,
 }
 
 impl<H> Cli<H>
 where
-    H: Service + ServiceHandler,
+    H: Service + Handler,
 {
-    pub fn new(manager: Manager) -> Self {
+    pub fn new(manager: ServiceManager) -> Self {
         let mut commands = CliCommands::default();
         let service_args = manager.args();
         if service_args.is_empty() {

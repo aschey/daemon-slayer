@@ -1,3 +1,5 @@
+use crate::service::Result;
+use crate::service::{builder::Builder, manager::Manager, status::Status};
 use eyre::Context;
 use systemd_client::{
     create_unit_configuration_file, delete_unit_configuration_file,
@@ -6,32 +8,26 @@ use systemd_client::{
     UnitActiveStateType, UnitConfiguration, UnitLoadStateType, UnitSubStateType,
 };
 
-use crate::{
-    service_builder::ServiceBuilder,
-    service_manager::{Result, ServiceManager},
-    service_status::ServiceStatus,
-};
-
-pub struct Manager {
-    config: ServiceBuilder,
+pub struct ServiceManager {
+    config: Builder,
     client: SystemdManagerProxyBlocking<'static>,
 }
 
-impl Manager {
+impl ServiceManager {
     fn service_file_name(&self) -> String {
         format!("{}.service", self.config.name)
     }
 }
-impl ServiceManager for Manager {
-    fn builder(name: impl Into<String>) -> ServiceBuilder {
-        ServiceBuilder::new(name)
+impl Manager for ServiceManager {
+    fn builder(name: impl Into<String>) -> Builder {
+        Builder::new(name)
     }
 
     fn new(name: impl Into<String>) -> Result<Self> {
-        ServiceBuilder::new(name).build()
+        Builder::new(name).build()
     }
 
-    fn from_builder(builder: ServiceBuilder) -> Result<Self> {
+    fn from_builder(builder: Builder) -> Result<Self> {
         let client = manager::build_blocking_proxy().wrap_err("Error creating systemd proxy")?;
         Ok(Self {
             config: builder,
@@ -71,7 +67,7 @@ impl ServiceManager for Manager {
     }
 
     fn stop(&self) -> Result<()> {
-        if self.query_status()? == ServiceStatus::Started {
+        if self.query_status()? == Status::Started {
             self.client
                 .stop_unit(&self.service_file_name(), "replace")
                 .wrap_err("Error stopping systemd unit")?;
@@ -80,7 +76,7 @@ impl ServiceManager for Manager {
         Ok(())
     }
 
-    fn query_status(&self) -> Result<ServiceStatus> {
+    fn query_status(&self) -> Result<Status> {
         self.client
             .reload()
             .wrap_err("Error reloading systemd units")?;
@@ -103,10 +99,10 @@ impl ServiceManager for Manager {
 
         match (props.load_state, props.active_state, props.sub_state) {
             (UnitLoadStateType::Loaded, UnitActiveStateType::Active, UnitSubStateType::Running) => {
-                Ok(ServiceStatus::Started)
+                Ok(Status::Started)
             }
-            (UnitLoadStateType::NotFound, _, _) => Ok(ServiceStatus::NotInstalled),
-            _ => Ok(ServiceStatus::Stopped),
+            (UnitLoadStateType::NotFound, _, _) => Ok(Status::NotInstalled),
+            _ => Ok(Status::Stopped),
         }
     }
 
