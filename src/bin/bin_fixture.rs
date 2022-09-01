@@ -29,7 +29,7 @@ pub fn main() {
     #[cfg(feature = "cli")]
     {
         let cli = Cli::<Handler>::new(manager);
-        cli.handle_input();
+        cli.handle_input().unwrap();
     }
     #[cfg(not(feature = "cli"))]
     {

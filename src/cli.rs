@@ -119,6 +119,7 @@ where
         let service_args = manager.args();
         if service_args.is_empty() {
             commands.insert(Commands::RUN, CliCommand::Default);
+            #[cfg(feature = "direct")]
             commands.insert(
                 Commands::DIRECT,
                 CliCommand::Subcommand {
