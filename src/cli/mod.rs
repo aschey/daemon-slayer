@@ -187,6 +187,7 @@ where
                         info!("running...");
                         H::run_service_main().await;
                     }
+                    #[cfg(feature = "console")]
                     ServiceCommands::CONSOLE => {
                         crate::console::run()?;
                     }
