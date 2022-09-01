@@ -7,11 +7,7 @@ use std::{
 use eyre::Context;
 use launchd::Launchd;
 
-use crate::{
-    service_builder::{ServiceBuilder, ServiceLevel},
-    service_manager::{Result, ServiceManager},
-    service_status::ServiceStatus,
-};
+use crate::service::{builder::Builder, manager::Manager, status::Status, Result};
 
 pub struct ServiceManager {
     config: ServiceBuilder,
