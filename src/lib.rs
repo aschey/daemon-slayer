@@ -2,8 +2,7 @@
 mod linux;
 #[cfg(target_os = "macos")]
 mod mac;
-#[cfg(unix)]
-pub mod unix_macros;
+
 #[cfg(windows)]
 mod windows;
 
@@ -15,7 +14,6 @@ pub mod platform {
 #[cfg(target_os = "linux")]
 pub mod platform {
     pub use crate::linux::Manager;
-    pub use crate::unix_macros;
 }
 
 #[cfg(target_os = "macos")]

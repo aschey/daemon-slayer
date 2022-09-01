@@ -127,4 +127,8 @@ impl ServiceManager for Manager {
             Ok(ServiceStatus::Stopped)
         }
     }
+
+    fn display_name(&self) -> &str {
+        &self.config.display_name
+    }
 }
