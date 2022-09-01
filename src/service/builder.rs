@@ -3,12 +3,7 @@ use crate::service::Result;
 use std::env::current_exe;
 
 use super::platform::ServiceManager;
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum ServiceLevel {
-    System,
-    User,
-}
+use super::Level;
 
 pub struct Builder {
     pub(crate) name: String,
@@ -18,7 +13,7 @@ pub struct Builder {
     pub(crate) description: String,
     pub(crate) program: String,
     pub(crate) args: Vec<String>,
-    pub(crate) service_level: ServiceLevel,
+    pub(crate) service_level: Level,
 }
 
 impl Builder {
@@ -30,7 +25,7 @@ impl Builder {
             description: "".to_owned(),
             args: vec![],
             program: current_exe().unwrap().to_string_lossy().to_string(),
-            service_level: ServiceLevel::System,
+            service_level: Level::System,
         }
     }
 
@@ -62,7 +57,7 @@ impl Builder {
         }
     }
 
-    pub fn with_service_level(self, service_level: ServiceLevel) -> Self {
+    pub fn with_service_level(self, service_level: Level) -> Self {
         Self {
             service_level,
             ..self

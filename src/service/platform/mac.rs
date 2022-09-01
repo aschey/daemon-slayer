@@ -7,10 +7,10 @@ use std::{
 use eyre::Context;
 use launchd::Launchd;
 
-use crate::service::{builder::Builder, manager::Manager, status::Status, Result};
+use crate::service::{builder::Builder, manager::Manager, status::Status, Level, Result};
 
 pub struct ServiceManager {
-    config: ServiceBuilder,
+    config: Builder,
 }
 
 impl ServiceManager {
@@ -44,23 +44,23 @@ impl ServiceManager {
 
     fn get_plist_path(&self) -> Result<PathBuf> {
         let path = match self.config.service_level {
-            ServiceLevel::System => PathBuf::from("/Library/LaunchDaemons"),
-            ServiceLevel::User => self.user_agent_dir()?,
+            Level::System => PathBuf::from("/Library/LaunchDaemons"),
+            Level::User => self.user_agent_dir()?,
         };
         Ok(path.join(format!("{}.plist", self.config.name)))
     }
 }
 
 impl Manager for ServiceManager {
-    fn builder(name: impl Into<String>) -> ServiceBuilder {
-        ServiceBuilder::new(name)
+    fn builder(name: impl Into<String>) -> Builder {
+        Builder::new(name)
     }
 
     fn new(name: impl Into<String>) -> Result<Self> {
-        ServiceBuilder::new(name).build()
+        Builder::new(name).build()
     }
 
-    fn from_builder(builder: ServiceBuilder) -> Result<Self> {
+    fn from_builder(builder: Builder) -> Result<Self> {
         Ok(Self { config: builder })
     }
 
@@ -97,10 +97,10 @@ impl Manager for ServiceManager {
         Ok(())
     }
 
-    fn query_status(&self) -> Result<ServiceStatus> {
+    fn query_status(&self) -> Result<Status> {
         let output = self.run_launchctl(vec!["print", &format!("system/{}", self.config.name)])?;
         if output.contains("could not find service") {
-            return Ok(ServiceStatus::NotInstalled);
+            return Ok(Status::NotInstalled);
         }
         let s = output
             .split('\n')
@@ -115,12 +115,12 @@ impl Manager for ServiceManager {
             })
             .collect::<Vec<_>>();
         if s.len() == 0 {
-            return Ok(ServiceStatus::Stopped);
+            return Ok(Status::Stopped);
         }
         if s[0].trim() == "running" {
-            Ok(ServiceStatus::Started)
+            Ok(Status::Started)
         } else {
-            Ok(ServiceStatus::Stopped)
+            Ok(Status::Stopped)
         }
     }
 

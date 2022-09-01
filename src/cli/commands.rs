@@ -55,6 +55,14 @@ impl Default for CliCommands {
                 help_text: "".to_owned(),
             },
         );
+        #[cfg(feature = "console")]
+        commands.insert(
+            ServiceCommands::CONSOLE,
+            Command::Subcommand {
+                name: ServiceCommands::CONSOLE.to_owned(),
+                help_text: "View service console".to_owned(),
+            },
+        );
         #[cfg(feature = "direct")]
         commands.insert(ServiceCommands::DIRECT, Command::Default);
         Self(commands)

@@ -14,6 +14,9 @@ pub use status::Status;
 mod builder;
 pub use builder::Builder;
 
+mod level;
+pub use level::Level;
+
 pub type Result<T> = result::Result<T, Box<dyn Error>>;
 
 #[maybe_async::maybe_async]

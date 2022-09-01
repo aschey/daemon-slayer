@@ -101,6 +101,12 @@ where
         self
     }
 
+    #[cfg(feature = "console")]
+    pub fn with_console_command(mut self, command: Command) -> Self {
+        self.commands.insert(ServiceCommands::CONSOLE, command);
+        self
+    }
+
     pub fn with_run_command(mut self, command: Command) -> Self {
         self.commands.insert(ServiceCommands::RUN, command);
         self
@@ -180,6 +186,9 @@ where
                     ServiceCommands::RUN => {
                         info!("running...");
                         H::run_service_main().await;
+                    }
+                    ServiceCommands::CONSOLE => {
+                        crate::console::run()?;
                     }
                     #[cfg(feature = "direct")]
                     ServiceCommands::DIRECT => {

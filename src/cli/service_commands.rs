@@ -9,4 +9,6 @@ impl ServiceCommands {
     pub(crate) const STATUS: &'static str = "status";
     pub(crate) const START: &'static str = "start";
     pub(crate) const STOP: &'static str = "stop";
+    #[cfg(feature = "console")]
+    pub(crate) const CONSOLE: &'static str = "console";
 }

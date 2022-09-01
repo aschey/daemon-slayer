@@ -11,23 +11,19 @@ use windows_service::{
     },
 };
 
-use crate::service::{builder::Builder, manager::Manager, status::Status, Result};
+use crate::service::{builder::Builder, manager::Manager, status::Status, Level, Result};
 
 pub struct ServiceManager {
-    config: ServiceBuilder,
+    config: Builder,
 }
 
 impl ServiceManager {
-    fn get_service_status(
-        &self,
-        service: &str,
-        service_type: ServiceType,
-    ) -> Result<ServiceStatus> {
+    fn get_service_status(&self, service: &str, service_type: ServiceType) -> Result<Status> {
         if self
             .find_service(Regex::new(&format!("^{}$", service)).unwrap(), service_type)?
             .is_none()
         {
-            return Ok(ServiceStatus::NotInstalled);
+            return Ok(Status::NotInstalled);
         }
 
         let service = self.open_service(service)?;
@@ -36,8 +32,8 @@ impl ServiceManager {
             .wrap_err("Error getting service status")?
             .current_state
         {
-            ServiceState::Stopped | ServiceState::StartPending => Ok(ServiceStatus::Stopped),
-            _ => Ok(ServiceStatus::Started),
+            ServiceState::Stopped | ServiceState::StartPending => Ok(Status::Stopped),
+            _ => Ok(Status::Started),
         }
     }
 
@@ -55,8 +51,8 @@ impl ServiceManager {
 
     fn current_service_name(&self) -> Result<Option<String>> {
         let service = match &self.config.service_level {
-            ServiceLevel::System => self.config.name.clone(),
-            ServiceLevel::User => {
+            Level::System => self.config.name.clone(),
+            Level::User => {
                 // User services have a random id appended to the end like this: some_service_name_18dcf87g
                 // The id changes every login so we have to search for it
                 let re = Regex::new(&format!(r"^{}_[a-z\d]{{8}}$", self.config.name)).unwrap();
@@ -89,7 +85,7 @@ impl ServiceManager {
     }
 
     fn delete_service(&self, service: &str, service_type: ServiceType) -> Result<()> {
-        if self.get_service_status(service, service_type)? != ServiceStatus::NotInstalled {
+        if self.get_service_status(service, service_type)? != Status::NotInstalled {
             let service = self.open_service(service)?;
             service.delete().wrap_err("Error deleting service")?;
         }
@@ -105,15 +101,15 @@ impl ServiceManager {
 }
 
 impl Manager for ServiceManager {
-    fn builder(name: impl Into<String>) -> ServiceBuilder {
-        ServiceBuilder::new(name)
+    fn builder(name: impl Into<String>) -> Builder {
+        Builder::new(name)
     }
 
     fn new(name: impl Into<String>) -> Result<Self> {
-        ServiceBuilder::new(name).build()
+        Builder::new(name).build()
     }
 
-    fn from_builder(builder: ServiceBuilder) -> Result<Self> {
+    fn from_builder(builder: Builder) -> Result<Self> {
         Ok(Self { config: builder })
     }
 
@@ -127,8 +123,8 @@ impl Manager for ServiceManager {
                 name: (&self.config.name).into(),
                 display_name: (&self.config.display_name).into(),
                 service_type: match self.config.service_level {
-                    ServiceLevel::System => ServiceType::OWN_PROCESS,
-                    ServiceLevel::User => ServiceType::USER_OWN_PROCESS,
+                    Level::System => ServiceType::OWN_PROCESS,
+                    Level::User => ServiceType::USER_OWN_PROCESS,
                 },
                 start_type: ServiceStartType::OnDemand,
                 error_control: ServiceErrorControl::Normal,
@@ -153,7 +149,7 @@ impl Manager for ServiceManager {
     }
 
     fn uninstall(&self) -> Result<()> {
-        if self.config.service_level == ServiceLevel::User {
+        if self.config.service_level == Level::User {
             let current_service_name = match self.current_service_name()? {
                 Some(name) => name,
                 None => return Ok(()),
@@ -167,7 +163,7 @@ impl Manager for ServiceManager {
     }
 
     fn start(&self) -> Result<()> {
-        if self.query_status()? == ServiceStatus::Started {
+        if self.query_status()? == Status::Started {
             return Ok(());
         }
 
@@ -179,7 +175,7 @@ impl Manager for ServiceManager {
     }
 
     fn stop(&self) -> Result<()> {
-        if self.query_status()? != ServiceStatus::Started {
+        if self.query_status()? != Status::Started {
             return Ok(());
         }
         let service = self.open_current_service()?;
@@ -187,13 +183,13 @@ impl Manager for ServiceManager {
         Ok(())
     }
 
-    fn query_status(&self) -> Result<ServiceStatus> {
+    fn query_status(&self) -> Result<Status> {
         let service = match self.current_service_name()? {
             Some(service) => service,
-            None => return Ok(ServiceStatus::NotInstalled),
+            None => return Ok(Status::NotInstalled),
         };
 
-        if self.config.service_level == ServiceLevel::User {
+        if self.config.service_level == Level::User {
             self.get_service_status(&service, ServiceType::USER_OWN_PROCESS)
         } else {
             self.get_service_status(&service, ServiceType::OWN_PROCESS)
