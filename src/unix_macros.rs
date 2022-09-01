@@ -57,6 +57,8 @@ macro_rules! define_service {
                         | $crate::signal_hook::consts::signal::SIGINT
                         | $crate::signal_hook::consts::signal::SIGQUIT
                         | $crate::signal_hook::consts::signal::SIGHUP => {
+                            #[cfg(target_os = "linux")]
+                            sd_notify::notify(false, &[sd_notify::NotifyState::Stopping]).unwrap();
                             stop_handler().await;
                         }
                         _ => {}
@@ -64,9 +66,15 @@ macro_rules! define_service {
                 }
             });
 
-            let status = handler.run_service(|| {}).await;
+            let status = handler
+                .run_service(|| {
+                    #[cfg(target_os = "linux")]
+                    sd_notify::notify(false, &[sd_notify::NotifyState::Ready]).unwrap();
+                })
+                .await;
             signals_handle.close();
             signals_task.await.unwrap();
+
             status
         }
 
@@ -98,6 +106,8 @@ macro_rules! define_service {
                         | $crate::signal_hook::consts::signal::SIGINT
                         | $crate::signal_hook::consts::signal::SIGQUIT
                         | $crate::signal_hook::consts::signal::SIGHUP => {
+                            #[cfg(target_os = "linux")]
+                            sd_notify::notify(false, &[sd_notify::NotifyState::Stopping]).unwrap();
                             stop_handler();
                         }
                         _ => {}
@@ -105,7 +115,10 @@ macro_rules! define_service {
                 }
             });
 
-            handler.run_service(|| {})
+            handler.run_service(|| {
+                #[cfg(target_os = "linux")]
+                sd_notify::notify(false, &[sd_notify::NotifyState::Ready]).unwrap();
+            })
         }
 
         $crate::__internal_direct_handler!($service_func_name, $service_handler);

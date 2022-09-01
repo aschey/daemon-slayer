@@ -31,6 +31,9 @@ pub use signal_hook_tokio;
 #[cfg(windows)]
 pub use windows_service;
 
+#[cfg(target_os = "linux")]
+pub use sd_notify;
+
 #[cfg(feature = "async-tokio")]
 pub use async_trait;
 #[cfg(feature = "async-tokio")]

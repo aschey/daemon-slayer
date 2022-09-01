@@ -45,7 +45,8 @@ signal-hook-tokio = {version = "0.3.1", features = ["futures-v0_3"], optional = 
 tokio = {version = "1.20.1", features = ["rt-multi-thread"], optional = true}
 
 [target.'cfg(target_os="linux")'.dependencies]
-systemd_client = {git = "https://github.com/aschey/systemd-client", rev = "964f544fe7a24dc59429f3534f8b58fd13a7d627"}
+sd-notify = "0.4.0"
+systemd_client = {git = "https://github.com/aschey/systemd-client", rev = "5402ac4722cd6c0cf3c0f277c382ba20a1f5b3e6"}
 
 [target.'cfg(target_os = "macos")'.dependencies]
 launchd = "0.2.0"

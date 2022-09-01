@@ -33,6 +33,8 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
                             | #crate_name::signal_hook::consts::signal::SIGINT
                             | #crate_name::signal_hook::consts::signal::SIGQUIT
                             | #crate_name::signal_hook::consts::signal::SIGHUP => {
+                                #[cfg(target_os = "linux")]
+                                #crate_name::sd_notify::notify(false, &[#crate_name::sd_notify::NotifyState::Stopping]).unwrap();
                                 stop_handler().await;
                             }
                             _ => {}
@@ -40,7 +42,10 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
                     }
                 });
 
-                let status = handler.run_service(|| {}).await;
+                let status = handler.run_service(|| {
+                    #[cfg(target_os = "linux")]
+                    #crate_name::sd_notify::notify(false, &[#crate_name::sd_notify::NotifyState::Ready]).unwrap();
+                }).await;
                 signals_handle.close();
                 signals_task.await.unwrap();
                 status
@@ -78,13 +83,18 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
                             | #crate_name::signal_hook::consts::signal::SIGINT
                             | #crate_name::signal_hook::consts::signal::SIGQUIT
                             | #crate_name::signal_hook::consts::signal::SIGHUP => {
+                                #[cfg(target_os = "linux")]
+                                #crate_name::sd_notify::notify(false, &[#crate_name::sd_notify::NotifyState::Stopping]).unwrap();
                                 stop_handler();
                             }
                             _ => {}
                         }
                     }
                 });
-                handler.run_service(|| {})
+                handler.run_service(|| {
+                    #[cfg(target_os = "linux")]
+                    #crate_name::sd_notify::notify(false, &[#crate_name::sd_notify::NotifyState::Ready]).unwrap();
+                })
             }
 
             #direct_handler
