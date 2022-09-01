@@ -1,5 +1,5 @@
 #[cfg(feature = "cli")]
-use daemon_slayer::cli::{Cli, CliCommand};
+use daemon_slayer::cli::Cli;
 #[cfg(feature = "logging")]
 use daemon_slayer::logging::LoggerBuilder;
 use daemon_slayer::{
