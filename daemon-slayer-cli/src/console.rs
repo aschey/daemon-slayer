@@ -55,20 +55,34 @@ fn ui<B: Backend>(f: &mut Frame<B>) {
     let size = f.size();
 
     // Main border
-    let block = Block::default()
+    let main_block = Block::default()
         .borders(Borders::ALL)
         .title("Daemon Slayer Console")
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Rounded);
-    f.render_widget(block, size);
+    f.render_widget(main_block, size);
+
     let sides = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .vertical_margin(1)
+        .horizontal_margin(2)
         .split(f.size());
+    let left = sides[0];
+    // let right = sides[1];
+    let left_side = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(left);
+    let upper_left = left_side[0];
+    let status_block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded);
+    f.render_widget(status_block, upper_left);
 
     let vert_slices = Layout::default()
         .direction(Direction::Horizontal)
-        .margin(4)
+        .margin(2)
         .constraints([Constraint::Length(10), Constraint::Length(10)].as_ref())
         .split(sides[0]);
 
