@@ -30,41 +30,7 @@ impl Cli {
     }
 
     pub fn new(manager: ServiceManager) -> Self {
-        let mut commands = Commands::default();
-        let service_args = manager.args();
-        if service_args.is_empty() {
-            commands.insert(ServiceCommands::RUN, Command::Default);
-            #[cfg(feature = "direct")]
-            commands.insert(
-                ServiceCommands::DIRECT,
-                Command::Subcommand {
-                    name: ServiceCommands::DIRECT.to_owned(),
-                    help_text: "Run the service directly".to_owned(),
-                },
-            );
-        } else {
-            // Already checked that args is not empty so this shouldn't fail
-            let first = service_args.first().unwrap();
-            if first.starts_with("--") {
-                commands.insert(
-                    ServiceCommands::RUN,
-                    Command::Arg {
-                        short: None,
-                        long: Some(first.to_owned()),
-                        help_text: None,
-                    },
-                );
-            } else if first.starts_with('-') {
-                commands.insert(
-                    ServiceCommands::RUN,
-                    Command::Arg {
-                        short: Some(first.replacen('-', "", 1).chars().next().unwrap()),
-                        long: None,
-                        help_text: None,
-                    },
-                );
-            }
-        }
+        let commands = Commands::default();
 
         Self { manager, commands }
     }

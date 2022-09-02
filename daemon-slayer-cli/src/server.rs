@@ -38,7 +38,7 @@ where
     }
 
     pub fn new(display_name: String, description: String) -> Self {
-        let mut commands = Commands::default();
+        let commands = Commands::default();
 
         Self {
             commands,

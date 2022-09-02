@@ -31,31 +31,55 @@ where
         Builder::from_manager(manager, commands)
     }
 
+    pub fn new(manager: ServiceManager) -> Self {
+        Self::builder(manager).build()
+    }
+
     pub(crate) fn from_builder(builder: Builder<H>) -> Self {
+        let manager = builder.manager.unwrap();
+        let service_args = manager.args();
+        let mut commands = builder.commands;
+        if service_args.is_empty() {
+            commands.insert(ServiceCommands::RUN, Command::Default);
+            #[cfg(feature = "direct")]
+            commands.insert(
+                ServiceCommands::DIRECT,
+                Command::Subcommand {
+                    name: ServiceCommands::DIRECT.to_owned(),
+                    help_text: "Run the service directly".to_owned(),
+                },
+            );
+        } else {
+            // Already checked that args is not empty so this shouldn't fail
+            let first = service_args.first().unwrap();
+            if first.starts_with("--") {
+                commands.insert(
+                    ServiceCommands::RUN,
+                    Command::Arg {
+                        short: None,
+                        long: Some(first.to_owned()),
+                        help_text: None,
+                    },
+                );
+            } else if first.starts_with('-') {
+                commands.insert(
+                    ServiceCommands::RUN,
+                    Command::Arg {
+                        short: Some(first.replacen('-', "", 1).chars().next().unwrap()),
+                        long: None,
+                        help_text: None,
+                    },
+                );
+            }
+        }
         let display_name = builder.display_name.clone();
         let description = builder.description.clone();
         Self {
-            client_cli: client::Cli::new(builder.manager.unwrap()),
+            client_cli: client::Cli::new(manager),
             server_cli: server::Cli::new(builder.display_name, builder.description),
-            commands: builder.commands,
-            display_name,
-            description,
-        }
-    }
-
-    pub fn new(manager: ServiceManager) -> Self {
-        let display_name = manager.display_name().to_string();
-        let description = manager.description().to_string();
-        let client_cli = client::Cli::new(manager);
-        let commands = Commands::default();
-        let server_cli = server::Cli::<H>::new(display_name.clone(), description.clone());
-
-        Self {
-            client_cli,
-            server_cli,
-            display_name,
-            description,
             commands,
+            display_name,
+            description,
         }
     }
 
