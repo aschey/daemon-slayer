@@ -1,6 +1,6 @@
-use daemon_slayer::cli::Cli;
 use daemon_slayer::client::{Manager, ServiceManager};
 
+use daemon_slayer::cli::{Cli, Command};
 use daemon_slayer::server::{Handler, Service, StopHandler};
 #[cfg(feature = "logging")]
 use daemon_slayer::server::{LoggerBuilder, LoggerGuard};

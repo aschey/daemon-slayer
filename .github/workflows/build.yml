@@ -20,4 +20,10 @@ jobs:
         run: |
           cargo install cargo-hack
           cargo build
+          cd daemon-slayer-cli
+          cargo build --no-default-features
+          cargo build 
+          cargo build --no-default-features --features=client
+          cargo build --no-default-features --features=server
+          cd ..
           cargo hack --feature-powerset test -- --nocapture
