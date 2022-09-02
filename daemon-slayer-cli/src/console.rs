@@ -6,7 +6,7 @@ use crossterm::{
 use std::{error::Error, io};
 use tui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Alignment, Constraint, Direction, Layout},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     widgets::{Block, BorderType, Borders, Paragraph},
     Frame, Terminal,
@@ -69,50 +69,70 @@ fn ui<B: Backend>(f: &mut Frame<B>) {
         .horizontal_margin(2)
         .split(f.size());
     let left = sides[0];
-    // let right = sides[1];
+
+    let num_labels = 3;
     let left_side = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .constraints([Constraint::Length(3 * num_labels), Constraint::Min(1)])
         .split(left);
-    let upper_left = left_side[0];
+    let status_area = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Length(25), Constraint::Min(1)])
+        .split(left_side[0]);
+
+    let label_area = get_label_area(num_labels, left);
+
+    let status_label = get_label("Status:");
+    let status_value = get_label_value("Stopped", Color::Red);
+
+    let autostart_label = get_label("Autostart:");
+    let autostart_value = get_label_value("Enabled", Color::Blue);
+
+    let health_check_label = get_label("Health:");
+    let health_check_value = get_label_value("Healthy", Color::Green);
+
+    f.render_widget(status_label, label_area.0[0]);
+    f.render_widget(status_value, label_area.1[0]);
+    f.render_widget(autostart_label, label_area.0[1]);
+    f.render_widget(autostart_value, label_area.1[1]);
+    f.render_widget(health_check_label, label_area.0[2]);
+    f.render_widget(health_check_value, label_area.1[2]);
+
     let status_block = Block::default()
         .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Reset))
         .border_type(BorderType::Rounded);
-    f.render_widget(status_block, upper_left);
+    f.render_widget(status_block, status_area[0]);
+}
 
+fn get_label(label: &str) -> Paragraph {
+    Paragraph::new(label)
+        .alignment(Alignment::Right)
+        .style(Style::default().add_modifier(Modifier::BOLD))
+}
+
+fn get_label_value(value: &str, color: Color) -> Paragraph {
+    Paragraph::new(value)
+        .alignment(Alignment::Left)
+        .style(Style::default().fg(color))
+}
+
+fn get_label_area(num_labels: u16, left: Rect) -> (Vec<Rect>, Vec<Rect>) {
+    let bounds: Vec<_> = (0..num_labels).map(|_| Constraint::Length(2)).collect();
     let vert_slices = Layout::default()
         .direction(Direction::Horizontal)
         .margin(2)
         .constraints([Constraint::Length(10), Constraint::Length(10)].as_ref())
-        .split(sides[0]);
+        .split(left);
 
     let labels = Layout::default()
-        .constraints([Constraint::Length(2), Constraint::Length(2)].as_ref())
+        .constraints(&*bounds)
         .split(vert_slices[0]);
 
     let values = Layout::default()
-        .constraints([Constraint::Length(2), Constraint::Length(2)].as_ref())
+        .constraints(&*bounds)
         .horizontal_margin(1)
         .split(vert_slices[1]);
 
-    let status_label = Paragraph::new("Status:")
-        .alignment(Alignment::Right)
-        .style(Style::default().add_modifier(Modifier::BOLD));
-
-    let status_value = Paragraph::new("Stopped")
-        .alignment(Alignment::Left)
-        .style(Style::default().fg(Color::Red));
-
-    let autostart_label = Paragraph::new("Autostart:")
-        .alignment(Alignment::Right)
-        .style(Style::default().add_modifier(Modifier::BOLD));
-
-    let autostart_value = Paragraph::new("Enabled")
-        .alignment(Alignment::Left)
-        .style(Style::default().fg(Color::Blue));
-
-    f.render_widget(status_label, labels[0]);
-    f.render_widget(status_value, values[0]);
-    f.render_widget(autostart_label, labels[1]);
-    f.render_widget(autostart_value, values[1]);
+    (labels, values)
 }
