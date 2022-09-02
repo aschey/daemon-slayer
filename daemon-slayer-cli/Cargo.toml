@@ -7,7 +7,7 @@ version = "0.1.0"
 async-tokio = ["tokio", "async-trait", "futures", "maybe-async/is_async"]
 client = ["daemon-slayer-client"]
 console = ["tui", "crossterm"]
-default = ["client", "server"]
+default = ["client", "server", "console"]
 direct = []
 server = ["daemon-slayer-server"]
 
@@ -23,4 +23,4 @@ maybe-async = {git = "https://github.com/aschey/maybe-async-rs", rev = "36bb795e
 time = {version = "0.3.13", optional = true}
 tokio = {version = "1.20.1", features = ["rt-multi-thread"], optional = true}
 tracing = "0.1.36"
-tui = {version = "0.19.0", optional = true}
+tui = {git = "https://github.com/fdehau/tui-rs", rev = "02213a25a8f0779662dfbbbca98990715177ecc5", optional = true}

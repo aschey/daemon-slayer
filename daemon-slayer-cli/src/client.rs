@@ -87,7 +87,7 @@ impl Cli {
 
                     #[cfg(feature = "console")]
                     ServiceCommands::CONSOLE => {
-                        //crate::console::run()?;
+                        crate::console::run()?;
                     }
 
                     _ => {}

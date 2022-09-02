@@ -22,7 +22,7 @@ logging = ["daemon-slayer-server/logging", "tracing-subscriber"]
 
 [dependencies]
 async-trait = {version = "0.1.57", optional = true}
-daemon-slayer-cli = {path = "./daemon-slayer-cli", default-features = false, features = ["server", "client"]}
+daemon-slayer-cli = {path = "./daemon-slayer-cli", default-features = false, features = ["server", "client", "console"]}
 daemon-slayer-client = {path = "./daemon-slayer-client", default-features = false}
 daemon-slayer-server = {path = "./daemon-slayer-server", default-features = false}
 futures = {version = "0.3.23", optional = true}

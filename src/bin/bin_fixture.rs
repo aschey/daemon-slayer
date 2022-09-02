@@ -14,8 +14,8 @@ use tracing_subscriber::util::SubscriberInitExt;
 pub fn main() {
     #[cfg(feature = "logging")]
     {
-        let (logger, _guard) = LoggerBuilder::new(ServiceHandler::get_service_name()).build();
-        logger.init();
+        // let (logger, _guard) = LoggerBuilder::new(ServiceHandler::get_service_name()).build();
+        // logger.init();
     }
 
     let manager = ServiceManager::builder(ServiceHandler::get_service_name())
