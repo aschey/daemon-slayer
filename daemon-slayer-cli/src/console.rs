@@ -61,18 +61,44 @@ fn ui<B: Backend>(f: &mut Frame<B>) {
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Rounded);
     f.render_widget(block, size);
+    let sides = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(f.size());
 
     let vert_slices = Layout::default()
         .direction(Direction::Horizontal)
         .margin(4)
         .constraints([Constraint::Length(10), Constraint::Length(10)].as_ref())
-        .split(f.size());
-    let labels = vert_slices[0];
-    let values = vert_slices[1];
-    let status_label =
-        Paragraph::new("Status: ").style(Style::default().add_modifier(Modifier::BOLD));
-    let status_value = Paragraph::new("Stopped").style(Style::default().fg(Color::Red));
+        .split(sides[0]);
 
-    f.render_widget(status_label, labels);
-    f.render_widget(status_value, values);
+    let labels = Layout::default()
+        .constraints([Constraint::Length(2), Constraint::Length(2)].as_ref())
+        .split(vert_slices[0]);
+
+    let values = Layout::default()
+        .constraints([Constraint::Length(2), Constraint::Length(2)].as_ref())
+        .horizontal_margin(1)
+        .split(vert_slices[1]);
+
+    let status_label = Paragraph::new("Status:")
+        .alignment(Alignment::Right)
+        .style(Style::default().add_modifier(Modifier::BOLD));
+
+    let status_value = Paragraph::new("Stopped")
+        .alignment(Alignment::Left)
+        .style(Style::default().fg(Color::Red));
+
+    let autostart_label = Paragraph::new("Autostart:")
+        .alignment(Alignment::Right)
+        .style(Style::default().add_modifier(Modifier::BOLD));
+
+    let autostart_value = Paragraph::new("Enabled")
+        .alignment(Alignment::Left)
+        .style(Style::default().fg(Color::Blue));
+
+    f.render_widget(status_label, labels[0]);
+    f.render_widget(status_value, values[0]);
+    f.render_widget(autostart_label, labels[1]);
+    f.render_widget(autostart_value, values[1]);
 }
