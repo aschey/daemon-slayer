@@ -9,7 +9,12 @@ pub(crate) fn build_cmd<'a>(
 ) -> clap::Command<'a> {
     let mut cmd = clap::Command::new(display_name).about(description);
     for (name, command) in commands {
-        let hide = (*name) == ServiceCommands::RUN;
+        let mut hide = false;
+        #[cfg(feature = "server")]
+        {
+            hide = (*name) == ServiceCommands::RUN;
+        }
+
         match command {
             Command::Arg {
                 short,
