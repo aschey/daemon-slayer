@@ -55,7 +55,7 @@ impl Cli {
     }
 
     #[maybe_async::maybe_async]
-    pub(crate) async fn handle_cmd(&self, matches: &ArgMatches) -> Result<bool, Box<dyn Error>> {
+    pub(crate) async fn handle_cmd(self, matches: &ArgMatches) -> Result<bool, Box<dyn Error>> {
         for (name, cmd) in self.commands.iter() {
             if Self::matches(&matches, cmd, name) {
                 info!("checking {name}");
@@ -87,7 +87,9 @@ impl Cli {
 
                     #[cfg(feature = "console")]
                     ServiceCommands::CONSOLE => {
-                        crate::console::run()?;
+                        let mut console = crate::console::Console::new(self.manager);
+                        console.run()?;
+                        return Ok(true);
                     }
 
                     _ => {}
@@ -100,11 +102,12 @@ impl Cli {
 
     #[maybe_async::maybe_async]
     pub async fn handle_input(self) -> Result<bool, Box<dyn Error>> {
-        let mut cmd = util::build_cmd(
-            &self.manager.display_name(),
-            &*self.manager.description(),
+        let cmd = util::build_cmd(
+            self.manager.display_name(),
+            self.manager.description(),
             self.commands.iter(),
         );
-        self.handle_cmd(&cmd.get_matches()).await
+        let matches = cmd.get_matches();
+        self.handle_cmd(&matches).await
     }
 }
