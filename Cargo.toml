@@ -17,6 +17,7 @@ async-tokio = [
   "futures",
 ]
 console = ["daemon-slayer-cli/console"]
+default = ["async-tokio", "logging"]
 direct = ["daemon-slayer-server/direct", "daemon-slayer-cli/direct"]
 logging = ["daemon-slayer-server/logging", "tracing-subscriber"]
 
@@ -27,7 +28,7 @@ daemon-slayer-client = {path = "./daemon-slayer-client", default-features = fals
 daemon-slayer-server = {path = "./daemon-slayer-server", default-features = false}
 futures = {version = "0.3.23", optional = true}
 maybe-async = {git = "https://github.com/aschey/maybe-async-rs", rev = "36bb795e18e88aa0642164934d50d8c5ee05e26f", features = ["default_sync"]}
-tokio = {version = "1.20.1", features = ["rt-multi-thread"], optional = true}
+tokio = {version = "1.20.1", features = ["rt-multi-thread", "time"], optional = true}
 tracing = "0.1.36"
 tracing-subscriber = {version = "0.3.15", features = ["local-time", "env-filter"], optional = true}
 

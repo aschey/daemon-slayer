@@ -81,10 +81,7 @@ where
                         H::run_service_main().await;
                         return Ok(true);
                     }
-                    #[cfg(feature = "console")]
-                    ServiceCommands::CONSOLE => {
-                        //crate::console::run()?;
-                    }
+
                     #[cfg(feature = "direct")]
                     ServiceCommands::DIRECT => {
                         let handler = H::new();

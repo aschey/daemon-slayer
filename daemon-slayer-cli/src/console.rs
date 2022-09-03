@@ -1,14 +1,19 @@
+use ansi_to_tui::IntoText;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use daemon_slayer_client::{Manager, ServiceManager, Status};
+use futures::{select, FutureExt, Stream, StreamExt};
+use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use std::{
     error::Error,
     io::{self, Stdout},
+    pin::Pin,
     time::{Duration, Instant},
 };
+use tokio::io::{split, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -17,24 +22,28 @@ use tui::{
     widgets::{Block, BorderType, Borders, List, ListItem, Paragraph, Wrap},
     Frame, Terminal,
 };
-
-pub struct Console {
+trait AsyncStream: AsyncRead + AsyncWrite {}
+pub struct Console<'a> {
     manager: ServiceManager,
     last_update: Instant,
     status: Status,
+    logs: Vec<ListItem<'a>>,
 }
 
-impl Console {
+impl<'a> Console<'a> {
     pub fn new(manager: ServiceManager) -> Self {
+        println!("NEW");
+
         let status = manager.query_status().unwrap();
         Self {
             manager,
             status,
+            logs: vec![],
             last_update: Instant::now(),
         }
     }
 
-    pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
+    pub async fn run(&mut self) -> Result<(), Box<dyn Error>> {
         // setup terminal
         enable_raw_mode()?;
         let mut stdout = io::stdout();
@@ -43,7 +52,7 @@ impl Console {
         let mut terminal = Terminal::new(backend)?;
 
         // create app and run it
-        let res = self.run_app(&mut terminal);
+        let res = self.run_app(&mut terminal).await;
 
         // restore terminal
         disable_raw_mode()?;
@@ -61,15 +70,68 @@ impl Console {
         Ok(())
     }
 
-    fn run_app(&mut self, terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> io::Result<()> {
-        loop {
-            terminal.draw(|f| self.ui(f))?;
+    async fn run_app(
+        &mut self,
+        terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    ) -> io::Result<()> {
+        let mut reader = EventStream::new();
 
-            if let Event::Key(key) = event::read()? {
-                if let KeyCode::Char('q') = key.code {
-                    return Ok(());
+        let (tx, mut rx) = tokio::sync::mpsc::channel(32);
+        tokio::spawn(async move {
+            let mut endpoint = Endpoint::new("/tmp/daemon_slayer.sock".to_owned());
+            endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
+
+            let incoming = endpoint.incoming().expect("failed to open new socket");
+            futures::pin_mut!(incoming);
+
+            while let Some(result) = incoming.next().await {
+                match result {
+                    Ok(stream) => {
+                        let (mut reader, mut writer) = split(stream);
+
+                        loop {
+                            let mut buf = [0u8; 256];
+                            //let pong_buf = b"pong";
+                            if let Err(_) = reader.read(&mut buf).await {
+                                println!("Closing socket");
+                                break;
+                            }
+                            let text = buf.to_vec().into_text().unwrap();
+                            tx.send(ListItem::new(text)).await.unwrap();
+                        }
+                    }
+                    _ => unreachable!("ideally"),
                 }
             }
+        });
+
+        loop {
+            terminal.draw(|f| self.ui(f))?;
+            let delay = tokio::time::sleep(Duration::from_secs(1));
+            let event = reader.next();
+
+            tokio::select! {
+               _ = delay => {},
+               log = rx.recv() => {
+                if let Some(log) = log {
+                    self.logs.clear();
+                    self.logs.push(log);
+                }
+               }
+                maybe_event = event => {
+                    match maybe_event {
+                        Some(Ok(event)) => {
+                            if let Event::Key(key) = event {
+                                if let KeyCode::Char('q') = key.code {
+                                    return Ok(());
+                                }
+                            }
+                        }
+                        None => {}
+                        _ => return Ok(())
+                    }
+                },
+            };
         }
     }
 
@@ -144,8 +206,7 @@ impl Console {
         .block(bordered_block().title("Controls"));
         f.render_widget(button, right_sections[0]);
 
-        let log_table =
-            List::new(vec![ListItem::new("test log")]).block(bordered_block().title("Logs"));
+        let log_table = List::new(&*self.logs).block(bordered_block().title("Logs"));
         f.render_widget(log_table, bottom);
     }
 }

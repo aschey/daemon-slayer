@@ -1,3 +1,6 @@
+use std::env::args;
+use std::time::Duration;
+
 use daemon_slayer::client::{Manager, ServiceManager};
 
 use daemon_slayer::cli::{Cli, Command};
@@ -30,14 +33,13 @@ pub fn main() {
 
 #[maybe_async::async_impl]
 pub fn main() {
-    #[cfg(feature = "logging")]
-    let (logger, _guard) = LoggerBuilder::new(ServiceHandler::get_service_name()).build();
-    #[cfg(feature = "logging")]
-    logger.init();
-
     info!("running main");
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
+        #[cfg(feature = "logging")]
+        let (logger, _guard) = LoggerBuilder::new(ServiceHandler::get_service_name()).build();
+        #[cfg(feature = "logging")]
+        logger.init();
         //.with_service_level(ServiceLevel::User);
         let manager = ServiceManager::builder(ServiceHandler::get_service_name())
             .with_description("test service")
@@ -112,9 +114,16 @@ impl Handler for ServiceHandler {
     async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> u32 {
         info!("running service");
         on_started();
-
-        self.rx.next().await;
-        info!("stopping service");
-        0
+        loop {
+            match tokio::time::timeout(Duration::from_secs(1), self.rx.next()).await {
+                Ok(_) => {
+                    info!("stopping service");
+                    return 0;
+                }
+                Err(_) => {
+                    info!("ping");
+                }
+            }
+        }
     }
 }

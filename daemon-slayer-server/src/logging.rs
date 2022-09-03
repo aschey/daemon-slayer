@@ -1,7 +1,15 @@
-use std::io::stdout;
+use std::{
+    env::args,
+    io::stdout,
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
 
 use directories::ProjectDirs;
+use once_cell::sync::OnceCell;
+use parity_tokio_ipc::{Connection, Endpoint};
 use time::{format_description::well_known, UtcOffset};
+use tokio::io::{AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tracing::metadata::LevelFilter;
 use tracing_appender::{
     non_blocking::{NonBlockingBuilder, WorkerGuard},
@@ -10,7 +18,7 @@ use tracing_appender::{
 #[cfg(windows)]
 use tracing_eventlog::{register, EventLogLayer};
 use tracing_subscriber::{
-    fmt::{time::OffsetTime, Layer},
+    fmt::{time::OffsetTime, Layer, MakeWriter},
     prelude::__tracing_subscriber_SubscriberExt,
     util::SubscriberInitExt,
     EnvFilter, Layer as SubscriberLayer,
@@ -32,6 +40,110 @@ impl LoggerGuard {
 
     fn add_guard(&mut self, guard: WorkerGuard) {
         self.guards.push(guard);
+    }
+}
+
+#[derive(Debug)]
+enum IpcCmd {
+    Flush,
+    Write(Vec<u8>),
+}
+
+struct IpcWriterInstance {
+    tx: tokio::sync::mpsc::Sender<IpcCmd>,
+}
+
+impl std::io::Write for IpcWriterInstance {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        if !IS_INITIALIZED.load(Ordering::SeqCst) {
+            return Ok(buf.len());
+        }
+        let b = buf.to_owned();
+        let tx = self.tx.clone();
+
+        tokio::spawn(async move {
+            if let Err(e) = tx.send(IpcCmd::Write(b)).await {
+                println!("IpcWriterInstance Err writing {e}");
+            }
+        });
+
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        if !IS_INITIALIZED.load(Ordering::SeqCst) {
+            return Ok(());
+        }
+        let tx = self.tx.clone();
+
+        tokio::spawn(async move {
+            if let Err(e) = tx.send(IpcCmd::Flush).await {
+                println!("IpcWriterInstance Err flushing {e:?}");
+            }
+        });
+
+        Ok(())
+    }
+}
+
+struct IpcWriter;
+
+static IS_INITIALIZED: AtomicBool = AtomicBool::new(false);
+static SENDER: OnceCell<tokio::sync::mpsc::Sender<IpcCmd>> = OnceCell::new();
+
+impl IpcWriter {
+    fn new() -> Self {
+        Self
+    }
+
+    fn init(&self, mut rx: tokio::sync::mpsc::Receiver<IpcCmd>) {
+        tokio::spawn(async move {
+            let mut client = loop {
+                match Endpoint::connect("/tmp/daemon_slayer.sock").await {
+                    Ok(client) => break client,
+                    Err(e) => {
+                        println!("Error connecting {e:?}");
+                        tokio::time::sleep(Duration::from_secs(1)).await;
+                    }
+                }
+            };
+
+            while let Some(cmd) = rx.recv().await {
+                match cmd {
+                    IpcCmd::Write(buf) => {
+                        client
+                            .write_all(&buf)
+                            .await
+                            .expect("Unable to write message to client");
+                    }
+                    IpcCmd::Flush => {
+                        client.flush().await.unwrap();
+                    }
+                }
+
+                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            }
+        });
+    }
+}
+
+impl MakeWriter<'_> for IpcWriter {
+    type Writer = IpcWriterInstance;
+
+    fn make_writer(&'_ self) -> Self::Writer {
+        let is_console = args().len() > 1 && args().skip(1).take(1).next().unwrap() == "console";
+        if !IS_INITIALIZED.swap(!is_console, Ordering::SeqCst) {
+            let (tx, rx) = tokio::sync::mpsc::channel(32);
+            SENDER.get_or_init(|| tx);
+
+            if !is_console {
+                self.init(rx);
+            }
+        }
+
+        IpcWriterInstance {
+            tx: SENDER.get().unwrap().clone(),
+        }
     }
 }
 
@@ -81,6 +193,10 @@ impl LoggerBuilder {
     pub fn build(self) -> (impl SubscriberInitExt, LoggerGuard) {
         let offset = match (self.timezone, OffsetTime::local_rfc_3339()) {
             (Timezone::Local, Ok(offset)) => offset,
+            (Timezone::Local, Err(e)) => {
+                println!("Error getting local time: {e}");
+                OffsetTime::new(UtcOffset::UTC, well_known::Rfc3339)
+            }
             _ => OffsetTime::new(UtcOffset::UTC, well_known::Rfc3339),
         };
 
@@ -117,10 +233,19 @@ impl LoggerBuilder {
             .with({
                 Layer::new()
                     .pretty()
-                    .with_timer(offset)
+                    .with_timer(offset.clone())
                     .with_thread_ids(true)
                     .with_thread_names(true)
                     .with_writer(non_blocking_stdout)
+                    .with_filter(self.level_filter)
+            })
+            .with({
+                Layer::new()
+                    .compact()
+                    .with_timer(offset)
+                    .with_thread_ids(true)
+                    .with_thread_names(true)
+                    .with_writer(IpcWriter::new())
                     .with_filter(self.level_filter)
             })
             .with(tracing_error::ErrorLayer::default());

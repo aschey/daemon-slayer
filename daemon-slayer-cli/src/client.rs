@@ -88,7 +88,7 @@ impl Cli {
                     #[cfg(feature = "console")]
                     ServiceCommands::CONSOLE => {
                         let mut console = crate::console::Console::new(self.manager);
-                        console.run()?;
+                        console.run().await?;
                         return Ok(true);
                     }
 
