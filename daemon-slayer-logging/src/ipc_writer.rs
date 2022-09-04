@@ -17,6 +17,8 @@ use tracing_subscriber::{fmt::MakeWriter, layer::Filter};
 static IS_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static SENDER: OnceCell<tokio::sync::mpsc::Sender<IpcCommand>> = OnceCell::new();
 static HANDLE: OnceCell<tokio::sync::Mutex<tokio::task::JoinHandle<()>>> = OnceCell::new();
+#[cfg(unix)]
+static IPC_PATH: &str = "/tmp/daemon_slayer.sock";
 
 pub(crate) struct IpcFilter<F, S>
 where
@@ -47,7 +49,7 @@ where
         meta: &tracing::Metadata<'_>,
         cx: &tracing_subscriber::layer::Context<'_, S>,
     ) -> bool {
-        if let Ok(true) = std::path::Path::new("/tmp/daemon_slayer.sock").try_exists() {
+        if let Ok(true) = std::path::Path::new(IPC_PATH).try_exists() {
             self.inner.enabled(meta, cx)
         } else {
             false
@@ -58,7 +60,7 @@ where
         &self,
         meta: &'static tracing::Metadata<'static>,
     ) -> tracing::subscriber::Interest {
-        if let Ok(true) = std::path::Path::new("/tmp/daemon_slayer.sock").try_exists() {
+        if let Ok(true) = std::path::Path::new(IPC_PATH).try_exists() {
             self.inner.callsite_enabled(meta)
         } else {
             tracing::subscriber::Interest::never()
@@ -92,11 +94,11 @@ impl IpcWriter {
         let handle = tokio::spawn(async move {
             loop {
                 let mut last_connect = tokio::time::Instant::now();
-                let mut client = match Endpoint::connect("/tmp/daemon_slayer.sock").await {
+                let mut client = match Endpoint::connect(IPC_PATH).await {
                     Ok(client) => client,
                     Err(_) => loop {
                         tokio::select! {
-                            client = Endpoint::connect("/tmp/daemon_slayer.sock"), if tokio::time::Instant::now().duration_since(last_connect) > tokio::time::Duration::from_secs(1) => {
+                            client = Endpoint::connect(IPC_PATH), if tokio::time::Instant::now().duration_since(last_connect) > tokio::time::Duration::from_secs(1) => {
                                 match client {
                                     Ok(client) => break client,
                                     Err(_) => {
@@ -178,7 +180,7 @@ impl std::io::Write for IpcWriter {
 }
 
 pub async fn run_ipc_server(tx: tokio::sync::mpsc::Sender<String>) {
-    let mut endpoint = Endpoint::new("/tmp/daemon_slayer.sock".to_owned());
+    let mut endpoint = Endpoint::new(IPC_PATH.to_owned());
     endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
 
     let mut incoming = endpoint.incoming().expect("failed to open new socket");
