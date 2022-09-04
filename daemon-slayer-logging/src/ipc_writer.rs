@@ -3,7 +3,10 @@ use once_cell::sync::OnceCell;
 use parity_tokio_ipc::Endpoint;
 use std::{
     io::Write,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex, Once,
+    },
     time::Duration,
 };
 use tokio::io::AsyncWriteExt;
@@ -11,6 +14,7 @@ use tracing_subscriber::fmt::MakeWriter;
 
 static IS_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static SENDER: OnceCell<tokio::sync::mpsc::Sender<IpcCommand>> = OnceCell::new();
+static HANDLE: OnceCell<tokio::sync::Mutex<tokio::task::JoinHandle<()>>> = OnceCell::new();
 
 pub(crate) struct IpcWriter;
 
@@ -18,13 +22,14 @@ pub(crate) struct WorkerGuard;
 
 impl Drop for WorkerGuard {
     fn drop(&mut self) {
-        tokio::spawn(async {
-            SENDER.get().unwrap().send(IpcCommand::Flush).await.unwrap();
+        futures::executor::block_on(async {
+            SENDER
+                .get()
+                .unwrap()
+                .send_timeout(IpcCommand::Flush, Duration::from_millis(100))
+                .await
+                .unwrap();
         });
-
-        while IS_INITIALIZED.load(Ordering::SeqCst) {
-            std::thread::sleep(Duration::from_millis(10));
-        }
     }
 }
 
@@ -34,32 +39,33 @@ impl IpcWriter {
     }
 
     fn init(&self, mut rx: tokio::sync::mpsc::Receiver<IpcCommand>) {
-        tokio::spawn(async move {
-            let mut client = loop {
-                tokio::select! {
-                    client = Endpoint::connect("/tmp/daemon_slayer.sock") => {
-                        match client {
-                            Ok(client) => break client,
-                            Err(e) => {
-                                println!("Error connecting {e:?}");
-                                tokio::time::sleep(Duration::from_secs(1)).await;
+        let handle = tokio::spawn(async move {
+            let mut last_connect = tokio::time::Instant::now();
+            let mut client = match Endpoint::connect("/tmp/daemon_slayer.sock").await {
+                Ok(client) => client,
+                Err(_) => loop {
+                    tokio::select! {
+                        client = Endpoint::connect("/tmp/daemon_slayer.sock"), if tokio::time::Instant::now().duration_since(last_connect) > tokio::time::Duration::from_secs(1) => {
+                            match client {
+                                Ok(client) => break client,
+                                Err(_) => {
+                                    last_connect = tokio::time::Instant::now();
+                                }
                             }
-                        }
-                    },
-                    cmd = rx.recv() => {
-                        match cmd {
-                            Some(IpcCommand::Write(_)) => {},
-                            Some(IpcCommand::Flush) => {
-                                IS_INITIALIZED.swap(false, Ordering::SeqCst);
-                                return;
-                            },
-                            None => {
-                                IS_INITIALIZED.swap(false, Ordering::SeqCst);
-                                return;
+                        },
+                        cmd = rx.recv() => {
+                            match cmd {
+                                Some(IpcCommand::Write(_)) => {},
+                                _ => {
+                                    return;
+                                },
+
                             }
-                        }
+                        },
+                        _ =  tokio::time::sleep(Duration::from_millis(1000)) => {
+                        },
                     }
-                }
+                },
             };
 
             while let Some(cmd) = rx.recv().await {
@@ -72,14 +78,12 @@ impl IpcWriter {
                     }
                     IpcCommand::Flush => {
                         client.flush().await.unwrap();
-                        IS_INITIALIZED.swap(false, Ordering::SeqCst);
                         return;
                     }
                 }
-
-                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
             }
         });
+        HANDLE.set(tokio::sync::Mutex::new(handle)).unwrap();
     }
 }
 
@@ -100,9 +104,6 @@ impl MakeWriter<'_> for IpcWriter {
 
 impl std::io::Write for IpcWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        // if !IS_INITIALIZED.load(Ordering::SeqCst) {
-        //     return Ok(buf.len());
-        // }
         let b = buf.to_owned();
 
         tokio::spawn(async move {
@@ -115,10 +116,6 @@ impl std::io::Write for IpcWriter {
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        // if !IS_INITIALIZED.load(Ordering::SeqCst) {
-        //     return Ok(());
-        // }
-
         tokio::spawn(async move {
             if let Err(e) = SENDER.get().unwrap().send(IpcCommand::Flush).await {
                 println!("IpcWriterInstance Err flushing {e:?}");
