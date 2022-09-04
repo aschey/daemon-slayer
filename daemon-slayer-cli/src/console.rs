@@ -76,35 +76,7 @@ impl<'a> Console<'a> {
     ) -> io::Result<()> {
         let (tx, mut rx) = tokio::sync::mpsc::channel(32);
         tokio::spawn(async move {
-            let mut endpoint = Endpoint::new("/tmp/daemon_slayer.sock".to_owned());
-            endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
-
-            let mut incoming = endpoint.incoming().expect("failed to open new socket");
-
-            while let Some(result) = incoming.next().await {
-                match result {
-                    Ok(stream) => {
-                        let (mut reader, _) = split(stream);
-                        let tx = tx.clone();
-                        loop {
-                            let mut buf = [0u8; 2048];
-
-                            let bytes = match reader.read(&mut buf).await {
-                                Ok(0) => break,
-                                Ok(bytes) => bytes,
-                                Err(_) => break,
-                            };
-
-                            let text = (&buf[0..bytes]).into_text().unwrap();
-
-                            tx.send(ListItem::new(text)).await;
-                        }
-                    }
-                    _ => {
-                        tokio::time::sleep(Duration::from_millis(10)).await;
-                    }
-                }
-            }
+            daemon_slayer_logging::run_ipc_server(tx).await;
         });
         let mut log_stream_running = true;
         let mut event_reader = EventStream::new().fuse();
@@ -115,7 +87,8 @@ impl<'a> Console<'a> {
                 log = rx.recv(), if log_stream_running => {
 
                     if let Some(log) = log {
-                        let mut new_logs = vec![log];
+                        let text = ListItem::new(log.into_text().unwrap());
+                        let mut new_logs = vec![text];
                         new_logs.extend_from_slice(&self.logs);
                         self.logs = new_logs;
                     } else {

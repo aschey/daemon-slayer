@@ -1,6 +1,7 @@
 use super::ipc_command::IpcCommand;
+use futures::StreamExt;
 use once_cell::sync::OnceCell;
-use parity_tokio_ipc::Endpoint;
+use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use std::{
     io::Write,
     sync::{
@@ -9,7 +10,7 @@ use std::{
     },
     time::Duration,
 };
-use tokio::io::AsyncWriteExt;
+use tokio::io::{split, AsyncReadExt, AsyncWriteExt};
 use tracing_subscriber::fmt::MakeWriter;
 
 static IS_INITIALIZED: AtomicBool = AtomicBool::new(false);
@@ -124,5 +125,39 @@ impl std::io::Write for IpcWriter {
         });
 
         Ok(())
+    }
+}
+
+pub async fn run_ipc_server(tx: tokio::sync::mpsc::Sender<String>) {
+    let mut endpoint = Endpoint::new("/tmp/daemon_slayer.sock".to_owned());
+    endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
+
+    let mut incoming = endpoint.incoming().expect("failed to open new socket");
+    let mut buf = [0; 2048];
+    while let Some(result) = incoming.next().await {
+        match result {
+            Ok(stream) => {
+                let (mut reader, _) = split(stream);
+
+                loop {
+                    let bytes = match reader.read(&mut buf).await {
+                        Ok(0) => break,
+                        Ok(bytes) => bytes,
+                        Err(_) => break,
+                    };
+
+                    if tx
+                        .send(std::str::from_utf8(&buf[0..bytes]).unwrap().to_string())
+                        .await
+                        .is_err()
+                    {
+                        return;
+                    }
+                }
+            }
+            _ => {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        }
     }
 }
