@@ -26,3 +26,6 @@ windows-service = {git = "https://github.com/aschey/windows-service-rs", rev = "
 
 [target.'cfg(unix)'.dependencies]
 tokio = {version = "1.20.1", features = ["rt-multi-thread", "net", "io-util", "sync"], optional = true}
+
+[target.'cfg(target_os="linux")'.dependencies]
+tracing-journald = "0.3.0"

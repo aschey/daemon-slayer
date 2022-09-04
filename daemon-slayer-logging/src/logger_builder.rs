@@ -140,6 +140,10 @@ impl LoggerBuilder {
                 .with_writer(ipc_writer)
                 .with_filter(self.level_filter)
         });
+
+        #[cfg(target_os = "linux")]
+        let collector = collector.with(tracing_journald::layer().unwrap());
+
         #[cfg(windows)]
         register(&self.name).unwrap();
         #[cfg(windows)]
