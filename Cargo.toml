@@ -4,36 +4,32 @@ name = "daemon-slayer"
 version = "0.1.0"
 
 [workspace]
-members = ["daemon-slayer-macros", "daemon-slayer-client", "daemon-slayer-server", "daemon-slayer-cli"]
+members = ["daemon-slayer-macros", "daemon-slayer-client", "daemon-slayer-server", "daemon-slayer-cli", "daemon-slayer-logging"]
 
 [features]
-all = ["console", "direct", "logging", "async-tokio"]
+all = ["console", "direct", "async-tokio"]
 async-tokio = [
-  "tokio",
   "daemon-slayer-server/async-tokio",
   "daemon-slayer-cli/async-tokio",
-  "maybe-async/is_async",
-  "async-trait",
-  "futures",
+  "daemon-slayer-logging/async-tokio",
 ]
 console = ["daemon-slayer-cli/console"]
-default = ["async-tokio", "logging"]
+default = ["async-tokio"]
 direct = ["daemon-slayer-server/direct", "daemon-slayer-cli/direct"]
-logging = ["daemon-slayer-server/logging", "tracing-subscriber"]
 
 [dependencies]
-async-trait = {version = "0.1.57", optional = true}
 daemon-slayer-cli = {path = "./daemon-slayer-cli", default-features = false, features = ["server", "client", "console"]}
 daemon-slayer-client = {path = "./daemon-slayer-client", default-features = false}
+daemon-slayer-logging = {path = "./daemon-slayer-logging", default-features = false}
 daemon-slayer-server = {path = "./daemon-slayer-server", default-features = false}
-futures = {version = "0.3.23", optional = true}
-maybe-async = {git = "https://github.com/aschey/maybe-async-rs", rev = "36bb795e18e88aa0642164934d50d8c5ee05e26f", features = ["default_sync"]}
-tokio = {version = "1.20.1", features = ["rt-multi-thread", "time"], optional = true}
-tracing = "0.1.36"
-tracing-subscriber = {version = "0.3.15", features = ["local-time", "env-filter"], optional = true}
 
 [[bin]]
 name = "bin_fixture"
 
 [dev-dependencies]
 assert_cmd = "2.0.4"
+async-trait = {version = "0.1.57"}
+futures = {version = "0.3.23"}
+tokio = {version = "1.20.1", features = ["rt-multi-thread", "time"]}
+tracing = "0.1.36"
+tracing-subscriber = {version = "0.3.15", features = ["local-time", "env-filter"]}

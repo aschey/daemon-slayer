@@ -1,36 +1,28 @@
 [package]
 edition = "2021"
-name = "daemon-slayer-server"
+name = "daemon-slayer-logging"
 version = "0.1.0"
 
 [features]
-async-tokio = ["tokio", "signal-hook-tokio", "async-trait", "futures", "daemon-slayer-macros/async", "maybe-async/is_async"]
-direct = ["signal-hook", "daemon-slayer-macros/direct"]
+async-tokio = ["tokio", "async-trait", "futures", "maybe-async/is_async"]
 
 [dependencies]
 async-trait = {version = "0.1.57", optional = true}
-daemon-slayer-macros = {path = "../daemon-slayer-macros", default-features = false}
+directories = {version = "4.0.1"}
 futures = {version = "0.3.23", optional = true}
 maybe-async = {git = "https://github.com/aschey/maybe-async-rs", rev = "36bb795e18e88aa0642164934d50d8c5ee05e26f", features = ["default_sync"]}
 once_cell = "1.14.0"
+parity-tokio-ipc = "0.9.0"
+time = "0.3.14"
 tracing = "0.1.36"
+tracing-appender = {version = "0.2.2"}
+tracing-error = {version = "0.2.0"}
+tracing-subscriber = {version = "0.3.15", features = ["local-time", "env-filter"]}
 
 [target.'cfg(windows)'.dependencies]
-signal-hook = {version = "0.3.14", optional = true}
 tokio = {version = "1.20.1", features = ["rt-multi-thread", "signal", "net"], optional = true}
+tracing-eventlog = {git = "https://github.com/aschey/tracing-eventlog", rev = "e87ec17edfb374101e1a9bda14b0e5b534d1cc56"}
 windows-service = {git = "https://github.com/aschey/windows-service-rs", rev = "467408c9aba7d8221e5cf5a9992765ad7abeeb55"}
 
 [target.'cfg(unix)'.dependencies]
-signal-hook = "0.3.14"
-signal-hook-tokio = {version = "0.3.1", features = ["futures-v0_3"], optional = true}
 tokio = {version = "1.20.1", features = ["rt-multi-thread", "net", "io-util", "sync"], optional = true}
-
-[target.'cfg(target_os="linux")'.dependencies]
-sd-notify = "0.4.0"
-systemd_client = {git = "https://github.com/aschey/systemd-client", rev = "5402ac4722cd6c0cf3c0f277c382ba20a1f5b3e6"}
-
-[target.'cfg(target_os = "macos")'.dependencies]
-launchd = "0.2.0"
-
-[dev-dependencies]
-assert_cmd = "2.0.4"

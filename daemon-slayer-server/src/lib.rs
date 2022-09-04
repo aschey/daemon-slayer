@@ -1,9 +1,5 @@
 mod handler;
 pub use handler::{Handler, StopHandler};
-#[cfg(feature = "logging")]
-pub mod logging;
-#[cfg(feature = "logging")]
-pub use logging::{logger_builder::LoggerBuilder, logger_guard::LoggerGuard};
 mod service;
 pub use service::Service;
 

@@ -9,3 +9,7 @@ pub mod cli {
 pub mod server {
     pub use daemon_slayer_server::*;
 }
+
+pub mod logging {
+    pub use daemon_slayer_logging::*;
+}

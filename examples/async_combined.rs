@@ -6,7 +6,7 @@ use daemon_slayer::client::{Manager, ServiceManager};
 use daemon_slayer::cli::{Action, Cli, CliHandler, Command};
 use daemon_slayer::server::{Handler, Service, StopHandler};
 
-use daemon_slayer::server::{LoggerBuilder, LoggerGuard};
+use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
 use futures::{SinkExt, StreamExt};
 use tracing::info;
@@ -43,7 +43,7 @@ pub struct ServiceHandler {
     rx: futures::channel::mpsc::Receiver<()>,
 }
 
-#[maybe_async::maybe_async]
+#[async_trait::async_trait]
 impl Handler for ServiceHandler {
     fn new() -> Self {
         let (tx, rx) = futures::channel::mpsc::channel(32);

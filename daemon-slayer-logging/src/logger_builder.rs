@@ -12,7 +12,10 @@ use time::{
     format_description::well_known::{self, Rfc3339},
     UtcOffset,
 };
-use tokio::io::{AsyncReadExt, AsyncWrite, AsyncWriteExt};
+
+#[cfg(feature = "async-tokio")]
+use super::ipc_writer::IpcWriter;
+use super::{logger_guard::LoggerGuard, timezone::Timezone};
 use tracing::metadata::LevelFilter;
 use tracing_appender::{
     non_blocking::{NonBlockingBuilder, WorkerGuard},
@@ -26,8 +29,6 @@ use tracing_subscriber::{
     util::SubscriberInitExt,
     EnvFilter, Layer as SubscriberLayer,
 };
-
-use super::{ipc_writer::IpcWriter, logger_guard::LoggerGuard, timezone::Timezone};
 
 static LOCAL_TIME: OnceCell<Result<OffsetTime<Rfc3339>, time::error::IndeterminateOffset>> =
     OnceCell::new();
@@ -125,17 +126,18 @@ impl LoggerBuilder {
                     .with_writer(non_blocking_stdout)
                     .with_filter(self.level_filter)
             })
-            .with({
-                Layer::new()
-                    .compact()
-                    .with_timer(offset)
-                    .with_thread_ids(true)
-                    .with_thread_names(true)
-                    .with_writer(IpcWriter::new())
-                    .with_filter(self.level_filter)
-            })
             .with(tracing_error::ErrorLayer::default());
 
+        #[cfg(feature = "async-tokio")]
+        let collector = collector.with({
+            Layer::new()
+                .compact()
+                .with_timer(offset)
+                .with_thread_ids(true)
+                .with_thread_names(true)
+                .with_writer(IpcWriter::new())
+                .with_filter(self.level_filter)
+        });
         #[cfg(windows)]
         register(&self.name).unwrap();
         #[cfg(windows)]

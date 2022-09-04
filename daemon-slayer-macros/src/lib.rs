@@ -27,7 +27,7 @@ pub fn derive_service(input: TokenStream) -> TokenStream {
     let found_crate = crate_name("daemon-slayer-server").unwrap();
 
     let crate_name = match found_crate {
-        FoundCrate::Itself => quote!(daemon_slayer),
+        FoundCrate::Itself => quote!(daemon_slayer_server),
         FoundCrate::Name(name) => {
             let ident = Ident::new(&name, Span::call_site());
             quote!( #ident )
