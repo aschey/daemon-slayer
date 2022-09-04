@@ -1,4 +1,8 @@
 #[cfg(any(feature = "client", feature = "server"))]
+mod action;
+#[cfg(any(feature = "client", feature = "server"))]
+pub use action::Action;
+#[cfg(any(feature = "client", feature = "server"))]
 mod builder;
 #[cfg(any(feature = "client", feature = "server"))]
 mod command;
@@ -6,6 +10,11 @@ mod command;
 mod commands;
 #[cfg(any(feature = "client", feature = "server"))]
 mod service_commands;
+
+#[cfg(any(feature = "client", feature = "server"))]
+mod cli_handler;
+#[cfg(any(feature = "client", feature = "server"))]
+pub use cli_handler::CliHandler;
 #[cfg(any(feature = "client", feature = "server"))]
 mod util;
 #[cfg(any(feature = "client", feature = "server"))]

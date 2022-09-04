@@ -6,7 +6,8 @@ use tracing::info;
 use daemon_slayer_server::{Handler, Service};
 
 use crate::{
-    builder::Builder, command::Command, commands::Commands, service_commands::ServiceCommands, util,
+    action::Action, builder::Builder, command::Command, commands::Commands,
+    service_commands::ServiceCommands, util, CliHandler,
 };
 
 pub struct Cli<H>
@@ -94,10 +95,37 @@ where
         }
         Ok(false)
     }
+}
 
-    #[maybe_async::maybe_async]
-    pub async fn handle_input(self) -> Result<bool, Box<dyn Error>> {
+#[maybe_async::maybe_async]
+impl<H> CliHandler for Cli<H>
+where
+    H: Service + Handler + Send + Sync,
+{
+    async fn handle_input(self) -> Result<bool, Box<dyn Error>>
+    where
+        Self: 'async_trait,
+    {
         let mut cmd = util::build_cmd(&self.display_name, &*self.description, self.commands.iter());
         self.handle_cmd(&cmd.get_matches()).await
+    }
+
+    fn action_type(&self) -> Action {
+        let cmd = util::build_cmd(&self.display_name, &*self.description, self.commands.iter());
+        let matches = &cmd.get_matches();
+        for (name, cmd) in self.commands.iter() {
+            if Self::matches(matches, cmd, name) {
+                if *name == ServiceCommands::RUN {
+                    return Action::Server;
+                }
+                #[cfg(feature = "direct")]
+                {
+                    if *name == ServiceCommands::DIRECT {
+                        return Action::Server;
+                    }
+                }
+            }
+        }
+        Action::Unknown
     }
 }

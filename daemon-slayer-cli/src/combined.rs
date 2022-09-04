@@ -7,8 +7,8 @@ use daemon_slayer_client::{Manager, ServiceManager};
 use daemon_slayer_server::{Handler, Service};
 
 use crate::{
-    builder::Builder, client, command::Command, commands::Commands, server,
-    service_commands::ServiceCommands, util,
+    action::Action, builder::Builder, cli_handler::CliHandler, client, command::Command,
+    commands::Commands, server, service_commands::ServiceCommands, util,
 };
 
 pub struct Cli<H>
@@ -82,9 +82,14 @@ where
             description,
         }
     }
+}
 
-    #[maybe_async::maybe_async]
-    pub async fn handle_input(self) -> Result<bool, Box<dyn Error>> {
+#[maybe_async::maybe_async]
+impl<H> CliHandler for Cli<H>
+where
+    H: Service + Handler + Send + Sync,
+{
+    async fn handle_input(self) -> Result<bool, Box<dyn Error>> {
         let cmd = util::build_cmd(&self.display_name, &self.description, self.commands.iter());
         let matches = cmd.get_matches();
         match self.server_cli.handle_cmd(&matches).await {
@@ -94,5 +99,12 @@ where
         };
 
         self.client_cli.handle_cmd(&matches).await
+    }
+
+    fn action_type(&self) -> Action {
+        if self.server_cli.action_type() == Action::Server {
+            return Action::Server;
+        }
+        self.client_cli.action_type()
     }
 }
