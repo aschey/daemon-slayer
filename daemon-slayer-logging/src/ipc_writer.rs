@@ -40,45 +40,46 @@ impl IpcWriter {
 
     fn init(&self, mut rx: tokio::sync::mpsc::Receiver<IpcCommand>) {
         let handle = tokio::spawn(async move {
-            let mut last_connect = tokio::time::Instant::now();
-            let mut client = match Endpoint::connect("/tmp/daemon_slayer.sock").await {
-                Ok(client) => client,
-                Err(_) => loop {
-                    tokio::select! {
-                        client = Endpoint::connect("/tmp/daemon_slayer.sock"), if tokio::time::Instant::now().duration_since(last_connect) > tokio::time::Duration::from_secs(1) => {
-                            match client {
-                                Ok(client) => break client,
-                                Err(_) => {
-                                    last_connect = tokio::time::Instant::now();
+            loop {
+                let mut last_connect = tokio::time::Instant::now();
+                let mut client = match Endpoint::connect("/tmp/daemon_slayer.sock").await {
+                    Ok(client) => client,
+                    Err(_) => loop {
+                        tokio::select! {
+                            client = Endpoint::connect("/tmp/daemon_slayer.sock"), if tokio::time::Instant::now().duration_since(last_connect) > tokio::time::Duration::from_secs(1) => {
+                                match client {
+                                    Ok(client) => break client,
+                                    Err(_) => {
+                                        last_connect = tokio::time::Instant::now();
+                                    }
                                 }
-                            }
-                        },
-                        cmd = rx.recv() => {
-                            match cmd {
-                                Some(IpcCommand::Write(_)) => {},
-                                _ => {
-                                    return;
-                                },
+                            },
+                            cmd = rx.recv() => {
+                                match cmd {
+                                    Some(IpcCommand::Write(_)) => {},
+                                    _ => {
+                                        return;
+                                    },
 
-                            }
-                        },
-                        _ =  tokio::time::sleep(Duration::from_millis(1000)) => {
-                        },
-                    }
-                },
-            };
+                                }
+                            },
+                            _ =  tokio::time::sleep(Duration::from_millis(1000)) => {
+                            },
+                        }
+                    },
+                };
 
-            while let Some(cmd) = rx.recv().await {
-                match cmd {
-                    IpcCommand::Write(buf) => {
-                        client
-                            .write_all(&buf)
-                            .await
-                            .expect("Unable to write message to client");
-                    }
-                    IpcCommand::Flush => {
-                        client.flush().await.unwrap();
-                        return;
+                while let Some(cmd) = rx.recv().await {
+                    match cmd {
+                        IpcCommand::Write(buf) => {
+                            if client.write_all(&buf).await.is_err() {
+                                break;
+                            };
+                        }
+                        IpcCommand::Flush => {
+                            let _ = client.flush().await;
+                            return;
+                        }
                     }
                 }
             }

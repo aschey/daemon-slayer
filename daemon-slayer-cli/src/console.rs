@@ -74,40 +74,31 @@ impl<'a> Console<'a> {
         &mut self,
         terminal: &mut Terminal<CrosstermBackend<Stdout>>,
     ) -> io::Result<()> {
-        let mut reader = EventStream::new();
-
         let (tx, mut rx) = tokio::sync::mpsc::channel(32);
         tokio::spawn(async move {
             let mut endpoint = Endpoint::new("/tmp/daemon_slayer.sock".to_owned());
             endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
 
-            let incoming = endpoint.incoming().expect("failed to open new socket");
-            futures::pin_mut!(incoming);
+            let mut incoming = endpoint.incoming().expect("failed to open new socket");
 
             while let Some(result) = incoming.next().await {
                 match result {
                     Ok(stream) => {
-                        let (mut reader, mut writer) = split(stream);
+                        let (mut reader, _) = split(stream);
                         let tx = tx.clone();
-                        tokio::spawn(async move {
-                            loop {
-                                let mut buf = [0u8; 256];
+                        loop {
+                            let mut buf = [0u8; 2048];
 
-                                let bytes = match reader.read(&mut buf).await {
-                                    Ok(0) => break,
-                                    Ok(bytes) => bytes,
-                                    Err(_) => break,
-                                };
+                            let bytes = match reader.read(&mut buf).await {
+                                Ok(0) => break,
+                                Ok(bytes) => bytes,
+                                Err(_) => break,
+                            };
 
-                                let text = String::from_utf8(buf[0..bytes].to_vec())
-                                    .unwrap()
-                                    .replace('\n', "")
-                                    .into_text()
-                                    .unwrap();
+                            let text = (&buf[0..bytes]).into_text().unwrap();
 
-                                tx.send(ListItem::new(text)).await;
-                            }
-                        });
+                            tx.send(ListItem::new(text)).await;
+                        }
                     }
                     _ => {
                         tokio::time::sleep(Duration::from_millis(10)).await;
@@ -116,10 +107,10 @@ impl<'a> Console<'a> {
             }
         });
         let mut log_stream_running = true;
+        let mut event_reader = EventStream::new().fuse();
         loop {
             terminal.draw(|f| self.ui(f))?;
 
-            //tokio::time::sleep(Duration::from_millis(10)).await;
             tokio::select! {
                 log = rx.recv(), if log_stream_running => {
 
@@ -131,7 +122,7 @@ impl<'a> Console<'a> {
                         log_stream_running = false;
                     }
                 }
-                maybe_event = reader.next() => {
+                maybe_event = event_reader.next() => {
                     match maybe_event {
                         Some(Ok(event)) => {
                             if let Event::Key(key) = event {
@@ -232,7 +223,7 @@ fn get_main_block() -> Block<'static> {
 }
 
 fn get_button(text: &str, color: Color, selected: bool) -> Span {
-    let mut style = Style::default().bg(color);
+    let mut style = Style::default().bg(color).fg(Color::Rgb(240, 240, 240));
     if selected {
         style = style.add_modifier(Modifier::BOLD | Modifier::SLOW_BLINK | Modifier::REVERSED);
     }
