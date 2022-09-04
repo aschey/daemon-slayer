@@ -2,6 +2,7 @@ use super::ipc_command::IpcCommand;
 use once_cell::sync::OnceCell;
 use parity_tokio_ipc::Endpoint;
 use std::{
+    io::Write,
     sync::atomic::{AtomicBool, Ordering},
     time::Duration,
 };
@@ -13,19 +14,50 @@ static SENDER: OnceCell<tokio::sync::mpsc::Sender<IpcCommand>> = OnceCell::new()
 
 pub(crate) struct IpcWriter;
 
+pub(crate) struct WorkerGuard;
+
+impl Drop for WorkerGuard {
+    fn drop(&mut self) {
+        tokio::spawn(async {
+            SENDER.get().unwrap().send(IpcCommand::Flush).await.unwrap();
+        });
+
+        while IS_INITIALIZED.load(Ordering::SeqCst) {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+}
+
 impl IpcWriter {
-    pub(crate) fn new() -> Self {
-        Self
+    pub(crate) fn new() -> (Self, WorkerGuard) {
+        (Self, WorkerGuard)
     }
 
     fn init(&self, mut rx: tokio::sync::mpsc::Receiver<IpcCommand>) {
         tokio::spawn(async move {
             let mut client = loop {
-                match Endpoint::connect("/tmp/daemon_slayer.sock").await {
-                    Ok(client) => break client,
-                    Err(e) => {
-                        println!("Error connecting {e:?}");
-                        tokio::time::sleep(Duration::from_secs(1)).await;
+                tokio::select! {
+                    client = Endpoint::connect("/tmp/daemon_slayer.sock") => {
+                        match client {
+                            Ok(client) => break client,
+                            Err(e) => {
+                                println!("Error connecting {e:?}");
+                                tokio::time::sleep(Duration::from_secs(1)).await;
+                            }
+                        }
+                    },
+                    cmd = rx.recv() => {
+                        match cmd {
+                            Some(IpcCommand::Write(_)) => {},
+                            Some(IpcCommand::Flush) => {
+                                IS_INITIALIZED.swap(false, Ordering::SeqCst);
+                                return;
+                            },
+                            None => {
+                                IS_INITIALIZED.swap(false, Ordering::SeqCst);
+                                return;
+                            }
+                        }
                     }
                 }
             };
@@ -40,6 +72,8 @@ impl IpcWriter {
                     }
                     IpcCommand::Flush => {
                         client.flush().await.unwrap();
+                        IS_INITIALIZED.swap(false, Ordering::SeqCst);
+                        return;
                     }
                 }
 

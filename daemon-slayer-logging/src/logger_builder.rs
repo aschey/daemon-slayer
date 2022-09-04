@@ -128,6 +128,8 @@ impl LoggerBuilder {
             })
             .with(tracing_error::ErrorLayer::default());
 
+        let (ipc_writer, ipc_guard) = IpcWriter::new();
+        guard.set_console_guard(ipc_guard);
         #[cfg(feature = "async-tokio")]
         let collector = collector.with({
             Layer::new()
@@ -135,7 +137,7 @@ impl LoggerBuilder {
                 .with_timer(offset)
                 .with_thread_ids(true)
                 .with_thread_names(true)
-                .with_writer(IpcWriter::new())
+                .with_writer(ipc_writer)
                 .with_filter(self.level_filter)
         });
         #[cfg(windows)]

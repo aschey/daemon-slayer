@@ -1,5 +1,5 @@
 use std::env::args;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use daemon_slayer::client::{Manager, ServiceManager};
 
@@ -23,6 +23,7 @@ pub fn main() {
             .with_args(["run"])
             .build()
             .unwrap();
+
         let cli = Cli::<ServiceHandler>::new(manager);
 
         let mut _logger_guard: Option<LoggerGuard> = None;
@@ -75,7 +76,7 @@ impl Handler for ServiceHandler {
                     return 0;
                 }
                 Err(_) => {
-                    info!("ping");
+                    info!("Current time: {:?}", Instant::now());
                 }
             }
         }

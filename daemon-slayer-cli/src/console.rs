@@ -16,9 +16,9 @@ use std::{
 use tokio::io::{split, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Corner, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
+    text::{Span, Spans, Text},
     widgets::{Block, BorderType, Borders, List, ListItem, Paragraph, Wrap},
     Frame, Terminal,
 };
@@ -88,37 +88,50 @@ impl<'a> Console<'a> {
                 match result {
                     Ok(stream) => {
                         let (mut reader, mut writer) = split(stream);
+                        let tx = tx.clone();
+                        tokio::spawn(async move {
+                            loop {
+                                let mut buf = [0u8; 256];
 
-                        loop {
-                            let mut buf = [0u8; 256];
-                            //let pong_buf = b"pong";
-                            if let Err(_) = reader.read(&mut buf).await {
-                                println!("Closing socket");
-                                break;
+                                let bytes = match reader.read(&mut buf).await {
+                                    Ok(0) => break,
+                                    Ok(bytes) => bytes,
+                                    Err(_) => break,
+                                };
+
+                                let text = String::from_utf8(buf[0..bytes].to_vec())
+                                    .unwrap()
+                                    .replace('\n', "")
+                                    .into_text()
+                                    .unwrap();
+
+                                tx.send(ListItem::new(text)).await;
                             }
-                            let text = buf.to_vec().into_text().unwrap();
-                            tx.send(ListItem::new(text)).await.unwrap();
-                        }
+                        });
                     }
-                    _ => unreachable!("ideally"),
+                    _ => {
+                        tokio::time::sleep(Duration::from_millis(10)).await;
+                    }
                 }
             }
         });
-
+        let mut log_stream_running = true;
         loop {
             terminal.draw(|f| self.ui(f))?;
-            let delay = tokio::time::sleep(Duration::from_secs(1));
-            let event = reader.next();
 
+            //tokio::time::sleep(Duration::from_millis(10)).await;
             tokio::select! {
-               _ = delay => {},
-               log = rx.recv() => {
-                if let Some(log) = log {
-                    self.logs.clear();
-                    self.logs.push(log);
+                log = rx.recv(), if log_stream_running => {
+
+                    if let Some(log) = log {
+                        let mut new_logs = vec![log];
+                        new_logs.extend_from_slice(&self.logs);
+                        self.logs = new_logs;
+                    } else {
+                        log_stream_running = false;
+                    }
                 }
-               }
-                maybe_event = event => {
+                maybe_event = reader.next() => {
                     match maybe_event {
                         Some(Ok(event)) => {
                             if let Event::Key(key) = event {
@@ -131,6 +144,7 @@ impl<'a> Console<'a> {
                         _ => return Ok(())
                     }
                 },
+                _ =  tokio::time::sleep(Duration::from_millis(1000)) => {},
             };
         }
     }
