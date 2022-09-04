@@ -14,6 +14,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::io::{split, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tracing_ipc::run_ipc_server;
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Alignment, Constraint, Corner, Direction, Layout, Rect},
@@ -32,8 +33,6 @@ pub struct Console<'a> {
 
 impl<'a> Console<'a> {
     pub fn new(manager: ServiceManager) -> Self {
-        println!("NEW");
-
         let status = manager.query_status().unwrap();
         Self {
             manager,
@@ -75,8 +74,9 @@ impl<'a> Console<'a> {
         terminal: &mut Terminal<CrosstermBackend<Stdout>>,
     ) -> io::Result<()> {
         let (tx, mut rx) = tokio::sync::mpsc::channel(32);
+        let name = self.manager.name().to_owned();
         tokio::spawn(async move {
-            daemon_slayer_logging::run_ipc_server(tx).await;
+            run_ipc_server(&name, tx).await;
         });
         let mut log_stream_running = true;
         let mut event_reader = EventStream::new().fuse();

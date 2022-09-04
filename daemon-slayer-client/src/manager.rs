@@ -8,6 +8,7 @@ pub trait Manager {
     fn from_builder(builder: Builder) -> Result<Self>
     where
         Self: std::marker::Sized;
+    fn name(&self) -> &str;
     fn display_name(&self) -> &str;
     fn description(&self) -> &str;
     fn args(&self) -> &Vec<String>;

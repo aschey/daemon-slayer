@@ -4,7 +4,7 @@ name = "daemon-slayer-cli"
 version = "0.1.0"
 
 [features]
-async-tokio = ["tokio", "async-trait", "futures", "maybe-async/is_async"]
+async-tokio = ["tokio", "async-trait", "futures", "maybe-async/is_async", "tracing-ipc"]
 client = ["daemon-slayer-client"]
 console = ["tui", "crossterm", "daemon-slayer-logging"]
 default = ["client", "server", "console"]
@@ -26,5 +26,6 @@ parity-tokio-ipc = "0.9.0"
 time = {version = "0.3.13", optional = true}
 tokio = {version = "1.20.1", features = ["rt-multi-thread", "macros"], optional = true}
 tracing = "0.1.36"
+tracing-ipc = {git = "https://github.com/aschey/tracing-ipc", rev = "0546f0623bbdd97979086cdd483d4ac98a849fa8", optional = true}
 # tui = {path = "../../tui-rs", optional = true}
 tui = {version = "0.18", optional = true}

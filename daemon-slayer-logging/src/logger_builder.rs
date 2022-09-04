@@ -13,10 +13,6 @@ use time::{
     UtcOffset,
 };
 
-use crate::ipc_writer::IpcFilter;
-
-#[cfg(feature = "async-tokio")]
-use super::ipc_writer::IpcWriter;
 use super::{logger_guard::LoggerGuard, timezone::Timezone};
 use tracing::metadata::LevelFilter;
 use tracing_appender::{
@@ -103,11 +99,11 @@ impl LoggerBuilder {
         let (non_blocking_stdout, stdout_guard) = NonBlockingBuilder::default()
             .buffered_lines_limit(self.output_buffer_limit)
             .finish(stdout());
-        guard.add_guard(stdout_guard);
+        guard.add_guard(Box::new(stdout_guard));
         let (non_blocking_file, file_guard) = NonBlockingBuilder::default()
             .buffered_lines_limit(self.output_buffer_limit)
             .finish(file_appender);
-        guard.add_guard(file_guard);
+        guard.add_guard(Box::new(file_guard));
         let collector = tracing_subscriber::registry()
             .with(EnvFilter::from_default_env().add_directive(self.default_log_level.into()))
             .with({
@@ -130,9 +126,8 @@ impl LoggerBuilder {
             })
             .with(tracing_error::ErrorLayer::default());
 
-        let (ipc_writer, ipc_guard) = IpcWriter::new();
-        guard.set_console_guard(ipc_guard);
-        #[cfg(feature = "async-tokio")]
+        let (ipc_writer, ipc_guard) = tracing_ipc::Writer::new(&self.name);
+        guard.add_guard(Box::new(ipc_guard));
         let collector = collector.with({
             Layer::new()
                 .compact()
@@ -140,7 +135,7 @@ impl LoggerBuilder {
                 .with_thread_ids(true)
                 .with_thread_names(true)
                 .with_writer(ipc_writer)
-                .with_filter(IpcFilter::new(self.level_filter))
+                .with_filter(tracing_ipc::Filter::new(self.level_filter))
         });
 
         #[cfg(target_os = "linux")]

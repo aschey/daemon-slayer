@@ -1,25 +1,16 @@
-use tracing_appender::non_blocking::WorkerGuard;
-
-use crate::ipc_writer;
+pub(crate) trait Any {}
+impl<T> Any for T {}
 
 pub struct LoggerGuard {
-    guards: Vec<WorkerGuard>,
-    console_guard: Option<ipc_writer::WorkerGuard>,
+    guards: Vec<Box<dyn Any>>,
 }
 
 impl LoggerGuard {
     pub(crate) fn new() -> Self {
-        Self {
-            guards: vec![],
-            console_guard: None,
-        }
+        Self { guards: vec![] }
     }
 
-    pub(crate) fn add_guard(&mut self, guard: WorkerGuard) {
+    pub(crate) fn add_guard(&mut self, guard: Box<dyn Any>) {
         self.guards.push(guard);
-    }
-
-    pub(crate) fn set_console_guard(&mut self, guard: ipc_writer::WorkerGuard) {
-        self.console_guard = Some(guard);
     }
 }

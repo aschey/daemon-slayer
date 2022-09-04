@@ -117,6 +117,10 @@ impl Manager for ServiceManager {
         &self.config.display_name
     }
 
+    fn name(&self) -> &str {
+        &self.config.name
+    }
+
     fn install(&self) -> Result<()> {
         if self.open_service(&self.config.name).is_err() {
             let service_info = ServiceInfo {
