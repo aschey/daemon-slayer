@@ -31,5 +31,3 @@ pub use client::Cli;
 pub use combined::Cli;
 #[cfg(all(not(feature = "client"), feature = "server"))]
 pub use server::Cli;
-#[cfg(feature = "console")]
-pub mod console;
