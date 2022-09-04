@@ -4,6 +4,7 @@ use once_cell::sync::OnceCell;
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use std::{
     io::Write,
+    marker::PhantomData,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex, Once,
@@ -11,11 +12,59 @@ use std::{
     time::Duration,
 };
 use tokio::io::{split, AsyncReadExt, AsyncWriteExt};
-use tracing_subscriber::fmt::MakeWriter;
+use tracing_subscriber::{fmt::MakeWriter, layer::Filter};
 
 static IS_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static SENDER: OnceCell<tokio::sync::mpsc::Sender<IpcCommand>> = OnceCell::new();
 static HANDLE: OnceCell<tokio::sync::Mutex<tokio::task::JoinHandle<()>>> = OnceCell::new();
+
+pub(crate) struct IpcFilter<F, S>
+where
+    F: Filter<S>,
+{
+    inner: F,
+    _phantom: PhantomData<S>,
+}
+
+impl<F, S> IpcFilter<F, S>
+where
+    F: Filter<S>,
+{
+    pub(crate) fn new(inner: F) -> Self {
+        Self {
+            inner,
+            _phantom: PhantomData::default(),
+        }
+    }
+}
+
+impl<F, S> Filter<S> for IpcFilter<F, S>
+where
+    F: Filter<S>,
+{
+    fn enabled(
+        &self,
+        meta: &tracing::Metadata<'_>,
+        cx: &tracing_subscriber::layer::Context<'_, S>,
+    ) -> bool {
+        if let Ok(true) = std::path::Path::new("/tmp/daemon_slayer.sock").try_exists() {
+            self.inner.enabled(meta, cx)
+        } else {
+            false
+        }
+    }
+
+    fn callsite_enabled(
+        &self,
+        meta: &'static tracing::Metadata<'static>,
+    ) -> tracing::subscriber::Interest {
+        if let Ok(true) = std::path::Path::new("/tmp/daemon_slayer.sock").try_exists() {
+            self.inner.callsite_enabled(meta)
+        } else {
+            tracing::subscriber::Interest::never()
+        }
+    }
+}
 
 pub(crate) struct IpcWriter;
 
@@ -23,14 +72,14 @@ pub(crate) struct WorkerGuard;
 
 impl Drop for WorkerGuard {
     fn drop(&mut self) {
-        futures::executor::block_on(async {
-            SENDER
-                .get()
-                .unwrap()
-                .send_timeout(IpcCommand::Flush, Duration::from_millis(100))
-                .await
-                .unwrap();
-        });
+        if let Some(sender) = SENDER.get() {
+            futures::executor::block_on(async {
+                sender
+                    .send_timeout(IpcCommand::Flush, Duration::from_millis(100))
+                    .await
+                    .unwrap();
+            });
+        }
     }
 }
 

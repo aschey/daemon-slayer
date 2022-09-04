@@ -13,6 +13,8 @@ use time::{
     UtcOffset,
 };
 
+use crate::ipc_writer::IpcFilter;
+
 #[cfg(feature = "async-tokio")]
 use super::ipc_writer::IpcWriter;
 use super::{logger_guard::LoggerGuard, timezone::Timezone};
@@ -138,7 +140,7 @@ impl LoggerBuilder {
                 .with_thread_ids(true)
                 .with_thread_names(true)
                 .with_writer(ipc_writer)
-                .with_filter(self.level_filter)
+                .with_filter(IpcFilter::new(self.level_filter))
         });
 
         #[cfg(target_os = "linux")]

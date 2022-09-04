@@ -1,4 +1,3 @@
-mod console_filter;
 #[cfg(feature = "async-tokio")]
 mod ipc_command;
 #[cfg(feature = "async-tokio")]
