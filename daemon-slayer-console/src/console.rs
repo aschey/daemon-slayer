@@ -6,7 +6,7 @@ use crossterm::{
 };
 use daemon_slayer_client::{Manager, ServiceManager, Status};
 use futures::{select, FutureExt, Stream, StreamExt};
-use parity_tokio_ipc::{Endpoint, SecurityAttributes};
+
 use std::{
     error::Error,
     io::{self, Stdout},

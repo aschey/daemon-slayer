@@ -1,6 +1,7 @@
 use std::{error::Error, marker::PhantomData};
 
 use clap::{Arg, ArgAction, ArgMatches};
+use daemon_slayer_console::Console;
 use tracing::info;
 
 use daemon_slayer_client::{Manager, ServiceManager};
@@ -88,7 +89,7 @@ impl Cli {
 
                     #[cfg(feature = "console")]
                     ServiceCommands::CONSOLE => {
-                        let mut console = crate::console::Console::new(self.manager);
+                        let mut console = Console::new(self.manager);
                         console.run().await?;
                         return Ok(true);
                     }

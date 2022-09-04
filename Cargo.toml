@@ -4,7 +4,14 @@ name = "daemon-slayer"
 version = "0.1.0"
 
 [workspace]
-members = ["daemon-slayer-macros", "daemon-slayer-client", "daemon-slayer-server", "daemon-slayer-cli", "daemon-slayer-logging"]
+members = [
+  "daemon-slayer-macros",
+  "daemon-slayer-client",
+  "daemon-slayer-server",
+  "daemon-slayer-cli",
+  "daemon-slayer-logging",
+  "daemon-slayer-console",
+]
 
 [features]
 all = ["console", "direct", "async-tokio"]
@@ -20,6 +27,7 @@ direct = ["daemon-slayer-server/direct", "daemon-slayer-cli/direct"]
 [dependencies]
 daemon-slayer-cli = {path = "./daemon-slayer-cli", default-features = false, features = ["server", "client", "console"]}
 daemon-slayer-client = {path = "./daemon-slayer-client", default-features = false}
+daemon-slayer-console = {path = "./daemon-slayer-console", default-features = false}
 daemon-slayer-logging = {path = "./daemon-slayer-logging", default-features = false}
 daemon-slayer-server = {path = "./daemon-slayer-server", default-features = false}
 

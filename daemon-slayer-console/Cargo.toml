@@ -1,0 +1,14 @@
+[package]
+edition = "2021"
+name = "daemon-slayer-console"
+version = "0.1.0"
+
+[dependencies]
+ansi-to-tui = "1.0.1"
+crossterm = {version = "0.25.0", features = ["event-stream"]}
+daemon-slayer-client = {path = "../daemon-slayer-client"}
+futures = {version = "0.3.23"}
+tokio = {version = "1.20.1", features = ["rt-multi-thread", "macros"]}
+tracing-ipc = {git = "https://github.com/aschey/tracing-ipc", rev = "0546f0623bbdd97979086cdd483d4ac98a849fa8"}
+# tui = {path = "../../tui-rs", optional = true}
+tui = {version = "0.18"}
