@@ -76,7 +76,7 @@ impl<'a> Console<'a> {
     async fn run_app(
         &mut self,
         terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-    ) -> io::Result<()> {
+    ) -> Result<(), Box<dyn Error>> {
         let (tx, mut rx) = tokio::sync::mpsc::channel(32);
         let name = self.manager.name().to_owned();
         tokio::spawn(async move {
@@ -111,8 +111,19 @@ impl<'a> Console<'a> {
                                         }
                                     }
                                     KeyCode::Right => {
-                                        if self.button_index < 4 {
+                                        if self.button_index < 5 {
                                             self.button_index += 1;
+                                        }
+                                    }
+                                    KeyCode::Enter => {
+                                        match self.button_index {
+                                            0 => self.manager.start()?,
+                                            1 => self.manager.stop()?,
+                                            2 => {},
+                                            3 => {},
+                                            4 => self.manager.install()?,
+                                            5 => self.manager.uninstall()?,
+                                            _ => {}
                                         }
                                     }
                                     _ => {}
@@ -189,11 +200,13 @@ impl<'a> Console<'a> {
                 Span::raw(" "),
                 get_button("stop", Color::Red, self.button_index == 1),
                 Span::raw(" "),
-                get_button("install", Color::Blue, self.button_index == 2),
+                get_button("restart", Color::Magenta, self.button_index == 2),
                 Span::raw(" "),
-                get_button("uninstall", Color::Blue, self.button_index == 3),
+                get_button("reload", Color::Cyan, self.button_index == 3),
                 Span::raw(" "),
-                get_button("run", Color::Magenta, self.button_index == 4),
+                get_button("install", Color::Blue, self.button_index == 4),
+                Span::raw(" "),
+                get_button("uninstall", Color::Blue, self.button_index == 5),
             ]),
         ])
         .block(bordered_block().title("Controls"));
@@ -238,7 +251,7 @@ fn get_main_sections(parent: Rect) -> (Rect, Rect, Rect) {
         .horizontal_margin(2)
         .split(parent);
     let left_right = horizontal()
-        .constraints([Constraint::Min(1), Constraint::Length(47)])
+        .constraints([Constraint::Min(1), Constraint::Length(59)])
         .split(top_bottom[0]);
     (left_right[0], left_right[1], top_bottom[1])
 }
