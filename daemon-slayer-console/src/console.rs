@@ -111,18 +111,29 @@ impl<'a> Console<'a> {
                                         }
                                     }
                                     KeyCode::Right => {
-                                        if self.button_index < 5 {
+                                        if self.button_index < 4 {
                                             self.button_index += 1;
                                         }
                                     }
                                     KeyCode::Enter => {
                                         match self.button_index {
-                                            0 => self.manager.start()?,
-                                            1 => self.manager.stop()?,
+                                            0 => {
+                                                if self.status == Status::Stopped {
+                                                    self.manager.start()?
+                                                } else {
+                                                    self.manager.stop()?;
+                                                }
+                                            },
+                                            1 => {}
                                             2 => {},
-                                            3 => {},
-                                            4 => self.manager.install()?,
-                                            5 => self.manager.uninstall()?,
+                                            3 => {
+                                                if self.status == Status::NotInstalled {
+                                                    self.manager.install()?
+                                                } else {
+                                                    self.manager.uninstall()?;
+                                                }
+                                            },
+                                            4 => {},
                                             _ => {}
                                         }
                                     }
@@ -196,17 +207,35 @@ impl<'a> Console<'a> {
             Spans::from(""),
             Spans::from(vec![
                 Span::raw(" "),
-                get_button("start", Color::Green, self.button_index == 0),
+                get_button(
+                    if self.status == Status::Stopped {
+                        "start"
+                    } else {
+                        "stop "
+                    },
+                    if self.status == Status::Stopped {
+                        Color::Green
+                    } else {
+                        Color::Red
+                    },
+                    self.button_index == 0,
+                ),
                 Span::raw(" "),
-                get_button("stop", Color::Red, self.button_index == 1),
+                get_button("restart", Color::Magenta, self.button_index == 1),
                 Span::raw(" "),
-                get_button("restart", Color::Magenta, self.button_index == 2),
+                get_button("reload", Color::Magenta, self.button_index == 2),
                 Span::raw(" "),
-                get_button("reload", Color::Cyan, self.button_index == 3),
+                get_button(
+                    if self.status == Status::NotInstalled {
+                        " install "
+                    } else {
+                        "uninstall"
+                    },
+                    Color::Blue,
+                    self.button_index == 3,
+                ),
                 Span::raw(" "),
-                get_button("install", Color::Blue, self.button_index == 4),
-                Span::raw(" "),
-                get_button("uninstall", Color::Blue, self.button_index == 5),
+                get_button("disable", Color::Blue, self.button_index == 4),
             ]),
         ])
         .block(bordered_block().title("Controls"));
@@ -251,7 +280,7 @@ fn get_main_sections(parent: Rect) -> (Rect, Rect, Rect) {
         .horizontal_margin(2)
         .split(parent);
     let left_right = horizontal()
-        .constraints([Constraint::Min(1), Constraint::Length(59)])
+        .constraints([Constraint::Min(1), Constraint::Length(52)])
         .split(top_bottom[0]);
     (left_right[0], left_right[1], top_bottom[1])
 }
