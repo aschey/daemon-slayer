@@ -25,9 +25,9 @@ mod client;
 mod combined;
 #[cfg(feature = "server")]
 mod server;
-#[cfg(all(not(feature = "server"), feature = "client"))]
-pub use client::Cli;
+#[cfg(feature = "client")]
+pub use client::ClientCli;
 #[cfg(all(feature = "server", feature = "client"))]
 pub use combined::Cli;
-#[cfg(all(not(feature = "client"), feature = "server"))]
-pub use server::Cli;
+#[cfg(feature = "server")]
+pub use server::ServerCli;

@@ -1,4 +1,4 @@
-use daemon_slayer::cli::{Action, Cli, CliHandler};
+use daemon_slayer::cli::{Action, CliHandler, ClientCli};
 use daemon_slayer::client::{Manager, ServiceManager};
 use std::time::{Duration, Instant};
 use tracing::info;
@@ -10,7 +10,6 @@ pub fn main() {
         .build()
         .unwrap();
 
-    let cli = Cli::new(manager);
-
+    let cli = ClientCli::new(manager);
     cli.handle_input().unwrap();
 }

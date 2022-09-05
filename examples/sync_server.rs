@@ -1,4 +1,4 @@
-use daemon_slayer::cli::{Action, Cli, CliHandler};
+use daemon_slayer::cli::{Action, CliHandler, ServerCli};
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{Handler, Service, StopHandler};
 use std::time::{Duration, Instant};
@@ -6,7 +6,7 @@ use tracing::info;
 use tracing_subscriber::util::SubscriberInitExt;
 
 pub fn main() {
-    let cli = Cli::<ServiceHandler>::new(
+    let cli = ServerCli::<ServiceHandler>::new(
         "daemon_slayer_test_service".to_owned(),
         "test service".to_owned(),
     );

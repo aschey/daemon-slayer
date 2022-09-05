@@ -8,26 +8,24 @@ use tracing::info;
 use daemon_slayer_client::{Manager, ServiceManager};
 
 use crate::{
-    action::Action, builder::Builder, command::Command, commands::Commands,
+    action::Action, builder::ClientCliBuilder, command::Command, commands::Commands,
     service_commands::ServiceCommands, util, CliHandler,
 };
 
-pub struct Cli {
+pub struct ClientCli {
     manager: ServiceManager,
     commands: Commands,
 }
 
-impl Cli {
-    #[cfg(all(not(feature = "server"), feature = "client"))]
-    pub fn builder(manager: ServiceManager) -> Builder {
+impl ClientCli {
+    pub fn builder(manager: ServiceManager) -> ClientCliBuilder {
         let commands = Commands::default();
-        Builder::from_manager(manager, commands)
+        ClientCliBuilder::from_manager(manager, commands)
     }
 
-    #[cfg(all(not(feature = "server"), feature = "client"))]
-    pub(crate) fn from_builder(builder: Builder) -> Self {
+    pub(crate) fn from_builder(builder: ClientCliBuilder) -> Self {
         Self {
-            manager: builder.manager.unwrap(),
+            manager: builder.manager,
             commands: builder.commands,
         }
     }
@@ -53,14 +51,10 @@ impl Cli {
         }
     }
 
-    pub(crate) fn commands(&self) -> &Commands {
-        &self.commands
-    }
-
     #[maybe_async::maybe_async]
     pub(crate) async fn handle_cmd(self, matches: &ArgMatches) -> Result<bool, Box<dyn Error>> {
         for (name, cmd) in self.commands.iter() {
-            if Self::matches(&matches, cmd, name) {
+            if Self::matches(matches, cmd, name) {
                 info!("checking {name}");
                 match *name {
                     ServiceCommands::INSTALL => {
@@ -105,7 +99,7 @@ impl Cli {
 }
 
 #[maybe_async::maybe_async(?Send)]
-impl CliHandler for Cli {
+impl CliHandler for ClientCli {
     async fn handle_input(self) -> Result<bool, Box<dyn Error>> {
         let cmd = util::build_cmd(
             self.manager.display_name(),

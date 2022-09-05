@@ -3,8 +3,9 @@ use std::time::{Duration, Instant};
 
 use daemon_slayer::client::{Manager, ServiceManager};
 
-use daemon_slayer::cli::{Action, Cli, CliHandler, Command};
+use daemon_slayer::cli::{Action, CliHandler, Command};
 
+use daemon_slayer_cli::ClientCli;
 use futures::{SinkExt, StreamExt};
 
 pub fn main() {
@@ -17,8 +18,7 @@ pub fn main() {
             .build()
             .unwrap();
 
-        let cli = Cli::new(manager);
-
+        let cli = ClientCli::new(manager);
         cli.handle_input().await.unwrap();
     });
 }

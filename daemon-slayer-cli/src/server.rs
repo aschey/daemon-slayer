@@ -6,11 +6,11 @@ use tracing::info;
 use daemon_slayer_server::{Handler, Service};
 
 use crate::{
-    action::Action, builder::Builder, command::Command, commands::Commands,
+    action::Action, builder::ServerCliBuilder, command::Command, commands::Commands,
     service_commands::ServiceCommands, util, CliHandler,
 };
 
-pub struct Cli<H>
+pub struct ServerCli<H>
 where
     H: Service + Handler,
 {
@@ -20,16 +20,16 @@ where
     description: String,
 }
 
-impl<H> Cli<H>
+impl<H> ServerCli<H>
 where
     H: Service + Handler,
 {
-    pub fn builder(display_name: String, description: String) -> Builder<H> {
+    pub fn builder(display_name: String, description: String) -> ServerCliBuilder<H> {
         let commands = Commands::default();
-        Builder::new(display_name, description, commands)
+        ServerCliBuilder::new(display_name, description, commands)
     }
 
-    pub(crate) fn from_builder(builder: Builder<H>) -> Self {
+    pub(crate) fn from_builder(builder: ServerCliBuilder<H>) -> Self {
         Self {
             commands: builder.commands,
             display_name: builder.display_name,
@@ -98,7 +98,7 @@ where
 }
 
 #[maybe_async::maybe_async(?Send)]
-impl<H> CliHandler for Cli<H>
+impl<H> CliHandler for ServerCli<H>
 where
     H: Service + Handler,
 {

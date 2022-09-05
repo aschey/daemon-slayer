@@ -7,7 +7,7 @@ use daemon_slayer_client::{Manager, ServiceManager};
 use daemon_slayer_server::{Handler, Service};
 
 use crate::{
-    action::Action, builder::Builder, cli_handler::CliHandler, client, command::Command,
+    action::Action, builder::CliBuilder, cli_handler::CliHandler, client, command::Command,
     commands::Commands, server, service_commands::ServiceCommands, util,
 };
 
@@ -15,8 +15,8 @@ pub struct Cli<H>
 where
     H: Service + Handler,
 {
-    client_cli: client::Cli,
-    server_cli: server::Cli<H>,
+    client_cli: client::ClientCli,
+    server_cli: server::ServerCli<H>,
     display_name: String,
     description: String,
     commands: Commands,
@@ -26,16 +26,16 @@ impl<H> Cli<H>
 where
     H: Service + Handler,
 {
-    pub fn builder(manager: ServiceManager) -> Builder<H> {
+    pub fn builder(manager: ServiceManager) -> CliBuilder<H> {
         let commands = Commands::default();
-        Builder::from_manager(manager, commands)
+        CliBuilder::from_manager(manager, commands)
     }
 
     pub fn new(manager: ServiceManager) -> Self {
         Self::builder(manager).build()
     }
 
-    pub(crate) fn from_builder(builder: Builder<H>) -> Self {
+    pub(crate) fn from_builder(builder: CliBuilder<H>) -> Self {
         let manager = builder.manager.unwrap();
         let service_args = manager.args();
         let mut commands = builder.commands;
@@ -75,8 +75,8 @@ where
         let display_name = builder.display_name.clone();
         let description = builder.description.clone();
         Self {
-            client_cli: client::Cli::new(manager),
-            server_cli: server::Cli::new(builder.display_name, builder.description),
+            client_cli: client::ClientCli::new(manager),
+            server_cli: server::ServerCli::new(builder.display_name, builder.description),
             commands,
             display_name,
             description,

@@ -1,7 +1,7 @@
 use std::env::args;
 use std::time::{Duration, Instant};
 
-use daemon_slayer::cli::{Action, Cli, CliHandler, Command};
+use daemon_slayer::cli::{Action, CliHandler, Command, ServerCli};
 use daemon_slayer::server::{Handler, Service, StopHandler};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
@@ -17,7 +17,7 @@ pub fn main() {
     rt.block_on(async {
         //.with_service_level(ServiceLevel::User);
 
-        let cli = Cli::<ServiceHandler>::new(
+        let cli = ServerCli::<ServiceHandler>::new(
             "daemon_slayer_test_service".to_owned(),
             "test_service".to_owned(),
         );
