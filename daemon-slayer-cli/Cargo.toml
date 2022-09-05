@@ -6,8 +6,8 @@ version = "0.1.0"
 [features]
 async-tokio = ["tokio", "async-trait", "futures", "maybe-async/is_async"]
 client = ["daemon-slayer-client"]
-console = ["daemon-slayer-console"]
-default = ["client", "server", "console"]
+console = ["daemon-slayer-console", "async-tokio"]
+default = ["client", "server"]
 direct = []
 server = ["daemon-slayer-server"]
 

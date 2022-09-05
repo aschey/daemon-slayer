@@ -19,3 +19,4 @@ jobs:
       - name: test
         run: |
           cargo build
+          cargo build --examples

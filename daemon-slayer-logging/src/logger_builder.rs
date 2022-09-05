@@ -126,8 +126,11 @@ impl LoggerBuilder {
             })
             .with(tracing_error::ErrorLayer::default());
 
+        #[cfg(feature = "async-tokio")]
         let (ipc_writer, ipc_guard) = tracing_ipc::Writer::new(&self.name);
+        #[cfg(feature = "async-tokio")]
         guard.add_guard(Box::new(ipc_guard));
+        #[cfg(feature = "async-tokio")]
         let collector = collector.with({
             Layer::new()
                 .compact()

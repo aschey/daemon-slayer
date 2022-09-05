@@ -1,6 +1,7 @@
 use std::{error::Error, marker::PhantomData};
 
 use clap::{Arg, ArgAction, ArgMatches};
+#[cfg(feature = "console")]
 use daemon_slayer_console::Console;
 use tracing::info;
 
@@ -103,12 +104,9 @@ impl Cli {
     }
 }
 
-#[maybe_async::maybe_async]
+#[maybe_async::maybe_async(?Send)]
 impl CliHandler for Cli {
-    async fn handle_input(self) -> Result<bool, Box<dyn Error>>
-    where
-        Self: 'async_trait,
-    {
+    async fn handle_input(self) -> Result<bool, Box<dyn Error>> {
         let cmd = util::build_cmd(
             self.manager.display_name(),
             self.manager.description(),

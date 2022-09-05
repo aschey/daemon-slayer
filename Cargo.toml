@@ -12,6 +12,7 @@ members = [
   "daemon-slayer-logging",
   "daemon-slayer-console",
 ]
+resolver = "2"
 
 [features]
 all = ["console", "direct", "async-tokio"]
@@ -21,23 +22,25 @@ async-tokio = [
   "daemon-slayer-logging/async-tokio",
 ]
 console = ["daemon-slayer-cli/console"]
-default = ["async-tokio"]
 direct = ["daemon-slayer-server/direct", "daemon-slayer-cli/direct"]
 
 [dependencies]
-daemon-slayer-cli = {path = "./daemon-slayer-cli", default-features = false, features = ["server", "client", "console"]}
-daemon-slayer-client = {path = "./daemon-slayer-client", default-features = false}
-daemon-slayer-console = {path = "./daemon-slayer-console", default-features = false}
-daemon-slayer-logging = {path = "./daemon-slayer-logging", default-features = false}
-daemon-slayer-server = {path = "./daemon-slayer-server", default-features = false}
+daemon-slayer-cli = {path = "./daemon-slayer-cli"}
+daemon-slayer-client = {path = "./daemon-slayer-client"}
+daemon-slayer-console = {path = "./daemon-slayer-console"}
+daemon-slayer-logging = {path = "./daemon-slayer-logging"}
+daemon-slayer-server = {path = "./daemon-slayer-server"}
 
 [[bin]]
 name = "bin_fixture"
 
 [dev-dependencies]
 assert_cmd = "2.0.4"
-async-trait = {version = "0.1.57"}
 futures = {version = "0.3.23"}
 tokio = {version = "1.20.1", features = ["rt-multi-thread", "time"]}
 tracing = "0.1.36"
 tracing-subscriber = {version = "0.3.15", features = ["local-time", "env-filter"]}
+
+[[example]]
+name = "async_combined"
+required-features = ["async-tokio"]

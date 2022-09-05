@@ -84,10 +84,10 @@ where
     }
 }
 
-#[maybe_async::maybe_async]
+#[maybe_async::maybe_async(?Send)]
 impl<H> CliHandler for Cli<H>
 where
-    H: Service + Handler + Send + Sync,
+    H: Service + Handler,
 {
     async fn handle_input(self) -> Result<bool, Box<dyn Error>> {
         let cmd = util::build_cmd(&self.display_name, &self.description, self.commands.iter());
