@@ -15,7 +15,7 @@ members = [
 resolver = "2"
 
 [features]
-all = ["async-client", "async-server", "daemon-slayer-cli/all"]
+all-async = ["async-client", "async-server", "daemon-slayer-cli/all-async"]
 all-sync = ["sync-client", "sync-server", "daemon-slayer-cli/all-sync"]
 async-client = ["console", "async-tokio", "client", "cli", "daemon-slayer-cli/async-client"]
 async-server = ["direct", "async-tokio", "server", "cli", "logging", "daemon-slayer-cli/async-server"]
@@ -31,7 +31,7 @@ direct = ["daemon-slayer-server/direct", "daemon-slayer-cli/direct"]
 logging = ["daemon-slayer-logging"]
 server = ["daemon-slayer-server"]
 sync-client = ["client", "cli", "daemon-slayer-cli/sync-client"]
-sync-server = ["direct", "server", "logging", "cli", "daemon-slayer-cli/sync-server"]
+sync-server = ["direct", "server", "logging", "cli", "daemon-slayer-cli/sync-server", "daemon-slayer-server/blocking"]
 
 [dependencies]
 daemon-slayer-cli = {path = "./daemon-slayer-cli", optional = true}

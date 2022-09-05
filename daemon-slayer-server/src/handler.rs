@@ -3,13 +3,17 @@ use futures::Future;
 #[cfg(feature = "async-tokio")]
 use std::pin::Pin;
 
-#[maybe_async::async_impl]
-pub type StopHandler = Box<dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
+#[cfg(feature = "async-tokio")]
+pub type StopHandlerAsync = Box<dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
 
-#[maybe_async::sync_impl]
-pub type StopHandler = Box<dyn Fn() + Send>;
+#[cfg(feature = "blocking")]
+pub type StopHandlerSync = Box<dyn Fn() + Send>;
 
-#[maybe_async::maybe_async]
+#[maybe_async_cfg::maybe(
+    idents(StopHandler),
+    sync(feature = "blocking"),
+    async(feature = "async-tokio", async_trait::async_trait)
+)]
 pub trait Handler {
     fn new() -> Self;
     fn get_service_name<'a>() -> &'a str;

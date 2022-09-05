@@ -6,8 +6,8 @@ use axum::routing::get;
 use axum::Router;
 use daemon_slayer::client::{Manager, ServiceManager};
 
-use daemon_slayer::cli::{Action, Cli, CliHandler, Command};
-use daemon_slayer::server::{Handler, Service, StopHandler};
+use daemon_slayer::cli::{Action, CliAsync, CliHandlerAsync, Command};
+use daemon_slayer::server::{HandlerAsync, ServiceAsync, StopHandlerAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
@@ -31,7 +31,7 @@ pub fn main() {
             .build()
             .unwrap();
 
-        let cli = Cli::<ServiceHandler>::new(manager);
+        let cli = CliAsync::<ServiceHandler>::new(manager);
 
         let mut _logger_guard: Option<LoggerGuard> = None;
 
@@ -45,14 +45,14 @@ pub fn main() {
     });
 }
 
-#[derive(daemon_slayer::server::Service)]
+#[derive(daemon_slayer::server::ServiceAsync)]
 pub struct ServiceHandler {
     tx: futures::channel::mpsc::Sender<()>,
     rx: futures::channel::mpsc::Receiver<()>,
 }
 
 #[async_trait::async_trait]
-impl Handler for ServiceHandler {
+impl HandlerAsync for ServiceHandler {
     fn new() -> Self {
         let (tx, rx) = futures::channel::mpsc::channel(32);
         Self { tx, rx }
@@ -62,7 +62,7 @@ impl Handler for ServiceHandler {
         "daemon_slayer_test_service"
     }
 
-    fn get_stop_handler(&mut self) -> StopHandler {
+    fn get_stop_handler(&mut self) -> StopHandlerAsync {
         let tx = self.tx.clone();
         Box::new(move || {
             let mut tx = tx.clone();

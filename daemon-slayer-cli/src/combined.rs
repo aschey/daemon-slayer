@@ -1,19 +1,36 @@
+maybe_async_cfg::content! {
+
+    #![maybe_async_cfg::default(
+        idents(
+            ClientCli,
+            ServerCli,
+            CliHandler,
+            CliBuilder,
+            Handler,
+            Service
+        )
+    )]
+
 use std::{error::Error, marker::PhantomData};
 
 use clap::{Arg, ArgAction, ArgMatches};
 use tracing::info;
 
 use daemon_slayer_client::{Manager, ServiceManager};
-use daemon_slayer_server::{Handler, Service};
+
 
 use crate::{
-    action::Action, builder::CliBuilder, cli_handler::CliHandler, client, command::Command,
-    commands::Commands, server, service_commands::ServiceCommands, util,
+    action::Action, builder, client, cli_handler, command::Command, commands::Commands,
+    server, service_commands::ServiceCommands, util,
 };
 
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking"),
+    async(feature = "async-tokio")
+)]
 pub struct Cli<H>
 where
-    H: Service + Handler,
+    H: daemon_slayer_server::Service + daemon_slayer_server::Handler,
 {
     client_cli: client::ClientCli,
     server_cli: server::ServerCli<H>,
@@ -22,20 +39,24 @@ where
     commands: Commands,
 }
 
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking"),
+    async(feature = "async-tokio")
+)]
 impl<H> Cli<H>
 where
-    H: Service + Handler,
+    H: daemon_slayer_server::Service + daemon_slayer_server::Handler ,
 {
-    pub fn builder(manager: ServiceManager) -> CliBuilder<H> {
+    pub fn builder(manager: ServiceManager) -> builder::CliBuilder<H> {
         let commands = Commands::default();
-        CliBuilder::from_manager(manager, commands)
+        builder::CliBuilder::from_manager(manager, commands)
     }
 
     pub fn new(manager: ServiceManager) -> Self {
         Self::builder(manager).build()
     }
 
-    pub(crate) fn from_builder(builder: CliBuilder<H>) -> Self {
+    pub(crate) fn from_builder(builder: builder::CliBuilder<H>) -> Self {
         let manager = builder.manager.unwrap();
         let service_args = manager.args();
         let mut commands = builder.commands;
@@ -84,10 +105,13 @@ where
     }
 }
 
-#[maybe_async::maybe_async(?Send)]
-impl<H> CliHandler for Cli<H>
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking"),
+    async(feature = "async-tokio", "async_trait::async_trait(?Send)"),
+)]
+impl<H> cli_handler::CliHandler for Cli<H>
 where
-    H: Service + Handler,
+    H: daemon_slayer_server::Service + daemon_slayer_server::Handler,
 {
     async fn handle_input(self) -> Result<bool, Box<dyn Error>> {
         let cmd = util::build_cmd(&self.display_name, &self.description, self.commands.iter());
@@ -107,4 +131,5 @@ where
         }
         self.client_cli.action_type()
     }
+}
 }

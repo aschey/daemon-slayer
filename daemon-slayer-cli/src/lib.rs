@@ -14,7 +14,7 @@ mod service_commands;
 #[cfg(any(feature = "client", feature = "server"))]
 mod cli_handler;
 #[cfg(any(feature = "client", feature = "server"))]
-pub use cli_handler::CliHandler;
+pub use cli_handler::*;
 #[cfg(any(feature = "client", feature = "server"))]
 mod util;
 #[cfg(any(feature = "client", feature = "server"))]
@@ -26,8 +26,8 @@ mod combined;
 #[cfg(feature = "server")]
 mod server;
 #[cfg(feature = "client")]
-pub use client::ClientCli;
+pub use client::*;
 #[cfg(all(feature = "server", feature = "client"))]
-pub use combined::Cli;
+pub use combined::*;
 #[cfg(feature = "server")]
-pub use server::ServerCli;
+pub use server::*;

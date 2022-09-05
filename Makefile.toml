@@ -18,8 +18,8 @@ args = [
   "--feature-powerset",
   "--exclude-features",
   "cli client server console direct logging server async-tokio",
-  "--no-dev-deps",
   "build",
+  "--examples",
 ]
 command = "cargo"
 install_crate = "cargo-hack"

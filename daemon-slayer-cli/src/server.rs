@@ -1,18 +1,29 @@
-use std::{error::Error, marker::PhantomData};
+maybe_async_cfg::content! {
 
+    #![maybe_async_cfg::default(
+        idents(
+            ClientCli,
+            ServerCli,
+            CliHandler,
+            ClientCliBuilder,
+            ServerCliBuilder,
+            Handler,
+            Service
+        )
+    )]
+
+use std::{error::Error, marker::PhantomData};
 use clap::{Arg, ArgAction, ArgMatches};
 use tracing::info;
-
-use daemon_slayer_server::{Handler, Service};
-
 use crate::{
-    action::Action, builder::ServerCliBuilder, command::Command, commands::Commands,
-    service_commands::ServiceCommands, util, CliHandler,
+    action::Action, builder, cli_handler, command::Command, commands::Commands,
+    service_commands::ServiceCommands, util,
 };
 
+#[maybe_async_cfg::maybe(sync(feature="blocking"), async(feature = "async-tokio"))]
 pub struct ServerCli<H>
 where
-    H: Service + Handler,
+    H: daemon_slayer_server::Service + daemon_slayer_server::Handler,
 {
     _phantom: PhantomData<H>,
     commands: Commands,
@@ -20,16 +31,17 @@ where
     description: String,
 }
 
+#[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
 impl<H> ServerCli<H>
 where
-    H: Service + Handler,
+    H: daemon_slayer_server::Service + daemon_slayer_server::Handler,
 {
-    pub fn builder(display_name: String, description: String) -> ServerCliBuilder<H> {
+    pub fn builder(display_name: String, description: String) -> builder::ServerCliBuilder<H> {
         let commands = Commands::default();
-        ServerCliBuilder::new(display_name, description, commands)
+        builder::ServerCliBuilder::new(display_name, description, commands)
     }
 
-    pub(crate) fn from_builder(builder: ServerCliBuilder<H>) -> Self {
+    pub(crate) fn from_builder(builder: builder::ServerCliBuilder<H>) -> Self {
         Self {
             commands: builder.commands,
             display_name: builder.display_name,
@@ -68,7 +80,6 @@ where
         &self.commands
     }
 
-    #[maybe_async::maybe_async]
     pub(crate) async fn handle_cmd<'a>(
         &self,
         matches: &ArgMatches,
@@ -97,10 +108,14 @@ where
     }
 }
 
-#[maybe_async::maybe_async(?Send)]
-impl<H> CliHandler for ServerCli<H>
+#[maybe_async_cfg::maybe(
+    idents(ServerCli, CliHandler),
+    sync(cfg(feature = "blocking")),
+    async(feature = "async-tokio",send="false", "async_trait::async_trait(?Send)"),
+)]
+impl<H> cli_handler::CliHandler for ServerCli<H>
 where
-    H: Service + Handler,
+    H: daemon_slayer_server::Service + daemon_slayer_server::Handler,
 {
     async fn handle_input(self) -> Result<bool, Box<dyn Error>> {
         let mut cmd = util::build_cmd(&self.display_name, &*self.description, self.commands.iter());
@@ -125,4 +140,6 @@ where
         }
         Action::Unknown
     }
+}
+
 }

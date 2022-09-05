@@ -1,8 +1,8 @@
 use std::env::args;
 use std::time::{Duration, Instant};
 
-use daemon_slayer::cli::{Action, CliHandler, Command, ServerCli};
-use daemon_slayer::server::{Handler, Service, StopHandler};
+use daemon_slayer::cli::{Action, CliHandlerAsync, Command, ServerCliAsync};
+use daemon_slayer::server::{HandlerAsync, ServiceAsync, StopHandlerAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
@@ -17,7 +17,7 @@ pub fn main() {
     rt.block_on(async {
         //.with_service_level(ServiceLevel::User);
 
-        let cli = ServerCli::<ServiceHandler>::new(
+        let cli = ServerCliAsync::<ServiceHandler>::new(
             "daemon_slayer_test_service".to_owned(),
             "test_service".to_owned(),
         );
@@ -34,14 +34,14 @@ pub fn main() {
     });
 }
 
-#[derive(daemon_slayer::server::Service)]
+#[derive(daemon_slayer::server::ServiceAsync)]
 pub struct ServiceHandler {
     tx: futures::channel::mpsc::Sender<()>,
     rx: futures::channel::mpsc::Receiver<()>,
 }
 
 #[async_trait::async_trait]
-impl Handler for ServiceHandler {
+impl HandlerAsync for ServiceHandler {
     fn new() -> Self {
         let (tx, rx) = futures::channel::mpsc::channel(32);
         Self { tx, rx }
@@ -51,7 +51,7 @@ impl Handler for ServiceHandler {
         "daemon_slayer_test_service"
     }
 
-    fn get_stop_handler(&mut self) -> StopHandler {
+    fn get_stop_handler(&mut self) -> StopHandlerAsync {
         let tx = self.tx.clone();
         Box::new(move || {
             let mut tx = tx.clone();

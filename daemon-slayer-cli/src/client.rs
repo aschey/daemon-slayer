@@ -1,3 +1,14 @@
+maybe_async_cfg::content! {
+
+    #![maybe_async_cfg::default(
+        idents(
+            ClientCli,
+            ServerCli,
+            CliHandler,
+            ClientCliBuilder
+        )
+    )]
+
 use std::{error::Error, marker::PhantomData};
 
 use clap::{Arg, ArgAction, ArgMatches};
@@ -8,22 +19,64 @@ use tracing::info;
 use daemon_slayer_client::{Manager, ServiceManager};
 
 use crate::{
-    action::Action, builder::ClientCliBuilder, command::Command, commands::Commands,
-    service_commands::ServiceCommands, util, CliHandler,
+    action::Action, builder, command::Command, commands::Commands,
+    service_commands::ServiceCommands, util, cli_handler
 };
 
+macro_rules! get_handlers {
+    ($self: ident, $matches: ident, $($extra:tt)*) => {
+        for (name, cmd) in $self.commands.iter() {
+            if Self::matches($matches, cmd, name) {
+                info!("checking {name}");
+                match *name {
+                    ServiceCommands::INSTALL => {
+                        info!("installing...");
+                        $self.manager.install()?;
+                        return Ok(true);
+                    }
+                    ServiceCommands::UNINSTALL => {
+                        info!("uninstalling...");
+                        $self.manager.uninstall()?;
+                        return Ok(true);
+                    }
+                    ServiceCommands::STATUS => {
+                        println!("{:?}", $self.manager.query_status()?);
+                        return Ok(true);
+                    }
+                    ServiceCommands::START => {
+                        info!("starting...");
+                        $self.manager.start()?;
+                        return Ok(true);
+                    }
+                    ServiceCommands::STOP => {
+                        info!("stopping..");
+                        $self.manager.stop()?;
+                        return Ok(true);
+                    }
+
+                    $($extra)*
+
+                    _ => {}
+                }
+            }
+        }
+    }
+}
+
+#[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
 pub struct ClientCli {
     manager: ServiceManager,
     commands: Commands,
 }
 
+#[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
 impl ClientCli {
-    pub fn builder(manager: ServiceManager) -> ClientCliBuilder {
+    pub fn builder(manager: ServiceManager) -> builder::ClientCliBuilder {
         let commands = Commands::default();
-        ClientCliBuilder::from_manager(manager, commands)
+        builder::ClientCliBuilder::from_manager(manager, commands)
     }
 
-    pub(crate) fn from_builder(builder: ClientCliBuilder) -> Self {
+    pub(crate) fn from_builder(builder: builder::ClientCliBuilder) -> Self {
         Self {
             manager: builder.manager,
             commands: builder.commands,
@@ -51,55 +104,32 @@ impl ClientCli {
         }
     }
 
-    #[maybe_async::maybe_async]
+    #[maybe_async_cfg::only_if(async)]
     pub(crate) async fn handle_cmd(self, matches: &ArgMatches) -> Result<bool, Box<dyn Error>> {
-        for (name, cmd) in self.commands.iter() {
-            if Self::matches(matches, cmd, name) {
-                info!("checking {name}");
-                match *name {
-                    ServiceCommands::INSTALL => {
-                        info!("installing...");
-                        self.manager.install()?;
-                        return Ok(true);
-                    }
-                    ServiceCommands::UNINSTALL => {
-                        info!("uninstalling...");
-                        self.manager.uninstall()?;
-                        return Ok(true);
-                    }
-                    ServiceCommands::STATUS => {
-                        println!("{:?}", self.manager.query_status()?);
-                        return Ok(true);
-                    }
-                    ServiceCommands::START => {
-                        info!("starting...");
-                        self.manager.start()?;
-                        return Ok(true);
-                    }
-                    ServiceCommands::STOP => {
-                        info!("stopping..");
-                        self.manager.stop()?;
-                        return Ok(true);
-                    }
+        get_handlers!(self, matches,
+            #[cfg(feature="console")]
+            ServiceCommands::CONSOLE => {
+            let mut console = Console::new(self.manager);
+            console.run().await?;
+            return Ok(true);
+        });
 
-                    #[cfg(feature = "console")]
-                    ServiceCommands::CONSOLE => {
-                        let mut console = Console::new(self.manager);
-                        console.run().await?;
-                        return Ok(true);
-                    }
+        Ok(false)
+    }
 
-                    _ => {}
-                }
-            }
-        }
+    #[maybe_async_cfg::only_if(sync)]
+    pub(crate) async fn handle_cmd(self, matches: &ArgMatches) -> Result<bool, Box<dyn Error>> {
+        get_handlers!(self, matches,);
 
         Ok(false)
     }
 }
 
-#[maybe_async::maybe_async(?Send)]
-impl CliHandler for ClientCli {
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking"),
+    async(feature = "async-tokio", "async_trait::async_trait(?Send)")
+)]
+impl cli_handler::CliHandler for ClientCli {
     async fn handle_input(self) -> Result<bool, Box<dyn Error>> {
         let cmd = util::build_cmd(
             self.manager.display_name(),
@@ -135,4 +165,5 @@ impl CliHandler for ClientCli {
         }
         Action::Unknown
     }
+}
 }

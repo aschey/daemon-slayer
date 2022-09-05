@@ -1,12 +1,12 @@
-use daemon_slayer::cli::{Action, CliHandler, ServerCli};
+use daemon_slayer::cli::{Action, CliHandlerSync, ServerCliSync};
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
-use daemon_slayer::server::{Handler, Service, StopHandler};
+use daemon_slayer::server::{HandlerSync, ServiceSync, StopHandlerSync};
 use std::time::{Duration, Instant};
 use tracing::info;
 use tracing_subscriber::util::SubscriberInitExt;
 
 pub fn main() {
-    let cli = ServerCli::<ServiceHandler>::new(
+    let cli = ServerCliSync::<ServiceHandler>::new(
         "daemon_slayer_test_service".to_owned(),
         "test service".to_owned(),
     );
@@ -20,13 +20,13 @@ pub fn main() {
     cli.handle_input().unwrap();
 }
 
-#[derive(Service)]
+#[derive(ServiceSync)]
 pub struct ServiceHandler {
     tx: std::sync::mpsc::Sender<()>,
     rx: std::sync::mpsc::Receiver<()>,
 }
 
-impl Handler for ServiceHandler {
+impl HandlerSync for ServiceHandler {
     fn new() -> Self {
         let (tx, rx) = std::sync::mpsc::channel();
         Self { tx, rx }
@@ -36,7 +36,7 @@ impl Handler for ServiceHandler {
         "daemon_slayer_test_service"
     }
 
-    fn get_stop_handler(&mut self) -> StopHandler {
+    fn get_stop_handler(&mut self) -> StopHandlerSync {
         let tx = self.tx.clone();
         Box::new(move || {
             tx.send(()).unwrap();

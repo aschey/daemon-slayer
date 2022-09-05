@@ -1,7 +1,7 @@
 mod handler;
-pub use handler::{Handler, StopHandler};
+pub use handler::*;
 mod service;
-pub use service::Service;
+pub use service::*;
 
 #[cfg(target_os = "linux")]
 pub use sd_notify;
@@ -22,5 +22,5 @@ pub use futures;
 pub use tokio;
 
 pub use daemon_slayer_macros::*;
-pub use maybe_async;
+pub use maybe_async_cfg;
 pub use tracing;

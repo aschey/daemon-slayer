@@ -1,10 +1,21 @@
+maybe_async_cfg::content! {
+
+    #![maybe_async_cfg::default(
+        idents(
+            ClientCli,
+            ServerCli,
+            Cli,
+            Handler,
+            Service
+        )
+    )]
+
 use std::marker::PhantomData;
 
 use crate::{commands::Commands, service_commands::ServiceCommands, Command};
 #[cfg(feature = "client")]
 use daemon_slayer_client::{Manager, ServiceManager};
-#[cfg(feature = "server")]
-use daemon_slayer_server::{Handler, Service};
+
 
 macro_rules! impl_client_builder {
     () => {
@@ -56,23 +67,29 @@ macro_rules! impl_server_builder {
     };
 }
 
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking"),
+    async(feature = "async-tokio")
+)]
 #[cfg(feature = "server")]
 pub struct ServerCliBuilder<H>
 where
-    H: Service + Handler,
+    H: daemon_slayer_server::Service + daemon_slayer_server::Handler,
 {
-    // #[cfg(feature = "client")]
-    // pub(crate) manager: Option<ServiceManager>,
     pub(crate) display_name: String,
     pub(crate) description: String,
     pub(crate) commands: Commands,
     _phantom: PhantomData<H>,
 }
 
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking"),
+    async(feature = "async-tokio")
+)]
 #[cfg(feature = "server")]
 impl<H> ServerCliBuilder<H>
 where
-    H: Service + Handler,
+    H: daemon_slayer_server::Service + daemon_slayer_server::Handler,
 {
     pub(crate) fn new(display_name: String, description: String, commands: Commands) -> Self {
         Self {
@@ -85,17 +102,25 @@ where
 
     impl_server_builder!();
 
-    pub fn build(self) -> crate::ServerCli<H> {
-        crate::ServerCli::<H>::from_builder(self)
+    pub fn build(self) -> crate::server::ServerCli<H> {
+        crate::server::ServerCli::<H>::from_builder(self)
     }
 }
 
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking"),
+    async(feature = "async-tokio")
+)]
 #[cfg(feature = "client")]
 pub struct ClientCliBuilder {
     pub(crate) manager: ServiceManager,
     pub(crate) commands: Commands,
 }
 
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking"),
+    async(feature = "async-tokio")
+)]
 #[cfg(feature = "client")]
 impl ClientCliBuilder {
     pub(crate) fn from_manager(manager: ServiceManager, commands: Commands) -> Self {
@@ -109,10 +134,14 @@ impl ClientCliBuilder {
     }
 }
 
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking"),
+    async(feature = "async-tokio")
+)]
 #[cfg(all(feature = "server", feature = "client"))]
 pub struct CliBuilder<H>
 where
-    H: Service + Handler,
+    H: daemon_slayer_server::Service + daemon_slayer_server::Handler,
 {
     #[cfg(feature = "client")]
     pub(crate) manager: Option<ServiceManager>,
@@ -122,10 +151,14 @@ where
     _phantom: PhantomData<H>,
 }
 
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking"),
+    async(feature = "async-tokio")
+)]
 #[cfg(all(feature = "server", feature = "client"))]
 impl<H> CliBuilder<H>
 where
-    H: Service + Handler,
+    H: daemon_slayer_server::Service + daemon_slayer_server::Handler ,
 {
     pub(crate) fn from_manager(manager: ServiceManager, commands: Commands) -> Self {
         let display_name = manager.display_name().to_owned();
@@ -143,7 +176,8 @@ where
 
     impl_client_builder!();
 
-    pub fn build(self) -> crate::Cli<H> {
-        crate::Cli::<H>::from_builder(self)
+    pub fn build(self) -> crate::combined::Cli<H> {
+        crate::combined::Cli::<H>::from_builder(self)
     }
+}
 }

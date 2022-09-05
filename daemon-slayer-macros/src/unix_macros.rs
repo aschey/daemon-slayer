@@ -2,14 +2,17 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::Ident;
 
-#[maybe_async::async_impl]
-pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream) -> TokenStream {
-    let direct_handler = get_direct_handler();
+#[cfg(feature = "async")]
+pub(crate) fn define_service_async(
+    ident: Ident,
+    crate_name: proc_macro2::TokenStream,
+) -> TokenStream {
+    let direct_handler = get_direct_handler_async();
     quote! {
-        #[#crate_name::maybe_async::async_impl]
-        impl #crate_name::Service for #ident {
+        #[#crate_name::async_trait::async_trait]
+        impl #crate_name::ServiceAsync for #ident {
             async fn run_service_main() -> u32 {
-                use #crate_name::{Handler, StopHandler};
+                use #crate_name::{HandlerAsync, StopHandlerAsync};
                 let mut handler = #ident::new();
                 let stop_handler = handler.get_stop_handler();
 
@@ -57,14 +60,16 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
     .into()
 }
 
-#[maybe_async::sync_impl]
-pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream) -> TokenStream {
-    let direct_handler = get_direct_handler();
+#[cfg(feature = "blocking")]
+pub(crate) fn define_service_sync(
+    ident: Ident,
+    crate_name: proc_macro2::TokenStream,
+) -> TokenStream {
+    let direct_handler = get_direct_handler_sync();
     quote! {
-        #[#crate_name::maybe_async::sync_impl]
-        impl #crate_name::Service for #ident {
+        impl #crate_name::ServiceSync for #ident {
             fn run_service_main() -> u32 {
-                use #crate_name::{Handler, StopHandler};
+                use #crate_name::{HandlerSync, StopHandlerSync};
                 let mut handler = #ident::new();
                 let stop_handler = handler.get_stop_handler();
 
@@ -105,13 +110,17 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
 }
 
 #[cfg(not(feature = "direct"))]
-fn get_direct_handler() -> proc_macro2::TokenStream {
+fn get_direct_handler_async() -> proc_macro2::TokenStream {
     proc_macro2::TokenStream::new()
 }
 
-#[maybe_async::sync_impl]
-#[cfg(feature = "direct")]
-fn get_direct_handler() -> proc_macro2::TokenStream {
+#[cfg(not(feature = "direct"))]
+fn get_direct_handler_sync() -> proc_macro2::TokenStream {
+    proc_macro2::TokenStream::new()
+}
+
+#[cfg(all(feature = "direct", feature = "blocking"))]
+fn get_direct_handler_sync() -> proc_macro2::TokenStream {
     quote! {
         fn run_service_direct(mut self) -> u32 {
             Self::run_service_main()
@@ -119,9 +128,8 @@ fn get_direct_handler() -> proc_macro2::TokenStream {
     }
 }
 
-#[maybe_async::async_impl]
-#[cfg(feature = "direct")]
-fn get_direct_handler() -> proc_macro2::TokenStream {
+#[cfg(all(feature = "direct", feature = "async"))]
+fn get_direct_handler_async() -> proc_macro2::TokenStream {
     quote! {
         async fn run_service_direct(mut self) -> u32 {
             Self::run_service_main().await
