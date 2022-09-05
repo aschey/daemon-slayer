@@ -15,27 +15,37 @@ members = [
 resolver = "2"
 
 [features]
-all = ["console", "direct", "async-tokio"]
+all = ["async-client", "async-server", "daemon-slayer-cli/all"]
+all-sync = ["sync-client", "sync-server", "daemon-slayer-cli/all-sync"]
+async-client = ["console", "async-tokio", "client", "cli", "daemon-slayer-cli/async-client"]
+async-server = ["direct", "async-tokio", "server", "cli", "logging", "daemon-slayer-cli/async-server"]
 async-tokio = [
   "daemon-slayer-server/async-tokio",
   "daemon-slayer-cli/async-tokio",
   "daemon-slayer-logging/async-tokio",
 ]
-console = ["daemon-slayer-cli/console"]
+cli = ["daemon-slayer-cli"]
+client = ["daemon-slayer-client"]
+console = ["daemon-slayer-console", "daemon-slayer-cli/console"]
 direct = ["daemon-slayer-server/direct", "daemon-slayer-cli/direct"]
+logging = ["daemon-slayer-logging"]
+server = ["daemon-slayer-server"]
+sync-client = ["client", "cli", "daemon-slayer-cli/sync-client"]
+sync-server = ["direct", "server", "logging", "cli", "daemon-slayer-cli/sync-server"]
 
 [dependencies]
-daemon-slayer-cli = {path = "./daemon-slayer-cli"}
-daemon-slayer-client = {path = "./daemon-slayer-client"}
-daemon-slayer-console = {path = "./daemon-slayer-console"}
-daemon-slayer-logging = {path = "./daemon-slayer-logging"}
-daemon-slayer-server = {path = "./daemon-slayer-server"}
+daemon-slayer-cli = {path = "./daemon-slayer-cli", optional = true}
+daemon-slayer-client = {path = "./daemon-slayer-client", optional = true}
+daemon-slayer-console = {path = "./daemon-slayer-console", optional = true}
+daemon-slayer-logging = {path = "./daemon-slayer-logging", optional = true}
+daemon-slayer-server = {path = "./daemon-slayer-server", optional = true}
 
 [[bin]]
 name = "bin_fixture"
 
 [dev-dependencies]
 assert_cmd = "2.0.4"
+async-trait = {version = "0.1.57"}
 futures = {version = "0.3.23"}
 tokio = {version = "1.20.1", features = ["rt-multi-thread", "time"]}
 tracing = "0.1.36"
@@ -43,4 +53,19 @@ tracing-subscriber = {version = "0.3.15", features = ["local-time", "env-filter"
 
 [[example]]
 name = "async_combined"
-required-features = ["async-tokio"]
+required-features = ["all"]
+[[example]]
+name = "sync_combined"
+required-features = ["all-sync"]
+[[example]]
+name = "async_client"
+required-features = ["async-client"]
+[[example]]
+name = "async_server"
+required-features = ["async-server"]
+[[example]]
+name = "sync_client"
+required-features = ["sync-client"]
+[[example]]
+name = "sync_server"
+required-features = ["sync-server"]

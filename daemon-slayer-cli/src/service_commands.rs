@@ -7,7 +7,7 @@ impl ServiceCommands {
     pub(crate) const UNINSTALL: &'static str = "uninstall";
     #[cfg(feature = "server")]
     pub(crate) const RUN: &'static str = "run";
-    #[cfg(all(feature = "client", feature = "direct"))]
+    #[cfg(all(feature = "server", feature = "direct"))]
     pub(crate) const DIRECT: &'static str = "direct";
     #[cfg(feature = "client")]
     pub(crate) const STATUS: &'static str = "status";

@@ -4,12 +4,17 @@ name = "daemon-slayer-cli"
 version = "0.1.0"
 
 [features]
+all = ["async-tokio", "client", "console", "direct", "server"]
+all-sync = ["client", "direct", "server"]
+async-client = ["async-tokio", "client", "console", "direct"]
+async-server = ["async-tokio", "server", "direct"]
 async-tokio = ["tokio", "async-trait", "futures", "maybe-async/is_async"]
 client = ["daemon-slayer-client"]
 console = ["daemon-slayer-console", "async-tokio"]
-default = ["client", "server"]
 direct = []
 server = ["daemon-slayer-server"]
+sync-client = ["client", "direct"]
+sync-server = ["server", "direct"]
 
 [dependencies]
 async-trait = {version = "0.1.57", optional = true}
