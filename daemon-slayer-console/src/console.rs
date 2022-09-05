@@ -81,6 +81,7 @@ pub struct Console<'a> {
     last_update: Instant,
     status: Status,
     logs: StatefulList<'a>,
+    button_index: usize,
 }
 
 impl<'a> Console<'a> {
@@ -91,6 +92,7 @@ impl<'a> Console<'a> {
             status,
             logs: StatefulList::new(),
             last_update: Instant::now(),
+            button_index: 0,
         }
     }
 
@@ -151,9 +153,18 @@ impl<'a> Console<'a> {
                             if let Event::Key(key) = event {
                                 match key.code {
                                     KeyCode::Char('q') => return Ok(()),
-                                    KeyCode::Left => self.logs.unselect(),
                                     KeyCode::Down =>  self.logs.next(),
                                     KeyCode::Up =>  self.logs.previous(),
+                                    KeyCode::Left => {
+                                        if self.button_index > 0 {
+                                            self.button_index -= 1;
+                                        }
+                                    }
+                                    KeyCode::Right => {
+                                        if self.button_index < 4 {
+                                            self.button_index += 1;
+                                        }
+                                    }
                                     _ => {}
                                 }
                             }
@@ -224,15 +235,15 @@ impl<'a> Console<'a> {
             Spans::from(""),
             Spans::from(vec![
                 Span::raw(" "),
-                get_button("start", Color::Green, true),
+                get_button("start", Color::Green, self.button_index == 0),
                 Span::raw(" "),
-                get_button("stop", Color::Red, false),
+                get_button("stop", Color::Red, self.button_index == 1),
                 Span::raw(" "),
-                get_button("install", Color::Blue, false),
+                get_button("install", Color::Blue, self.button_index == 2),
                 Span::raw(" "),
-                get_button("uninstall", Color::Blue, false),
+                get_button("uninstall", Color::Blue, self.button_index == 3),
                 Span::raw(" "),
-                get_button("run", Color::Magenta, false),
+                get_button("run", Color::Magenta, self.button_index == 4),
             ]),
         ])
         .block(bordered_block().title("Controls"));
