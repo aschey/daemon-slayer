@@ -32,4 +32,5 @@ cargo build --example=async_server --features=async-server
 cargo build --example=sync_client --features=sync-client
 cargo build --example=sync_combined --features=all-sync
 cargo build --example=sync_server --features=sync-server
+cargo build --example=axum --features=all
 '''

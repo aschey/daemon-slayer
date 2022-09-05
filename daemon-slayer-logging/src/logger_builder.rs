@@ -75,6 +75,11 @@ impl LoggerBuilder {
         self
     }
 
+    pub fn with_level_filter(mut self, level_filter: LevelFilter) -> Self {
+        self.level_filter = level_filter;
+        self
+    }
+
     pub fn build(self) -> (impl SubscriberInitExt, LoggerGuard) {
         let offset = match (self.timezone, LOCAL_TIME.get().unwrap().clone()) {
             (Timezone::Local, Ok(offset)) => offset,

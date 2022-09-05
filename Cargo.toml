@@ -46,8 +46,10 @@ name = "bin_fixture"
 [dev-dependencies]
 assert_cmd = "2.0.4"
 async-trait = {version = "0.1.57"}
+axum = "0.5.15"
 futures = {version = "0.3.23"}
 tokio = {version = "1.20.1", features = ["rt-multi-thread", "time"]}
+tower-http = {version = "0.3.4", features = ["trace"]}
 tracing = "0.1.36"
 tracing-subscriber = {version = "0.3.15", features = ["local-time", "env-filter"]}
 
@@ -69,3 +71,6 @@ required-features = ["sync-client"]
 [[example]]
 name = "sync_server"
 required-features = ["sync-server"]
+[[example]]
+name = "axum"
+required-features = ["all"]
