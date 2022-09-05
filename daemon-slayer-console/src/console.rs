@@ -20,15 +20,67 @@ use tui::{
     layout::{Alignment, Constraint, Corner, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
-    widgets::{Block, BorderType, Borders, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, BorderType, Borders, List, ListItem, ListState, Paragraph, Wrap},
     Frame, Terminal,
 };
-trait AsyncStream: AsyncRead + AsyncWrite {}
+
+struct StatefulList<'a> {
+    state: ListState,
+    items: Vec<ListItem<'a>>,
+}
+
+impl<'a> StatefulList<'a> {
+    fn new() -> StatefulList<'a> {
+        StatefulList {
+            state: ListState::default(),
+            items: vec![],
+        }
+    }
+
+    fn add_item(&mut self, item: ListItem<'a>) {
+        let mut new_logs = vec![item];
+        new_logs.extend_from_slice(&self.items);
+        self.items = new_logs;
+    }
+
+    fn next(&mut self) {
+        let i = match self.state.selected() {
+            Some(i) => {
+                if i >= self.items.len() - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
+            None => 0,
+        };
+        self.state.select(Some(i));
+    }
+
+    fn previous(&mut self) {
+        let i = match self.state.selected() {
+            Some(i) => {
+                if i == 0 {
+                    self.items.len() - 1
+                } else {
+                    i - 1
+                }
+            }
+            None => 0,
+        };
+        self.state.select(Some(i));
+    }
+
+    fn unselect(&mut self) {
+        self.state.select(None);
+    }
+}
+
 pub struct Console<'a> {
     manager: ServiceManager,
     last_update: Instant,
     status: Status,
-    logs: Vec<ListItem<'a>>,
+    logs: StatefulList<'a>,
 }
 
 impl<'a> Console<'a> {
@@ -37,7 +89,7 @@ impl<'a> Console<'a> {
         Self {
             manager,
             status,
-            logs: vec![],
+            logs: StatefulList::new(),
             last_update: Instant::now(),
         }
     }
@@ -88,9 +140,7 @@ impl<'a> Console<'a> {
 
                     if let Some(log) = log {
                         let text = ListItem::new(log.into_text().unwrap());
-                        let mut new_logs = vec![text];
-                        new_logs.extend_from_slice(&self.logs);
-                        self.logs = new_logs;
+                        self.logs.add_item(text);
                     } else {
                         log_stream_running = false;
                     }
@@ -99,8 +149,12 @@ impl<'a> Console<'a> {
                     match maybe_event {
                         Some(Ok(event)) => {
                             if let Event::Key(key) = event {
-                                if let KeyCode::Char('q') = key.code {
-                                    return Ok(());
+                                match key.code {
+                                    KeyCode::Char('q') => return Ok(()),
+                                    KeyCode::Left => self.logs.unselect(),
+                                    KeyCode::Down =>  self.logs.next(),
+                                    KeyCode::Up =>  self.logs.previous(),
+                                    _ => {}
                                 }
                             }
                         }
@@ -184,8 +238,15 @@ impl<'a> Console<'a> {
         .block(bordered_block().title("Controls"));
         f.render_widget(button, right_sections[0]);
 
-        let log_table = List::new(&*self.logs).block(bordered_block().title("Logs"));
-        f.render_widget(log_table, bottom);
+        let logs_list = List::new(self.logs.items.clone())
+            .block(bordered_block().title("Logs"))
+            .highlight_style(
+                Style::default()
+                    .bg(Color::LightGreen)
+                    .fg(Color::DarkGray)
+                    .add_modifier(Modifier::BOLD),
+            );
+        f.render_stateful_widget(logs_list, bottom, &mut self.logs.state);
     }
 }
 

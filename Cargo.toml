@@ -55,7 +55,7 @@ tracing-subscriber = {version = "0.3.15", features = ["local-time", "env-filter"
 
 [[example]]
 name = "async_combined"
-required-features = ["all"]
+required-features = ["all-async"]
 [[example]]
 name = "sync_combined"
 required-features = ["all-sync"]
