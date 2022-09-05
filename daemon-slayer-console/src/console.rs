@@ -24,57 +24,7 @@ use tui::{
     Frame, Terminal,
 };
 
-struct StatefulList<'a> {
-    state: ListState,
-    items: Vec<ListItem<'a>>,
-}
-
-impl<'a> StatefulList<'a> {
-    fn new() -> StatefulList<'a> {
-        StatefulList {
-            state: ListState::default(),
-            items: vec![],
-        }
-    }
-
-    fn add_item(&mut self, item: ListItem<'a>) {
-        let mut new_logs = vec![item];
-        new_logs.extend_from_slice(&self.items);
-        self.items = new_logs;
-    }
-
-    fn next(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i >= self.items.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-    }
-
-    fn previous(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    self.items.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-    }
-
-    fn unselect(&mut self) {
-        self.state.select(None);
-    }
-}
+use crate::stateful_list::StatefulList;
 
 pub struct Console<'a> {
     manager: ServiceManager,
@@ -249,15 +199,7 @@ impl<'a> Console<'a> {
         .block(bordered_block().title("Controls"));
         f.render_widget(button, right_sections[0]);
 
-        let logs_list = List::new(self.logs.items.clone())
-            .block(bordered_block().title("Logs"))
-            .highlight_style(
-                Style::default()
-                    .bg(Color::LightGreen)
-                    .fg(Color::DarkGray)
-                    .add_modifier(Modifier::BOLD),
-            );
-        f.render_stateful_widget(logs_list, bottom, &mut self.logs.state);
+        self.logs.render(f, bottom);
     }
 }
 
