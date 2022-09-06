@@ -37,7 +37,7 @@ impl HandlerSync for ServiceHandler {
     }
 
     fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_test_service"
+        "daemon_slayer_sync_combined"
     }
 
     fn get_stop_handler(&mut self) -> StopHandlerSync {

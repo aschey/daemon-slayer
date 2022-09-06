@@ -12,7 +12,7 @@ pub fn main() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         //.with_service_level(ServiceLevel::User);
-        let manager = ServiceManager::builder("daemon_slayer_test_service")
+        let manager = ServiceManager::builder("daemon_slayer_async_server")
             .with_description("test service")
             .with_args(["run"])
             .build()

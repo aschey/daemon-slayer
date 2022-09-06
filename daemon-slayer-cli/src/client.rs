@@ -9,15 +9,12 @@ maybe_async_cfg::content! {
         )
     )]
 
-use std::{error::Error, marker::PhantomData};
-
+use std::{error::Error};
 use clap::{Arg, ArgAction, ArgMatches};
 #[cfg(feature = "console")]
 use daemon_slayer_console::Console;
 use tracing::info;
-
 use daemon_slayer_client::{Manager, ServiceManager};
-
 use crate::{
     action::Action, builder, command::Command, commands::Commands,
     service_commands::ServiceCommands, util, cli_handler
@@ -30,27 +27,31 @@ macro_rules! get_handlers {
                 info!("checking {name}");
                 match *name {
                     ServiceCommands::INSTALL => {
-                        info!("installing...");
                         $self.manager.install()?;
                         return Ok(true);
                     }
                     ServiceCommands::UNINSTALL => {
-                        info!("uninstalling...");
                         $self.manager.uninstall()?;
                         return Ok(true);
                     }
                     ServiceCommands::STATUS => {
-                        println!("{:?}", $self.manager.query_status()?);
+                        println!("{:?}", $self.manager.info()?);
                         return Ok(true);
                     }
                     ServiceCommands::START => {
-                        info!("starting...");
                         $self.manager.start()?;
                         return Ok(true);
                     }
                     ServiceCommands::STOP => {
-                        info!("stopping..");
                         $self.manager.stop()?;
+                        return Ok(true);
+                    }
+                    ServiceCommands::ENABLE => {
+                        $self.manager.set_autostart_enabled(true)?;
+                        return Ok(true);
+                    }
+                    ServiceCommands::DISABLE => {
+                        $self.manager.set_autostart_enabled(false)?;
                         return Ok(true);
                     }
 
@@ -105,7 +106,7 @@ impl ClientCli {
     }
 
     #[maybe_async_cfg::only_if(async)]
-    pub(crate) async fn handle_cmd(self, matches: &ArgMatches) -> Result<bool, Box<dyn Error>> {
+    pub(crate) async fn handle_cmd(mut self, matches: &ArgMatches) -> Result<bool, Box<dyn Error>> {
         get_handlers!(self, matches,
             #[cfg(feature="console")]
             ServiceCommands::CONSOLE => {
@@ -118,7 +119,7 @@ impl ClientCli {
     }
 
     #[maybe_async_cfg::only_if(sync)]
-    pub(crate) async fn handle_cmd(self, matches: &ArgMatches) -> Result<bool, Box<dyn Error>> {
+    pub(crate) async fn handle_cmd(mut self, matches: &ArgMatches) -> Result<bool, Box<dyn Error>> {
         get_handlers!(self, matches,);
 
         Ok(false)
@@ -154,7 +155,9 @@ impl cli_handler::CliHandler for ClientCli {
                     | ServiceCommands::UNINSTALL
                     | ServiceCommands::STATUS
                     | ServiceCommands::START
-                    | ServiceCommands::STOP => {
+                    | ServiceCommands::STOP
+                    | ServiceCommands::ENABLE
+                    | ServiceCommands::DISABLE => {
                         return Action::Client;
                     }
                     #[cfg(feature = "console")]

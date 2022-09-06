@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Status {
+pub enum State {
     Started,
     Stopped,
     NotInstalled,

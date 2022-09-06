@@ -1,5 +1,5 @@
-use crate::Result;
-use crate::{Builder, Status};
+use crate::Builder;
+use crate::{Info, Result};
 pub trait Manager {
     fn builder(name: impl Into<String>) -> Builder;
     fn new(name: impl Into<String>) -> Result<Self>
@@ -16,5 +16,6 @@ pub trait Manager {
     fn uninstall(&self) -> Result<()>;
     fn start(&self) -> Result<()>;
     fn stop(&self) -> Result<()>;
-    fn query_status(&self) -> Result<Status>;
+    fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()>;
+    fn info(&self) -> Result<Info>;
 }

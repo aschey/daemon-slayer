@@ -2,8 +2,8 @@ use eyre::Context;
 use regex::Regex;
 use windows_service::{
     service::{
-        Service, ServiceAccess, ServiceErrorControl, ServiceInfo, ServiceStartType, ServiceState,
-        ServiceType,
+        Service, ServiceAccess, ServiceConfig, ServiceErrorControl, ServiceInfo, ServiceStartType,
+        ServiceState, ServiceType,
     },
     service_manager::{
         ListServiceType, ServiceActiveState, ServiceEntry, ServiceManager as WindowsServiceManager,
@@ -11,30 +11,39 @@ use windows_service::{
     },
 };
 
-use crate::{Builder, Level, Manager, Result, Status};
+use crate::{Builder, Info, Level, Manager, Result, State};
 
 pub struct ServiceManager {
     config: Builder,
 }
 
 impl ServiceManager {
-    fn get_service_status(&self, service: &str, service_type: ServiceType) -> Result<Status> {
+    fn query_info(&self, service: &str, service_type: ServiceType) -> Result<Info> {
         if self
             .find_service(Regex::new(&format!("^{}$", service)).unwrap(), service_type)?
             .is_none()
         {
-            return Ok(Status::NotInstalled);
+            return Ok(Info {
+                state: State::NotInstalled,
+                autostart: None,
+                pid: None,
+            });
         }
 
         let service = self.open_service(service)?;
-        match service
+        let service_status = service
             .query_status()
-            .wrap_err("Error getting service status")?
-            .current_state
-        {
-            ServiceState::Stopped | ServiceState::StartPending => Ok(Status::Stopped),
-            _ => Ok(Status::Started),
-        }
+            .wrap_err("Error getting service status")?;
+        let state = match service_status.current_state {
+            ServiceState::Stopped | ServiceState::StartPending => State::Stopped,
+            _ => State::Started,
+        };
+        let autostart = service.query_config()?.start_type == ServiceStartType::AutoStart;
+        Ok(Info {
+            state,
+            autostart: Some(autostart),
+            pid: service_status.process_id,
+        })
     }
 
     fn find_service(&self, re: Regex, service_type: ServiceType) -> Result<Option<ServiceEntry>> {
@@ -85,7 +94,7 @@ impl ServiceManager {
     }
 
     fn delete_service(&self, service: &str, service_type: ServiceType) -> Result<()> {
-        if self.get_service_status(service, service_type)? != Status::NotInstalled {
+        if self.query_info(service, service_type)?.state != State::NotInstalled {
             let service = self.open_service(service)?;
             service.delete().wrap_err("Error deleting service")?;
         }
@@ -97,6 +106,28 @@ impl ServiceManager {
             WindowsServiceManager::local_computer(None::<&str>, ServiceManagerAccess::all())
                 .wrap_err("Error creating service manager")?;
         Ok(service_manager)
+    }
+
+    fn get_service_info(&self) -> ServiceInfo {
+        ServiceInfo {
+            name: (&self.config.name).into(),
+            display_name: (&self.config.display_name).into(),
+            service_type: match self.config.service_level {
+                Level::System => ServiceType::OWN_PROCESS,
+                Level::User => ServiceType::USER_OWN_PROCESS,
+            },
+            start_type: if self.config.autostart {
+                ServiceStartType::AutoStart
+            } else {
+                ServiceStartType::OnDemand
+            },
+            error_control: ServiceErrorControl::Normal,
+            executable_path: (&self.config.program).into(),
+            launch_arguments: self.config.args_iter().map(Into::into).collect(),
+            dependencies: vec![],
+            account_name: None, // run as System
+            account_password: None,
+        }
     }
 }
 
@@ -123,21 +154,7 @@ impl Manager for ServiceManager {
 
     fn install(&self) -> Result<()> {
         if self.open_service(&self.config.name).is_err() {
-            let service_info = ServiceInfo {
-                name: (&self.config.name).into(),
-                display_name: (&self.config.display_name).into(),
-                service_type: match self.config.service_level {
-                    Level::System => ServiceType::OWN_PROCESS,
-                    Level::User => ServiceType::USER_OWN_PROCESS,
-                },
-                start_type: ServiceStartType::OnDemand,
-                error_control: ServiceErrorControl::Normal,
-                executable_path: (&self.config.program).into(),
-                launch_arguments: self.config.args_iter().map(Into::into).collect(),
-                dependencies: vec![],
-                account_name: None, // run as System
-                account_password: None,
-            };
+            let service_info = self.get_service_info();
             let service = self
                 .get_manager()?
                 .create_service(
@@ -167,7 +184,7 @@ impl Manager for ServiceManager {
     }
 
     fn start(&self) -> Result<()> {
-        if self.query_status()? == Status::Started {
+        if self.info()?.state == State::Started {
             return Ok(());
         }
 
@@ -179,7 +196,7 @@ impl Manager for ServiceManager {
     }
 
     fn stop(&self) -> Result<()> {
-        if self.query_status()? != Status::Started {
+        if self.info()?.state != State::Started {
             return Ok(());
         }
         let service = self.open_current_service()?;
@@ -187,16 +204,29 @@ impl Manager for ServiceManager {
         Ok(())
     }
 
-    fn query_status(&self) -> Result<Status> {
+    fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
+        let service = self.open_current_service()?;
+        self.config.autostart = enabled;
+        service.change_config(&self.get_service_info())?;
+        Ok(())
+    }
+
+    fn info(&self) -> Result<Info> {
         let service = match self.current_service_name()? {
             Some(service) => service,
-            None => return Ok(Status::NotInstalled),
+            None => {
+                return Ok(Info {
+                    state: State::NotInstalled,
+                    autostart: None,
+                    pid: None,
+                })
+            }
         };
 
         if self.config.service_level == Level::User {
-            self.get_service_status(&service, ServiceType::USER_OWN_PROCESS)
+            self.query_info(&service, ServiceType::USER_OWN_PROCESS)
         } else {
-            self.get_service_status(&service, ServiceType::OWN_PROCESS)
+            self.query_info(&service, ServiceType::OWN_PROCESS)
         }
     }
 

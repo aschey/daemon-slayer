@@ -51,6 +51,22 @@ impl Default for Commands {
                 },
             );
 
+            commands.insert(
+                ServiceCommands::ENABLE,
+                Command::Subcommand {
+                    name: ServiceCommands::ENABLE.to_owned(),
+                    help_text: "Enable autostart".to_owned(),
+                },
+            );
+
+            commands.insert(
+                ServiceCommands::DISABLE,
+                Command::Subcommand {
+                    name: ServiceCommands::DISABLE.to_owned(),
+                    help_text: "Disable autostart".to_owned(),
+                },
+            );
+
             #[cfg(feature = "console")]
             commands.insert(
                 ServiceCommands::CONSOLE,

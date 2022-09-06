@@ -48,7 +48,7 @@ impl HandlerAsync for ServiceHandler {
     }
 
     fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_test_service"
+        "daemon_slayer_async_server"
     }
 
     fn get_stop_handler(&mut self) -> StopHandlerAsync {

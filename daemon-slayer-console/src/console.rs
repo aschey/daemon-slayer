@@ -4,7 +4,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use daemon_slayer_client::{Manager, ServiceManager, Status};
+use daemon_slayer_client::{Info, Manager, ServiceManager, State};
 use futures::{select, FutureExt, Stream, StreamExt};
 
 use std::{
@@ -29,17 +29,17 @@ use crate::stateful_list::StatefulList;
 pub struct Console<'a> {
     manager: ServiceManager,
     last_update: Instant,
-    status: Status,
+    info: Info,
     logs: StatefulList<'a>,
     button_index: usize,
 }
 
 impl<'a> Console<'a> {
     pub fn new(manager: ServiceManager) -> Self {
-        let status = manager.query_status().unwrap();
+        let info = manager.info().unwrap();
         Self {
             manager,
-            status,
+            info,
             logs: StatefulList::new(),
             last_update: Instant::now(),
             button_index: 0,
@@ -118,7 +118,7 @@ impl<'a> Console<'a> {
                                     KeyCode::Enter => {
                                         match self.button_index {
                                             0 => {
-                                                if self.status == Status::Stopped {
+                                                if self.info.state == State::Stopped {
                                                     self.manager.start()?
                                                 } else {
                                                     self.manager.stop()?;
@@ -127,13 +127,15 @@ impl<'a> Console<'a> {
                                             1 => {}
                                             2 => {},
                                             3 => {
-                                                if self.status == Status::NotInstalled {
+                                                if self.info.state == State::NotInstalled {
                                                     self.manager.install()?
                                                 } else {
                                                     self.manager.uninstall()?;
                                                 }
                                             },
-                                            4 => {},
+                                            4 => {
+                                                self.manager.set_autostart_enabled(!self.info.autostart.unwrap_or(false))?;
+                                            },
                                             _ => {}
                                         }
                                     }
@@ -153,7 +155,7 @@ impl<'a> Console<'a> {
     fn ui(&mut self, f: &mut Frame<CrosstermBackend<Stdout>>) {
         let size = f.size();
         if Instant::now().duration_since(self.last_update) > Duration::from_secs(1) {
-            self.status = self.manager.query_status().unwrap();
+            self.info = self.manager.info().unwrap();
             self.last_update = Instant::now();
         }
         // Main border
@@ -168,28 +170,35 @@ impl<'a> Console<'a> {
             .constraints([Constraint::Length(28), Constraint::Min(1)])
             .split(top_left);
 
-        let status_block = bordered_block().border_style(reset_all());
+        let status_block = bordered_block().border_style(reset_all()).title("Status");
 
         let label_area = get_label_area(num_labels, top_left);
 
-        let status_label = get_label("Status:");
-        let status_value = match self.status {
-            Status::Started => get_label_value("Started", Color::Green),
-            Status::Stopped => get_label_value("Stopped", Color::Red),
-            Status::NotInstalled => get_label_value("Not Installed", Color::Blue),
+        let state_label = get_label("State:");
+        let state_value = match self.info.state {
+            State::Started => get_label_value("Started", Color::Green),
+            State::Stopped => get_label_value("Stopped", Color::Red),
+            State::NotInstalled => get_label_value("Not Installed", Color::Blue),
         };
 
         let autostart_label = get_label("Autostart:");
-        let autostart_value = get_label_value("Enabled", Color::Blue);
-
+        let autostart_value = match self.info.autostart {
+            Some(true) => get_label_value("Enabled", Color::Blue),
+            Some(false) => get_label_value("Disabled", Color::Yellow),
+            None => get_label_value("N/A", Color::Yellow),
+        };
         let health_check_label = get_label("Health:");
         let health_check_value = get_label_value("Healthy", Color::Green);
 
         let pid_label = get_label("PID:");
-        let pid_value = get_label_value("12345", Color::Reset);
+        let pid = match self.info.pid {
+            Some(pid) => pid.to_string(),
+            None => "N/A".to_owned(),
+        };
+        let pid_value = get_label_value(&pid, Color::Reset);
 
-        f.render_widget(status_label, label_area.0[0]);
-        f.render_widget(status_value, label_area.1[0]);
+        f.render_widget(state_label, label_area.0[0]);
+        f.render_widget(state_value, label_area.1[0]);
         f.render_widget(autostart_label, label_area.0[1]);
         f.render_widget(autostart_value, label_area.1[1]);
         f.render_widget(health_check_label, label_area.0[2]);
@@ -208,12 +217,12 @@ impl<'a> Console<'a> {
             Spans::from(vec![
                 Span::raw(" "),
                 get_button(
-                    if self.status == Status::Stopped {
+                    if self.info.state == State::Stopped {
                         "start"
                     } else {
                         "stop "
                     },
-                    if self.status == Status::Stopped {
+                    if self.info.state == State::Stopped {
                         Color::Green
                     } else {
                         Color::Red
@@ -226,7 +235,7 @@ impl<'a> Console<'a> {
                 get_button("reload", Color::Magenta, self.button_index == 2),
                 Span::raw(" "),
                 get_button(
-                    if self.status == Status::NotInstalled {
+                    if self.info.state == State::NotInstalled {
                         " install "
                     } else {
                         "uninstall"
@@ -235,7 +244,15 @@ impl<'a> Console<'a> {
                     self.button_index == 3,
                 ),
                 Span::raw(" "),
-                get_button("disable", Color::Blue, self.button_index == 4),
+                get_button(
+                    if self.info.autostart.unwrap_or(false) {
+                        "disable"
+                    } else {
+                        "enable "
+                    },
+                    Color::Blue,
+                    self.button_index == 4,
+                ),
             ]),
         ])
         .block(bordered_block().title("Controls"));

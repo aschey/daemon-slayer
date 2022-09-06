@@ -17,6 +17,7 @@ pub struct Builder {
     pub(crate) args: Vec<String>,
     pub(crate) service_level: Level,
     pub(crate) env_vars: Vec<(String, String)>,
+    pub(crate) autostart: bool,
     pub(crate) systemd_config: SystemdConfig,
 }
 
@@ -30,6 +31,7 @@ impl Builder {
             args: vec![],
             program: current_exe().unwrap().to_string_lossy().to_string(),
             service_level: Level::System,
+            autostart: false,
             env_vars: vec![],
             systemd_config: SystemdConfig::default(),
         }
@@ -68,6 +70,10 @@ impl Builder {
             service_level,
             ..self
         }
+    }
+
+    pub fn with_autostart(self, autostart: bool) -> Self {
+        Self { autostart, ..self }
     }
 
     pub fn with_env_var(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {

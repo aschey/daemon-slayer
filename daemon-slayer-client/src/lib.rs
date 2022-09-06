@@ -8,7 +8,8 @@ mod level;
 pub use level::Level;
 mod manager;
 pub use manager::Manager;
-mod status;
-pub use status::Status;
-
+mod state;
+pub use state::State;
+mod info;
+pub use info::Info;
 pub type Result<T> = result::Result<T, Box<dyn Error>>;

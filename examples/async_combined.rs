@@ -25,6 +25,7 @@ pub fn main() {
             } else {
                 Level::User
             })
+            .with_autostart(true)
             .with_args(["run"])
             .build()
             .unwrap();
@@ -57,7 +58,7 @@ impl HandlerAsync for ServiceHandler {
     }
 
     fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_test_service"
+        "daemon_slayer_async_combined"
     }
 
     fn get_stop_handler(&mut self) -> StopHandlerAsync {

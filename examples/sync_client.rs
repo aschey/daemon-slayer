@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use tracing::info;
 
 pub fn main() {
-    let manager = ServiceManager::builder("daemon_slayer_test_service".to_owned())
+    let manager = ServiceManager::builder("daemon_slayer_sync_server".to_owned())
         .with_description("test service")
         .with_args(["run"])
         .build()
