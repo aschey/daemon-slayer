@@ -85,6 +85,7 @@ impl LoggerBuilder {
         self
     }
 
+    #[cfg(feature = "async-tokio")]
     pub fn with_ipc_logger(mut self, enable_ipc_logger: bool) -> Self {
         self.enable_ipc_logger = enable_ipc_logger;
         self
