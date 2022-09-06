@@ -14,7 +14,7 @@ use time::{
 };
 
 use super::{logger_guard::LoggerGuard, timezone::Timezone};
-use tracing::metadata::LevelFilter;
+use tracing::{metadata::LevelFilter, Subscriber};
 use tracing_appender::{
     non_blocking::{NonBlockingBuilder, WorkerGuard},
     rolling::{RollingFileAppender, Rotation},
@@ -24,6 +24,7 @@ use tracing_eventlog::{register, EventLogLayer};
 use tracing_subscriber::{
     fmt::{time::OffsetTime, Layer, MakeWriter},
     prelude::__tracing_subscriber_SubscriberExt,
+    registry::LookupSpan,
     util::SubscriberInitExt,
     EnvFilter, Layer as SubscriberLayer,
 };
@@ -80,7 +81,12 @@ impl LoggerBuilder {
         self
     }
 
-    pub fn build(self) -> (impl SubscriberInitExt, LoggerGuard) {
+    pub fn build(
+        self,
+    ) -> (
+        impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
+        LoggerGuard,
+    ) {
         let offset = match (self.timezone, LOCAL_TIME.get().unwrap().clone()) {
             (Timezone::Local, Ok(offset)) => offset,
             (Timezone::Local, Err(e)) => {
