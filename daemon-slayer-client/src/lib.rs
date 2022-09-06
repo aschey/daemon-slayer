@@ -2,8 +2,8 @@ mod platform;
 use std::{error::Error, result};
 
 pub use platform::ServiceManager;
-mod builder;
-pub use builder::Builder;
+mod config;
+pub use config::Builder;
 mod level;
 pub use level::Level;
 mod manager;

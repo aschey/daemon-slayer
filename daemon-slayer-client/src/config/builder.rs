@@ -2,8 +2,10 @@ use crate::Manager;
 use crate::Result;
 use std::env::current_exe;
 
-use super::platform::ServiceManager;
-use super::Level;
+use crate::platform::ServiceManager;
+use crate::Level;
+
+use super::SystemdConfig;
 
 pub struct Builder {
     pub(crate) name: String,
@@ -14,6 +16,8 @@ pub struct Builder {
     pub(crate) program: String,
     pub(crate) args: Vec<String>,
     pub(crate) service_level: Level,
+    pub(crate) env_vars: Vec<(String, String)>,
+    pub(crate) systemd_config: SystemdConfig,
 }
 
 impl Builder {
@@ -26,6 +30,8 @@ impl Builder {
             args: vec![],
             program: current_exe().unwrap().to_string_lossy().to_string(),
             service_level: Level::System,
+            env_vars: vec![],
+            systemd_config: SystemdConfig::default(),
         }
     }
 
@@ -60,6 +66,18 @@ impl Builder {
     pub fn with_service_level(self, service_level: Level) -> Self {
         Self {
             service_level,
+            ..self
+        }
+    }
+
+    pub fn with_env_var(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.env_vars.push((key.into(), value.into()));
+        self
+    }
+
+    pub fn with_systemd_config(self, systemd_config: SystemdConfig) -> Self {
+        Self {
+            systemd_config,
             ..self
         }
     }

@@ -1,4 +1,4 @@
-use crate::{Builder, Level, Manager, Result, Status};
+use crate::{Builder, Manager, Result, Status};
 use eyre::Context;
 use systemd_client::{
     create_unit_configuration_file, create_user_unit_configuration_file,
@@ -42,12 +42,19 @@ impl Manager for ServiceManager {
     }
 
     fn install(&self) -> Result<()> {
-        let unit_config = UnitConfiguration::builder().description(&self.config.description);
+        let mut unit_config = UnitConfiguration::builder().description(&self.config.description);
+        for after in &self.config.systemd_config.after {
+            unit_config = unit_config.after(after);
+        }
 
-        let service_config = ServiceConfiguration::builder()
+        let mut service_config = ServiceConfiguration::builder()
             .exec_start(self.config.full_args_iter().map(|a| &a[..]).collect())
             .ty(ServiceType::Notify)
             .notify_access(NotifyAccess::Main);
+
+        for (key, value) in &self.config.env_vars {
+            service_config = service_config.env(key, value);
+        }
 
         let mut svc_unit_builder = ServiceUnitConfiguration::builder()
             .unit(unit_config)
