@@ -28,4 +28,4 @@ jobs:
           cargo install cargo-hack
           cargo install cargo-make
           cargo make build-all
-          ${{ matrix.cargo }} test --workspace
+          ${{ matrix.cargo }} test --workspace -- --nocapture
