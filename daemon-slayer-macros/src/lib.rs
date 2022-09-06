@@ -25,16 +25,7 @@ mod platform {
 pub fn derive_service_async(input: TokenStream) -> TokenStream {
     let DeriveInput { ident, .. } = parse_macro_input!(input);
 
-    let found_crate = crate_name("daemon-slayer-server").unwrap();
-
-    let crate_name = match found_crate {
-        FoundCrate::Itself => quote!(daemon_slayer_server),
-        FoundCrate::Name(name) => {
-            let ident = Ident::new(&name, Span::call_site());
-            quote!( #ident )
-        }
-    };
-
+    let crate_name = get_crate_name();
     platform::define_service_async(ident, crate_name)
 }
 
@@ -43,15 +34,25 @@ pub fn derive_service_async(input: TokenStream) -> TokenStream {
 pub fn derive_service_sync(input: TokenStream) -> TokenStream {
     let DeriveInput { ident, .. } = parse_macro_input!(input);
 
-    let found_crate = crate_name("daemon-slayer-server").unwrap();
+    let crate_name = get_crate_name();
+    platform::define_service_sync(ident, crate_name)
+}
 
-    let crate_name = match found_crate {
-        FoundCrate::Itself => quote!(daemon_slayer_server),
-        FoundCrate::Name(name) => {
+fn get_crate_name() -> proc_macro2::TokenStream {
+    let server_crate = crate_name("daemon-slayer-server");
+    let main_crate = crate_name("daemon-slayer");
+
+    match (main_crate, server_crate) {
+        (Ok(FoundCrate::Itself), _) => quote!(daemon_slayer::server),
+        (Ok(FoundCrate::Name(name)), _) => {
+            let ident = Ident::new(&name, Span::call_site());
+            quote!( #ident::server )
+        }
+        (_, Ok(FoundCrate::Itself)) => quote!(daemon_slayer_server),
+        (_, Ok(FoundCrate::Name(name))) => {
             let ident = Ident::new(&name, Span::call_site());
             quote!( #ident )
         }
-    };
-
-    platform::define_service_sync(ident, crate_name)
+        _ => panic!("server crate not found"),
+    }
 }

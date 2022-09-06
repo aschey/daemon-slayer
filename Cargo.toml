@@ -11,6 +11,7 @@ members = [
   "daemon-slayer-cli",
   "daemon-slayer-logging",
   "daemon-slayer-console",
+  "integration-tests",
 ]
 resolver = "2"
 

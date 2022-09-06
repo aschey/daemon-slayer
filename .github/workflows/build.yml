@@ -7,6 +7,13 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: macos-latest
+            cargo: sudo -E /Users/runner/.cargo/bin/cargo
+          - os: ubuntu-latest
+            cargo: sudo -E /home/runner/.cargo/bin/cargo
+          - os: windows-latest
+            cargo: cargo
       fail-fast: false
     name: Build and test
     runs-on: ${{ matrix.os }}
@@ -21,3 +28,4 @@ jobs:
           cargo install cargo-hack
           cargo install cargo-make
           cargo make build-all
+          ${{ matrix.cargo }} test --workspace

@@ -8,11 +8,11 @@ use daemon_slayer::server::{HandlerAsync, ServiceAsync, StopHandlerAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
-use daemon_slayer_client::Level;
+use daemon_slayer::client::Level;
 use futures::{SinkExt, StreamExt};
 use tracing::info;
 
-use tracing_subscriber::util::SubscriberInitExt;
+use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 
 pub fn main() {
     let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
@@ -34,7 +34,7 @@ pub fn main() {
         let mut _logger_guard: Option<LoggerGuard> = None;
 
         if cli.action_type() == Action::Server {
-            let (logger, guard) = logger_builder.with_ipc_logger(true).build();
+            let (logger, guard) = logger_builder.build();
             _logger_guard = Some(guard);
             logger.init();
         }
@@ -57,7 +57,7 @@ impl HandlerAsync for ServiceHandler {
     }
 
     fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_test_service"
+        "daemon_slayer_test_service_async"
     }
 
     fn get_stop_handler(&mut self) -> StopHandlerAsync {
@@ -74,16 +74,7 @@ impl HandlerAsync for ServiceHandler {
     async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> u32 {
         info!("running service");
         on_started();
-        loop {
-            match tokio::time::timeout(Duration::from_secs(1), self.rx.next()).await {
-                Ok(_) => {
-                    info!("stopping service");
-                    return 0;
-                }
-                Err(_) => {
-                    info!("Current time: {:?}", Instant::now());
-                }
-            }
-        }
+        self.rx.next().await;
+        0
     }
 }

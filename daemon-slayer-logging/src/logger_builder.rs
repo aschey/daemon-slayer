@@ -39,6 +39,8 @@ pub struct LoggerBuilder {
     output_buffer_limit: usize,
     default_log_level: tracing::Level,
     level_filter: LevelFilter,
+    #[cfg(feature = "async-tokio")]
+    enable_ipc_logger: bool,
 }
 
 impl LoggerBuilder {
@@ -53,6 +55,8 @@ impl LoggerBuilder {
             output_buffer_limit: 256,
             default_log_level: tracing::Level::INFO,
             level_filter: LevelFilter::INFO,
+            #[cfg(feature = "async-tokio")]
+            enable_ipc_logger: false,
         }
     }
 
@@ -78,6 +82,11 @@ impl LoggerBuilder {
 
     pub fn with_level_filter(mut self, level_filter: LevelFilter) -> Self {
         self.level_filter = level_filter;
+        self
+    }
+
+    pub fn with_ipc_logger(mut self, enable_ipc_logger: bool) -> Self {
+        self.enable_ipc_logger = enable_ipc_logger;
         self
     }
 
@@ -138,7 +147,11 @@ impl LoggerBuilder {
             .with(tracing_error::ErrorLayer::default());
 
         #[cfg(feature = "async-tokio")]
-        let (ipc_writer, ipc_guard) = tracing_ipc::Writer::new(&self.name);
+        let (ipc_writer, ipc_guard) = if self.enable_ipc_logger {
+            tracing_ipc::Writer::new(&self.name)
+        } else {
+            tracing_ipc::Writer::disabled()
+        };
         #[cfg(feature = "async-tokio")]
         guard.add_guard(Box::new(ipc_guard));
         #[cfg(feature = "async-tokio")]

@@ -1,0 +1,15 @@
+[package]
+edition = "2021"
+name = "integration-tests"
+publish = false
+version = "0.1.0"
+
+[dependencies]
+async-trait = "0.1.57"
+daemon-slayer = {path = "../../daemon-slayer", features = ["all-async", "all-sync"]}
+futures = "0.3.24"
+tokio = {version = "1.21.0", features = ["rt-multi-thread"]}
+tracing = "0.1.36"
+
+[dev-dependencies]
+assert_cmd = "2.0.4"
