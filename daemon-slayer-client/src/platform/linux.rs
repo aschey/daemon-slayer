@@ -1,10 +1,12 @@
 use crate::{Builder, Level, Manager, Result, Status};
 use eyre::Context;
 use systemd_client::{
-    create_unit_configuration_file, delete_unit_configuration_file,
+    create_unit_configuration_file, create_user_unit_configuration_file,
+    delete_unit_configuration_file, delete_user_unit_configuration_file,
     manager::{self, SystemdManagerProxyBlocking},
-    unit, NotifyAccess, ServiceConfiguration, ServiceType, ServiceUnitConfiguration,
-    UnitActiveStateType, UnitConfiguration, UnitLoadStateType, UnitSubStateType,
+    unit, InstallConfiguration, NotifyAccess, ServiceConfiguration, ServiceType,
+    ServiceUnitConfiguration, UnitActiveStateType, UnitConfiguration, UnitLoadStateType,
+    UnitSubStateType,
 };
 
 pub struct ServiceManager {
@@ -27,7 +29,12 @@ impl Manager for ServiceManager {
     }
 
     fn from_builder(builder: Builder) -> Result<Self> {
-        let client = manager::build_blocking_proxy().wrap_err("Error creating systemd proxy")?;
+        let client = if builder.is_user() {
+            manager::build_blocking_user_proxy()
+        } else {
+            manager::build_blocking_proxy()
+        }
+        .wrap_err("Error creating systemd proxy")?;
         Ok(Self {
             config: builder,
             client,
@@ -41,20 +48,38 @@ impl Manager for ServiceManager {
             .exec_start(self.config.full_args_iter().map(|a| &a[..]).collect())
             .ty(ServiceType::Notify)
             .notify_access(NotifyAccess::Main);
-        let svc_unit = ServiceUnitConfiguration::builder()
-            .unit(unit_config)
-            .service(service_config)
-            .build();
-        let svc_unit_literal = format!("{}", svc_unit);
 
-        create_unit_configuration_file(&self.service_file_name(), svc_unit_literal.as_bytes())
-            .wrap_err("Error creating systemd config file")?;
+        let mut svc_unit_builder = ServiceUnitConfiguration::builder()
+            .unit(unit_config)
+            .service(service_config);
+
+        if self.config.is_user() {
+            svc_unit_builder = svc_unit_builder
+                .install(InstallConfiguration::builder().wanted_by("default.target"));
+        }
+
+        let svc_unit_literal = format!("{}", svc_unit_builder.build());
+
+        if self.config.is_user() {
+            create_user_unit_configuration_file(
+                &self.service_file_name(),
+                svc_unit_literal.as_bytes(),
+            )
+        } else {
+            create_unit_configuration_file(&self.service_file_name(), svc_unit_literal.as_bytes())
+        }
+        .wrap_err("Error creating systemd config file")?;
+
         Ok(())
     }
 
     fn uninstall(&self) -> Result<()> {
-        delete_unit_configuration_file(&self.service_file_name())
-            .wrap_err("Error removing systemd config file")?;
+        if self.config.is_user() {
+            delete_user_unit_configuration_file(&self.service_file_name())
+        } else {
+            delete_unit_configuration_file(&self.service_file_name())
+        }
+        .wrap_err("Error removing systemd config file")?;
         Ok(())
     }
 
@@ -89,8 +114,12 @@ impl Manager for ServiceManager {
             .load_unit(&self.service_file_name())
             .wrap_err("Error loading systemd unit")?;
 
-        let unit_client =
-            unit::build_blocking_proxy(svc_unit_path).wrap_err("Error creating unit client")?;
+        let unit_client = if self.config.is_user() {
+            unit::build_blocking_user_proxy(svc_unit_path)
+        } else {
+            unit::build_blocking_proxy(svc_unit_path)
+        }
+        .wrap_err("Error creating unit client")?;
 
         let props = unit_client
             .get_properties()

@@ -11,7 +11,7 @@ regex = "1.6.0"
 windows-service = {git = "https://github.com/aschey/windows-service-rs", rev = "467408c9aba7d8221e5cf5a9992765ad7abeeb55"}
 
 [target.'cfg(target_os="linux")'.dependencies]
-systemd_client = {git = "https://github.com/aschey/systemd-client", rev = "5402ac4722cd6c0cf3c0f277c382ba20a1f5b3e6"}
+systemd_client = {git = "https://github.com/aschey/systemd-client", rev = "3e5358c5961fee8f354e894d8ce6b10ec86033ce"}
 
 [target.'cfg(target_os = "macos")'.dependencies]
 directories = "4.0.1"

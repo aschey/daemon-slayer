@@ -72,6 +72,10 @@ impl Builder {
         self.args.iter()
     }
 
+    pub(crate) fn is_user(&self) -> bool {
+        self.service_level == Level::User
+    }
+
     #[cfg(unix)]
     pub(crate) fn full_args_iter(&self) -> impl Iterator<Item = &String> {
         std::iter::once(&self.program).chain(self.args_iter())

@@ -8,6 +8,7 @@ use daemon_slayer::server::{HandlerAsync, ServiceAsync, StopHandlerAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
+use daemon_slayer_client::Level;
 use futures::{SinkExt, StreamExt};
 use tracing::info;
 
@@ -17,9 +18,13 @@ pub fn main() {
     let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        //.with_service_level(ServiceLevel::User);
         let manager = ServiceManager::builder(ServiceHandler::get_service_name())
             .with_description("test service")
+            .with_service_level(if cfg!(windows) {
+                Level::System
+            } else {
+                Level::User
+            })
             .with_args(["run"])
             .build()
             .unwrap();
