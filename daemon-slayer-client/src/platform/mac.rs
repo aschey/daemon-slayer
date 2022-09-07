@@ -7,7 +7,7 @@ use std::{
 use eyre::Context;
 use launchd::Launchd;
 
-use crate::{Builder, Level, Manager, Result, Status};
+use crate::{Builder, Info, Level, Manager, Result, State};
 
 pub struct ServiceManager {
     config: Builder,
@@ -97,10 +97,14 @@ impl Manager for ServiceManager {
         Ok(())
     }
 
-    fn query_status(&self) -> Result<Status> {
+    fn info(&self) -> Result<Info> {
         let output = self.run_launchctl(vec!["print", &format!("system/{}", self.config.name)])?;
         if output.contains("could not find service") {
-            return Ok(Status::NotInstalled);
+            return Ok(Info {
+                state: State::NotInstalled,
+                autostart: None,
+                pid: None,
+            });
         }
         let s = output
             .split('\n')
@@ -114,14 +118,21 @@ impl Manager for ServiceManager {
                     .to_string()
             })
             .collect::<Vec<_>>();
+        let mut state: State;
         if s.len() == 0 {
-            return Ok(Status::Stopped);
+            state = State::Stopped;
         }
-        if s[0].trim() == "running" {
-            Ok(Status::Started)
+        if s.len() > 0 && s[0].trim() == "running" {
+            state = State::Started;
         } else {
-            Ok(Status::Stopped)
+            state = State::Stopped;
         }
+
+        Ok(Info {
+            state,
+            pid: None,
+            autostart: None,
+        })
     }
 
     fn display_name(&self) -> &str {
@@ -138,5 +149,9 @@ impl Manager for ServiceManager {
 
     fn description(&self) -> &str {
         &self.config.description
+    }
+
+    fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
+        todo!()
     }
 }
