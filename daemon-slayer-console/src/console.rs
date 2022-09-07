@@ -124,16 +124,15 @@ impl<'a> Console<'a> {
                                                     self.manager.stop()?;
                                                 }
                                             },
-                                            1 => {}
-                                            2 => {},
-                                            3 => {
+                                            1 => {self.manager.restart()?;}
+                                            2 => {
                                                 if self.info.state == State::NotInstalled {
                                                     self.manager.install()?
                                                 } else {
                                                     self.manager.uninstall()?;
                                                 }
                                             },
-                                            4 => {
+                                            3 => {
                                                 self.manager.set_autostart_enabled(!self.info.autostart.unwrap_or(false))?;
                                             },
                                             _ => {}
@@ -164,7 +163,7 @@ impl<'a> Console<'a> {
 
         let (top_left, top_right, bottom) = get_main_sections(size);
 
-        let num_labels = 4;
+        let num_labels = 5;
 
         let status_area = horizontal()
             .constraints([Constraint::Length(28), Constraint::Min(1)])
@@ -197,14 +196,24 @@ impl<'a> Console<'a> {
         };
         let pid_value = get_label_value(&pid, Color::Reset);
 
+        let exit_code_label = get_label("Exit Code:");
+        let exit_code_value = match self.info.last_exit_code {
+            Some(0) => get_label_value("0", Color::Green),
+            Some(code) => get_label_value(code.to_string(), Color::Yellow),
+            None => get_label_value("N/A", Color::Reset),
+        };
+
         f.render_widget(state_label, label_area.0[0]);
         f.render_widget(state_value, label_area.1[0]);
         f.render_widget(autostart_label, label_area.0[1]);
         f.render_widget(autostart_value, label_area.1[1]);
         f.render_widget(health_check_label, label_area.0[2]);
         f.render_widget(health_check_value, label_area.1[2]);
-        f.render_widget(pid_label, label_area.0[3]);
-        f.render_widget(pid_value, label_area.1[3]);
+        f.render_widget(exit_code_label, label_area.0[3]);
+        f.render_widget(exit_code_value, label_area.1[3]);
+        f.render_widget(pid_label, label_area.0[4]);
+        f.render_widget(pid_value, label_area.1[4]);
+
         //  f.render_widget(logging_paragraph, info_section);
         f.render_widget(status_block, status_area[0]);
 
@@ -232,8 +241,6 @@ impl<'a> Console<'a> {
                 Span::raw(" "),
                 get_button("restart", Color::Magenta, self.button_index == 1),
                 Span::raw(" "),
-                get_button("reload", Color::Magenta, self.button_index == 2),
-                Span::raw(" "),
                 get_button(
                     if self.info.state == State::NotInstalled {
                         " install "
@@ -241,7 +248,7 @@ impl<'a> Console<'a> {
                         "uninstall"
                     },
                     Color::Blue,
-                    self.button_index == 3,
+                    self.button_index == 2,
                 ),
                 Span::raw(" "),
                 get_button(
@@ -251,7 +258,7 @@ impl<'a> Console<'a> {
                         "enable "
                     },
                     Color::Blue,
-                    self.button_index == 4,
+                    self.button_index == 3,
                 ),
             ]),
         ])
@@ -292,12 +299,12 @@ fn vertical() -> Layout {
 
 fn get_main_sections(parent: Rect) -> (Rect, Rect, Rect) {
     let top_bottom = vertical()
-        .constraints([Constraint::Length(8), Constraint::Min(1)])
+        .constraints([Constraint::Length(9), Constraint::Min(1)])
         .vertical_margin(1)
         .horizontal_margin(2)
         .split(parent);
     let left_right = horizontal()
-        .constraints([Constraint::Min(1), Constraint::Length(52)])
+        .constraints([Constraint::Min(1), Constraint::Length(44)])
         .split(top_bottom[0]);
     (left_right[0], left_right[1], top_bottom[1])
 }
@@ -308,8 +315,8 @@ fn get_label(label: &str) -> Paragraph {
         .style(Style::default().add_modifier(Modifier::BOLD))
 }
 
-fn get_label_value(value: &str, color: Color) -> Paragraph {
-    Paragraph::new(value)
+fn get_label_value(value: impl Into<String>, color: Color) -> Paragraph<'static> {
+    Paragraph::new(value.into())
         .alignment(Alignment::Left)
         .style(Style::default().fg(color))
 }

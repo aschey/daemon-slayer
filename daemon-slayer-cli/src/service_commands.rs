@@ -16,6 +16,8 @@ impl ServiceCommands {
     #[cfg(feature = "client")]
     pub(crate) const STOP: &'static str = "stop";
     #[cfg(feature = "client")]
+    pub(crate) const RESTART: &'static str = "restart";
+    #[cfg(feature = "client")]
     pub(crate) const ENABLE: &'static str = "enable";
     #[cfg(feature = "client")]
     pub(crate) const DISABLE: &'static str = "disable";

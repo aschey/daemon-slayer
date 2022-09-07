@@ -1,9 +1,11 @@
+use std::{thread, time::Duration};
+
 use eyre::Context;
 use regex::Regex;
 use windows_service::{
     service::{
-        Service, ServiceAccess, ServiceConfig, ServiceErrorControl, ServiceInfo, ServiceStartType,
-        ServiceState, ServiceType,
+        Service, ServiceAccess, ServiceConfig, ServiceErrorControl, ServiceExitCode, ServiceInfo,
+        ServiceStartType, ServiceState, ServiceType,
     },
     service_manager::{
         ListServiceType, ServiceActiveState, ServiceEntry, ServiceManager as WindowsServiceManager,
@@ -27,6 +29,7 @@ impl ServiceManager {
                 state: State::NotInstalled,
                 autostart: None,
                 pid: None,
+                last_exit_code: None,
             });
         }
 
@@ -38,11 +41,16 @@ impl ServiceManager {
             ServiceState::Stopped | ServiceState::StartPending => State::Stopped,
             _ => State::Started,
         };
+        let last_exit_code = match service_status.exit_code {
+            ServiceExitCode::Win32(code) => Some(code),
+            ServiceExitCode::ServiceSpecific(code) => Some(code),
+        };
         let autostart = service.query_config()?.start_type == ServiceStartType::AutoStart;
         Ok(Info {
             state,
             autostart: Some(autostart),
             pid: service_status.process_id,
+            last_exit_code,
         })
     }
 
@@ -129,6 +137,17 @@ impl ServiceManager {
             account_password: None,
         }
     }
+
+    fn wait_for_state(&self, desired_state: State) -> Result<()> {
+        let attempts = 5;
+        for _ in 0..attempts {
+            if self.info()?.state == desired_state {
+                return Ok(());
+            }
+            thread::sleep(Duration::from_millis(100));
+        }
+        Err("Failed to stop")?
+    }
 }
 
 impl Manager for ServiceManager {
@@ -204,6 +223,15 @@ impl Manager for ServiceManager {
         Ok(())
     }
 
+    fn restart(&self) -> Result<()> {
+        if self.info()?.state == State::Started {
+            self.stop()?;
+            self.wait_for_state(State::Stopped)?;
+        }
+        self.start()?;
+        self.wait_for_state(State::Started)
+    }
+
     fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
         let service = self.open_current_service()?;
         self.config.autostart = enabled;
@@ -219,6 +247,7 @@ impl Manager for ServiceManager {
                     state: State::NotInstalled,
                     autostart: None,
                     pid: None,
+                    last_exit_code: None,
                 })
             }
         };

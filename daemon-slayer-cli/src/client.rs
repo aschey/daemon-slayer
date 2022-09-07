@@ -46,6 +46,10 @@ macro_rules! get_handlers {
                         $self.manager.stop()?;
                         return Ok(true);
                     }
+                    ServiceCommands::RESTART => {
+                        $self.manager.restart()?;
+                        return Ok(true);
+                    }
                     ServiceCommands::ENABLE => {
                         $self.manager.set_autostart_enabled(true)?;
                         return Ok(true);
@@ -156,6 +160,7 @@ impl cli_handler::CliHandler for ClientCli {
                     | ServiceCommands::STATUS
                     | ServiceCommands::START
                     | ServiceCommands::STOP
+                    | ServiceCommands::RESTART
                     | ServiceCommands::ENABLE
                     | ServiceCommands::DISABLE => {
                         return Action::Client;

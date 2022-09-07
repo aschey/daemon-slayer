@@ -16,6 +16,7 @@ pub trait Manager {
     fn uninstall(&self) -> Result<()>;
     fn start(&self) -> Result<()>;
     fn stop(&self) -> Result<()>;
+    fn restart(&self) -> Result<()>;
     fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()>;
     fn info(&self) -> Result<Info>;
 }

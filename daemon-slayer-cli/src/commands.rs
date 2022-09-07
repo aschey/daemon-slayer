@@ -52,6 +52,14 @@ impl Default for Commands {
             );
 
             commands.insert(
+                ServiceCommands::RESTART,
+                Command::Subcommand {
+                    name: ServiceCommands::RESTART.to_owned(),
+                    help_text: "Restart the service".to_owned(),
+                },
+            );
+
+            commands.insert(
                 ServiceCommands::ENABLE,
                 Command::Subcommand {
                     name: ServiceCommands::ENABLE.to_owned(),
