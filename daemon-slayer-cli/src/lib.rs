@@ -9,6 +9,8 @@ mod command;
 #[cfg(any(feature = "client", feature = "server"))]
 mod commands;
 #[cfg(any(feature = "client", feature = "server"))]
+mod input_state;
+#[cfg(any(feature = "client", feature = "server"))]
 mod service_commands;
 
 #[cfg(any(feature = "client", feature = "server"))]

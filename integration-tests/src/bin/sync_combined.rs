@@ -3,6 +3,7 @@ use daemon_slayer::client::{Manager, ServiceManager};
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{HandlerSync, ServiceSync, StopHandlerSync};
+use std::error::Error;
 use std::time::{Duration, Instant};
 use tracing::info;
 
@@ -47,9 +48,9 @@ impl HandlerSync for ServiceHandler {
         })
     }
 
-    fn run_service<F: FnOnce() + Send>(self, on_started: F) -> u32 {
+    fn run_service<F: FnOnce() + Send>(self, on_started: F) -> Result<(), Box<dyn Error>> {
         on_started();
         self.rx.recv().unwrap();
-        0
+        Ok(())
     }
 }

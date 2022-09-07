@@ -1,3 +1,5 @@
+use crate::input_state::InputState;
+
 maybe_async_cfg::content! {
 
     #![maybe_async_cfg::default(
@@ -61,31 +63,18 @@ where
         }
     }
 
-    fn matches(m: &ArgMatches, cmd: &Command, cmd_name: &'static str) -> bool {
-        match cmd {
-            Command::Arg {
-                short: _,
-                long: _,
-                help_text: _,
-            } => m.get_one::<bool>(cmd_name) == Some(&true),
-            Command::Subcommand {
-                name: _,
-                help_text: _,
-            } => m.subcommand().map(|r| r.0) == Some(cmd_name),
-            Command::Default => !m.args_present() && m.subcommand() == None,
-        }
-    }
+
 
     pub(crate) fn commands(&self) -> &Commands {
         &self.commands
     }
 
-    pub(crate) async fn handle_cmd<'a>(
+    pub(crate) async fn handle_cmd(
         &self,
         matches: &ArgMatches,
     ) -> Result<bool, Box<dyn Error>> {
         for (name, cmd) in self.commands.iter() {
-            if Self::matches(matches, cmd, name) {
+            if util::matches(matches, cmd, name) {
                 info!("checking {name}");
                 match *name {
                     ServiceCommands::RUN => {
@@ -117,16 +106,23 @@ impl<H> cli_handler::CliHandler for ServerCli<H>
 where
     H: daemon_slayer_server::Service + daemon_slayer_server::Handler,
 {
-    async fn handle_input(self) -> Result<bool, Box<dyn Error>> {
+    async fn handle_input(self) -> Result<InputState, Box<dyn Error>> {
         let mut cmd = util::build_cmd(&self.display_name, &*self.description, self.commands.iter());
-        self.handle_cmd(&cmd.get_matches()).await
+        let matches =cmd.get_matches();
+
+
+        if self.handle_cmd(&matches).await? {
+            Ok(InputState::Handled)
+        } else {
+            Ok(InputState::Unhandled(matches))
+        }
     }
 
     fn action_type(&self) -> Action {
         let cmd = util::build_cmd(&self.display_name, &*self.description, self.commands.iter());
         let matches = &cmd.get_matches();
         for (name, cmd) in self.commands.iter() {
-            if Self::matches(matches, cmd, name) {
+            if util::matches(matches, cmd, name) {
                 if *name == ServiceCommands::RUN {
                     return Action::Server;
                 }

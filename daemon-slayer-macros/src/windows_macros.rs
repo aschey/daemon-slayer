@@ -1,6 +1,4 @@
 use proc_macro::TokenStream;
-use proc_macro2::Span;
-use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
 use syn::Ident;
 
@@ -64,7 +62,11 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
             };
 
             #service_main;
-
+            
+            let exit_code = match service_result {
+                Ok(()) => 0,
+                Err(_) => 1
+            };
             status_handle.lock().unwrap()
                 .set_service_status(#crate_name::windows_service::service::ServiceStatus {
                     service_type: #crate_name::windows_service::service::ServiceType::OWN_PROCESS,
@@ -89,9 +91,9 @@ fn get_service_impl_async(crate_name: &proc_macro2::TokenStream, ident: &Ident, 
     quote! {
         #[#crate_name::async_trait::async_trait]
         impl #crate_name::ServiceAsync for #ident {
-            async fn run_service_main() -> u32 {
-                #crate_name::windows_service::service_dispatcher::start(#ident::get_service_name(), func_service_main).unwrap();
-                0
+            async fn run_service_main() ->  Result<(), Box<dyn std::error::Error>> {
+                #crate_name::windows_service::service_dispatcher::start(#ident::get_service_name(), func_service_main)?;
+                Ok(())
             }
 
             #direct_handler
@@ -103,9 +105,9 @@ fn get_service_impl_async(crate_name: &proc_macro2::TokenStream, ident: &Ident, 
 fn get_service_impl_sync(crate_name: &proc_macro2::TokenStream, ident: &Ident, direct_handler: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
         impl #crate_name::ServiceSync for #ident {
-            fn run_service_main() -> u32 {
-                #crate_name::windows_service::service_dispatcher::start(#ident::get_service_name(), func_service_main).unwrap();
-                0
+            fn run_service_main() -> Result<(), Box<dyn std::error::Error>> {
+                #crate_name::windows_service::service_dispatcher::start(#ident::get_service_name(), func_service_main)?;
+                Ok(())
             }
 
             #direct_handler
@@ -145,14 +147,14 @@ fn get_stop_fn_sync(_: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
 fn run_service_main_async(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
         let rt = #crate_name::tokio::runtime::Runtime::new().unwrap();
-        let exit_code = rt.block_on(async { handler.run_service(on_started).await });
+        let service_result = rt.block_on(async { handler.run_service(on_started).await });
     }
 }
 
 #[cfg(feature="blocking")]
 fn run_service_main_sync(_: &proc_macro2::TokenStream)-> proc_macro2::TokenStream {
     quote! {
-        let exit_code = handler.run_service(on_started);
+        let service_result = handler.run_service(on_started);
     }
 }
 
@@ -169,14 +171,15 @@ fn get_direct_handler_async(crate_name: &proc_macro2::TokenStream) -> proc_macro
 #[cfg(all(feature="direct", feature="async"))]
 fn get_direct_handler_async(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
-        async fn run_service_direct(mut self) -> u32 {
+        async fn run_service_direct(mut self) -> Result<(), Box<dyn std::error::Error>> {
             let stop_handler = self.get_stop_handler();
             #crate_name::tokio::spawn(async move {
                 #crate_name::tokio::signal::ctrl_c().await.unwrap();
                 stop_handler().await;
             });
 
-            self.run_service(|| {}).await
+            self.run_service(|| {}).await?;
+            Ok(())
         }
     }
 }
@@ -184,7 +187,7 @@ fn get_direct_handler_async(crate_name: &proc_macro2::TokenStream) -> proc_macro
 #[cfg(all(feature="direct", feature="blocking"))]
 fn get_direct_handler_sync(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
-        fn run_service_direct(mut self) -> u32 {
+        fn run_service_direct(mut self) -> Result<(), Box<dyn std::error::Error>> {
             let stop_handler = self.get_stop_handler();
             std::thread::spawn(move || {
                 let term = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
@@ -204,7 +207,8 @@ fn get_direct_handler_sync(crate_name: &proc_macro2::TokenStream) -> proc_macro2
                 stop_handler();
             });
 
-            self.run_service(|| {})           
+            self.run_service(|| {})?;    
+            Ok(())
         }
     }
 }

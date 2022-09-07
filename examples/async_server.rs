@@ -1,4 +1,5 @@
 use std::env::args;
+use std::error::Error;
 use std::time::{Duration, Instant};
 
 use daemon_slayer::cli::{Action, CliHandlerAsync, Command, ServerCliAsync};
@@ -11,7 +12,7 @@ use tracing::info;
 
 use tracing_subscriber::util::SubscriberInitExt;
 
-pub fn main() {
+pub fn main() -> Result<(), Box<dyn Error>> {
     let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
@@ -30,8 +31,9 @@ pub fn main() {
             logger.init();
         }
 
-        cli.handle_input().await.unwrap();
-    });
+        cli.handle_input().await?;
+        Ok(())
+    })
 }
 
 #[derive(daemon_slayer::server::ServiceAsync)]
@@ -62,14 +64,17 @@ impl HandlerAsync for ServiceHandler {
         })
     }
 
-    async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> u32 {
+    async fn run_service<F: FnOnce() + Send>(
+        mut self,
+        on_started: F,
+    ) -> Result<(), Box<dyn Error>> {
         info!("running service");
         on_started();
         loop {
             match tokio::time::timeout(Duration::from_secs(1), self.rx.next()).await {
                 Ok(_) => {
                     info!("stopping service");
-                    return 0;
+                    return Ok(());
                 }
                 Err(_) => {
                     info!("Current time: {:?}", Instant::now());

@@ -1,11 +1,12 @@
 use daemon_slayer::cli::{Action, CliHandlerSync, ServerCliSync};
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{HandlerSync, ServiceSync, StopHandlerSync};
+use std::error::Error;
 use std::time::{Duration, Instant};
 use tracing::info;
 use tracing_subscriber::util::SubscriberInitExt;
 
-pub fn main() {
+pub fn main() -> Result<(), Box<dyn Error>> {
     let cli = ServerCliSync::<ServiceHandler>::new(
         "daemon_slayer_test_service".to_owned(),
         "test service".to_owned(),
@@ -17,7 +18,8 @@ pub fn main() {
         logger.init();
     }
 
-    cli.handle_input().unwrap();
+    cli.handle_input()?;
+    Ok(())
 }
 
 #[derive(ServiceSync)]
@@ -43,13 +45,13 @@ impl HandlerSync for ServiceHandler {
         })
     }
 
-    fn run_service<F: FnOnce() + Send>(self, on_started: F) -> u32 {
+    fn run_service<F: FnOnce() + Send>(self, on_started: F) -> Result<(), Box<dyn Error>> {
         on_started();
         loop {
             match self.rx.recv_timeout(Duration::from_secs(1)) {
                 Ok(_) => {
                     info!("stopping service");
-                    return 0;
+                    return Ok(());
                 }
                 Err(_) => {
                     info!("Current time: {:?}", Instant::now());

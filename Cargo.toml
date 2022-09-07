@@ -74,4 +74,4 @@ name = "sync_server"
 required-features = ["sync-server"]
 [[example]]
 name = "axum"
-required-features = ["all"]
+required-features = ["all-async"]

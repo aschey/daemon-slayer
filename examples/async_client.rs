@@ -1,4 +1,5 @@
 use std::env::args;
+use std::error::Error;
 use std::time::{Duration, Instant};
 
 use daemon_slayer::client::{Manager, ServiceManager};
@@ -8,7 +9,7 @@ use daemon_slayer::cli::{Action, CliHandlerAsync, Command};
 use daemon_slayer_cli::ClientCliAsync;
 use futures::{SinkExt, StreamExt};
 
-pub fn main() {
+pub fn main() -> Result<(), Box<dyn Error>> {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         //.with_service_level(ServiceLevel::User);
@@ -19,6 +20,7 @@ pub fn main() {
             .unwrap();
 
         let cli = ClientCliAsync::new(manager);
-        cli.handle_input().await.unwrap();
-    });
+        cli.handle_input().await?;
+        Ok(())
+    })
 }

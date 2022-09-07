@@ -1,10 +1,10 @@
-use std::env::args;
-use std::net::SocketAddr;
-use std::time::{Duration, Instant};
-
 use axum::routing::get;
 use axum::Router;
 use daemon_slayer::client::{Manager, ServiceManager};
+use std::env::args;
+use std::error::Error;
+use std::net::SocketAddr;
+use std::time::{Duration, Instant};
 
 use daemon_slayer::cli::{Action, CliAsync, CliHandlerAsync, Command};
 use daemon_slayer::server::{HandlerAsync, ServiceAsync, StopHandlerAsync};
@@ -18,7 +18,7 @@ use tracing::info;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::util::SubscriberInitExt;
 
-pub fn main() {
+pub fn main() -> Result<(), Box<dyn Error>> {
     let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name())
         .with_default_log_level(tracing::Level::TRACE)
         .with_level_filter(LevelFilter::TRACE);
@@ -41,8 +41,9 @@ pub fn main() {
             logger.init();
         }
 
-        cli.handle_input().await.unwrap();
-    });
+        cli.handle_input().await?;
+        Ok(())
+    })
 }
 
 #[derive(daemon_slayer::server::ServiceAsync)]
@@ -73,7 +74,10 @@ impl HandlerAsync for ServiceHandler {
         })
     }
 
-    async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> u32 {
+    async fn run_service<F: FnOnce() + Send>(
+        mut self,
+        on_started: F,
+    ) -> Result<(), Box<dyn Error>> {
         info!("running service");
 
         let app = Router::new()
@@ -88,9 +92,8 @@ impl HandlerAsync for ServiceHandler {
             .with_graceful_shutdown(async {
                 self.rx.next().await.unwrap();
             })
-            .await
-            .unwrap();
-        0
+            .await?;
+        Ok(())
     }
 }
 

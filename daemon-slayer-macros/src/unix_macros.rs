@@ -11,7 +11,7 @@ pub(crate) fn define_service_async(
     quote! {
         #[#crate_name::async_trait::async_trait]
         impl #crate_name::ServiceAsync for #ident {
-            async fn run_service_main() -> u32 {
+            async fn run_service_main() -> Result<u32, Box<dyn std::error::Error>> {
                 use #crate_name::{HandlerAsync, StopHandlerAsync};
                 let mut handler = #ident::new();
                 let stop_handler = handler.get_stop_handler();
@@ -45,13 +45,13 @@ pub(crate) fn define_service_async(
                     }
                 });
 
-                let status = handler.run_service(|| {
+                let exit_code = handler.run_service(|| {
                     #[cfg(target_os = "linux")]
                     #crate_name::sd_notify::notify(false, &[#crate_name::sd_notify::NotifyState::Ready]).unwrap();
-                }).await;
+                }).await?;
                 signals_handle.close();
                 signals_task.await.unwrap();
-                status
+                Ok(exit_code)
             }
 
             #direct_handler
@@ -68,7 +68,7 @@ pub(crate) fn define_service_sync(
     let direct_handler = get_direct_handler_sync();
     quote! {
         impl #crate_name::ServiceSync for #ident {
-            fn run_service_main() -> u32 {
+            fn run_service_main() -> Result<u32, Box<dyn std::error::Error>> {
                 use #crate_name::{HandlerSync, StopHandlerSync};
                 let mut handler = #ident::new();
                 let stop_handler = handler.get_stop_handler();
@@ -131,7 +131,7 @@ fn get_direct_handler_sync() -> proc_macro2::TokenStream {
 #[cfg(all(feature = "direct", feature = "async"))]
 fn get_direct_handler_async() -> proc_macro2::TokenStream {
     quote! {
-        async fn run_service_direct(mut self) -> u32 {
+        async fn run_service_direct(mut self) -> Result<u32, Box<dyn std::error::Error>> {
             Self::run_service_main().await
         }
     }

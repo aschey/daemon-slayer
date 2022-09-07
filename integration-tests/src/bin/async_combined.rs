@@ -1,4 +1,5 @@
 use std::env::args;
+use std::error::Error;
 use std::time::{Duration, Instant};
 
 use daemon_slayer::client::{Manager, ServiceManager};
@@ -66,10 +67,13 @@ impl HandlerAsync for ServiceHandler {
         })
     }
 
-    async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> u32 {
+    async fn run_service<F: FnOnce() + Send>(
+        mut self,
+        on_started: F,
+    ) -> Result<(), Box<dyn Error>> {
         info!("running service");
         on_started();
         self.rx.next().await;
-        0
+        Ok(())
     }
 }

@@ -1,5 +1,6 @@
 #[cfg(feature = "async-tokio")]
 use futures::Future;
+use std::error::Error;
 #[cfg(feature = "async-tokio")]
 use std::pin::Pin;
 
@@ -18,5 +19,5 @@ pub trait Handler {
     fn new() -> Self;
     fn get_service_name<'a>() -> &'a str;
     fn get_stop_handler(&mut self) -> StopHandler;
-    async fn run_service<F: FnOnce() + Send>(self, on_started: F) -> u32;
+    async fn run_service<F: FnOnce() + Send>(self, on_started: F) -> Result<(), Box<dyn Error>>;
 }

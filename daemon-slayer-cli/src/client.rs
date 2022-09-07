@@ -1,3 +1,5 @@
+use crate::input_state::InputState;
+
 maybe_async_cfg::content! {
 
     #![maybe_async_cfg::default(
@@ -23,8 +25,7 @@ use crate::{
 macro_rules! get_handlers {
     ($self: ident, $matches: ident, $($extra:tt)*) => {
         for (name, cmd) in $self.commands.iter() {
-            if Self::matches($matches, cmd, name) {
-                info!("checking {name}");
+            if util::matches($matches, cmd, name) {
                 match *name {
                     ServiceCommands::INSTALL => {
                         $self.manager.install()?;
@@ -75,7 +76,7 @@ macro_rules! get_handlers {
 #[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
 pub struct ClientCli {
     manager: ServiceManager,
-    commands: Commands,
+    commands: Commands
 }
 
 #[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
@@ -95,23 +96,10 @@ impl ClientCli {
     pub fn new(manager: ServiceManager) -> Self {
         let commands = Commands::default();
 
-        Self { manager, commands }
+        Self { manager, commands, }
     }
 
-    fn matches(m: &ArgMatches, cmd: &Command, cmd_name: &'static str) -> bool {
-        match cmd {
-            Command::Arg {
-                short: _,
-                long: _,
-                help_text: _,
-            } => m.get_one::<bool>(cmd_name) == Some(&true),
-            Command::Subcommand {
-                name: _,
-                help_text: _,
-            } => m.subcommand().map(|r| r.0) == Some(cmd_name),
-            Command::Default => !m.args_present() && m.subcommand() == None,
-        }
-    }
+
 
     #[maybe_async_cfg::only_if(async)]
     pub(crate) async fn handle_cmd(mut self, matches: &ArgMatches) -> Result<bool, Box<dyn Error>> {
@@ -139,14 +127,19 @@ impl ClientCli {
     async(feature = "async-tokio", "async_trait::async_trait(?Send)")
 )]
 impl cli_handler::CliHandler for ClientCli {
-    async fn handle_input(self) -> Result<bool, Box<dyn Error>> {
+    async fn handle_input(self) -> Result<InputState, Box<dyn Error>> {
         let cmd = util::build_cmd(
             self.manager.display_name(),
             self.manager.description(),
             self.commands.iter(),
         );
         let matches = cmd.get_matches();
-        self.handle_cmd(&matches).await
+
+        if self.handle_cmd(&matches).await? {
+            Ok(InputState::Handled)
+        } else {
+            Ok(InputState::Unhandled(matches))
+        }
     }
 
     fn action_type(&self) -> Action {
@@ -157,7 +150,7 @@ impl cli_handler::CliHandler for ClientCli {
         );
         let matches = &cmd.get_matches();
         for (name, cmd) in self.commands.iter() {
-            if Self::matches(matches, cmd, name) {
+            if util::matches(matches, cmd, name) {
                 match *name {
                     ServiceCommands::INSTALL
                     | ServiceCommands::UNINSTALL

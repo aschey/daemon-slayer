@@ -1,3 +1,5 @@
+use crate::input_state::InputState;
+
 maybe_async_cfg::content! {
 
     #![maybe_async_cfg::default(
@@ -113,16 +115,18 @@ impl<H> cli_handler::CliHandler for Cli<H>
 where
     H: daemon_slayer_server::Service + daemon_slayer_server::Handler,
 {
-    async fn handle_input(self) -> Result<bool, Box<dyn Error>> {
+    async fn handle_input(self) -> Result<InputState, Box<dyn Error>> {
         let cmd = util::build_cmd(&self.display_name, &self.description, self.commands.iter());
         let matches = cmd.get_matches();
-        match self.server_cli.handle_cmd(&matches).await {
-            Ok(true) => return Ok(true),
-            Ok(false) => {}
-            Err(e) => return Err(e),
+        if self.server_cli.handle_cmd(&matches).await? {
+          return Ok(InputState::Handled);
         };
 
-        self.client_cli.handle_cmd(&matches).await
+        if self.client_cli.handle_cmd(&matches).await? {
+            Ok(InputState::Handled)
+        } else {
+            Ok(InputState::Unhandled(matches))
+        }
     }
 
     fn action_type(&self) -> Action {
