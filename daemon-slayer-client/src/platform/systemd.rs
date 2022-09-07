@@ -1,12 +1,12 @@
-use crate::{Builder, Manager, Result, Status};
+use crate::{Builder, Info, Manager, Result, State};
 use eyre::Context;
 use systemd_client::{
     create_unit_configuration_file, create_user_unit_configuration_file,
     delete_unit_configuration_file, delete_user_unit_configuration_file,
     manager::{self, SystemdManagerProxyBlocking},
-    unit, InstallConfiguration, NotifyAccess, ServiceConfiguration, ServiceType,
-    ServiceUnitConfiguration, UnitActiveStateType, UnitConfiguration, UnitLoadStateType,
-    UnitSubStateType,
+    service, unit, InstallConfiguration, NotifyAccess, ServiceConfiguration, ServiceType,
+    ServiceUnitConfiguration, UnitActiveStateType, UnitConfiguration, UnitFileState,
+    UnitLoadStateType, UnitSubStateType,
 };
 
 pub struct ServiceManager {
@@ -98,7 +98,7 @@ impl Manager for ServiceManager {
     }
 
     fn stop(&self) -> Result<()> {
-        if self.query_status()? == Status::Started {
+        if self.info()?.state == State::Started {
             self.client
                 .stop_unit(&self.service_file_name(), "replace")
                 .wrap_err("Error stopping systemd unit")?;
@@ -107,7 +107,7 @@ impl Manager for ServiceManager {
         Ok(())
     }
 
-    fn query_status(&self) -> Result<Status> {
+    fn info(&self) -> Result<Info> {
         self.client
             .reload()
             .wrap_err("Error reloading systemd units")?;
@@ -122,23 +122,67 @@ impl Manager for ServiceManager {
             .wrap_err("Error loading systemd unit")?;
 
         let unit_client = if self.config.is_user() {
-            unit::build_blocking_user_proxy(svc_unit_path)
+            unit::build_blocking_user_proxy(svc_unit_path.clone())
         } else {
-            unit::build_blocking_proxy(svc_unit_path)
+            unit::build_blocking_proxy(svc_unit_path.clone())
         }
         .wrap_err("Error creating unit client")?;
 
-        let props = unit_client
+        let unit_props = unit_client
             .get_properties()
-            .wrap_err("Error getting properties")?;
+            .wrap_err("Error getting unit properties")?;
 
-        match (props.load_state, props.active_state, props.sub_state) {
+        let state = match (
+            unit_props.load_state,
+            unit_props.active_state,
+            unit_props.sub_state,
+        ) {
             (UnitLoadStateType::Loaded, UnitActiveStateType::Active, UnitSubStateType::Running) => {
-                Ok(Status::Started)
+                State::Started
             }
-            (UnitLoadStateType::NotFound, _, _) => Ok(Status::NotInstalled),
-            _ => Ok(Status::Stopped),
+            (UnitLoadStateType::NotFound, _, _) => State::NotInstalled,
+            _ => State::Stopped,
+        };
+
+        let service_client = if self.config.is_user() {
+            service::build_blocking_user_proxy(svc_unit_path)
+        } else {
+            service::build_blocking_proxy(svc_unit_path)
         }
+        .wrap_err("Error creating service client")?;
+
+        let service_props = service_client
+            .get_properties()
+            .wrap_err("Error getting service properties")?;
+
+        let autostart = match (&state, unit_props.unit_file_state) {
+            (State::NotInstalled, _) => None,
+            (_, UnitFileState::Enabled | UnitFileState::EnabledRuntime | UnitFileState::Static) => {
+                Some(true)
+            }
+            _ => Some(false),
+        };
+        Ok(Info {
+            pid: if state == State::Started {
+                Some(service_props.exec_main_pid)
+            } else {
+                None
+            },
+            state,
+            autostart,
+        })
+    }
+
+    fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
+        self.config.autostart = enabled;
+        if enabled {
+            self.client
+                .enable_unit_files(&[&self.service_file_name()], false, true)?;
+        } else {
+            self.client
+                .disable_unit_files(&[&self.service_file_name()], false)?;
+        }
+        Ok(())
     }
 
     fn display_name(&self) -> &str {

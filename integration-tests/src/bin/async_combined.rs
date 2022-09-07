@@ -20,11 +20,6 @@ pub fn main() {
     rt.block_on(async {
         let manager = ServiceManager::builder(ServiceHandler::get_service_name())
             .with_description("test service")
-            .with_service_level(if cfg!(windows) {
-                Level::System
-            } else {
-                Level::User
-            })
             .with_args(["run"])
             .build()
             .unwrap();
