@@ -34,8 +34,12 @@ macro_rules! get_handlers {
                         $self.manager.uninstall()?;
                         return Ok(true);
                     }
-                    ServiceCommands::STATUS => {
+                    ServiceCommands::INFO => {
                         println!("{:?}", $self.manager.info()?);
+                        return Ok(true);
+                    }
+                    ServiceCommands::PID => {
+                        println!("{}", $self.manager.info()?.pid.map(|pid| pid.to_string()).unwrap_or("".to_owned()));
                         return Ok(true);
                     }
                     ServiceCommands::START => {
@@ -157,10 +161,11 @@ impl cli_handler::CliHandler for ClientCli {
                 match *name {
                     ServiceCommands::INSTALL
                     | ServiceCommands::UNINSTALL
-                    | ServiceCommands::STATUS
+                    | ServiceCommands::INFO
                     | ServiceCommands::START
                     | ServiceCommands::STOP
                     | ServiceCommands::RESTART
+                    | ServiceCommands::PID
                     | ServiceCommands::ENABLE
                     | ServiceCommands::DISABLE => {
                         return Action::Client;

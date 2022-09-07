@@ -39,8 +39,28 @@ macro_rules! impl_client_builder {
             self
         }
 
-        pub fn with_status_command(mut self, command: Command) -> Self {
-            self.commands.insert(ServiceCommands::STATUS, command);
+        pub fn with_restart_command(mut self, command: Command) -> Self {
+            self.commands.insert(ServiceCommands::RESTART, command);
+            self
+        }
+
+        pub fn with_info_command(mut self, command: Command) -> Self {
+            self.commands.insert(ServiceCommands::INFO, command);
+            self
+        }
+
+        pub fn with_pid_command(mut self, command: Command) -> Self {
+            self.commands.insert(ServiceCommands::PID, command);
+            self
+        }
+
+        pub fn with_enable_command(mut self, command: Command) -> Self {
+            self.commands.insert(ServiceCommands::ENABLE, command);
+            self
+        }
+
+        pub fn with_disable_command(mut self, command: Command) -> Self {
+            self.commands.insert(ServiceCommands::DISABLE, command);
             self
         }
 

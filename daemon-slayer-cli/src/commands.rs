@@ -37,10 +37,17 @@ impl Default for Commands {
                 },
             );
             commands.insert(
-                ServiceCommands::STATUS,
+                ServiceCommands::INFO,
                 Command::Subcommand {
-                    name: ServiceCommands::STATUS.to_owned(),
+                    name: ServiceCommands::INFO.to_owned(),
                     help_text: "Get the service's current status".to_owned(),
+                },
+            );
+            commands.insert(
+                ServiceCommands::PID,
+                Command::Subcommand {
+                    name: ServiceCommands::PID.to_owned(),
+                    help_text: "Get the service's current PID".to_owned(),
                 },
             );
             commands.insert(

@@ -10,7 +10,7 @@ impl ServiceCommands {
     #[cfg(all(feature = "server", feature = "direct"))]
     pub(crate) const DIRECT: &'static str = "direct";
     #[cfg(feature = "client")]
-    pub(crate) const STATUS: &'static str = "status";
+    pub(crate) const INFO: &'static str = "info";
     #[cfg(feature = "client")]
     pub(crate) const START: &'static str = "start";
     #[cfg(feature = "client")]
@@ -21,6 +21,8 @@ impl ServiceCommands {
     pub(crate) const ENABLE: &'static str = "enable";
     #[cfg(feature = "client")]
     pub(crate) const DISABLE: &'static str = "disable";
+    #[cfg(feature = "client")]
+    pub(crate) const PID: &'static str = "pid";
     #[cfg(all(feature = "client", feature = "console"))]
     pub(crate) const CONSOLE: &'static str = "console";
 }
