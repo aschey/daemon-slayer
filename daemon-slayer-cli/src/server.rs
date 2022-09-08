@@ -31,6 +31,7 @@ where
     commands: Commands,
     display_name: String,
     description: String,
+    base_command: clap::Command
 }
 
 #[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
@@ -48,6 +49,7 @@ where
             commands: builder.commands,
             display_name: builder.display_name,
             description: builder.description,
+            base_command: builder.base_cmd,
             _phantom: PhantomData::default(),
         }
     }
@@ -59,6 +61,7 @@ where
             commands,
             display_name,
             description,
+            base_command: clap::Command::default(),
             _phantom: PhantomData::default(),
         }
     }
@@ -69,13 +72,52 @@ where
         &self.commands
     }
 
+    pub(crate) fn build_cmd(
+        &self
+     ) -> clap::Command {
+         let mut cmd = self.base_command.clone().name(&self.display_name).about(&self.description);
+         for (name, command) in self.commands.iter() {
+             let mut hide = false;
+             #[cfg(feature = "server")]
+             {
+                 hide = (*name) == ServiceCommands::RUN;
+             }
+
+             match command {
+                 Command::Arg {
+                     short,
+                     long,
+                     help_text,
+                 } => {
+                     let mut arg = Arg::new(*name);
+                     if let Some(short) = short {
+                         arg = arg.short(*short);
+                     }
+                     if let Some(long) = long {
+                         arg = arg.long(long);
+                     }
+
+                     cmd = cmd.arg(
+                         arg.action(ArgAction::SetTrue)
+                             .help(help_text.as_ref().unwrap())
+                             .hide(hide),
+                     )
+                 }
+                 Command::Subcommand { name, help_text } => {
+                     cmd = cmd.subcommand(clap::Command::new(name).about(help_text).hide(hide))
+                 }
+                 Command::Default => {}
+             }
+         }
+         cmd
+     }
+
     pub(crate) async fn handle_cmd(
         &self,
         matches: &ArgMatches,
     ) -> Result<bool, Box<dyn Error>> {
         for (name, cmd) in self.commands.iter() {
             if util::matches(matches, cmd, name) {
-                info!("checking {name}");
                 match *name {
                     ServiceCommands::RUN => {
                         info!("running...");
@@ -107,9 +149,8 @@ where
     H: daemon_slayer_server::Service + daemon_slayer_server::Handler,
 {
     async fn handle_input(self) -> Result<InputState, Box<dyn Error>> {
-        let mut cmd = util::build_cmd(&self.display_name, &*self.description, self.commands.iter());
+        let  cmd = self.build_cmd();
         let matches =cmd.get_matches();
-
 
         if self.handle_cmd(&matches).await? {
             Ok(InputState::Handled)
@@ -119,7 +160,7 @@ where
     }
 
     fn action_type(&self) -> Action {
-        let cmd = util::build_cmd(&self.display_name, &*self.description, self.commands.iter());
+        let cmd = self.build_cmd();
         let matches = &cmd.get_matches();
         for (name, cmd) in self.commands.iter() {
             if util::matches(matches, cmd, name) {

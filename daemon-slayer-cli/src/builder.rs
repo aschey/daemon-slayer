@@ -99,6 +99,7 @@ where
     pub(crate) display_name: String,
     pub(crate) description: String,
     pub(crate) commands: Commands,
+    pub(crate) base_cmd: clap::Command,
     _phantom: PhantomData<H>,
 }
 
@@ -116,11 +117,17 @@ where
             display_name,
             description,
             commands,
+            base_cmd: clap::Command::default(),
             _phantom: PhantomData::default(),
         }
     }
 
     impl_server_builder!();
+
+    pub fn with_base_command(mut self, base_command: clap::Command) -> Self {
+        self.base_cmd = base_command;
+        self
+    }
 
     pub fn build(self) -> crate::server::ServerCli<H> {
         crate::server::ServerCli::<H>::from_builder(self)
@@ -135,6 +142,7 @@ where
 pub struct ClientCliBuilder {
     pub(crate) manager: ServiceManager,
     pub(crate) commands: Commands,
+    pub(crate)  base_cmd: clap::Command
 }
 
 #[maybe_async_cfg::maybe(
@@ -144,10 +152,15 @@ pub struct ClientCliBuilder {
 #[cfg(feature = "client")]
 impl ClientCliBuilder {
     pub(crate) fn from_manager(manager: ServiceManager, commands: Commands) -> Self {
-        Self { manager, commands }
+        Self { manager, commands, base_cmd: clap::Command::default(), }
     }
 
     impl_client_builder!();
+
+    pub fn with_base_command(mut self, base_command: clap::Command) -> Self {
+        self.base_cmd = base_command;
+        self
+    }
 
     pub fn build(self) -> crate::ClientCli {
         crate::ClientCli::from_builder(self)
@@ -168,6 +181,7 @@ where
     pub(crate) display_name: String,
     pub(crate) description: String,
     pub(crate) commands: Commands,
+    pub(crate) base_cmd: clap::Command,
     _phantom: PhantomData<H>,
 }
 
@@ -180,7 +194,7 @@ impl<H> CliBuilder<H>
 where
     H: daemon_slayer_server::Service + daemon_slayer_server::Handler ,
 {
-    pub(crate) fn from_manager(manager: ServiceManager, commands: Commands) -> Self {
+    pub(crate) fn from_manager(manager: ServiceManager, commands: Commands, base_cmd: clap::Command) -> Self {
         let display_name = manager.display_name().to_owned();
         let description = manager.description().to_owned();
         Self {
@@ -188,6 +202,7 @@ where
             description,
             manager: Some(manager),
             commands,
+            base_cmd,
             _phantom: PhantomData::default(),
         }
     }
@@ -195,6 +210,11 @@ where
     impl_server_builder!();
 
     impl_client_builder!();
+
+    pub fn with_base_command(mut self, base_command: clap::Command) -> Self {
+        self.base_cmd = base_command;
+        self
+    }
 
     pub fn build(self) -> crate::combined::Cli<H> {
         crate::combined::Cli::<H>::from_builder(self)

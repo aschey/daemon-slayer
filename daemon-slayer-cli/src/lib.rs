@@ -11,6 +11,8 @@ mod commands;
 #[cfg(any(feature = "client", feature = "server"))]
 mod input_state;
 #[cfg(any(feature = "client", feature = "server"))]
+pub use input_state::InputState;
+#[cfg(any(feature = "client", feature = "server"))]
 mod service_commands;
 
 #[cfg(any(feature = "client", feature = "server"))]
@@ -33,3 +35,5 @@ pub use client::*;
 pub use combined::*;
 #[cfg(feature = "server")]
 pub use server::*;
+
+pub use clap;

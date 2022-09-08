@@ -1,27 +1,22 @@
-use axum::routing::get;
-use axum::Router;
-use daemon_slayer::client::{Manager, ServiceManager};
 use std::env::args;
 use std::error::Error;
-use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 
-use daemon_slayer::cli::{Action, CliAsync, CliHandlerAsync, Command};
+use daemon_slayer::client::{Manager, ServiceManager};
+
+use daemon_slayer::cli::{clap, Action, CliAsync, CliHandlerAsync, Command};
 use daemon_slayer::server::{HandlerAsync, ServiceAsync, StopHandlerAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
-
+use daemon_slayer_client::Level;
 use futures::{SinkExt, StreamExt};
-use tower_http::trace::TraceLayer;
 use tracing::info;
 
-use tracing::metadata::LevelFilter;
+use tracing::log::error;
 use tracing_subscriber::util::SubscriberInitExt;
 
 pub fn main() -> Result<(), Box<dyn Error>> {
-    let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name())
-        .with_default_log_level(tracing::Level::TRACE)
-        .with_level_filter(LevelFilter::TRACE);
+    let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
     run_async(logger_builder)
 }
 
@@ -29,6 +24,12 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Error>> {
     let manager = ServiceManager::builder(ServiceHandler::get_service_name())
         .with_description("test service")
+        .with_service_level(if cfg!(windows) {
+            Level::System
+        } else {
+            Level::User
+        })
+        .with_autostart(true)
         .with_args(["run"])
         .build()
         .unwrap();
@@ -38,7 +39,7 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
     let mut _logger_guard: Option<LoggerGuard> = None;
 
     if cli.action_type() == Action::Server {
-        let (logger, guard) = logger_builder.build();
+        let (logger, guard) = logger_builder.with_ipc_logger(true).build();
         _logger_guard = Some(guard);
         logger.init();
     }
@@ -61,7 +62,7 @@ impl HandlerAsync for ServiceHandler {
     }
 
     fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_axum"
+        "daemon_slayer_errors"
     }
 
     fn get_stop_handler(&mut self) -> StopHandlerAsync {
@@ -80,24 +81,22 @@ impl HandlerAsync for ServiceHandler {
         on_started: F,
     ) -> Result<(), Box<dyn Error>> {
         info!("running service");
-
-        let app = Router::new()
-            .route("/", get(root))
-            .layer(TraceLayer::new_for_http());
-        let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-
         on_started();
-        info!("started");
-        axum::Server::bind(&addr)
-            .serve(app.into_make_service())
-            .with_graceful_shutdown(async {
-                self.rx.next().await.unwrap();
-            })
-            .await?;
-        Ok(())
+        let start = Instant::now();
+        loop {
+            if Instant::now().duration_since(start) > Duration::from_secs(10) {
+                error!("An error occurred");
+                return Err("Something bad happened")?;
+            }
+            match tokio::time::timeout(Duration::from_secs(1), self.rx.next()).await {
+                Ok(_) => {
+                    info!("stopping service");
+                    return Ok(());
+                }
+                Err(_) => {
+                    info!("Current time: {:?}", Instant::now());
+                }
+            }
+        }
     }
-}
-
-async fn root() -> &'static str {
-    "Hello, World!"
 }

@@ -19,7 +19,7 @@ sync-server = ["server", "direct", "blocking"]
 
 [dependencies]
 async-trait = {version = "0.1.57", optional = true}
-clap = {version = "3.2.17", features = ["cargo"]}
+clap = {git = "https://github.com/clap-rs/clap", rev = "bf98110adc1bfc90b044ac7faf6acd784f17f7df"}
 daemon-slayer-client = {path = "../daemon-slayer-client", optional = true}
 daemon-slayer-console = {path = "../daemon-slayer-console", optional = true}
 daemon-slayer-logging = {path = "../daemon-slayer-logging", optional = true}

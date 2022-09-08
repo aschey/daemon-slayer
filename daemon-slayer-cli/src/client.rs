@@ -76,7 +76,10 @@ macro_rules! get_handlers {
 #[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
 pub struct ClientCli {
     manager: ServiceManager,
-    commands: Commands
+    display_name: String,
+    description: String,
+    commands: Commands,
+    base_command: clap::Command
 }
 
 #[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
@@ -88,15 +91,64 @@ impl ClientCli {
 
     pub(crate) fn from_builder(builder: builder::ClientCliBuilder) -> Self {
         Self {
+            display_name: builder.manager.display_name().to_owned(),
+            description: builder.manager.description().to_owned(),
             manager: builder.manager,
             commands: builder.commands,
+            base_command: builder.base_cmd
         }
     }
 
     pub fn new(manager: ServiceManager) -> Self {
         let commands = Commands::default();
 
-        Self { manager, commands, }
+        Self {
+            display_name: manager.display_name().to_owned(),
+            description: manager.description().to_owned(),
+            manager,
+            commands,
+            base_command: clap::Command::default()
+        }
+    }
+
+    pub(crate) fn build_cmd(
+       &self
+    ) -> clap::Command {
+        let mut cmd = self.base_command.clone().name(&self.display_name).about(&self.description);
+        for (name, command) in self.commands.iter() {
+            let mut hide = false;
+            #[cfg(feature = "server")]
+            {
+                hide = (*name) == ServiceCommands::RUN;
+            }
+
+            match command {
+                Command::Arg {
+                    short,
+                    long,
+                    help_text,
+                } => {
+                    let mut arg = Arg::new(*name);
+                    if let Some(short) = short {
+                        arg = arg.short(*short);
+                    }
+                    if let Some(long) = long {
+                        arg = arg.long(long);
+                    }
+
+                    cmd = cmd.arg(
+                        arg.action(ArgAction::SetTrue)
+                            .help(help_text.as_ref().unwrap())
+                            .hide(hide),
+                    )
+                }
+                Command::Subcommand { name, help_text } => {
+                    cmd = cmd.subcommand(clap::Command::new(name).about(help_text).hide(hide))
+                }
+                Command::Default => {}
+            }
+        }
+        cmd
     }
 
 
@@ -128,11 +180,7 @@ impl ClientCli {
 )]
 impl cli_handler::CliHandler for ClientCli {
     async fn handle_input(self) -> Result<InputState, Box<dyn Error>> {
-        let cmd = util::build_cmd(
-            self.manager.display_name(),
-            self.manager.description(),
-            self.commands.iter(),
-        );
+        let cmd =self.build_cmd();
         let matches = cmd.get_matches();
 
         if self.handle_cmd(&matches).await? {
@@ -143,11 +191,8 @@ impl cli_handler::CliHandler for ClientCli {
     }
 
     fn action_type(&self) -> Action {
-        let cmd = util::build_cmd(
-            self.manager.display_name(),
-            self.manager.description(),
-            self.commands.iter(),
-        );
+        let cmd = self.build_cmd();
+
         let matches = &cmd.get_matches();
         for (name, cmd) in self.commands.iter() {
             if util::matches(matches, cmd, name) {

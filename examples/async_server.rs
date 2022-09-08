@@ -14,26 +14,26 @@ use tracing_subscriber::util::SubscriberInitExt;
 
 pub fn main() -> Result<(), Box<dyn Error>> {
     let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(async {
-        //.with_service_level(ServiceLevel::User);
+    run_async(logger_builder)
+}
 
-        let cli = ServerCliAsync::<ServiceHandler>::new(
-            "daemon_slayer_test_service".to_owned(),
-            "test_service".to_owned(),
-        );
+#[tokio::main]
+pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Error>> {
+    let cli = ServerCliAsync::<ServiceHandler>::new(
+        "daemon_slayer_test_service".to_owned(),
+        "test_service".to_owned(),
+    );
 
-        let mut _logger_guard: Option<LoggerGuard> = None;
+    let mut _logger_guard: Option<LoggerGuard> = None;
 
-        if cli.action_type() == Action::Server {
-            let (logger, guard) = logger_builder.with_ipc_logger(true).build();
-            _logger_guard = Some(guard);
-            logger.init();
-        }
+    if cli.action_type() == Action::Server {
+        let (logger, guard) = logger_builder.with_ipc_logger(true).build();
+        _logger_guard = Some(guard);
+        logger.init();
+    }
 
-        cli.handle_input().await?;
-        Ok(())
-    })
+    cli.handle_input().await?;
+    Ok(())
 }
 
 #[derive(daemon_slayer::server::ServiceAsync)]
