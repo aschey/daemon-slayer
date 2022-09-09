@@ -2,27 +2,19 @@ use std::error::Error;
 
 use reqwest::{IntoUrl, Url};
 
-#[maybe_async_cfg::maybe(
-    sync(feature = "blocking"),
-    async(feature = "async-tokio", async_trait::async_trait)
-)]
-pub trait HealthCheck {
-    async fn invoke(&mut self) -> Result<(), Box<dyn Error>>;
+#[cfg(feature = "async-tokio")]
+#[async_trait::async_trait]
+pub trait HealthCheckAsync {
+    async fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>>;
+}
+
+#[cfg(feature = "blocking")]
+pub trait HealthCheckSync {
+    fn invoke(&mut self) -> Result<(), Box<dyn Error>>;
 }
 
 #[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
 pub struct IpcHealthCheck;
-
-#[maybe_async_cfg::maybe(
-    idents(HealthCheck),
-    sync(feature = "blocking"),
-    async(feature = "async-tokio", async_trait::async_trait)
-)]
-impl HealthCheck for IpcHealthCheck {
-    async fn invoke(&mut self) -> Result<(), Box<dyn Error>> {
-        todo!()
-    }
-}
 
 pub enum RequestType {
     Get,
@@ -48,7 +40,7 @@ impl HttpHealthCheck {
 #[cfg(feature = "async-tokio")]
 #[async_trait::async_trait]
 impl HealthCheckAsync for HttpHealthCheckAsync {
-    async fn invoke(&mut self) -> Result<(), Box<dyn Error>> {
+    async fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
         match &self.request_type {
             RequestType::Get => {
                 reqwest::get(self.url.clone()).await?;
@@ -86,27 +78,5 @@ impl HealthCheckSync for HttpHealthCheckSync {
 #[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
 pub struct TcpHealthCheck;
 
-#[maybe_async_cfg::maybe(
-    idents(HealthCheck),
-    sync(feature = "blocking"),
-    async(feature = "async-tokio", async_trait::async_trait)
-)]
-impl HealthCheck for TcpHealthCheck {
-    async fn invoke(&mut self) -> Result<(), Box<dyn Error>> {
-        todo!()
-    }
-}
-
 #[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
 pub struct GrpcHealthCheck;
-
-#[maybe_async_cfg::maybe(
-    idents(HealthCheck),
-    sync(feature = "blocking"),
-    async(feature = "async-tokio", async_trait::async_trait)
-)]
-impl HealthCheck for GrpcHealthCheck {
-    async fn invoke(&mut self) -> Result<(), Box<dyn Error>> {
-        todo!()
-    }
-}

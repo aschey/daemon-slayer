@@ -4,13 +4,13 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use daemon_slayer_client::{Info, Manager, ServiceManager, State};
+use daemon_slayer_client::{HealthCheckAsync, Info, Manager, ServiceManager, State};
 use futures::{select, FutureExt, Stream, StreamExt};
-
 use std::{
     error::Error,
     io::{self, Stdout},
     pin::Pin,
+    sync::atomic::{AtomicBool, Ordering},
     time::{Duration, Instant},
 };
 use tokio::io::{split, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
@@ -32,6 +32,8 @@ pub struct Console<'a> {
     info: Info,
     logs: StatefulList<'a>,
     button_index: usize,
+    is_healthy: Option<bool>,
+    health_check: Option<Box<dyn HealthCheckAsync + Send + 'static>>,
 }
 
 impl<'a> Console<'a> {
@@ -43,7 +45,13 @@ impl<'a> Console<'a> {
             logs: StatefulList::new(),
             last_update: Instant::now(),
             button_index: 0,
+            is_healthy: None,
+            health_check: None,
         }
+    }
+
+    pub fn add_health_check(&mut self, health_check: Box<dyn HealthCheckAsync + Send + 'static>) {
+        self.health_check = Some(health_check);
     }
 
     pub async fn run(&mut self) -> Result<(), Box<dyn Error>> {
@@ -73,15 +81,45 @@ impl<'a> Console<'a> {
         Ok(())
     }
 
+    fn health_checker(
+        mut health_checker: Box<dyn HealthCheckAsync + Send + 'static>,
+        tx: tokio::sync::mpsc::Sender<bool>,
+    ) {
+        tokio::spawn(async move {
+            let mut is_healthy = false;
+            loop {
+                match health_checker.invoke().await {
+                    Ok(()) => {
+                        if !is_healthy {
+                            is_healthy = true;
+                            let _ = tx.send(true).await;
+                        }
+                    }
+                    Err(_) => {
+                        if is_healthy {
+                            is_healthy = false;
+                            let _ = tx.send(false).await;
+                        }
+                    }
+                }
+                tokio::time::sleep(Duration::from_secs(1)).await;
+            }
+        });
+    }
+
     async fn run_app(
         &mut self,
         terminal: &mut Terminal<CrosstermBackend<Stdout>>,
     ) -> Result<(), Box<dyn Error>> {
         let (tx, mut rx) = tokio::sync::mpsc::channel(32);
+        let (health_tx, mut health_rx) = tokio::sync::mpsc::channel(32);
         let name = self.manager.name().to_owned();
         tokio::spawn(async move {
             run_ipc_server(&name, tx).await;
         });
+        if let Some(health_check) = self.health_check.take() {
+            Self::health_checker(health_check, health_tx);
+        }
         let mut log_stream_running = true;
         let mut event_reader = EventStream::new().fuse();
         loop {
@@ -96,6 +134,9 @@ impl<'a> Console<'a> {
                     } else {
                         log_stream_running = false;
                     }
+                }
+                is_healthy = health_rx.recv() => {
+                    self.is_healthy = is_healthy;
                 }
                 maybe_event = event_reader.next() => {
                     match maybe_event {
@@ -184,10 +225,14 @@ impl<'a> Console<'a> {
         let autostart_value = match self.info.autostart {
             Some(true) => get_label_value("Enabled", Color::Blue),
             Some(false) => get_label_value("Disabled", Color::Yellow),
-            None => get_label_value("N/A", Color::Yellow),
+            None => get_label_value("N/A", Color::Reset),
         };
         let health_check_label = get_label("Health:");
-        let health_check_value = get_label_value("Healthy", Color::Green);
+        let health_check_value = match (self.is_healthy, &self.info.state) {
+            (Some(true), State::Started) => get_label_value("Healthy", Color::Green),
+            (Some(false), State::Started) => get_label_value("Unhealthy", Color::Red),
+            _ => get_label_value("N/A", Color::Reset),
+        };
 
         let pid_label = get_label("PID:");
         let pid = match self.info.pid {

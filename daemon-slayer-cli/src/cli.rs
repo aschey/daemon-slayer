@@ -207,6 +207,9 @@ impl Cli {
             #[cfg(feature="console")]
             ServiceCommands::CONSOLE => {
                 let mut console = daemon_slayer_console::Console::new(self.builder.manager.unwrap());
+                if let Some(health_check) = self.builder.health_check {
+                    console.add_health_check(health_check);
+                }
                 console.run().await?;
                 return Ok(true);
             }

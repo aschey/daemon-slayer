@@ -22,7 +22,8 @@ use tracing_subscriber::util::SubscriberInitExt;
 pub fn main() -> Result<(), Box<dyn Error>> {
     let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name())
         .with_default_log_level(tracing::Level::TRACE)
-        .with_level_filter(LevelFilter::TRACE);
+        .with_level_filter(LevelFilter::TRACE)
+        .with_ipc_logger(true);
     run_async(logger_builder)
 }
 
@@ -76,7 +77,7 @@ impl HandlerAsync for ServiceHandler {
             let mut tx = tx.clone();
             Box::pin(async move {
                 info!("stopping");
-                tx.send(()).await.unwrap();
+                let _ = tx.send(()).await;
             })
         })
     }
@@ -98,7 +99,7 @@ impl HandlerAsync for ServiceHandler {
         axum::Server::bind(&addr)
             .serve(app.into_make_service())
             .with_graceful_shutdown(async {
-                self.rx.next().await.unwrap();
+                let _ = self.rx.next().await;
             })
             .await?;
         Ok(())
