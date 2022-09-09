@@ -6,7 +6,7 @@ use daemon_slayer::client::{Manager, ServiceManager};
 
 use daemon_slayer::cli::{Action, CliHandlerAsync, Command};
 
-use daemon_slayer_cli::ClientCliAsync;
+use daemon_slayer_cli::CliAsync;
 use futures::{SinkExt, StreamExt};
 
 #[tokio::main]
@@ -17,7 +17,7 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
         .build()
         .unwrap();
 
-    let cli = ClientCliAsync::new(manager);
+    let cli = CliAsync::new_client(manager);
     cli.handle_input().await?;
     Ok(())
 }

@@ -1,5 +1,6 @@
-use daemon_slayer::cli::{Action, CliHandlerSync, ClientCliSync};
+use daemon_slayer::cli::{Action, CliHandlerSync};
 use daemon_slayer::client::{Manager, ServiceManager};
+use daemon_slayer_cli::CliSync;
 use std::error::Error;
 use std::time::{Duration, Instant};
 use tracing::info;
@@ -11,7 +12,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .build()
         .unwrap();
 
-    let cli = ClientCliSync::new(manager);
+    let cli = CliSync::new_client(manager);
     cli.handle_input()?;
     Ok(())
 }

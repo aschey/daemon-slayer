@@ -1,5 +1,6 @@
 use crate::Builder;
 use crate::{Info, Result};
+
 pub trait Manager {
     fn builder(name: impl Into<String>) -> Builder;
     fn new(name: impl Into<String>) -> Result<Self>

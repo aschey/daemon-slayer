@@ -34,7 +34,7 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
         .build()
         .unwrap();
 
-    let cli = CliAsync::<ServiceHandler>::new(manager);
+    let cli = CliAsync::new(manager, ServiceHandler::new());
 
     let mut _logger_guard: Option<LoggerGuard> = None;
 

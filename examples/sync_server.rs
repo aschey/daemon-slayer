@@ -1,13 +1,15 @@
-use daemon_slayer::cli::{Action, CliHandlerSync, ServerCliSync};
+use daemon_slayer::cli::{Action, CliHandlerSync};
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{HandlerSync, ServiceSync, StopHandlerSync};
+use daemon_slayer_cli::CliSync;
 use std::error::Error;
 use std::time::{Duration, Instant};
 use tracing::info;
 use tracing_subscriber::util::SubscriberInitExt;
 
 pub fn main() -> Result<(), Box<dyn Error>> {
-    let cli = ServerCliSync::<ServiceHandler>::new(
+    let cli = CliSync::new_server(
+        ServiceHandler::new(),
         "daemon_slayer_test_service".to_owned(),
         "test service".to_owned(),
     );

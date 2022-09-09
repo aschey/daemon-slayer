@@ -82,6 +82,14 @@ impl Default for Commands {
                 },
             );
 
+            commands.insert(
+                ServiceCommands::HEALTH,
+                Command::Subcommand {
+                    name: ServiceCommands::HEALTH.to_owned(),
+                    help_text: "Check the health of the service".to_owned(),
+                },
+            );
+
             #[cfg(feature = "console")]
             commands.insert(
                 ServiceCommands::CONSOLE,

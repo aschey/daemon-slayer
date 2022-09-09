@@ -1,12 +1,13 @@
 use axum::routing::get;
 use axum::Router;
 use daemon_slayer::client::{Manager, ServiceManager};
+use daemon_slayer_client::{HttpHealthCheckAsync, RequestType};
 use std::env::args;
 use std::error::Error;
 use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 
-use daemon_slayer::cli::{Action, CliAsync, CliHandlerAsync, Command};
+use daemon_slayer::cli::{Action, BuilderAsync, CliAsync, Command};
 use daemon_slayer::server::{HandlerAsync, ServiceAsync, StopHandlerAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
@@ -33,7 +34,12 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
         .build()
         .unwrap();
 
-    let cli = CliAsync::<ServiceHandler>::new(manager);
+    let cli = CliAsync::builder(manager, ServiceHandler::new())
+        .with_health_check(Box::new(HttpHealthCheckAsync::new(
+            RequestType::Get,
+            "http://127.0.0.1:3000/health",
+        )))
+        .build();
 
     let mut _logger_guard: Option<LoggerGuard> = None;
 
@@ -83,6 +89,7 @@ impl HandlerAsync for ServiceHandler {
 
         let app = Router::new()
             .route("/", get(root))
+            .route("/health", get(health))
             .layer(TraceLayer::new_for_http());
         let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
 
@@ -100,4 +107,8 @@ impl HandlerAsync for ServiceHandler {
 
 async fn root() -> &'static str {
     "Hello, World!"
+}
+
+async fn health() -> &'static str {
+    "Healthy"
 }

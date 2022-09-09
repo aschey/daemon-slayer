@@ -2,7 +2,7 @@ use std::env::args;
 use std::error::Error;
 use std::time::{Duration, Instant};
 
-use daemon_slayer::cli::{Action, CliHandlerAsync, Command, ServerCliAsync};
+use daemon_slayer::cli::{Action, CliAsync, CliHandlerAsync, Command};
 use daemon_slayer::server::{HandlerAsync, ServiceAsync, StopHandlerAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
@@ -19,7 +19,8 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 
 #[tokio::main]
 pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Error>> {
-    let cli = ServerCliAsync::<ServiceHandler>::new(
+    let cli = CliAsync::new_server(
+        ServiceHandler::new(),
         "daemon_slayer_test_service".to_owned(),
         "test_service".to_owned(),
     );

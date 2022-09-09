@@ -18,7 +18,7 @@ resolver = "2"
 [features]
 all-async = ["async-client", "async-server", "daemon-slayer-cli/all-async"]
 all-sync = ["sync-client", "sync-server", "daemon-slayer-cli/all-sync"]
-async-client = ["console", "async-tokio", "client", "cli", "daemon-slayer-cli/async-client"]
+async-client = ["console", "async-tokio", "client", "cli", "daemon-slayer-cli/async-client", "daemon-slayer-client/async-tokio"]
 async-server = ["direct", "async-tokio", "server", "cli", "logging", "daemon-slayer-cli/async-server"]
 async-tokio = [
   "daemon-slayer-server/async-tokio",
@@ -31,7 +31,7 @@ console = ["daemon-slayer-console", "daemon-slayer-cli/console"]
 direct = ["daemon-slayer-server/direct", "daemon-slayer-cli/direct"]
 logging = ["daemon-slayer-logging"]
 server = ["daemon-slayer-server"]
-sync-client = ["client", "cli", "daemon-slayer-cli/sync-client"]
+sync-client = ["client", "cli", "daemon-slayer-cli/sync-client", "daemon-slayer-client/blocking"]
 sync-server = ["direct", "server", "logging", "cli", "daemon-slayer-cli/sync-server", "daemon-slayer-server/blocking"]
 
 [dependencies]
@@ -77,4 +77,7 @@ name = "axum"
 required-features = ["all-async"]
 [[example]]
 name = "errors"
+required-features = ["all-async"]
+[[example]]
+name = "custom_commands"
 required-features = ["all-async"]

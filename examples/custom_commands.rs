@@ -39,7 +39,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
                     .long("custom")
                     .help("custom arg"),
             );
-        let cli = CliAsync::<ServiceHandler>::builder(manager)
+        let cli = CliAsync::builder(manager, ServiceHandler::new())
             .with_base_command(base_command)
             .build();
 
