@@ -4,9 +4,9 @@ mod systemd;
 pub use self::systemd::*;
 
 #[cfg(target_os = "macos")]
-mod mac;
+mod launchd;
 #[cfg(target_os = "macos")]
-pub use self::mac::*;
+pub use self::launchd::*;
 
 #[cfg(windows)]
 mod windows;
