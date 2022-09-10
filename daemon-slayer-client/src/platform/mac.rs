@@ -20,6 +20,7 @@ macro_rules! regex {
 regex!(STATE_RE, r"state = (\w+)");
 regex!(PID_RE, r"pid = (\w+)");
 regex!(AUTOSTART_RE, r"runatload = (\w+)");
+regex!(EXIT_CODE_RE, r"last exit code = (\w+)");
 
 pub struct ServiceManager {
     config: Builder,
@@ -182,11 +183,15 @@ impl Manager for ServiceManager {
             _ => Some(false),
         };
 
+        let last_exit_code = self
+            .get_match_or_default(&EXIT_CODE_RE, &output)
+            .map(|code| code.parse::<i32>().unwrap_or(0));
+
         Ok(Info {
             state,
             pid,
             autostart,
-            last_exit_code: None,
+            last_exit_code,
         })
     }
 
