@@ -70,7 +70,7 @@ impl HandlerAsync for ServiceHandler {
     async fn run_service<F: FnOnce() + Send>(
         mut self,
         on_started: F,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         info!("running service");
         on_started();
         self.rx.next().await;

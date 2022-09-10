@@ -48,7 +48,10 @@ impl HandlerSync for ServiceHandler {
         })
     }
 
-    fn run_service<F: FnOnce() + Send>(self, on_started: F) -> Result<(), Box<dyn Error>> {
+    fn run_service<F: FnOnce() + Send>(
+        self,
+        on_started: F,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         on_started();
         self.rx.recv().unwrap();
         Ok(())

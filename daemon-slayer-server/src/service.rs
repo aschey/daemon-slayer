@@ -5,7 +5,7 @@ use std::error::Error;
     async(feature = "async-tokio", async_trait::async_trait)
 )]
 pub trait Service {
-    async fn run_service_main(self: Box<Self>) -> Result<(), Box<dyn Error>>;
+    async fn run_service_main(self: Box<Self>) -> Result<(), Box<dyn Error + Send + Sync>>;
     #[cfg(feature = "direct")]
-    async fn run_service_direct(self: Box<Self>) -> Result<(), Box<dyn Error>>;
+    async fn run_service_direct(self: Box<Self>) -> Result<(), Box<dyn Error + Send + Sync>>;
 }

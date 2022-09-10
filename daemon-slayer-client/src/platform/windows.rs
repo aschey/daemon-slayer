@@ -50,7 +50,7 @@ impl ServiceManager {
             state,
             autostart: Some(autostart),
             pid: service_status.process_id,
-            last_exit_code,
+            last_exit_code: last_exit_code as i32,
         })
     }
 

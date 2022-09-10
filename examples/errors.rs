@@ -15,13 +15,13 @@ use tracing::info;
 use tracing::log::error;
 use tracing_subscriber::util::SubscriberInitExt;
 
-pub fn main() -> Result<(), Box<dyn Error>> {
+pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
     run_async(logger_builder)
 }
 
 #[tokio::main]
-pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Error>> {
+pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Error + Send + Sync>> {
     let manager = ServiceManager::builder(ServiceHandler::get_service_name())
         .with_description("test service")
         .with_service_level(if cfg!(windows) {
@@ -39,6 +39,7 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
     let mut _logger_guard: Option<LoggerGuard> = None;
 
     if cli.action_type() == Action::Server {
+        // std::process::exit(1);
         let (logger, guard) = logger_builder.with_ipc_logger(true).build();
         _logger_guard = Some(guard);
         logger.init();
@@ -79,12 +80,12 @@ impl HandlerAsync for ServiceHandler {
     async fn run_service<F: FnOnce() + Send>(
         mut self,
         on_started: F,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         info!("running service");
         on_started();
         let start = Instant::now();
         loop {
-            if Instant::now().duration_since(start) > Duration::from_secs(10) {
+            if Instant::now().duration_since(start) > Duration::from_secs(5) {
                 error!("An error occurred");
                 return Err("Something bad happened")?;
             }

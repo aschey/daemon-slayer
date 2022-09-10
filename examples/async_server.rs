@@ -12,13 +12,13 @@ use tracing::info;
 
 use tracing_subscriber::util::SubscriberInitExt;
 
-pub fn main() -> Result<(), Box<dyn Error>> {
+pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
     run_async(logger_builder)
 }
 
 #[tokio::main]
-pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Error>> {
+pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Error + Send + Sync>> {
     let cli = CliAsync::new_server(
         ServiceHandler::new(),
         "daemon_slayer_test_service".to_owned(),
@@ -68,7 +68,7 @@ impl HandlerAsync for ServiceHandler {
     async fn run_service<F: FnOnce() + Send>(
         mut self,
         on_started: F,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         info!("running service");
         on_started();
         loop {

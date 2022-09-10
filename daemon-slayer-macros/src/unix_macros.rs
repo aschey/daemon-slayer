@@ -11,7 +11,7 @@ pub(crate) fn define_service_async(
     quote! {
         #[#crate_name::async_trait::async_trait]
         impl #crate_name::ServiceAsync for #ident {
-            async fn run_service_main() -> Result<u32, Box<dyn std::error::Error>> {
+            async fn run_service_main(self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 use #crate_name::{HandlerAsync, StopHandlerAsync};
                 let mut handler = #ident::new();
                 let stop_handler = handler.get_stop_handler();
@@ -45,13 +45,14 @@ pub(crate) fn define_service_async(
                     }
                 });
 
-                let exit_code = handler.run_service(|| {
+                let result = handler.run_service(|| {
                     #[cfg(target_os = "linux")]
                     #crate_name::sd_notify::notify(false, &[#crate_name::sd_notify::NotifyState::Ready]).unwrap();
-                }).await?;
+                }).await;
+                
                 signals_handle.close();
                 signals_task.await.unwrap();
-                Ok(exit_code)
+                result
             }
 
             #direct_handler
@@ -68,7 +69,7 @@ pub(crate) fn define_service_sync(
     let direct_handler = get_direct_handler_sync();
     quote! {
         impl #crate_name::ServiceSync for #ident {
-            fn run_service_main() -> Result<u32, Box<dyn std::error::Error>> {
+            fn run_service_main(self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 use #crate_name::{HandlerSync, StopHandlerSync};
                 let mut handler = #ident::new();
                 let stop_handler = handler.get_stop_handler();
@@ -122,8 +123,8 @@ fn get_direct_handler_sync() -> proc_macro2::TokenStream {
 #[cfg(all(feature = "direct", feature = "blocking"))]
 fn get_direct_handler_sync() -> proc_macro2::TokenStream {
     quote! {
-        fn run_service_direct(mut self) -> u32 {
-            Self::run_service_main()
+        fn run_service_direct(self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            self.run_service_main()
         }
     }
 }
@@ -131,8 +132,8 @@ fn get_direct_handler_sync() -> proc_macro2::TokenStream {
 #[cfg(all(feature = "direct", feature = "async"))]
 fn get_direct_handler_async() -> proc_macro2::TokenStream {
     quote! {
-        async fn run_service_direct(mut self) -> Result<u32, Box<dyn std::error::Error>> {
-            Self::run_service_main().await
+        async fn run_service_direct(self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            self.run_service_main().await
         }
     }
 }

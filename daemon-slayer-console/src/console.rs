@@ -55,7 +55,7 @@ impl<'a> Console<'a> {
         self.has_health_check = true;
     }
 
-    pub async fn run(&mut self) -> Result<(), Box<dyn Error>> {
+    pub async fn run(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
         // setup terminal
         enable_raw_mode()?;
         let mut stdout = io::stdout();
@@ -111,7 +111,7 @@ impl<'a> Console<'a> {
     async fn run_app(
         &mut self,
         terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let (tx, mut rx) = tokio::sync::mpsc::channel(32);
         let (health_tx, mut health_rx) = tokio::sync::mpsc::channel(32);
         let name = self.manager.name().to_owned();

@@ -191,7 +191,7 @@ impl Cli {
         self.builder.clap_command = cmd;
     }
 
-    pub async fn handle_input(self) -> Result<InputState, Box<dyn Error>> {
+    pub async fn handle_input(self) -> Result<InputState, Box<dyn Error + Send + Sync>> {
         let matches = self.builder.clap_command.clone().get_matches();
 
         if self.handle_cmd(&matches).await? {
@@ -202,7 +202,10 @@ impl Cli {
     }
 
     #[maybe_async_cfg::only_if(async)]
-    async fn handle_cmd(mut self, matches: &ArgMatches) -> Result<bool, Box<dyn Error>> {
+    async fn handle_cmd(
+        mut self,
+        matches: &ArgMatches,
+    ) -> Result<bool, Box<dyn Error + Send + Sync>> {
         get_handlers!(self, matches,
             #[cfg(feature="console")]
             ServiceCommands::CONSOLE => {
@@ -252,7 +255,10 @@ impl Cli {
     }
 
     #[maybe_async_cfg::only_if(sync)]
-    async fn handle_cmd(mut self, matches: &ArgMatches) -> Result<bool, Box<dyn Error>> {
+    async fn handle_cmd(
+        mut self,
+        matches: &ArgMatches,
+    ) -> Result<bool, Box<dyn Error + Send + Sync>> {
         get_handlers!(self, matches,);
 
         #[cfg(feature = "server")]

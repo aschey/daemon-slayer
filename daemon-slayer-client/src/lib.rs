@@ -12,6 +12,6 @@ mod state;
 pub use state::State;
 mod info;
 pub use info::Info;
-pub type Result<T> = result::Result<T, Box<dyn Error>>;
+pub type Result<T> = result::Result<T, Box<dyn Error + Send + Sync>>;
 mod health_check;
 pub use health_check::*;

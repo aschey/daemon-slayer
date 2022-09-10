@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use tracing::info;
 use tracing_subscriber::util::SubscriberInitExt;
 
-pub fn main() -> Result<(), Box<dyn Error>> {
+pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let cli = CliSync::new_server(
         ServiceHandler::new(),
         "daemon_slayer_test_service".to_owned(),
@@ -47,7 +47,10 @@ impl HandlerSync for ServiceHandler {
         })
     }
 
-    fn run_service<F: FnOnce() + Send>(self, on_started: F) -> Result<(), Box<dyn Error>> {
+    fn run_service<F: FnOnce() + Send>(
+        self,
+        on_started: F,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         on_started();
         loop {
             match self.rx.recv_timeout(Duration::from_secs(1)) {

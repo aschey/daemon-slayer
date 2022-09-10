@@ -5,7 +5,7 @@ use std::error::Error;
 use std::time::{Duration, Instant};
 use tracing::info;
 
-pub fn main() -> Result<(), Box<dyn Error>> {
+pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let manager = ServiceManager::builder("daemon_slayer_sync_server".to_owned())
         .with_description("test service")
         .with_args(["run"])

@@ -18,7 +18,19 @@ impl ServiceManager {
     fn service_file_name(&self) -> String {
         format!("{}.service", self.config.name)
     }
+
+    fn update_autostart(&self) -> Result<()> {
+        if self.config.autostart {
+            self.client
+                .enable_unit_files(&[&self.service_file_name()], false, true)?;
+        } else {
+            self.client
+                .disable_unit_files(&[&self.service_file_name()], false)?;
+        }
+        Ok(())
+    }
 }
+
 impl Manager for ServiceManager {
     fn builder(name: impl Into<String>) -> Builder {
         Builder::new(name)
@@ -48,7 +60,7 @@ impl Manager for ServiceManager {
         }
 
         let mut service_config = ServiceConfiguration::builder()
-            .exec_start(self.config.full_args_iter().map(|a| &a[..]).collect())
+            .exec_start(self.config.full_args_iter().map(String::as_ref).collect())
             .ty(ServiceType::Notify)
             .notify_access(NotifyAccess::Main);
 
@@ -77,6 +89,8 @@ impl Manager for ServiceManager {
         }
         .wrap_err("Error creating systemd config file")?;
 
+        self.update_autostart()?;
+
         Ok(())
     }
 
@@ -104,6 +118,17 @@ impl Manager for ServiceManager {
                 .wrap_err("Error stopping systemd unit")?;
         }
 
+        Ok(())
+    }
+
+    fn restart(&self) -> Result<()> {
+        if self.info()?.state == State::Started {
+            self.client
+                .restart_unit(&self.service_file_name(), "replace")
+                .wrap_err("Error stopping systemd unit")?;
+        } else {
+            self.start()?;
+        }
         Ok(())
     }
 
@@ -162,26 +187,30 @@ impl Manager for ServiceManager {
             }
             _ => Some(false),
         };
+
+        let pid = if state == State::Started {
+            Some(service_props.exec_main_pid)
+        } else {
+            None
+        };
+
+        let last_exit_code = if state == State::NotInstalled {
+            None
+        } else {
+            Some(service_props.exec_main_code)
+        };
+
         Ok(Info {
-            pid: if state == State::Started {
-                Some(service_props.exec_main_pid)
-            } else {
-                None
-            },
+            pid,
             state,
             autostart,
+            last_exit_code,
         })
     }
 
     fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
         self.config.autostart = enabled;
-        if enabled {
-            self.client
-                .enable_unit_files(&[&self.service_file_name()], false, true)?;
-        } else {
-            self.client
-                .disable_unit_files(&[&self.service_file_name()], false)?;
-        }
+        self.update_autostart()?;
         Ok(())
     }
 

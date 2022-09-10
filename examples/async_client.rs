@@ -10,7 +10,7 @@ use daemon_slayer_cli::CliAsync;
 use futures::{SinkExt, StreamExt};
 
 #[tokio::main]
-pub async fn main() -> Result<(), Box<dyn Error>> {
+pub async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let manager = ServiceManager::builder("daemon_slayer_async_server")
         .with_description("test service")
         .with_args(["run"])
