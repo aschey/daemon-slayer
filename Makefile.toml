@@ -2,10 +2,9 @@
 default_to_workspace = false
 
 [tasks.test]
-args = ["hack", "--feature-powerset", "test", "--", "--nocapture"]
+args = ["test", "--workspace", "--", "--nocapture"]
 clear = true
 command = "cargo"
-install_crate = "cargo-hack"
 
 [tasks.clippy]
 args = ["hack", "--feature-powerset", "--no-dev-deps", "clippy", "--", "-D", "warnings"]

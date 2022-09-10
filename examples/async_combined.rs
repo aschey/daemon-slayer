@@ -29,7 +29,7 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
         } else {
             Level::User
         })
-        .with_autostart(true)
+        .with_autostart(false)
         .with_args(["run"])
         .build()
         .unwrap();

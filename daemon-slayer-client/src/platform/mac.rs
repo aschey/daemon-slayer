@@ -17,8 +17,9 @@ macro_rules! regex {
     };
 }
 
-regex!(STATUS_RE, r"status = (\w+)");
+regex!(STATE_RE, r"state = (\w+)");
 regex!(PID_RE, r"pid = (\w+)");
+regex!(AUTOSTART_RE, r"runatload = (\w+)");
 
 pub struct ServiceManager {
     config: Builder,
@@ -48,6 +49,16 @@ impl ServiceManager {
             .trim()
             .to_lowercase();
         Ok(out)
+    }
+
+    fn service_target(&self) -> Result<String> {
+        match self.config.service_level {
+            Level::System => Ok(format!("system/{}", self.config.name)),
+            Level::User => {
+                let id = self.run_cmd("id", vec!["-u"])?;
+                Ok(format!("gui/{id}/{}", self.config.name))
+            }
+        }
     }
 
     fn user_agent_dir(&self) -> Result<PathBuf> {
@@ -91,13 +102,15 @@ impl Manager for ServiceManager {
     fn install(&self) -> Result<()> {
         let file = Launchd::new(&self.config.name, &self.config.program)
             .wrap_err("Error creating config")?
-            .with_program_arguments(self.config.full_args_iter().map(|a| a.to_owned()).collect());
+            .with_program_arguments(self.config.full_args_iter().map(|a| a.to_owned()).collect())
+            .with_run_at_load(self.config.autostart);
 
         let path = self.get_plist_path()?;
         file.to_writer_xml(std::fs::File::create(&path).wrap_err("Error creating config file")?)
             .wrap_err("Error writing config file")?;
 
         self.run_launchctl(vec!["load", &path.to_string_lossy()])?;
+
         Ok(())
     }
 
@@ -121,21 +134,32 @@ impl Manager for ServiceManager {
         Ok(())
     }
 
+    fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
+        if enabled {
+            self.config.autostart = true;
+        } else {
+            self.config.autostart = false;
+        }
+        if self.info()?.state == State::Started {
+            self.stop()?;
+            self.uninstall()?;
+            self.install()?;
+            self.start()?;
+        } else {
+            self.uninstall()?;
+            self.install()?;
+            self.stop()?;
+        }
+        Ok(())
+    }
+
     fn restart(&self) -> Result<()> {
-        todo!();
+        self.run_launchctl(vec!["kickstart", "-k", &self.service_target()?])?;
+        Ok(())
     }
 
     fn info(&self) -> Result<Info> {
-        let output = match self.config.service_level {
-            Level::System => {
-                self.run_launchctl(vec!["print", &format!("system/{}", self.config.name)])?
-            }
-            Level::User => {
-                let id = self.run_cmd("id", vec!["-u"])?;
-                self.run_launchctl(vec!["print", &format!("gui/{id}/{}", self.config.name)])?
-            }
-        };
-
+        let output = self.run_launchctl(vec!["print", &self.service_target()?])?;
         if output.contains("could not find service") {
             return Ok(Info {
                 state: State::NotInstalled,
@@ -144,7 +168,7 @@ impl Manager for ServiceManager {
                 last_exit_code: None,
             });
         }
-        let state = match self.get_match_or_default(&STATUS_RE, &output) {
+        let state = match self.get_match_or_default(&STATE_RE, &output) {
             Some("running") => State::Started,
             _ => State::Stopped,
         };
@@ -153,10 +177,15 @@ impl Manager for ServiceManager {
             .get_match_or_default(&PID_RE, &output)
             .map(|pid| pid.parse::<u32>().unwrap_or(0));
 
+        let autostart = match self.get_match_or_default(&AUTOSTART_RE, &output) {
+            Some("1") => Some(true),
+            _ => Some(false),
+        };
+
         Ok(Info {
             state,
             pid,
-            autostart: None,
+            autostart,
             last_exit_code: None,
         })
     }
@@ -175,9 +204,5 @@ impl Manager for ServiceManager {
 
     fn description(&self) -> &str {
         &self.config.description
-    }
-
-    fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
-        todo!()
     }
 }
