@@ -1,7 +1,7 @@
-use std::{thread, time::Duration};
-
+use crate::{Builder, Info, Level, Manager, Result, State};
 use eyre::Context;
 use regex::Regex;
+use std::{thread, time::Duration};
 use windows_service::{
     service::{
         Service, ServiceAccess, ServiceConfig, ServiceErrorControl, ServiceExitCode, ServiceInfo,
@@ -13,18 +13,13 @@ use windows_service::{
     },
 };
 
-use crate::{Builder, Info, Level, Manager, Result, State};
-
 pub struct ServiceManager {
     config: Builder,
 }
 
 impl ServiceManager {
     fn query_info(&self, service: &str, service_type: ServiceType) -> Result<Info> {
-        if self
-            .find_service(Regex::new(&format!("^{}$", service)).unwrap(), service_type)?
-            .is_none()
-        {
+        if self.find_service(service_type)?.is_none() {
             return Ok(Info {
                 state: State::NotInstalled,
                 autostart: None,
@@ -64,7 +59,15 @@ impl ServiceManager {
         })
     }
 
-    fn find_service(&self, re: Regex, service_type: ServiceType) -> Result<Option<ServiceEntry>> {
+    fn find_service(&self, service_type: ServiceType) -> Result<Option<ServiceEntry>> {
+        let re_text = if self.config.is_user() {
+            // User services have a random id appended to the end like this: some_service_name_18dcf87g
+            // The id changes every login so we have to search for it
+            format!(r"^{}_[a-z\d]+$", self.config.name)
+        } else {
+            format!("^{}$", self.config.name)
+        };
+        let re = Regex::new(&re_text).unwrap();
         let manager = self.get_manager()?;
         let user_service = manager
             .get_all_services(ListServiceType::WIN32, ServiceActiveState::ALL)
@@ -80,10 +83,7 @@ impl ServiceManager {
         let service = match &self.config.service_level {
             Level::System => self.config.name.clone(),
             Level::User => {
-                // User services have a random id appended to the end like this: some_service_name_18dcf87g
-                // The id changes every login so we have to search for it
-                let re = Regex::new(&format!(r"^{}_[a-z\d]+$", self.config.name)).unwrap();
-                let user_service = self.find_service(re, ServiceType::USER_OWN_PROCESS)?;
+                let user_service = self.find_service(ServiceType::USER_OWN_PROCESS)?;
 
                 match user_service {
                     Some(service) => service.name,
@@ -203,7 +203,7 @@ impl Manager for ServiceManager {
     }
 
     fn uninstall(&self) -> Result<()> {
-        if self.config.service_level == Level::User {
+        if self.config.is_user() {
             let current_service_name = match self.current_service_name()? {
                 Some(name) => name,
                 None => return Ok(()),
@@ -266,7 +266,7 @@ impl Manager for ServiceManager {
             }
         };
 
-        if self.config.service_level == Level::User {
+        if self.config.is_user() {
             self.query_info(&service, ServiceType::USER_OWN_PROCESS)
         } else {
             self.query_info(&service, ServiceType::OWN_PROCESS)
