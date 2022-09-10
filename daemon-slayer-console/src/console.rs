@@ -28,12 +28,12 @@ use crate::stateful_list::StatefulList;
 
 pub struct Console<'a> {
     manager: ServiceManager,
-    last_update: Instant,
     info: Info,
     logs: StatefulList<'a>,
     button_index: usize,
     is_healthy: Option<bool>,
     health_check: Option<Box<dyn HealthCheckAsync + Send + 'static>>,
+    has_health_check: bool,
 }
 
 impl<'a> Console<'a> {
@@ -43,15 +43,16 @@ impl<'a> Console<'a> {
             manager,
             info,
             logs: StatefulList::new(),
-            last_update: Instant::now(),
             button_index: 0,
             is_healthy: None,
             health_check: None,
+            has_health_check: false,
         }
     }
 
     pub fn add_health_check(&mut self, health_check: Box<dyn HealthCheckAsync + Send + 'static>) {
         self.health_check = Some(health_check);
+        self.has_health_check = true;
     }
 
     pub async fn run(&mut self) -> Result<(), Box<dyn Error>> {
@@ -122,7 +123,16 @@ impl<'a> Console<'a> {
         }
         let mut log_stream_running = true;
         let mut event_reader = EventStream::new().fuse();
+        let mut last_update = Instant::now();
         loop {
+            if Instant::now().duration_since(last_update) > Duration::from_secs(1) {
+                self.info = self.manager.info().unwrap();
+                last_update = Instant::now();
+            }
+
+            if self.info.state == State::NotInstalled {
+                self.button_index = 0;
+            }
             terminal.draw(|f| self.ui(f))?;
 
             tokio::select! {
@@ -159,22 +169,24 @@ impl<'a> Console<'a> {
                                     KeyCode::Enter => {
                                         match self.button_index {
                                             0 => {
-                                                if self.info.state == State::Stopped {
-                                                    self.manager.start()?
-                                                } else {
-                                                    self.manager.stop()?;
-                                                }
-                                            },
-                                            1 => {self.manager.restart()?;}
-                                            2 => {
                                                 if self.info.state == State::NotInstalled {
                                                     self.manager.install()?
                                                 } else {
                                                     self.manager.uninstall()?;
                                                 }
                                             },
+                                            1 => {
+                                                    self.manager.set_autostart_enabled(!self.info.autostart.unwrap_or(false))?;
+                                                }
+                                            2 => {
+                                                if self.info.state == State::Stopped {
+                                                    self.manager.start()?
+                                                } else {
+                                                    self.manager.stop()?;
+                                                }
+                                            },
                                             3 => {
-                                                self.manager.set_autostart_enabled(!self.info.autostart.unwrap_or(false))?;
+                                                self.manager.restart()?;
                                             },
                                             _ => {}
                                         }
@@ -194,17 +206,14 @@ impl<'a> Console<'a> {
 
     fn ui(&mut self, f: &mut Frame<CrosstermBackend<Stdout>>) {
         let size = f.size();
-        if Instant::now().duration_since(self.last_update) > Duration::from_secs(1) {
-            self.info = self.manager.info().unwrap();
-            self.last_update = Instant::now();
-        }
+
         // Main border
         let main_block = get_main_block();
         f.render_widget(main_block, size);
 
-        let (top_left, top_right, bottom) = get_main_sections(size);
+        let num_labels = if self.has_health_check { 5 } else { 4 };
 
-        let num_labels = 5;
+        let (top_left, top_right, bottom) = get_main_sections(size, num_labels);
 
         let status_area = horizontal()
             .constraints([Constraint::Length(28), Constraint::Min(1)])
@@ -248,16 +257,27 @@ impl<'a> Console<'a> {
             None => get_label_value("N/A", Color::Reset),
         };
 
-        f.render_widget(state_label, label_area.0[0]);
-        f.render_widget(state_value, label_area.1[0]);
-        f.render_widget(autostart_label, label_area.0[1]);
-        f.render_widget(autostart_value, label_area.1[1]);
-        f.render_widget(health_check_label, label_area.0[2]);
-        f.render_widget(health_check_value, label_area.1[2]);
-        f.render_widget(exit_code_label, label_area.0[3]);
-        f.render_widget(exit_code_value, label_area.1[3]);
-        f.render_widget(pid_label, label_area.0[4]);
-        f.render_widget(pid_value, label_area.1[4]);
+        let mut index = 0;
+        f.render_widget(state_label, label_area.0[index]);
+        f.render_widget(state_value, label_area.1[index]);
+        index += 1;
+
+        f.render_widget(autostart_label, label_area.0[index]);
+        f.render_widget(autostart_value, label_area.1[index]);
+        index += 1;
+
+        if self.has_health_check {
+            f.render_widget(health_check_label, label_area.0[index]);
+            f.render_widget(health_check_value, label_area.1[index]);
+            index += 1;
+        }
+
+        f.render_widget(exit_code_label, label_area.0[index]);
+        f.render_widget(exit_code_value, label_area.1[index]);
+        index += 1;
+
+        f.render_widget(pid_label, label_area.0[index]);
+        f.render_widget(pid_value, label_area.1[index]);
 
         //  f.render_widget(logging_paragraph, info_section);
         f.render_widget(status_block, status_area[0]);
@@ -271,29 +291,14 @@ impl<'a> Console<'a> {
             Spans::from(vec![
                 Span::raw(" "),
                 get_button(
-                    if self.info.state == State::Stopped {
-                        "start"
-                    } else {
-                        "stop "
-                    },
-                    if self.info.state == State::Stopped {
-                        Color::Green
-                    } else {
-                        Color::Red
-                    },
-                    self.button_index == 0,
-                ),
-                Span::raw(" "),
-                get_button("restart", Color::Magenta, self.button_index == 1),
-                Span::raw(" "),
-                get_button(
                     if self.info.state == State::NotInstalled {
                         " install "
                     } else {
                         "uninstall"
                     },
                     Color::Blue,
-                    self.button_index == 2,
+                    self.button_index == 0,
+                    false,
                 ),
                 Span::raw(" "),
                 get_button(
@@ -303,7 +308,30 @@ impl<'a> Console<'a> {
                         "enable "
                     },
                     Color::Blue,
+                    self.button_index == 1,
+                    self.info.state == State::NotInstalled,
+                ),
+                Span::raw(" "),
+                get_button(
+                    if self.info.state == State::Started {
+                        "stop "
+                    } else {
+                        "start"
+                    },
+                    if self.info.state == State::Started {
+                        Color::Red
+                    } else {
+                        Color::Green
+                    },
+                    self.button_index == 2,
+                    self.info.state == State::NotInstalled,
+                ),
+                Span::raw(" "),
+                get_button(
+                    "restart",
+                    Color::Magenta,
                     self.button_index == 3,
+                    self.info.state == State::NotInstalled,
                 ),
             ]),
         ])
@@ -320,9 +348,14 @@ fn get_main_block() -> Block<'static> {
         .title_alignment(Alignment::Center)
 }
 
-fn get_button(text: &str, color: Color, selected: bool) -> Span {
+fn get_button(text: &str, color: Color, selected: bool, disabled: bool) -> Span {
     let mut style = Style::default().bg(color).fg(Color::Rgb(240, 240, 240));
-    if selected {
+
+    if disabled {
+        style = Style::default()
+            .bg(Color::Rgb(75, 75, 75))
+            .fg(Color::Rgb(175, 175, 175));
+    } else if selected {
         style = style.add_modifier(Modifier::BOLD | Modifier::SLOW_BLINK | Modifier::REVERSED);
     }
     Span::styled(format!(" {text} "), style)
@@ -342,9 +375,9 @@ fn vertical() -> Layout {
     Layout::default().direction(Direction::Vertical)
 }
 
-fn get_main_sections(parent: Rect) -> (Rect, Rect, Rect) {
+fn get_main_sections(parent: Rect, num_labels: u16) -> (Rect, Rect, Rect) {
     let top_bottom = vertical()
-        .constraints([Constraint::Length(9), Constraint::Min(1)])
+        .constraints([Constraint::Length(num_labels + 4), Constraint::Min(1)])
         .vertical_margin(1)
         .horizontal_margin(2)
         .split(parent);

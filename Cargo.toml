@@ -29,6 +29,8 @@ cli = ["daemon-slayer-cli"]
 client = ["daemon-slayer-client"]
 console = ["daemon-slayer-console", "daemon-slayer-cli/console"]
 direct = ["daemon-slayer-server/direct", "daemon-slayer-cli/direct"]
+http-health-check = ["daemon-slayer-client/http-health-check"]
+ipc-health-check = ["daemon-slayer-client/ipc-health-check", "daemon-slayer-server/ipc-health-check"]
 logging = ["daemon-slayer-logging"]
 server = ["daemon-slayer-server"]
 sync-client = ["client", "cli", "daemon-slayer-cli/sync-client", "daemon-slayer-client/blocking"]
@@ -74,10 +76,16 @@ name = "sync_server"
 required-features = ["sync-server"]
 [[example]]
 name = "axum"
-required-features = ["all-async"]
+required-features = ["all-async", "http-health-check"]
 [[example]]
 name = "errors"
 required-features = ["all-async"]
 [[example]]
 name = "custom_commands"
 required-features = ["all-async"]
+[[example]]
+name = "faulty"
+required-features = ["all-async", "ipc-health-check"]
+[[example]]
+name = "ipc_health_check"
+required-features = ["all-async", "ipc-health-check"]
