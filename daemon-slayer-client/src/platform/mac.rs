@@ -6,6 +6,7 @@ use std::{
 
 use eyre::Context;
 use launchd::Launchd;
+use regex::Regex;
 
 use crate::{Builder, Info, Level, Manager, Result, State};
 
@@ -15,13 +16,17 @@ pub struct ServiceManager {
 
 impl ServiceManager {
     fn run_launchctl(&self, args: Vec<&str>) -> Result<String> {
-        let output = Command::new("launchctl")
+        self.run_cmd("launchctl", args)
+    }
+
+    fn run_cmd(&self, command: &str, args: Vec<&str>) -> Result<String> {
+        let output = Command::new(command)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .args(args)
             .output()
-            .wrap_err("Error running launchctl")?;
+            .wrap_err("Error running command")?;
 
         let out_bytes = if output.status.success() {
             output.stdout
@@ -31,8 +36,7 @@ impl ServiceManager {
         let out = String::from_utf8(out_bytes)
             .wrap_err("Error reading output")?
             .trim()
-            .to_lowercase()
-            .to_owned();
+            .to_lowercase();
         Ok(out)
     }
 
@@ -47,6 +51,9 @@ impl ServiceManager {
             Level::System => PathBuf::from("/Library/LaunchDaemons"),
             Level::User => self.user_agent_dir()?,
         };
+        if !path.exists() {
+            std::fs::create_dir_all(&path).wrap_err("Error creating plist path")?;
+        }
         Ok(path.join(format!("{}.plist", self.config.name)))
     }
 }
@@ -97,41 +104,49 @@ impl Manager for ServiceManager {
         Ok(())
     }
 
+    fn restart(&self) -> Result<()> {
+        todo!();
+    }
+
     fn info(&self) -> Result<Info> {
-        let output = self.run_launchctl(vec!["print", &format!("system/{}", self.config.name)])?;
+        let output = match self.config.service_level {
+            Level::System => {
+                self.run_launchctl(vec!["print", &format!("system/{}", self.config.name)])?
+            }
+            Level::User => {
+                let id = self.run_cmd("id", vec!["-u"])?;
+                self.run_launchctl(vec!["print", &format!("gui/{id}/{}", self.config.name)])?
+            }
+        };
+
         if output.contains("could not find service") {
             return Ok(Info {
                 state: State::NotInstalled,
                 autostart: None,
                 pid: None,
+                last_exit_code: None,
             });
         }
-        let s = output
-            .split('\n')
-            .into_iter()
-            .filter(|line| line.trim().starts_with("state"))
-            .map(|line| {
-                line.split('=')
-                    .collect::<Vec<_>>()
-                    .get(1)
-                    .unwrap_or(&"")
-                    .to_string()
-            })
-            .collect::<Vec<_>>();
-        let mut state: State;
-        if s.len() == 0 {
-            state = State::Stopped;
-        }
-        if s.len() > 0 && s[0].trim() == "running" {
-            state = State::Started;
-        } else {
-            state = State::Stopped;
-        }
+
+        let re = Regex::new(r"state = (\w+)").unwrap();
+
+        let captures = re.captures(&output);
+        let state = match captures {
+            Some(captures) => match captures.get(1) {
+                Some(state_capture) => match state_capture.as_str() {
+                    "running" => State::Started,
+                    _ => State::Stopped,
+                },
+                None => State::Stopped,
+            },
+            None => State::Stopped,
+        };
 
         Ok(Info {
             state,
             pid: None,
             autostart: None,
+            last_exit_code: None,
         })
     }
 
