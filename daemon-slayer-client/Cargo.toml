@@ -21,6 +21,7 @@ systemd_client = {git = "https://github.com/aschey/systemd-client", rev = "530b6
 [target.'cfg(target_os = "macos")'.dependencies]
 directories = "4.0.1"
 launchd = "0.2.0"
+once_cell = "1.14.0"
 regex = "1.6.0"
 
 [features]

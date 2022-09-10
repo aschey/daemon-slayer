@@ -102,7 +102,7 @@ fn get_service_impl_async(
     quote! {
         #[#crate_name::async_trait::async_trait]
         impl #crate_name::ServiceAsync for #ident {
-            async fn run_service_main(self: Box<Self>) ->  Result<(), Box<dyn std::error::Error>> {
+            async fn run_service_main(self: Box<Self>) ->  Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 #crate_name::windows_service::service_dispatcher::start(#ident::get_service_name(), func_service_main)?;
                 Ok(())
             }
@@ -120,7 +120,7 @@ fn get_service_impl_sync(
 ) -> proc_macro2::TokenStream {
     quote! {
         impl #crate_name::ServiceSync for #ident {
-            fn run_service_main(self: Box<Self>) -> Result<(), Box<dyn std::error::Error>> {
+            fn run_service_main(self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 #crate_name::windows_service::service_dispatcher::start(#ident::get_service_name(), func_service_main)?;
                 Ok(())
             }
@@ -186,7 +186,7 @@ fn get_direct_handler_async(crate_name: &proc_macro2::TokenStream) -> proc_macro
 #[cfg(all(feature = "direct", feature = "async"))]
 fn get_direct_handler_async(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
-        async fn run_service_direct(mut self: Box<Self>) -> Result<(), Box<dyn std::error::Error>> {
+        async fn run_service_direct(mut self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let stop_handler = self.get_stop_handler();
             #crate_name::tokio::spawn(async move {
                 #crate_name::tokio::signal::ctrl_c().await.unwrap();
@@ -202,7 +202,7 @@ fn get_direct_handler_async(crate_name: &proc_macro2::TokenStream) -> proc_macro
 #[cfg(all(feature = "direct", feature = "blocking"))]
 fn get_direct_handler_sync(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
-        fn run_service_direct(mut self: Box<Self>) -> Result<(), Box<dyn std::error::Error>> {
+        fn run_service_direct(mut self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let stop_handler = self.get_stop_handler();
             std::thread::spawn(move || {
                 let term = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));

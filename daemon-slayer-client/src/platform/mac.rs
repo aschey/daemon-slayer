@@ -6,9 +6,19 @@ use std::{
 
 use eyre::Context;
 use launchd::Launchd;
+use once_cell::sync::Lazy;
 use regex::Regex;
 
 use crate::{Builder, Info, Level, Manager, Result, State};
+
+macro_rules! regex {
+    ($name: ident, $re:literal $(,)?) => {
+        static $name: Lazy<Regex> = Lazy::new(|| Regex::new($re).unwrap());
+    };
+}
+
+regex!(STATUS_RE, r"status = (\w+)");
+regex!(PID_RE, r"pid = (\w+)");
 
 pub struct ServiceManager {
     config: Builder,
@@ -55,6 +65,13 @@ impl ServiceManager {
             std::fs::create_dir_all(&path).wrap_err("Error creating plist path")?;
         }
         Ok(path.join(format!("{}.plist", self.config.name)))
+    }
+
+    fn get_match_or_default<'a>(&self, re: &Regex, output: &'a str) -> Option<&'a str> {
+        let captures = re.captures(output);
+        let capture = captures?.get(1)?;
+        let str_cap: &'a str = capture.as_str();
+        Some(str_cap)
     }
 }
 
@@ -127,24 +144,18 @@ impl Manager for ServiceManager {
                 last_exit_code: None,
             });
         }
-
-        let re = Regex::new(r"state = (\w+)").unwrap();
-
-        let captures = re.captures(&output);
-        let state = match captures {
-            Some(captures) => match captures.get(1) {
-                Some(state_capture) => match state_capture.as_str() {
-                    "running" => State::Started,
-                    _ => State::Stopped,
-                },
-                None => State::Stopped,
-            },
-            None => State::Stopped,
+        let state = match self.get_match_or_default(&STATUS_RE, &output) {
+            Some("running") => State::Started,
+            _ => State::Stopped,
         };
+
+        let pid = self
+            .get_match_or_default(&PID_RE, &output)
+            .map(|pid| pid.parse::<u32>().unwrap_or(0));
 
         Ok(Info {
             state,
-            pid: None,
+            pid,
             autostart: None,
             last_exit_code: None,
         })
