@@ -1,4 +1,4 @@
-use daemon_slayer::cli::{Action, CliHandlerSync};
+use daemon_slayer::cli::Action;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{HandlerSync, ServiceSync, StopHandlerSync};
 use daemon_slayer_cli::CliSync;

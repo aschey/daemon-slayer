@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 
 use daemon_slayer::client::{Manager, ServiceManager};
 
-use daemon_slayer::cli::{Action, CliHandlerAsync, Command};
+use daemon_slayer::cli::{Action, Command};
 
 use daemon_slayer_cli::CliAsync;
 use futures::{SinkExt, StreamExt};

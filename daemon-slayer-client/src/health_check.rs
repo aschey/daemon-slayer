@@ -2,15 +2,13 @@ use std::error::Error;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-#[cfg(feature = "async-tokio")]
-#[async_trait::async_trait]
-pub trait HealthCheckAsync {
+#[maybe_async_cfg::maybe(
+    idents(Service, HealthCheck),
+    sync(feature = "blocking"),
+    async(feature = "async-tokio", async_trait::async_trait)
+)]
+pub trait HealthCheck {
     async fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>>;
-}
-
-#[cfg(feature = "blocking")]
-pub trait HealthCheckSync {
-    fn invoke(&mut self) -> Result<(), Box<dyn Error>>;
 }
 
 #[cfg(feature = "ipc-health-check")]
@@ -88,7 +86,7 @@ impl HealthCheckAsync for HttpHealthCheckAsync {
 
 #[cfg(all(feature = "blocking", feature = "http-health-check"))]
 impl HealthCheckSync for HttpHealthCheckSync {
-    fn invoke(&mut self) -> Result<(), Box<dyn Error>> {
+    fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
         match &self.request_type {
             RequestType::Get => {
                 reqwest::blocking::get(self.url.clone())?;

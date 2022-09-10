@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 
 use daemon_slayer::client::{Manager, ServiceManager};
 
-use daemon_slayer::cli::{clap, Action, CliAsync, CliHandlerAsync, InputState};
+use daemon_slayer::cli::{clap, Action, CliAsync, InputState};
 use daemon_slayer::server::{HandlerAsync, ServiceAsync, StopHandlerAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};

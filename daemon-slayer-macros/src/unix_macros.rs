@@ -49,7 +49,7 @@ pub(crate) fn define_service_async(
                     #[cfg(target_os = "linux")]
                     #crate_name::sd_notify::notify(false, &[#crate_name::sd_notify::NotifyState::Ready]).unwrap();
                 }).await;
-                
+
                 signals_handle.close();
                 signals_task.await.unwrap();
                 result

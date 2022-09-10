@@ -27,5 +27,5 @@ jobs:
         run: |
           cargo install cargo-hack
           cargo install cargo-make
-          cargo make build-all
+          cargo make build-powerset
           ${{ matrix.cargo }} test --workspace -- --nocapture

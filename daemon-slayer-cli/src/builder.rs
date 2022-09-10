@@ -152,6 +152,22 @@ impl Builder {
         health_check: Box<dyn daemon_slayer_client::HealthCheck + Send + 'static>,
     ) -> Self {
         self.health_check = Some(health_check);
+        if !self.commands.contains_key(ServiceCommands::HEALTH) {
+            self.commands.insert(
+                ServiceCommands::HEALTH,
+                Command::Subcommand {
+                    name: ServiceCommands::HEALTH.to_owned(),
+                    help_text: "Check the health of the service".to_owned(),
+                },
+            );
+        }
+
+        self
+    }
+
+    #[cfg(all(feature = "client", feature = "console"))]
+    pub fn with_health_check_command(mut self, command: Command) -> Self {
+        self.commands.insert(ServiceCommands::HEALTH, command);
         self
     }
 

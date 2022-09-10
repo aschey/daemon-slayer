@@ -20,7 +20,7 @@ cargo build --features=all-sync,ipc-health-check,http-health-check --examples
 cargo build --features=all-async,all-sync,ipc-health-check,http-health-check --examples
 '''
 
-[tasks.build-all]
+[tasks.build-powerset]
 args = [
   "hack",
   "--feature-powerset",
@@ -32,3 +32,7 @@ args = [
 command = "cargo"
 dependencies = ["build-extra"]
 install_crate = "cargo-hack"
+
+[tasks.build-all]
+args = ["build", "--features", "all-async,all-sync,ipc-health-check,http-health-check", "--examples"]
+command = "cargo"

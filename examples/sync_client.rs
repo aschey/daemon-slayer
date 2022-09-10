@@ -1,4 +1,4 @@
-use daemon_slayer::cli::{Action, CliHandlerSync};
+use daemon_slayer::cli::Action;
 use daemon_slayer::client::{Manager, ServiceManager};
 use daemon_slayer_cli::CliSync;
 use std::error::Error;
