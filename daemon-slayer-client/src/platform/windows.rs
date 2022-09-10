@@ -34,18 +34,28 @@ impl ServiceManager {
         }
 
         let service = self.open_service(service)?;
+
         let service_status = service
             .query_status()
             .wrap_err("Error getting service status")?;
+
         let state = match service_status.current_state {
             ServiceState::Stopped | ServiceState::StartPending => State::Stopped,
             _ => State::Started,
         };
+
         let last_exit_code = match service_status.exit_code {
             ServiceExitCode::Win32(code) => Some(code),
             ServiceExitCode::ServiceSpecific(code) => Some(code),
         };
-        let autostart = service.query_config()?.start_type == ServiceStartType::AutoStart;
+
+        let autostart_service = if self.config.is_user() {
+            self.open_base_service()?
+        } else {
+            service
+        };
+
+        let autostart = autostart_service.query_config()?.start_type == ServiceStartType::AutoStart;
         Ok(Info {
             state,
             autostart: Some(autostart),
@@ -72,7 +82,7 @@ impl ServiceManager {
             Level::User => {
                 // User services have a random id appended to the end like this: some_service_name_18dcf87g
                 // The id changes every login so we have to search for it
-                let re = Regex::new(&format!(r"^{}_[a-z\d]{{8}}$", self.config.name)).unwrap();
+                let re = Regex::new(&format!(r"^{}_[a-z\d]+$", self.config.name)).unwrap();
                 let user_service = self.find_service(re, ServiceType::USER_OWN_PROCESS)?;
 
                 match user_service {
@@ -99,6 +109,10 @@ impl ServiceManager {
             None => return Err("Unable to find service")?,
         };
         self.open_service(&name)
+    }
+
+    fn open_base_service(&self) -> Result<Service> {
+        self.open_service(&self.config.name)
     }
 
     fn delete_service(&self, service: &str, service_type: ServiceType) -> Result<()> {
@@ -172,7 +186,7 @@ impl Manager for ServiceManager {
     }
 
     fn install(&self) -> Result<()> {
-        if self.open_service(&self.config.name).is_err() {
+        if self.open_base_service().is_err() {
             let service_info = self.get_service_info();
             let service = self
                 .get_manager()?
@@ -233,7 +247,7 @@ impl Manager for ServiceManager {
     }
 
     fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
-        let service = self.open_current_service()?;
+        let service = self.open_base_service()?;
         self.config.autostart = enabled;
         service.change_config(&self.get_service_info())?;
         Ok(())

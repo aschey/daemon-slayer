@@ -43,9 +43,6 @@ daemon-slayer-console = {path = "./daemon-slayer-console", optional = true}
 daemon-slayer-logging = {path = "./daemon-slayer-logging", optional = true}
 daemon-slayer-server = {path = "./daemon-slayer-server", optional = true}
 
-[[bin]]
-name = "bin_fixture"
-
 [dev-dependencies]
 assert_cmd = "2.0.4"
 async-trait = {version = "0.1.57"}

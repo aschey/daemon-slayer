@@ -17,7 +17,9 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let cli = CliSync::new(manager, ServiceHandler::new());
     let mut _logger_guard: Option<LoggerGuard> = None;
     if cli.action_type() == Action::Server {
-        let (logger, guard) = LoggerBuilder::new(ServiceHandler::get_service_name()).build();
+        let (logger, guard) = LoggerBuilder::new(ServiceHandler::get_service_name())
+            .build()
+            .unwrap();
         _logger_guard = Some(guard);
         logger.init();
     }

@@ -44,7 +44,7 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
     let mut _logger_guard: Option<LoggerGuard> = None;
 
     if cli.action_type() == Action::Server {
-        let (logger, guard) = logger_builder.with_ipc_logger(true).build();
+        let (logger, guard) = logger_builder.with_ipc_logger(true).build().unwrap();
         _logger_guard = Some(guard);
         logger.init();
         health_check_server.spawn_server();

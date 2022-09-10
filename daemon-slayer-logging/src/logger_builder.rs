@@ -1,5 +1,6 @@
 use std::{
     env::args,
+    error::Error,
     io::stdout,
     sync::atomic::{AtomicBool, Ordering},
     time::Duration,
@@ -93,10 +94,13 @@ impl LoggerBuilder {
 
     pub fn build(
         self,
-    ) -> (
-        impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
-        LoggerGuard,
-    ) {
+    ) -> Result<
+        (
+            impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
+            LoggerGuard,
+        ),
+        Box<dyn Error>,
+    > {
         let offset = match (self.timezone, LOCAL_TIME.get().unwrap().clone()) {
             (Timezone::Local, Ok(offset)) => offset,
             (Timezone::Local, Err(e)) => {
@@ -167,13 +171,13 @@ impl LoggerBuilder {
         });
 
         #[cfg(target_os = "linux")]
-        let collector = collector.with(tracing_journald::layer().unwrap());
+        let collector = collector.with(tracing_journald::layer()?);
 
         #[cfg(windows)]
-        register(&self.name).unwrap();
+        register(&self.name)?;
         #[cfg(windows)]
-        let collector = collector.with(EventLogLayer::pretty(self.name).unwrap());
+        let collector = collector.with(EventLogLayer::pretty(self.name)?);
 
-        (collector, guard)
+        Ok((collector, guard))
     }
 }

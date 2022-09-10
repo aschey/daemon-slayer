@@ -40,7 +40,7 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
 
     if cli.action_type() == Action::Server {
         // std::process::exit(1);
-        let (logger, guard) = logger_builder.with_ipc_logger(true).build();
+        let (logger, guard) = logger_builder.with_ipc_logger(true).build().unwrap();
         _logger_guard = Some(guard);
         logger.init();
     }

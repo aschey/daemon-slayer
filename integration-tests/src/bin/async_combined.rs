@@ -30,7 +30,7 @@ pub fn main() {
         let mut _logger_guard: Option<LoggerGuard> = None;
 
         if cli.action_type() == Action::Server {
-            let (logger, guard) = logger_builder.build();
+            let (logger, guard) = logger_builder.build().unwrap();
             _logger_guard = Some(guard);
             logger.init();
         }
