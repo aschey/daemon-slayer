@@ -10,10 +10,13 @@ jobs:
         include:
           - os: macos-latest
             cargo: sudo -E /Users/runner/.cargo/bin/cargo
+            protoc-target: osx-x86_64
           - os: ubuntu-latest
             cargo: sudo -E /home/runner/.cargo/bin/cargo
+            protoc-target: linux-x86_64
           - os: windows-latest
             cargo: cargo
+            protoc-target: win64
       fail-fast: false
     name: Build and test
     runs-on: ${{ matrix.os }}
@@ -25,6 +28,8 @@ jobs:
           shared-key: cache-${{ hashFiles('**/Cargo.toml') }}
       - name: test
         run: |
+          curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.19.4/protoc-3.19.4-${{ matrix.protoc-target }}.zip
+          unzip protoc-3.19.4-linux-x86_64.zip -d "$HOME/protoc"
           cargo install cargo-hack
           cargo install cargo-make
           cargo make build-powerset

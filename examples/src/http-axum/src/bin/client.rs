@@ -2,7 +2,10 @@ use std::error::Error;
 
 use daemon_slayer::{
     cli::{clap, CliAsync, InputState},
-    client::{HttpHealthCheckAsync, Manager, RequestType, ServiceManager},
+    client::{
+        health_check::{HttpHealthCheckAsync, HttpRequestType},
+        Manager, ServiceManager,
+    },
 };
 
 #[tokio::main]
@@ -16,7 +19,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let command = clap::Command::default()
         .subcommand(clap::Command::new("hello").arg(clap::Arg::new("name")));
 
-    let health_check = HttpHealthCheckAsync::new(RequestType::Get, "http://127.0.0.1:3000")?;
+    let health_check = HttpHealthCheckAsync::new(HttpRequestType::Get, "http://127.0.0.1:3000")?;
     let cli = CliAsync::client_builder(manager)
         .with_base_command(command)
         .with_health_check(Box::new(health_check))

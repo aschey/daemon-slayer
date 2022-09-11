@@ -1,5 +1,5 @@
 use daemon_slayer::cli::{clap, CliAsync, InputState};
-use daemon_slayer::client::{GrpcHealthCheckAsync, Manager, ServiceManager};
+use daemon_slayer::client::{health_check::GrpcHealthCheckAsync, Manager, ServiceManager};
 use hello_world::greeter_client::GreeterClient;
 use hello_world::HelloRequest;
 

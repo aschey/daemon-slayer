@@ -4,7 +4,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use daemon_slayer_client::{HealthCheckAsync, Info, Manager, ServiceManager, State};
+use daemon_slayer_client::{health_check::HealthCheckAsync, Info, Manager, ServiceManager, State};
 use futures::{select, FutureExt, Stream, StreamExt};
 use std::{
     error::Error,

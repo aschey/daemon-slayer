@@ -1,7 +1,7 @@
 use axum::extract::Path;
 use axum::routing::get;
 use axum::Router;
-use daemon_slayer::client::{HttpHealthCheckAsync, RequestType};
+use daemon_slayer::client::health_check::{HttpHealthCheckAsync, HttpRequestType};
 use daemon_slayer::client::{Manager, ServiceManager};
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use std::env::args;
@@ -36,7 +36,7 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
         "test service".to_owned(),
     )
     .with_health_check(Box::new(HttpHealthCheckAsync::new(
-        RequestType::Get,
+        HttpRequestType::Get,
         "http://127.0.0.1:3000/health",
     )?))
     .build();

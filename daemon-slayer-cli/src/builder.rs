@@ -15,7 +15,8 @@ pub struct Builder {
     #[cfg(feature = "server")]
     pub(crate) service: Option<Box<dyn daemon_slayer_server::Service>>,
     #[cfg(feature = "client")]
-    pub(crate) health_check: Option<Box<dyn daemon_slayer_client::HealthCheck + Send + 'static>>,
+    pub(crate) health_check:
+        Option<Box<dyn daemon_slayer_client::health_check::HealthCheck + Send + 'static>>,
 }
 
 #[maybe_async_cfg::maybe(
@@ -149,7 +150,7 @@ impl Builder {
     #[cfg(feature = "client")]
     pub fn with_health_check(
         mut self,
-        health_check: Box<dyn daemon_slayer_client::HealthCheck + Send + 'static>,
+        health_check: Box<dyn daemon_slayer_client::health_check::HealthCheck + Send + 'static>,
     ) -> Self {
         self.health_check = Some(health_check);
         if !self.commands.contains_key(ServiceCommands::HEALTH) {
