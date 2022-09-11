@@ -10,7 +10,7 @@ use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 
 use daemon_slayer::cli::{Action, BuilderAsync, CliAsync, Command};
-use daemon_slayer::server::{HandlerAsync, ServiceAsync, StopHandlerAsync};
+use daemon_slayer::server::{EventHandlerAsync, HandlerAsync, ServiceAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
@@ -66,13 +66,14 @@ impl HandlerAsync for ServiceHandler {
         "daemon_slayer_axum"
     }
 
-    fn get_stop_handler(&mut self) -> StopHandlerAsync {
+    fn get_event_handler(&mut self) -> EventHandlerAsync {
         let tx = self.tx.clone();
-        Box::new(move || {
+        Box::new(move |event| {
             let mut tx = tx.clone();
             Box::pin(async move {
                 info!("stopping");
-                let _ = tx.send(()).await;
+                tx.send(()).await?;
+                Ok(())
             })
         })
     }

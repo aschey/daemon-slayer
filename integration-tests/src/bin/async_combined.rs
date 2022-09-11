@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use daemon_slayer::client::{Manager, ServiceManager};
 
 use daemon_slayer::cli::{Action, CliAsync, Command};
-use daemon_slayer::server::{HandlerAsync, ServiceAsync, StopHandlerAsync};
+use daemon_slayer::server::{EventHandlerAsync, HandlerAsync, ServiceAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
@@ -56,13 +56,14 @@ impl HandlerAsync for ServiceHandler {
         "daemon_slayer_test_service_async"
     }
 
-    fn get_stop_handler(&mut self) -> StopHandlerAsync {
+    fn get_event_handler(&mut self) -> EventHandlerAsync {
         let tx = self.tx.clone();
-        Box::new(move || {
+        Box::new(move |event| {
             let mut tx = tx.clone();
             Box::pin(async move {
                 info!("stopping");
-                tx.send(()).await.unwrap();
+                tx.send(()).await?;
+                Ok(())
             })
         })
     }

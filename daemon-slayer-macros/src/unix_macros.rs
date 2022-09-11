@@ -12,37 +12,34 @@ pub(crate) fn define_service_async(
         #[#crate_name::async_trait::async_trait]
         impl #crate_name::ServiceAsync for #ident {
             async fn run_service_main(self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-                use #crate_name::{HandlerAsync, StopHandlerAsync};
+                use #crate_name::{HandlerAsync, EventHandlerAsync};
                 let mut handler = #ident::new();
-                let stop_handler = handler.get_stop_handler();
+                let event_handler = handler.get_event_handler();
 
                 let signals = #crate_name::signal_hook_tokio::Signals::new(&[
                     #crate_name::signal_hook::consts::signal::SIGHUP,
                     #crate_name::signal_hook::consts::signal::SIGTERM,
                     #crate_name::signal_hook::consts::signal::SIGINT,
                     #crate_name::signal_hook::consts::signal::SIGQUIT,
+                    #crate_name::signal_hook::consts::signal::SIGTSTP,
+                    #crate_name::signal_hook::consts::signal::SIGCHLD,
+                    #crate_name::signal_hook::consts::signal::SIGCONT,
                 ])
                 .unwrap();
 
                 let signals_handle = signals.handle();
 
-                let signals_task = #crate_name::tokio::spawn(async move {
+                let signals_task: #crate_name::tokio::task::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>> = #crate_name::tokio::spawn(async move {
                     use #crate_name::futures::stream::StreamExt;
 
                     let mut signals = signals.fuse();
                     while let Some(signal) = signals.next().await {
-                        match signal {
-                            #crate_name::signal_hook::consts::signal::SIGTERM
-                            | #crate_name::signal_hook::consts::signal::SIGINT
-                            | #crate_name::signal_hook::consts::signal::SIGQUIT
-                            | #crate_name::signal_hook::consts::signal::SIGHUP => {
-                                #[cfg(target_os = "linux")]
-                                #crate_name::sd_notify::notify(false, &[#crate_name::sd_notify::NotifyState::Stopping]).unwrap();
-                                stop_handler().await;
-                            }
-                            _ => {}
-                        }
+                        #[cfg(target_os = "linux")]
+                        #crate_name::sd_notify::notify(false, &[#crate_name::sd_notify::NotifyState::Stopping]).unwrap();
+                        let signal_name = #crate_name::signal_hook::low_level::signal_name(signal).unwrap_or("unknown");
+                        event_handler(#crate_name::Event::SignalReceived(signal_name.into())).await?;
                     }
+                    Ok(())
                 });
 
                 let result = handler.run_service(|| {
@@ -51,7 +48,7 @@ pub(crate) fn define_service_async(
                 }).await;
 
                 signals_handle.close();
-                signals_task.await.unwrap();
+                signals_task.await.unwrap()?;
                 result
             }
 
@@ -70,37 +67,41 @@ pub(crate) fn define_service_sync(
     quote! {
         impl #crate_name::ServiceSync for #ident {
             fn run_service_main(self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-                use #crate_name::{HandlerSync, StopHandlerSync};
+                use #crate_name::{HandlerSync, EventHandlerSync};
                 let mut handler = #ident::new();
-                let stop_handler = handler.get_stop_handler();
+                let event_handler = handler.get_event_handler();
 
-                std::thread::spawn(move || {
-                    let mut signals = #crate_name::signal_hook::iterator::Signals::new(&[
-                        #crate_name::signal_hook::consts::signal::SIGHUP,
-                        #crate_name::signal_hook::consts::signal::SIGTERM,
-                        #crate_name::signal_hook::consts::signal::SIGINT,
-                        #crate_name::signal_hook::consts::signal::SIGQUIT,
-                    ])
-                    .unwrap();
+                let mut signals = #crate_name::signal_hook::iterator::Signals::new(&[
+                    #crate_name::signal_hook::consts::signal::SIGHUP,
+                    #crate_name::signal_hook::consts::signal::SIGTERM,
+                    #crate_name::signal_hook::consts::signal::SIGINT,
+                    #crate_name::signal_hook::consts::signal::SIGQUIT,
+                    #crate_name::signal_hook::consts::signal::SIGTSTP,
+                    #crate_name::signal_hook::consts::signal::SIGCHLD,
+                    #crate_name::signal_hook::consts::signal::SIGCONT,
+                ])
+                .unwrap();
 
+                let signals_handle = signals.handle();
+
+                let handle: std::thread::JoinHandle::<Result<(), Box<dyn std::error::Error + Send + Sync>>> = std::thread::spawn(move || {
                     for signal in &mut signals {
-                        match signal {
-                            #crate_name::signal_hook::consts::signal::SIGTERM
-                            | #crate_name::signal_hook::consts::signal::SIGINT
-                            | #crate_name::signal_hook::consts::signal::SIGQUIT
-                            | #crate_name::signal_hook::consts::signal::SIGHUP => {
-                                #[cfg(target_os = "linux")]
-                                #crate_name::sd_notify::notify(false, &[#crate_name::sd_notify::NotifyState::Stopping]).unwrap();
-                                stop_handler();
-                            }
-                            _ => {}
-                        }
+                        #[cfg(target_os = "linux")]
+                        #crate_name::sd_notify::notify(false, &[#crate_name::sd_notify::NotifyState::Stopping]).unwrap();
+                        let signal_name = #crate_name::signal_hook::low_level::signal_name(signal).unwrap_or("unknown");
+                        event_handler(#crate_name::Event::SignalReceived(signal_name.into()))?;
                     }
+
+                    Ok(())
                 });
                 handler.run_service(|| {
                     #[cfg(target_os = "linux")]
                     #crate_name::sd_notify::notify(false, &[#crate_name::sd_notify::NotifyState::Ready]).unwrap();
-                })
+                })?;
+                signals_handle.close();
+                handle.join().unwrap()?;
+
+                Ok(())
             }
 
             #direct_handler

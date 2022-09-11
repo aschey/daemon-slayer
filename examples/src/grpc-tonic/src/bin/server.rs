@@ -3,7 +3,7 @@ use std::error::Error;
 use daemon_slayer::cli::CliAsync;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
-use daemon_slayer::server::{HandlerAsync, StopHandlerAsync};
+use daemon_slayer::server::{EventHandlerAsync, HandlerAsync};
 use tonic::{transport::Server, Request, Response, Status};
 
 use hello_world::greeter_server::{Greeter, GreeterServer};
@@ -70,13 +70,14 @@ impl HandlerAsync for ServiceHandler {
         "daemon_slayer_async_server"
     }
 
-    fn get_stop_handler(&mut self) -> StopHandlerAsync {
+    fn get_event_handler(&mut self) -> EventHandlerAsync {
         let tx = self.tx.clone();
-        Box::new(move || {
+        Box::new(move |event| {
             let tx = tx.clone();
             Box::pin(async move {
                 info!("stopping");
-                tx.send(()).await.unwrap();
+                tx.send(()).await?;
+                Ok(())
             })
         })
     }

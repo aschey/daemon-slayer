@@ -4,21 +4,27 @@ use std::error::Error;
 #[cfg(feature = "async-tokio")]
 use std::pin::Pin;
 
+use crate::Event;
+
 #[cfg(feature = "async-tokio")]
-pub type StopHandlerAsync = Box<dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
+pub type EventHandlerAsync = Box<
+    dyn Fn(Event) -> Pin<Box<dyn Future<Output = Result<(), Box<dyn Error + Send + Sync>>> + Send>>
+        + Send
+        + Sync,
+>;
 
 #[cfg(feature = "blocking")]
-pub type StopHandlerSync = Box<dyn Fn() + Send>;
+pub type EventHandlerSync = Box<dyn Fn(Event) -> Result<(), Box<dyn Error + Send + Sync>> + Send>;
 
 #[maybe_async_cfg::maybe(
-    idents(StopHandler),
+    idents(EventHandler),
     sync(feature = "blocking"),
     async(feature = "async-tokio", async_trait::async_trait)
 )]
 pub trait Handler {
     fn new() -> Self;
     fn get_service_name<'a>() -> &'a str;
-    fn get_stop_handler(&mut self) -> StopHandler;
+    fn get_event_handler(&mut self) -> EventHandler;
     async fn run_service<F: FnOnce() + Send>(
         self,
         on_started: F,

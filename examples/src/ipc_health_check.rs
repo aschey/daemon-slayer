@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use daemon_slayer::client::{Manager, ServiceManager};
 
 use daemon_slayer::cli::{Action, CliAsync, Command};
-use daemon_slayer::server::{HandlerAsync, ServiceAsync, StopHandlerAsync};
+use daemon_slayer::server::{HandlerAsync, ServiceAsync, EventHandlerAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
@@ -71,7 +71,7 @@ impl HandlerAsync for ServiceHandler {
         "daemon_slayer_ipc_health_check"
     }
 
-    fn get_stop_handler(&mut self) -> StopHandlerAsync {
+    fn get_event_handler(&mut self) -> EventHandlerAsync {
         let tx = self.tx.clone();
         Box::new(move || {
             let mut tx = tx.clone();

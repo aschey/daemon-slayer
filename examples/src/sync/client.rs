@@ -1,6 +1,6 @@
 use daemon_slayer::cli::Action;
+use daemon_slayer::cli::CliSync;
 use daemon_slayer::client::{Manager, ServiceManager};
-use daemon_slayer_cli::CliSync;
 use std::error::Error;
 use std::time::{Duration, Instant};
 use tracing::info;

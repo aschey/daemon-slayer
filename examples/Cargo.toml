@@ -12,6 +12,14 @@ path = "src/async/server.rs"
 name = "async_client"
 path = "src/async/client.rs"
 
+[[bin]]
+name = "sync_server"
+path = "src/sync/server.rs"
+
+[[bin]]
+name = "sync_client"
+path = "src/sync/client.rs"
+
 [dependencies]
 assert_cmd = "2.0.4"
 async-trait = {version = "0.1.57"}

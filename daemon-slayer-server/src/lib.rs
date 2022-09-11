@@ -2,6 +2,10 @@ mod handler;
 pub use handler::*;
 mod service;
 pub use service::*;
+mod event;
+pub use event::*;
+mod signal;
+pub use signal::*;
 
 #[cfg(target_os = "linux")]
 pub use sd_notify;

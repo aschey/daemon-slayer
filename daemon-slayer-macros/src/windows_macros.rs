@@ -5,7 +5,7 @@ use syn::Ident;
 #[maybe_async_cfg::maybe(
     idents(
         Handler,
-        StopHandler,
+        EventHandler,
         get_stop_fn(snake),
         get_direct_handler(snake),
         run_service_main(snake),
@@ -30,9 +30,9 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
             #imports
 
             let mut handler = #ident::new();
-            let stop_handler = handler.get_stop_handler();
+            let event_handler = handler.get_event_handler();
 
-            let event_handler = move |control_event| -> #crate_name::windows_service::service_control_handler::ServiceControlHandlerResult {
+            let windows_service_event_handler = move |control_event| -> #crate_name::windows_service::service_control_handler::ServiceControlHandlerResult {
                 match control_event {
                     // Notifies a service to report its current status information to the service
                     // control manager. Always return NoError even if not implemented.
@@ -48,7 +48,7 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
                 }
             };
 
-            let status_handle = match #crate_name::windows_service::service_control_handler::register(#ident::get_service_name(), event_handler) {
+            let status_handle = match #crate_name::windows_service::service_control_handler::register(#ident::get_service_name(), windows_service_event_handler) {
                 Ok(handle) => std::sync::Arc::new(std::sync::Mutex::new(handle)),
                 Err(e) => {
                     return;
@@ -133,28 +133,32 @@ fn get_service_impl_sync(
 #[cfg(feature = "async")]
 fn get_imports_async(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
-        use #crate_name::{HandlerAsync, StopHandlerAsync};
+        use #crate_name::{HandlerAsync, EventHandlerAsync};
     }
 }
 
 #[cfg(feature = "blocking")]
 fn get_imports_sync(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
-        use #crate_name::{HandlerSync, StopHandlerSync};
+        use #crate_name::{HandlerSync, EventHandlerSync};
     }
 }
 
 #[cfg(feature = "async")]
 fn get_stop_fn_async(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
-        #crate_name::futures::executor::block_on(async { stop_handler().await });
+        if let Err(e) = #crate_name::futures::executor::block_on(async { event_handler(#crate_name::Event::SignalReceived(#crate_name::Signal::SIGINT)).await }) {
+            #crate_name::tracing::error!("Error handling stop signal: {:?}", e);
+        }
     }
 }
 
 #[cfg(feature = "blocking")]
-fn get_stop_fn_sync(_: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
+fn get_stop_fn_sync(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
-        stop_handler();
+        if let Err(e) = event_handler(#crate_name::Event::SignalReceived(#crate_name::Signal::SIGINT)) {
+            #crate_name::tracing::error!("Error handling stop signal: {:?}", e);
+        }
     }
 }
 
@@ -187,13 +191,15 @@ fn get_direct_handler_async(crate_name: &proc_macro2::TokenStream) -> proc_macro
 fn get_direct_handler_async(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
         async fn run_service_direct(mut self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-            let stop_handler = self.get_stop_handler();
-            #crate_name::tokio::spawn(async move {
+            let event_handler = self.get_event_handler();
+            let handle: #crate_name::tokio::task::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>> = #crate_name::tokio::spawn(async move {
                 #crate_name::tokio::signal::ctrl_c().await.unwrap();
-                stop_handler().await;
+                event_handler(#crate_name::Event::SignalReceived(#crate_name::Signal::SIGINT)).await?;
+                Ok(())
             });
 
             self.run_service(|| {}).await?;
+            handle.await?;
             Ok(())
         }
     }
@@ -203,26 +209,24 @@ fn get_direct_handler_async(crate_name: &proc_macro2::TokenStream) -> proc_macro
 fn get_direct_handler_sync(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
         fn run_service_direct(mut self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-            let stop_handler = self.get_stop_handler();
-            std::thread::spawn(move || {
+            let event_handler = self.get_event_handler();
+            let handle: std::thread::JoinHandle::<Result<(), Box<dyn std::error::Error + Send + Sync>>> = std::thread::spawn(move || {
                 let term = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-                #crate_name::signal_hook::flag::register(
-                    #crate_name::signal_hook::consts::SIGTERM,
-                    std::sync::Arc::clone(&term),
-                )
-                .unwrap();
+
                 #crate_name::signal_hook::flag::register(
                     #crate_name::signal_hook::consts::SIGINT,
                     std::sync::Arc::clone(&term),
-                )
-                .unwrap();
+                );
+
                 while !term.load(std::sync::atomic::Ordering::Relaxed) {
                     std::thread::sleep(std::time::Duration::from_millis(10));
                 }
-                stop_handler();
+                event_handler(#crate_name::Event::SignalReceived(#crate_name::Signal::SIGINT))?;
+                Ok(())
             });
 
             self.run_service(|| {})?;
+            handle.join().unwrap()?;
             Ok(())
         }
     }

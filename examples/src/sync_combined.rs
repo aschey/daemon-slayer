@@ -1,7 +1,7 @@
 use daemon_slayer::cli::{Action, CliSync};
 use daemon_slayer::client::{Manager, ServiceManager};
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
-use daemon_slayer::server::{HandlerSync, ServiceSync, StopHandlerSync};
+use daemon_slayer::server::{EventHandlerSync, HandlerSync, ServiceSync};
 use std::error::Error;
 use std::time::{Duration, Instant};
 use tracing::info;
@@ -44,7 +44,7 @@ impl HandlerSync for ServiceHandler {
         "daemon_slayer_sync_combined"
     }
 
-    fn get_stop_handler(&mut self) -> StopHandlerSync {
+    fn get_event_handler(&mut self) -> EventHandlerSync {
         let tx = self.tx.clone();
         Box::new(move || {
             tx.send(()).unwrap();
