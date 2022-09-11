@@ -1,5 +1,5 @@
 use std::error::Error;
-
+#[cfg(feature = "async-tokio")]
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[maybe_async_cfg::maybe(
@@ -56,11 +56,14 @@ pub struct HttpHealthCheck {
 #[cfg(feature = "http-health-check")]
 #[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
 impl HttpHealthCheck {
-    pub fn new(request_type: RequestType, url: impl reqwest::IntoUrl) -> Self {
-        Self {
+    pub fn new(
+        request_type: RequestType,
+        url: impl reqwest::IntoUrl,
+    ) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        Ok(Self {
             request_type,
-            url: url.into_url().unwrap(),
-        }
+            url: url.into_url()?,
+        })
     }
 }
 
@@ -105,5 +108,39 @@ impl HealthCheckSync for HttpHealthCheckSync {
 #[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
 pub struct TcpHealthCheck;
 
-#[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
-pub struct GrpcHealthCheck;
+#[cfg(feature = "grpc-health-check")]
+pub struct GrpcHealthCheckAsync {
+    endpoint: tonic::transport::Endpoint,
+}
+
+#[cfg(feature = "grpc-health-check")]
+impl GrpcHealthCheckAsync {
+    pub fn new<D>(endpoint: D) -> Result<Self, Box<dyn Error + Send + Sync>>
+    where
+        D: std::convert::TryInto<tonic::transport::Endpoint>,
+        D::Error: std::error::Error + Send + Sync + 'static,
+    {
+        Ok(Self {
+            endpoint: endpoint.try_into()?,
+        })
+    }
+}
+
+#[cfg(feature = "grpc-health-check")]
+#[async_trait::async_trait]
+impl HealthCheckAsync for GrpcHealthCheckAsync {
+    async fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let mut client =
+            tonic_health::proto::health_client::HealthClient::connect(self.endpoint.clone())
+                .await?;
+        let response = client
+            .check(tonic_health::proto::HealthCheckRequest::default())
+            .await?;
+        match response.into_inner().status() {
+            tonic_health::proto::health_check_response::ServingStatus::Serving => Ok(()),
+            _ => Err("invalid status"),
+        }?;
+
+        Ok(())
+    }
+}

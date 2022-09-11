@@ -6,7 +6,7 @@ use daemon_slayer::client::{Manager, ServiceManager};
 
 use daemon_slayer::cli::{Action, Command};
 
-use daemon_slayer_cli::CliAsync;
+use daemon_slayer::cli::CliAsync;
 use futures::{SinkExt, StreamExt};
 
 #[tokio::main]

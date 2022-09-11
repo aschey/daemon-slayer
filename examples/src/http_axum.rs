@@ -39,7 +39,7 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
         .with_health_check(Box::new(HttpHealthCheckAsync::new(
             RequestType::Get,
             "http://127.0.0.1:3000/health",
-        )))
+        )?))
         .build();
 
     let mut _logger_guard: Option<LoggerGuard> = None;

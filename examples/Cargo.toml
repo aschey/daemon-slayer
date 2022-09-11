@@ -1,0 +1,25 @@
+[package]
+edition = "2021"
+name = "examples"
+publish = false
+version = "0.1.0"
+
+[[bin]]
+name = "async_server"
+path = "src/async/server.rs"
+
+[[bin]]
+name = "async_client"
+path = "src/async/client.rs"
+
+[dependencies]
+assert_cmd = "2.0.4"
+async-trait = {version = "0.1.57"}
+axum = "0.5.15"
+daemon-slayer = {path = "..", features = ["all-async", "all-sync", "ipc-health-check", "http-health-check"]}
+futures = {version = "0.3.23"}
+tokio = {version = "1.20.1", features = ["rt-multi-thread", "time", "macros"]}
+tonic = "0.8.1"
+tower-http = {version = "0.3.4", features = ["trace"]}
+tracing = "0.1.36"
+tracing-subscriber = {version = "0.3.15", features = ["local-time", "env-filter"]}

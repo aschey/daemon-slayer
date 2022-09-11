@@ -12,6 +12,9 @@ members = [
   "daemon-slayer-logging",
   "daemon-slayer-console",
   "integration-tests",
+  "examples",
+  "examples/src/grpc-tonic",
+  "examples/src/http-axum",
 ]
 resolver = "2"
 
@@ -29,6 +32,7 @@ cli = ["daemon-slayer-cli"]
 client = ["daemon-slayer-client"]
 console = ["daemon-slayer-console", "daemon-slayer-cli/console"]
 direct = ["daemon-slayer-server/direct", "daemon-slayer-cli/direct"]
+grpc-health-check = ["daemon-slayer-client/grpc-health-check"]
 http-health-check = ["daemon-slayer-client/http-health-check"]
 ipc-health-check = ["daemon-slayer-client/ipc-health-check", "daemon-slayer-server/ipc-health-check"]
 logging = ["daemon-slayer-logging"]
@@ -42,47 +46,3 @@ daemon-slayer-client = {path = "./daemon-slayer-client", optional = true}
 daemon-slayer-console = {path = "./daemon-slayer-console", optional = true}
 daemon-slayer-logging = {path = "./daemon-slayer-logging", optional = true}
 daemon-slayer-server = {path = "./daemon-slayer-server", optional = true}
-
-[dev-dependencies]
-assert_cmd = "2.0.4"
-async-trait = {version = "0.1.57"}
-axum = "0.5.15"
-futures = {version = "0.3.23"}
-tokio = {version = "1.20.1", features = ["rt-multi-thread", "time", "macros"]}
-tower-http = {version = "0.3.4", features = ["trace"]}
-tracing = "0.1.36"
-tracing-subscriber = {version = "0.3.15", features = ["local-time", "env-filter"]}
-
-[[example]]
-name = "async_combined"
-required-features = ["all-async"]
-[[example]]
-name = "sync_combined"
-required-features = ["all-sync"]
-[[example]]
-name = "async_client"
-required-features = ["async-client"]
-[[example]]
-name = "async_server"
-required-features = ["async-server"]
-[[example]]
-name = "sync_client"
-required-features = ["sync-client"]
-[[example]]
-name = "sync_server"
-required-features = ["sync-server"]
-[[example]]
-name = "axum"
-required-features = ["all-async", "http-health-check"]
-[[example]]
-name = "errors"
-required-features = ["all-async"]
-[[example]]
-name = "custom_commands"
-required-features = ["all-async"]
-[[example]]
-name = "faulty"
-required-features = ["all-async", "ipc-health-check"]
-[[example]]
-name = "ipc_health_check"
-required-features = ["all-async", "ipc-health-check"]

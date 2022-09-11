@@ -24,14 +24,13 @@ args = [
   "hack",
   "--feature-powerset",
   "--exclude-features",
-  "cli client server console direct logging server async-tokio ipc-health-check http-health-check",
+  "cli client server console direct logging server async-tokio ipc-health-check http-health-check grpc-health-check",
   "build",
-  "--examples",
 ]
 command = "cargo"
 dependencies = ["build-extra"]
 install_crate = "cargo-hack"
 
 [tasks.build-all]
-args = ["build", "--features", "all-async,all-sync,ipc-health-check,http-health-check", "--examples"]
+args = ["build", "--features", "all-async,all-sync,ipc-health-check,http-health-check", "--workspace"]
 command = "cargo"
