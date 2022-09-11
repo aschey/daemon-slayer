@@ -28,10 +28,10 @@ jobs:
           shared-key: cache-${{ hashFiles('**/Cargo.toml') }}
       - name: test
         env: 
-          PROTOC: ~/protoc/bin/protoc
+          PROTOC: ${{ github.workspace }}/protoc/bin/protoc
         run: |
           curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.19.4/protoc-3.19.4-${{ matrix.protoc-target }}.zip
-          unzip protoc-3.19.4-${{ matrix.protoc-target }}.zip -d "$HOME/protoc"
+          unzip protoc-3.19.4-${{ matrix.protoc-target }}.zip -d "${{ github.workspace }}/protoc"
           cargo install cargo-hack
           cargo install cargo-make
           cargo make build-powerset
