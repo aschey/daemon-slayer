@@ -4,8 +4,6 @@ name: CI
 
 jobs:
   test:
-    env: 
-      PROTOC: $HOME/protoc/bin/protoc
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -29,6 +27,8 @@ jobs:
         with:
           shared-key: cache-${{ hashFiles('**/Cargo.toml') }}
       - name: test
+        env: 
+          PROTOC: ${{ home }}/protoc/bin/protoc
         run: |
           curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.19.4/protoc-3.19.4-${{ matrix.protoc-target }}.zip
           unzip protoc-3.19.4-${{ matrix.protoc-target }}.zip -d "$HOME/protoc"
