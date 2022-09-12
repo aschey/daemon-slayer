@@ -17,4 +17,3 @@ syn = "1.0.99"
 async = []
 blocking = []
 direct = []
-signal-handler = []

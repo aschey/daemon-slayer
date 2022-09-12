@@ -16,10 +16,10 @@ members = [
 resolver = "2"
 
 [features]
-all-async = ["async-client", "async-server", "daemon-slayer-cli/all-async", "signal-handler-async"]
-all-sync = ["sync-client", "sync-server", "daemon-slayer-cli/all-sync", "signal-handler-blocking"]
-async-client = ["console", "async-tokio", "client", "cli", "daemon-slayer-client/async-tokio"]
-async-server = ["direct", "async-tokio", "server", "cli", "logging", "signal-handler-async"]
+all-async = ["async-client", "async-server", "daemon-slayer-cli/all-async"]
+all-sync = ["sync-client", "sync-server", "daemon-slayer-cli/all-sync"]
+async-client = ["console", "async-tokio", "client", "cli", "daemon-slayer-cli/async-client", "daemon-slayer-client/async-tokio"]
+async-server = ["direct", "async-tokio", "server", "cli", "logging", "daemon-slayer-cli/async-server"]
 async-tokio = [
   "daemon-slayer-server/async-tokio",
   "daemon-slayer-cli/async-tokio",
@@ -34,10 +34,8 @@ http-health-check = ["daemon-slayer-client/http-health-check"]
 ipc-health-check = ["daemon-slayer-client/ipc-health-check", "daemon-slayer-server/ipc-health-check"]
 logging = ["daemon-slayer-logging"]
 server = ["daemon-slayer-server"]
-signal-handler-async = ["server", "daemon-slayer-server/signal-handler-async"]
-signal-handler-blocking = ["server", "daemon-slayer-server/signal-handler-blocking"]
 sync-client = ["client", "cli", "daemon-slayer-cli/sync-client", "daemon-slayer-client/blocking"]
-sync-server = ["direct", "server", "logging", "cli", "daemon-slayer-cli/sync-server", "daemon-slayer-server/blocking", "signal-handler-blocking"]
+sync-server = ["direct", "server", "logging", "cli", "daemon-slayer-cli/sync-server", "daemon-slayer-server/blocking"]
 
 [dependencies]
 daemon-slayer-cli = {path = "./daemon-slayer-cli", optional = true}

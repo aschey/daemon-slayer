@@ -4,12 +4,10 @@ name = "daemon-slayer-server"
 version = "0.1.0"
 
 [features]
-async-tokio = ["tokio", "async-trait", "futures", "daemon-slayer-macros/async"]
+async-tokio = ["tokio", "signal-hook-tokio", "async-trait", "futures", "daemon-slayer-macros/async"]
 blocking = ["daemon-slayer-macros/blocking"]
 direct = ["signal-hook", "daemon-slayer-macros/direct"]
 ipc-health-check = ["parity-tokio-ipc", "async-tokio"]
-signal-handler-async = ["async-tokio", "signal-hook", "signal-hook-tokio", "tokio/signal", "daemon-slayer-macros/signal-handler"]
-signal-handler-blocking = ["signal-hook", "daemon-slayer-macros/signal-handler"]
 
 [dependencies]
 async-trait = {version = "0.1.57", optional = true}
@@ -22,7 +20,7 @@ tracing = "0.1.36"
 
 [target.'cfg(windows)'.dependencies]
 signal-hook = {version = "0.3.14", optional = true}
-tokio = {version = "1.20.1", features = ["rt-multi-thread", "net"], optional = true}
+tokio = {version = "1.20.1", features = ["rt-multi-thread", "signal", "net"], optional = true}
 windows-service = {git = "https://github.com/aschey/windows-service-rs", rev = "467408c9aba7d8221e5cf5a9992765ad7abeeb55"}
 
 [target.'cfg(unix)'.dependencies]
@@ -35,6 +33,3 @@ sd-notify = "0.4.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 launchd = "0.2.0"
-
-[dev-dependencies]
-assert_cmd = "2.0.4"
