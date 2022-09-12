@@ -27,19 +27,43 @@ pub(crate) fn define_service_async(
                 ])
                 .unwrap();
 
+                let (file_tx, mut file_rx) = #crate_name::tokio::sync::mpsc::channel(32);
+                let debouncer = start_file_watcher(handler.get_watch_paths(), file_tx);
+
                 let signals_handle = signals.handle();
 
-                let signals_task: #crate_name::tokio::task::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>> = #crate_name::tokio::spawn(async move {
+                let event_task: #crate_name::tokio::task::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>> = #crate_name::tokio::spawn(async move {
                     use #crate_name::futures::stream::StreamExt;
 
                     let mut signals = signals.fuse();
-                    while let Some(signal) = signals.next().await {
-                        #[cfg(target_os = "linux")]
-                        #crate_name::sd_notify::notify(false, &[#crate_name::sd_notify::NotifyState::Stopping]).unwrap();
-                        let signal_name = #crate_name::signal_hook::low_level::signal_name(signal).unwrap_or("unknown");
-                        event_handler(#crate_name::Event::SignalReceived(signal_name.into())).await?;
+
+                    loop {
+                        #crate_name::tokio::select! {
+                            files = file_rx.recv() => {
+                                match files {
+                                    Some(files) => {
+                                        event_handler(#crate_name::Event::FileChanged(files)).await?;
+                                    },
+                                    None => {
+                                        return Ok(());
+                                    }
+                                }
+                            }
+                            signal = signals.next() => {
+                                match signal {
+                                    Some(signal) => {
+                                        #[cfg(target_os = "linux")]
+                                        #crate_name::sd_notify::notify(false, &[#crate_name::sd_notify::NotifyState::Stopping]).unwrap();
+                                        let signal_name = #crate_name::signal_hook::low_level::signal_name(signal).unwrap_or("unknown");
+                                        event_handler(#crate_name::Event::SignalReceived(signal_name.into())).await?;
+                                    },
+                                    None => {
+                                        return Ok(());
+                                    }
+                                }
+                            }
+                        }
                     }
-                    Ok(())
                 });
 
                 let result = handler.run_service(|| {
@@ -48,11 +72,36 @@ pub(crate) fn define_service_async(
                 }).await;
 
                 signals_handle.close();
-                signals_task.await.unwrap()?;
+                drop(debouncer);
+                event_task.await.unwrap()?;
                 result
             }
 
             #direct_handler
+        }
+
+        fn start_file_watcher(paths: &[std::path::PathBuf], 
+            tx: #crate_name::tokio::sync::mpsc::Sender<Vec<std::path::PathBuf>>) -> 
+            #crate_name::notify_debouncer_mini::Debouncer<#crate_name::notify::RecommendedWatcher> {
+            let (watch_tx, watch_rx) = std::sync::mpsc::channel();
+            let mut debouncer =
+                #crate_name::notify_debouncer_mini::new_debouncer(std::time::Duration::from_secs(2), None, watch_tx).unwrap();
+            let watcher = debouncer.watcher();
+        
+            for path in paths {
+                watcher
+                    .watch(path, #crate_name::notify::RecursiveMode::Recursive)
+                    .unwrap();
+            }
+
+            #crate_name::tokio::task::spawn_blocking(move || {
+                for events in watch_rx {
+                    let e = events.unwrap().into_iter().map(|e| e.path).collect();
+                    tx.blocking_send(e).unwrap();
+                }
+            });
+
+            debouncer
         }
     }
     .into()

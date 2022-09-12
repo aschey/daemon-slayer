@@ -31,4 +31,6 @@ pub use tokio;
 
 pub use daemon_slayer_macros::*;
 pub use maybe_async_cfg;
+pub use notify;
+pub use notify_debouncer_mini;
 pub use tracing;
