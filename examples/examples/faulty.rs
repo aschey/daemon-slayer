@@ -2,19 +2,19 @@ use std::env::args;
 use std::error::Error;
 use std::time::{Duration, Instant};
 
-use daemon_slayer::client::{Manager, ServiceManager};
+use daemon_slayer::client::{Level, Manager, ServiceManager};
 
 use daemon_slayer::cli::{Action, CliAsync, Command};
-use daemon_slayer::server::{HandlerAsync, ServiceAsync, EventHandlerAsync};
+use daemon_slayer::server::{EventHandlerAsync, HandlerAsync, ServiceAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
-use daemon_slayer_client::{IpcHealthCheckAsync, Level};
-use daemon_slayer_server::IpcHealthCheckServer;
+use daemon_slayer::client::health_check::IpcHealthCheckAsync;
+use daemon_slayer::server::IpcHealthCheckServer;
 use futures::{SinkExt, StreamExt};
 use tracing::info;
 
-use tracing_subscriber::util::SubscriberInitExt;
+use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 
 pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
@@ -47,7 +47,15 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
         let (logger, guard) = logger_builder.with_ipc_logger(true).build().unwrap();
         _logger_guard = Some(guard);
         logger.init();
-        health_check_server.spawn_server();
+        tokio::spawn(async move {
+            // Simulate a health check that fails sporadically
+            loop {
+                let handle = health_check_server.spawn_server();
+                tokio::time::sleep(Duration::from_secs(2)).await;
+                handle.abort();
+                tokio::time::sleep(Duration::from_secs(2)).await;
+            }
+        });
     }
 
     cli.handle_input().await?;
@@ -68,16 +76,17 @@ impl HandlerAsync for ServiceHandler {
     }
 
     fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_ipc_health_check"
+        "daemon_slayer_faulty"
     }
 
     fn get_event_handler(&mut self) -> EventHandlerAsync {
         let tx = self.tx.clone();
-        Box::new(move || {
+        Box::new(move |event| {
             let mut tx = tx.clone();
             Box::pin(async move {
                 info!("stopping");
-                tx.send(()).await.unwrap();
+                tx.send(()).await?;
+                Ok(())
             })
         })
     }

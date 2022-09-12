@@ -13,9 +13,12 @@ pub use sd_notify;
 #[cfg(windows)]
 pub use windows_service;
 
-#[cfg(any(unix, feature = "direct"))]
+#[cfg(all(
+    any(feature = "signal-handler-blocking", feature = "signal-handler-async"),
+    any(unix, feature = "direct")
+))]
 pub use signal_hook;
-#[cfg(all(unix, feature = "async-tokio"))]
+#[cfg(all(unix, feature = "signal-handler-async"))]
 pub use signal_hook_tokio;
 #[cfg(all(feature = "async-tokio", feature = "ipc-health-check"))]
 mod ipc_health_check;

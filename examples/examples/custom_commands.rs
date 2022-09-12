@@ -5,15 +5,14 @@ use std::time::{Duration, Instant};
 use daemon_slayer::client::{Manager, ServiceManager};
 
 use daemon_slayer::cli::{clap, Action, CliAsync, InputState};
-use daemon_slayer::server::{HandlerAsync, ServiceAsync, EventHandlerAsync};
+use daemon_slayer::server::{EventHandlerAsync, HandlerAsync, ServiceAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
-use daemon_slayer_client::Level;
+use daemon_slayer::client::Level;
+use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use futures::{SinkExt, StreamExt};
 use tracing::info;
-
-use tracing_subscriber::util::SubscriberInitExt;
 
 pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
@@ -82,11 +81,12 @@ impl HandlerAsync for ServiceHandler {
 
     fn get_event_handler(&mut self) -> EventHandlerAsync {
         let tx = self.tx.clone();
-        Box::new(move || {
+        Box::new(move |event| {
             let mut tx = tx.clone();
             Box::pin(async move {
                 info!("stopping");
-                tx.send(()).await.unwrap();
+                tx.send(()).await?;
+                Ok(())
             })
         })
     }

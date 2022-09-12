@@ -4,16 +4,15 @@ use std::time::{Duration, Instant};
 
 use daemon_slayer::client::{Manager, ServiceManager};
 
-use daemon_slayer::cli::{Action, CliAsync, Command};
-use daemon_slayer::server::{HandlerAsync, ServiceAsync, EventHandlerAsync};
+use daemon_slayer::cli::{clap, Action, CliAsync, Command};
+use daemon_slayer::server::{EventHandlerAsync, HandlerAsync, ServiceAsync};
 
+use daemon_slayer::client::Level;
+use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
-
-use daemon_slayer_client::Level;
 use futures::{SinkExt, StreamExt};
 use tracing::info;
-
-use tracing_subscriber::util::SubscriberInitExt;
+use tracing::log::error;
 
 pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
@@ -29,7 +28,7 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
         } else {
             Level::User
         })
-        .with_autostart(false)
+        .with_autostart(true)
         .with_args(["run"])
         .build()
         .unwrap();
@@ -39,6 +38,7 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
     let mut _logger_guard: Option<LoggerGuard> = None;
 
     if cli.action_type() == Action::Server {
+        // std::process::exit(1);
         let (logger, guard) = logger_builder.with_ipc_logger(true).build().unwrap();
         _logger_guard = Some(guard);
         logger.init();
@@ -62,16 +62,17 @@ impl HandlerAsync for ServiceHandler {
     }
 
     fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_async_combined"
+        "daemon_slayer_errors"
     }
 
     fn get_event_handler(&mut self) -> EventHandlerAsync {
         let tx = self.tx.clone();
-        Box::new(move || {
+        Box::new(move |event| {
             let mut tx = tx.clone();
             Box::pin(async move {
                 info!("stopping");
-                tx.send(()).await.unwrap();
+                tx.send(()).await?;
+                Ok(())
             })
         })
     }
@@ -82,7 +83,12 @@ impl HandlerAsync for ServiceHandler {
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         info!("running service");
         on_started();
+        let start = Instant::now();
         loop {
+            if Instant::now().duration_since(start) > Duration::from_secs(5) {
+                error!("An error occurred");
+                return Err("Something bad happened")?;
+            }
             match tokio::time::timeout(Duration::from_secs(1), self.rx.next()).await {
                 Ok(_) => {
                     info!("stopping service");

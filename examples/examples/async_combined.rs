@@ -2,15 +2,17 @@ use std::env::args;
 use std::error::Error;
 use std::time::{Duration, Instant};
 
+use daemon_slayer::client::{Manager, ServiceManager};
+
 use daemon_slayer::cli::{Action, CliAsync, Command};
+use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::server::{EventHandlerAsync, HandlerAsync, ServiceAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
+use daemon_slayer::client::Level;
 use futures::{SinkExt, StreamExt};
 use tracing::info;
-
-use tracing_subscriber::util::SubscriberInitExt;
 
 pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
@@ -19,11 +21,19 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let cli = CliAsync::new_server(
-        ServiceHandler::new(),
-        "daemon_slayer_test_service".to_owned(),
-        "test_service".to_owned(),
-    );
+    let manager = ServiceManager::builder(ServiceHandler::get_service_name())
+        .with_description("test service")
+        .with_service_level(if cfg!(windows) {
+            Level::System
+        } else {
+            Level::User
+        })
+        .with_autostart(false)
+        .with_args(["run"])
+        .build()
+        .unwrap();
+
+    let cli = CliAsync::new(manager, ServiceHandler::new());
 
     let mut _logger_guard: Option<LoggerGuard> = None;
 
@@ -51,13 +61,12 @@ impl HandlerAsync for ServiceHandler {
     }
 
     fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_async_server"
+        "daemon_slayer_async_combined"
     }
 
     fn get_event_handler(&mut self) -> EventHandlerAsync {
         let tx = self.tx.clone();
         Box::new(move |event| {
-            info!("Received event {event:?}");
             let mut tx = tx.clone();
             Box::pin(async move {
                 info!("stopping");

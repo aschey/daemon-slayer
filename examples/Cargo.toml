@@ -4,21 +4,7 @@ name = "examples"
 publish = false
 version = "0.1.0"
 
-[[bin]]
-name = "async_server"
-path = "src/async/server.rs"
-
-[[bin]]
-name = "async_client"
-path = "src/async/client.rs"
-
-[[bin]]
-name = "sync_server"
-path = "src/sync/server.rs"
-
-[[bin]]
-name = "sync_client"
-path = "src/sync/client.rs"
+[workspace]
 
 [dependencies]
 assert_cmd = "2.0.4"
@@ -30,4 +16,3 @@ tokio = {version = "1.20.1", features = ["rt-multi-thread", "time", "macros"]}
 tonic = "0.8.1"
 tower-http = {version = "0.3.4", features = ["trace"]}
 tracing = "0.1.36"
-tracing-subscriber = {version = "0.3.15", features = ["local-time", "env-filter"]}
