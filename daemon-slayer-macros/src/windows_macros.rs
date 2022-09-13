@@ -6,20 +6,17 @@ use syn::Ident;
     idents(
         Handler,
         EventHandler,
-        get_stop_fn(snake),
+        get_service_main(snake),
         get_direct_handler(snake),
-        run_service_main(snake),
-        get_imports(snake),
         get_service_impl(snake)
     ),
     sync(feature = "blocking"),
     async(feature = "async")
 )]
 pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream) -> TokenStream {
-    let stop_fn = crate::windows_macros::get_stop_fn(&crate_name);
     let direct_handler = crate::windows_macros::get_direct_handler(&crate_name);
-    let service_main = crate::windows_macros::run_service_main(&crate_name);
-    let imports = crate::windows_macros::get_imports(&crate_name);
+    let service_main = crate::windows_macros::get_service_main(&crate_name, &ident);
+
     let service_impl =
         crate::windows_macros::get_service_impl(&crate_name, &ident, &direct_handler);
 
@@ -27,65 +24,7 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
         #crate_name::windows_service::define_windows_service!(func_service_main, handle_service_main);
 
         pub fn handle_service_main(_: Vec<std::ffi::OsString>) {
-            #imports
-
-            let mut handler = #ident::new();
-            let event_handler = handler.get_event_handler();
-
-            let windows_service_event_handler = move |control_event| -> #crate_name::windows_service::service_control_handler::ServiceControlHandlerResult {
-                match control_event {
-                    // Notifies a service to report its current status information to the service
-                    // control manager. Always return NoError even if not implemented.
-                    #crate_name::windows_service::service::ServiceControl::Interrogate => #crate_name::windows_service::service_control_handler::ServiceControlHandlerResult::NoError,
-
-                    // Handle stop
-                    #crate_name::windows_service::service::ServiceControl::Stop => {
-                        #stop_fn
-                        #crate_name::windows_service::service_control_handler::ServiceControlHandlerResult::NoError
-                    }
-
-                    _ => #crate_name::windows_service::service_control_handler::ServiceControlHandlerResult::NotImplemented,
-                }
-            };
-
-            let status_handle = match #crate_name::windows_service::service_control_handler::register(#ident::get_service_name(), windows_service_event_handler) {
-                Ok(handle) => std::sync::Arc::new(std::sync::Mutex::new(handle)),
-                Err(e) => {
-                    return;
-                }
-            };
-            let status_handle_ = status_handle.clone();
-            let on_started = move || {
-                status_handle_.lock().unwrap()
-                    .set_service_status(#crate_name::windows_service::service::ServiceStatus {
-                        service_type: #crate_name::windows_service::service::ServiceType::OWN_PROCESS,
-                        current_state: #crate_name::windows_service::service::ServiceState::Running,
-                        controls_accepted: #crate_name::windows_service::service::ServiceControlAccept::STOP,
-                        exit_code: #crate_name::windows_service::service::ServiceExitCode::Win32(0),
-                        checkpoint: 0,
-                        wait_hint: std::time::Duration::default(),
-                        process_id: None,
-                    })
-                    .unwrap();
-            };
-
-            #service_main;
-
-            let exit_code = match service_result {
-                Ok(()) => 0,
-                Err(_) => 1
-            };
-            status_handle.lock().unwrap()
-                .set_service_status(#crate_name::windows_service::service::ServiceStatus {
-                    service_type: #crate_name::windows_service::service::ServiceType::OWN_PROCESS,
-                    current_state: #crate_name::windows_service::service::ServiceState::Stopped,
-                    controls_accepted: #crate_name::windows_service::service::ServiceControlAccept::empty(),
-                    exit_code: #crate_name::windows_service::service::ServiceExitCode::Win32(exit_code),
-                    checkpoint: 0,
-                    wait_hint: std::time::Duration::default(),
-                    process_id: None,
-                })
-                .unwrap();
+            #service_main
         }
 
         #service_impl
@@ -131,49 +70,22 @@ fn get_service_impl_sync(
 }
 
 #[cfg(feature = "async")]
-fn get_imports_async(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
+fn get_service_main_async(
+    crate_name: &proc_macro2::TokenStream,
+    ident: &Ident,
+) -> proc_macro2::TokenStream {
     quote! {
-        use #crate_name::{HandlerAsync, EventHandlerAsync};
+        #crate_name::platform::get_service_main_async::<#ident>();
     }
 }
 
 #[cfg(feature = "blocking")]
-fn get_imports_sync(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
+fn get_service_main_sync(
+    crate_name: &proc_macro2::TokenStream,
+    ident: &Ident,
+) -> proc_macro2::TokenStream {
     quote! {
-        use #crate_name::{HandlerSync, EventHandlerSync};
-    }
-}
-
-#[cfg(feature = "async")]
-fn get_stop_fn_async(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
-    quote! {
-        if let Err(e) = #crate_name::futures::executor::block_on(async { event_handler(#crate_name::Event::SignalReceived(#crate_name::Signal::SIGINT)).await }) {
-            #crate_name::tracing::error!("Error handling stop signal: {:?}", e);
-        }
-    }
-}
-
-#[cfg(feature = "blocking")]
-fn get_stop_fn_sync(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
-    quote! {
-        if let Err(e) = event_handler(#crate_name::Event::SignalReceived(#crate_name::Signal::SIGINT)) {
-            #crate_name::tracing::error!("Error handling stop signal: {:?}", e);
-        }
-    }
-}
-
-#[cfg(feature = "async")]
-fn run_service_main_async(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
-    quote! {
-        let rt = #crate_name::tokio::runtime::Runtime::new().unwrap();
-        let service_result = rt.block_on(async { handler.run_service(on_started).await });
-    }
-}
-
-#[cfg(feature = "blocking")]
-fn run_service_main_sync(_: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
-    quote! {
-        let service_result = handler.run_service(on_started);
+        #crate_name::platform::get_service_main_sync::<#ident>();
     }
 }
 
@@ -190,17 +102,8 @@ fn get_direct_handler_async(crate_name: &proc_macro2::TokenStream) -> proc_macro
 #[cfg(all(feature = "direct", feature = "async"))]
 fn get_direct_handler_async(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
-        async fn run_service_direct(mut self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-            let event_handler = self.get_event_handler();
-            let handle: #crate_name::tokio::task::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>> = #crate_name::tokio::spawn(async move {
-                #crate_name::tokio::signal::ctrl_c().await.unwrap();
-                event_handler(#crate_name::Event::SignalReceived(#crate_name::Signal::SIGINT)).await?;
-                Ok(())
-            });
-
-            self.run_service(|| {}).await?;
-            handle.await?;
-            Ok(())
+         async fn run_service_direct(mut self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            #crate_name::platform::get_direct_handler_async(*self).await
         }
     }
 }
@@ -209,25 +112,7 @@ fn get_direct_handler_async(crate_name: &proc_macro2::TokenStream) -> proc_macro
 fn get_direct_handler_sync(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
         fn run_service_direct(mut self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-            let event_handler = self.get_event_handler();
-            let handle: std::thread::JoinHandle::<Result<(), Box<dyn std::error::Error + Send + Sync>>> = std::thread::spawn(move || {
-                let term = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-
-                #crate_name::signal_hook::flag::register(
-                    #crate_name::signal_hook::consts::SIGINT,
-                    std::sync::Arc::clone(&term),
-                );
-
-                while !term.load(std::sync::atomic::Ordering::Relaxed) {
-                    std::thread::sleep(std::time::Duration::from_millis(10));
-                }
-                event_handler(#crate_name::Event::SignalReceived(#crate_name::Signal::SIGINT))?;
-                Ok(())
-            });
-
-            self.run_service(|| {})?;
-            handle.join().unwrap()?;
-            Ok(())
+            #crate_name::platform::get_direct_handler_sync(*self)
         }
     }
 }

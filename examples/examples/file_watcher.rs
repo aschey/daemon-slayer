@@ -69,7 +69,7 @@ impl HandlerAsync for ServiceHandler {
     }
 
     fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_async_combined"
+        "daemon_slayer_async_file_watcher"
     }
 
     fn get_watch_paths(&self) -> &[PathBuf] {

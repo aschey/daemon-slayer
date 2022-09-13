@@ -6,6 +6,7 @@ mod event;
 pub use event::*;
 mod signal;
 pub use signal::*;
+pub mod platform;
 
 #[cfg(target_os = "linux")]
 pub use sd_notify;

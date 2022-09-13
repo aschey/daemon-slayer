@@ -22,7 +22,7 @@ tracing = "0.1.36"
 
 [target.'cfg(windows)'.dependencies]
 signal-hook = {version = "0.3.14", optional = true}
-tokio = {version = "1.20.1", features = ["rt-multi-thread", "signal", "net"], optional = true}
+tokio = {version = "1.20.1", features = ["rt-multi-thread", "signal", "net", "macros"], optional = true}
 windows-service = {git = "https://github.com/aschey/windows-service-rs", rev = "467408c9aba7d8221e5cf5a9992765ad7abeeb55"}
 
 [target.'cfg(unix)'.dependencies]
