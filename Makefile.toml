@@ -34,3 +34,66 @@ install_crate = "cargo-hack"
 [tasks.build-all]
 args = ["build", "--features", "all-async,all-sync,ipc-health-check,http-health-check", "--workspace"]
 command = "cargo"
+
+[tasks.build-coverage]
+args = ["build", "--workspace"]
+command = "cargo"
+env = {RUSTFLAGS = "-Cinstrument-coverage", LLVM_PROFILE_FILE = "daemon-slayer-%p-%m.profraw"}
+
+[tasks.gen-coverage]
+args = ["test", "--workspace"]
+command = "cargo"
+dependencies = ["build-coverage"]
+env = {RUSTFLAGS = "-Cinstrument-coverage", LLVM_PROFILE_FILE = "daemon-slayer-%p-%m.profraw"}
+
+[tasks.copy-coverage]
+dependencies = ["gen-coverage"]
+script = '''
+cp C:\Windows\System32\default.profraw .
+'''
+
+[tasks.gen-coverage-report]
+args = [
+  ".",
+  "-s",
+  ".",
+  "--binary-path",
+  "./target/debug/",
+  "-t",
+  "html",
+  "--branch",
+  "--ignore-not-existing",
+  "--ignore",
+  "target/**/*",
+  "--ignore",
+  "integration-tests/**/*",
+  "--ignore",
+  "daemon-slayer-macros/**/*",
+  "-o",
+  "./target/debug/coverage/",
+]
+command = "grcov"
+dependencies = ["copy-coverage"]
+install_crate = {rustup_component_name = "llvm-tools-preview", crate_name = "grcov"}
+
+[tasks.cleanup-coverage]
+clear = true
+dependencies = ["gen-coverage-report"]
+script = """
+handle = glob_array ./**/*.profraw
+for path in ${handle}
+    rm ${path}
+end
+"""
+script_runner = "@duckscript"
+
+[tasks.coverage]
+clear = true
+dependencies = ["cleanup-coverage"]
+script = "xdg-open target/debug/coverage/index.html"
+
+[tasks.coverage.windows]
+clear = true
+dependencies = ["cleanup-coverage"]
+script = "./target/debug/coverage/index.html"
+script_runner = "@shell"
