@@ -1,18 +1,18 @@
 use assert_cmd::Command;
 use daemon_slayer::client::{Manager, ServiceManager, State};
-use std::{thread, time::Duration};
+use std::{fs::File, io::Write, thread, time::Duration};
 
 #[test]
 fn test_async_combined() {
-    test_combined("daemon_slayer_test_service_async", "async_combined");
+    test_combined("daemon_slayer_test_service_async", "async_combined", 3002);
 }
 
 #[test]
 fn test_sync_combined() {
-    test_combined("daemon_slayer_test_service_sync", "sync_combined");
+    test_combined("daemon_slayer_test_service_sync", "sync_combined", 3001);
 }
 
-fn test_combined(service_name: &str, bin_name: &str) {
+fn test_combined(service_name: &str, bin_name: &str, port: i32) {
     let manager = ServiceManager::builder(service_name).build().unwrap();
     if manager.info().unwrap().state != State::NotInstalled {
         manager.stop().unwrap();
@@ -29,10 +29,13 @@ fn test_combined(service_name: &str, bin_name: &str) {
             thread::sleep(Duration::from_millis(100));
         }
     }
+    let config_file = tempfile::tempdir().unwrap().into_path().join("config.toml");
 
+    std::fs::write(&config_file, "test = true").unwrap();
     Command::cargo_bin(bin_name)
         .unwrap()
         .arg("install")
+        .env("CONFIG_FILE", config_file.to_string_lossy().to_string())
         .output()
         .unwrap();
 
@@ -70,6 +73,26 @@ fn test_combined(service_name: &str, bin_name: &str) {
         let autostart = manager.info().unwrap().autostart.unwrap();
         println!("Waiting for autostart: {autostart:?}");
         if autostart {
+            break;
+        }
+        thread::sleep(Duration::from_millis(100));
+    }
+
+    let config = reqwest::blocking::get(format!("http://127.0.0.1:{port}/config"))
+        .unwrap()
+        .text()
+        .unwrap();
+    assert_eq!("false", config);
+
+    std::fs::write(config_file, "test = true").unwrap();
+
+    loop {
+        let config = reqwest::blocking::get(format!("http://127.0.0.1:{port}/config"))
+            .unwrap()
+            .text()
+            .unwrap();
+        println!("Waiting for config update: {config}");
+        if config == "true" {
             break;
         }
         thread::sleep(Duration::from_millis(100));

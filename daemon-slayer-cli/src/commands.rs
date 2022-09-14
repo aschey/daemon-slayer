@@ -8,6 +8,10 @@ impl Commands {
     pub(crate) fn insert(&mut self, key: &'static str, value: Command) {
         self.0.insert(key, value);
     }
+
+    pub(crate) fn remove(&mut self, key: &'static str) {
+        self.0.remove(key);
+    }
 }
 
 impl Default for Commands {

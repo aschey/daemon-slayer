@@ -7,25 +7,25 @@ version = "0.1.0"
 async-tokio = ["tokio", "async-trait", "futures", "tracing-ipc"]
 
 [dependencies]
-async-trait = {version = "0.1.57", optional = true}
-directories = {version = "4.0.1"}
-futures = {version = "0.3.23", optional = true}
-once_cell = "1.14.0"
-parity-tokio-ipc = "0.9.0"
-time = "0.3.14"
-tracing = "0.1.36"
-tracing-appender = {version = "0.2.2"}
-tracing-error = {version = "0.2.0"}
+async-trait = {version = "0.1", optional = true}
+directories = {version = "4"}
+futures = {version = "0.3", optional = true}
+once_cell = "1"
+parity-tokio-ipc = "0.9"
+time = "0.3"
+tracing = "0.1"
+tracing-appender = {version = "0.2"}
+tracing-error = {version = "0.2"}
 tracing-ipc = {git = "https://github.com/aschey/tracing-ipc", rev = "90566f704bac6b5d43d9873622db57e9c755ea5d", optional = true}
-tracing-subscriber = {version = "0.3.15", features = ["local-time", "env-filter"]}
+tracing-subscriber = {version = "0.3", features = ["local-time", "env-filter"]}
 
 [target.'cfg(windows)'.dependencies]
-tokio = {version = "1.20.1", features = ["rt-multi-thread", "signal", "net", "io-util", "sync"], optional = true}
+tokio = {version = "1", features = ["rt-multi-thread", "signal", "net", "io-util", "sync"], optional = true}
 tracing-eventlog = {git = "https://github.com/aschey/tracing-eventlog", rev = "e87ec17edfb374101e1a9bda14b0e5b534d1cc56"}
 windows-service = {git = "https://github.com/aschey/windows-service-rs", rev = "467408c9aba7d8221e5cf5a9992765ad7abeeb55"}
 
 [target.'cfg(unix)'.dependencies]
-tokio = {version = "1.20.1", features = ["rt-multi-thread", "net", "io-util", "sync"], optional = true}
+tokio = {version = "1", features = ["rt-multi-thread", "net", "io-util", "sync"], optional = true}
 
 [target.'cfg(target_os="linux")'.dependencies]
-tracing-journald = "0.3.0"
+tracing-journald = "0.3"

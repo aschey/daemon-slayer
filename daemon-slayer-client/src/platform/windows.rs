@@ -1,7 +1,9 @@
 use crate::{Builder, Info, Level, Manager, Result, State};
 use eyre::Context;
 use regex::Regex;
+use registry::{Data, Hive, Security};
 use std::{thread, time::Duration};
+use utfx::U16CString;
 use windows_service::{
     service::{
         Service, ServiceAccess, ServiceConfig, ServiceErrorControl, ServiceExitCode, ServiceInfo,
@@ -162,6 +164,26 @@ impl ServiceManager {
         }
         Err("Failed to stop")?
     }
+
+    fn reg_basekey(&self) -> String {
+        format!(r"SYSTEM\CurrentControlSet\Services\{}", self.config.name)
+    }
+
+    fn add_environment_variables(&self) -> Result<()> {
+        if self.config.env_vars.is_empty() {
+            return Ok(());
+        }
+        let vars = self
+            .config
+            .env_vars
+            .iter()
+            .filter_map(|(key, value)| U16CString::from_os_str(format!("{key}={value}")).ok())
+            .collect::<Vec<_>>();
+
+        let key = Hive::LocalMachine.open(self.reg_basekey(), Security::Write)?;
+        key.set_value("Environment", &Data::MultiString(vars))?;
+        Ok(())
+    }
 }
 
 impl Manager for ServiceManager {
@@ -195,10 +217,12 @@ impl Manager for ServiceManager {
                     ServiceAccess::CHANGE_CONFIG | ServiceAccess::START,
                 )
                 .wrap_err("Error creating service")?;
+
             service
                 .set_description(&self.config.description)
                 .wrap_err("Error setting description")?;
         }
+        self.add_environment_variables()?;
         Ok(())
     }
 

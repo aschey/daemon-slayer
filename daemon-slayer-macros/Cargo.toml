@@ -7,11 +7,11 @@ proc-macro = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-maybe-async-cfg = "0.2.3"
-proc-macro-crate = "1.2.1"
-proc-macro2 = "1.0.43"
-quote = "1.0.21"
-syn = "1.0.99"
+maybe-async-cfg = "0.2"
+proc-macro-crate = "1"
+proc-macro2 = "1"
+quote = "1"
+syn = "1"
 
 [features]
 async = []

@@ -18,16 +18,16 @@ sync-client = ["client", "direct", "blocking"]
 sync-server = ["server", "direct", "blocking"]
 
 [dependencies]
-async-trait = {version = "0.1.57", optional = true}
+async-trait = {version = "0.1", optional = true}
 clap = {git = "https://github.com/clap-rs/clap", rev = "bf98110adc1bfc90b044ac7faf6acd784f17f7df"}
 daemon-slayer-client = {path = "../daemon-slayer-client", optional = true}
 daemon-slayer-console = {path = "../daemon-slayer-console", optional = true}
 daemon-slayer-logging = {path = "../daemon-slayer-logging", optional = true}
 daemon-slayer-server = {path = "../daemon-slayer-server", optional = true}
-eyre = "0.6.8"
-futures = {version = "0.3.23", optional = true}
-maybe-async-cfg = "0.2.3"
-parity-tokio-ipc = "0.9.0"
-time = {version = "0.3.13", optional = true}
-tokio = {version = "1.20.1", features = ["rt-multi-thread", "macros"], optional = true}
-tracing = "0.1.36"
+eyre = "0.6"
+futures = {version = "0.3", optional = true}
+maybe-async-cfg = "0.2"
+parity-tokio-ipc = "0.9"
+time = {version = "0.3", optional = true}
+tokio = {version = "1", features = ["rt-multi-thread", "macros"], optional = true}
+tracing = "0.1"

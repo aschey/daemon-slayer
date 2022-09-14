@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use tracing::error;
+use tracing::{error, info};
 
 use crate::{EventHandlerAsync, HandlerAsync, HandlerSync, ServiceAsync};
 
@@ -142,7 +142,7 @@ fn send_stop_signal_sync(
 
 #[cfg(feature = "blocking")]
 fn start_file_watcher_sync(
-    paths: &[std::path::PathBuf],
+    paths: Vec<std::path::PathBuf>,
     tx: std::sync::mpsc::Sender<crate::Event>,
 ) -> Result<
     notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>,
@@ -156,7 +156,7 @@ fn start_file_watcher_sync(
     )?;
     let watcher = debouncer.watcher();
 
-    for path in paths {
+    for path in paths.iter() {
         watcher
             .watch(path, crate::notify::RecursiveMode::Recursive)
             .unwrap();
@@ -174,12 +174,15 @@ fn start_file_watcher_sync(
 
 #[cfg(feature = "async-tokio")]
 fn start_file_watcher_async(
-    paths: &[std::path::PathBuf],
+    paths: Vec<std::path::PathBuf>,
     tx: crate::tokio::sync::mpsc::Sender<crate::Event>,
 ) -> Result<
     notify_debouncer_mini::Debouncer<crate::notify::RecommendedWatcher>,
     Box<dyn Error + Send + Sync>,
 > {
+    if paths.is_empty() {
+        info!("Not starting file watcher because there are no files configured");
+    }
     let (watch_tx, watch_rx) = std::sync::mpsc::channel();
     let mut debouncer = crate::notify_debouncer_mini::new_debouncer(
         std::time::Duration::from_secs(2),
@@ -188,14 +191,21 @@ fn start_file_watcher_async(
     )?;
     let watcher = debouncer.watcher();
 
-    for path in paths {
-        if let Err(e) = watcher.watch(path, crate::notify::RecursiveMode::Recursive) {
-            error!("Error watching path {e}");
+    for path in paths.iter() {
+        match watcher.watch(path, crate::notify::RecursiveMode::Recursive) {
+            Ok(_) => {
+                info!("Watching {path:?}");
+            }
+            Err(e) => {
+                error!("Error watching {path:?}: {e:?}");
+            }
         }
     }
 
     tokio::task::spawn_blocking(move || {
+        info!("Starting file watcher task");
         for events in watch_rx {
+            info!("Got file event");
             let e = events.unwrap().into_iter().map(|e| e.path).collect();
             futures::executor::block_on(async {
                 tx.send(crate::Event::FileChanged(e)).await.unwrap();
@@ -213,6 +223,7 @@ fn start_event_loop_async(
 ) {
     tokio::spawn(async move {
         while let Some(event) = event_rx.recv().await {
+            info!("received event");
             event_handler(event).await.unwrap();
         }
     });
@@ -248,12 +259,10 @@ pub async fn get_direct_handler_async(
 
                             match stop_event {
                                 Some(_) => {
-                                    println!("EVENT");
                                     event_handler(crate::Event::SignalReceived(crate::Signal::SIGINT)).await?;
                                    // return Ok(());
                                 }
                                 None => {
-                                    println!("EVENT2");
                                    //return Ok(());
                                 }
                             }
@@ -261,6 +270,7 @@ pub async fn get_direct_handler_async(
                         file_event = event_rx.recv() => {
                             match file_event {
                                 Some(file_event) => {
+                                    info!("Received file event");
                                     event_handler(file_event).await?;
                                 },
                                 None => {
