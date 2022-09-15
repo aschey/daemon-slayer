@@ -18,7 +18,11 @@ pub async fn run_service_main_async<T: crate::HandlerAsync + Send>(
     ])
     .unwrap();
 
+    #[cfg(feature = "file-watcher")]
     let (file_tx, mut file_rx) = crate::tokio::sync::mpsc::channel(32);
+    #[cfg(not(feature = "file-watcher"))]
+    let (_file_tx, mut file_rx) = crate::tokio::sync::mpsc::channel(32);
+    #[cfg(feature = "file-watcher")]
     let debouncer = start_file_watcher_async(handler.get_watch_paths(), file_tx);
 
     let signals_handle = signals.handle();
@@ -66,6 +70,7 @@ pub async fn run_service_main_async<T: crate::HandlerAsync + Send>(
         .await;
 
     signals_handle.close();
+    #[cfg(feature = "file-watcher")]
     drop(debouncer);
     event_task.await.unwrap()?;
     result
@@ -88,8 +93,12 @@ pub fn run_service_main_sync<T: crate::HandlerSync + Send>(
     ])
     .unwrap();
 
+    #[cfg(feature = "file-watcher")]
     let (file_tx, mut file_rx) = std::sync::mpsc::channel();
-    let debouncer = start_file_watcher_sync(handler.get_watch_paths(), file_tx);
+    #[cfg(not(feature = "file-watcher"))]
+    let (_file_tx, mut file_rx) = std::sync::mpsc::channel();
+    #[cfg(feature = "file-watcher")]
+    let _debouncer = start_file_watcher_sync(handler.get_watch_paths(), file_tx);
     let signals_handle = signals.handle();
     let term = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let term_ = term.clone();
@@ -121,6 +130,7 @@ pub fn run_service_main_sync<T: crate::HandlerSync + Send>(
         #[cfg(target_os = "linux")]
         crate::sd_notify::notify(false, &[crate::sd_notify::NotifyState::Ready]).unwrap();
     })?;
+
     signals_handle.close();
     term.store(true, std::sync::atomic::Ordering::Relaxed);
     handle.join().unwrap()?;
@@ -128,7 +138,7 @@ pub fn run_service_main_sync<T: crate::HandlerSync + Send>(
     Ok(())
 }
 
-#[cfg(feature = "async-tokio")]
+#[cfg(all(feature = "async-tokio", feature="file-watcher"))]
 fn start_file_watcher_async(
     paths: Vec<std::path::PathBuf>,
     tx: crate::tokio::sync::mpsc::Sender<crate::Event>,
@@ -179,7 +189,7 @@ fn start_file_watcher_async(
     Ok((debouncer, handle))
 }
 
-#[cfg(feature = "blocking")]
+#[cfg(all(feature = "blocking", feature="file-watcher"))]
 fn start_file_watcher_sync(
     paths: Vec<std::path::PathBuf>,
     tx: std::sync::mpsc::Sender<crate::Event>,

@@ -24,6 +24,7 @@ pub type EventHandlerSync = Box<dyn Fn(Event) -> Result<(), Box<dyn Error + Send
 pub trait Handler {
     fn new() -> Self;
     fn get_service_name<'a>() -> &'a str;
+    #[cfg(feature = "file-watcher")]
     fn get_watch_paths(&self) -> Vec<PathBuf> {
         vec![]
     }

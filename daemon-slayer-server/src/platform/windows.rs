@@ -2,8 +2,6 @@ use std::error::Error;
 
 use tracing::{error, info};
 
-use crate::{EventHandlerAsync, HandlerAsync, HandlerSync};
-
 #[cfg(feature = "async-tokio")]
 pub fn get_service_main_async<T: crate::HandlerAsync + Send>() {
     let rt = tokio::runtime::Runtime::new().expect("Tokio runtime failed to initialize");
@@ -25,7 +23,7 @@ pub fn get_service_main_sync<T: crate::HandlerSync + Send>() {
         run_service_main(snake),
         join_handle(snake)
     ),
-    sync(feature = "blocking", drop_attrs(cfg)),
+    sync(feature = "blocking"),
     async(feature = "async-tokio")
 )]
 async fn get_service_main_impl<T: crate::Handler + Send>() {
@@ -34,6 +32,7 @@ async fn get_service_main_impl<T: crate::Handler + Send>() {
 
     let (event_tx, event_rx) = get_channel();
 
+    #[cfg(feature = "file-watcher")]
     let file_task = match start_file_watcher(handler.get_watch_paths(), event_tx.clone()) {
         Ok((watcher, handle)) => (Some(watcher), Some(handle)),
         Err(e) => {
@@ -98,6 +97,7 @@ async fn get_service_main_impl<T: crate::Handler + Send>() {
             1
         }
     };
+    #[cfg(feature = "file-watcher")]
     if let (Some(file_watcher), Some(file_task_handle)) = file_task {
         drop(file_watcher);
         join_handle(file_task_handle).await;
@@ -175,7 +175,7 @@ fn send_stop_signal_sync(
     Ok(())
 }
 
-#[cfg(feature = "blocking")]
+#[cfg(all(feature = "blocking", feature = "file-watcher"))]
 fn start_file_watcher_sync(
     paths: Vec<std::path::PathBuf>,
     tx: std::sync::mpsc::Sender<crate::Event>,
@@ -187,15 +187,12 @@ fn start_file_watcher_sync(
     Box<dyn Error + Send + Sync>,
 > {
     let (watch_tx, watch_rx) = std::sync::mpsc::channel();
-    let mut debouncer = crate::notify_debouncer_mini::new_debouncer(
-        std::time::Duration::from_secs(2),
-        None,
-        watch_tx,
-    )?;
+    let mut debouncer =
+        notify_debouncer_mini::new_debouncer(std::time::Duration::from_secs(2), None, watch_tx)?;
     let watcher = debouncer.watcher();
 
     for path in paths.iter() {
-        if let Err(e) = watcher.watch(path, crate::notify::RecursiveMode::Recursive) {
+        if let Err(e) = watcher.watch(path, notify::RecursiveMode::Recursive) {
             error!("Error watching path: {e:?}");
         }
     }
@@ -212,13 +209,13 @@ fn start_file_watcher_sync(
     Ok((debouncer, handle))
 }
 
-#[cfg(feature = "async-tokio")]
+#[cfg(all(feature = "async-tokio", feature = "file-watcher"))]
 fn start_file_watcher_async(
     paths: Vec<std::path::PathBuf>,
     tx: crate::tokio::sync::mpsc::Sender<crate::Event>,
 ) -> Result<
     (
-        notify_debouncer_mini::Debouncer<crate::notify::RecommendedWatcher>,
+        notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>,
         tokio::task::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>>,
     ),
     Box<dyn Error + Send + Sync>,
@@ -227,15 +224,12 @@ fn start_file_watcher_async(
         info!("Not starting file watcher because there are no files configured");
     }
     let (watch_tx, watch_rx) = std::sync::mpsc::channel();
-    let mut debouncer = crate::notify_debouncer_mini::new_debouncer(
-        std::time::Duration::from_secs(2),
-        None,
-        watch_tx,
-    )?;
+    let mut debouncer =
+        notify_debouncer_mini::new_debouncer(std::time::Duration::from_secs(2), None, watch_tx)?;
     let watcher = debouncer.watcher();
 
     for path in paths.iter() {
-        match watcher.watch(path, crate::notify::RecursiveMode::Recursive) {
+        match watcher.watch(path, notify::RecursiveMode::Recursive) {
             Ok(_) => {
                 info!("Watching {path:?}");
             }
@@ -266,7 +260,7 @@ fn start_file_watcher_async(
 #[cfg(feature = "async-tokio")]
 fn start_event_loop_async(
     mut event_rx: tokio::sync::mpsc::Receiver<crate::Event>,
-    event_handler: EventHandlerAsync,
+    event_handler: crate::EventHandlerAsync,
 ) -> tokio::task::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>> {
     tokio::spawn(async move {
         while let Some(event) = event_rx.recv().await {
@@ -292,12 +286,16 @@ fn start_event_loop_sync(
 
 #[cfg(feature = "async-tokio")]
 pub async fn get_direct_handler_async(
-    mut handler: impl HandlerAsync + Send,
+    mut handler: impl crate::HandlerAsync + Send,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     #[cfg(feature = "direct")]
     {
         let event_handler = handler.get_event_handler();
+        #[cfg(feature = "file-watcher")]
         let (event_tx, mut event_rx) = tokio::sync::mpsc::channel(32);
+        #[cfg(not(feature = "file-watcher"))]
+        let (_event_tx, mut event_rx) = tokio::sync::mpsc::channel(32);
+        #[cfg(feature = "file-watcher")]
         let _file_watcher = start_file_watcher_async(handler.get_watch_paths(), event_tx);
         let handle: crate::tokio::task::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>> =
             crate::tokio::spawn(async move {
@@ -320,19 +318,21 @@ pub async fn get_direct_handler_async(
                 }
             });
         handler.run_service(|| {}).await?;
-        handle.abort()
+        handle.await??;
     }
     Ok(())
 }
 
 #[cfg(feature = "blocking")]
 pub fn get_direct_handler_sync(
-    mut handler: impl HandlerSync + Send,
+    mut handler: impl crate::HandlerSync + Send,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     #[cfg(feature = "direct")]
     {
         let event_handler = handler.get_event_handler();
+        #[cfg(feature = "file-watcher")]
         let (event_tx, event_rx) = std::sync::mpsc::channel();
+        #[cfg(feature = "file-watcher")]
         let _file_watcher = start_file_watcher_sync(handler.get_watch_paths(), event_tx);
         let handle: std::thread::JoinHandle<Result<(), Box<dyn std::error::Error + Send + Sync>>> =
             std::thread::spawn(move || {
@@ -344,6 +344,7 @@ pub fn get_direct_handler_sync(
                 )?;
 
                 while !term.load(std::sync::atomic::Ordering::Relaxed) {
+                    #[cfg(feature = "file-watcher")]
                     if let Ok(event) = event_rx.try_recv() {
                         event_handler(event)?;
                     }

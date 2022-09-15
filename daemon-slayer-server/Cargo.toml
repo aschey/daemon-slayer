@@ -7,22 +7,23 @@ version = "0.1.0"
 async-tokio = ["tokio", "signal-hook-tokio", "async-trait", "futures", "daemon-slayer-macros/async"]
 blocking = ["daemon-slayer-macros/blocking"]
 direct = ["signal-hook", "daemon-slayer-macros/direct"]
-ipc-health-check = ["parity-tokio-ipc", "async-tokio"]
+file-watcher = ["notify", "notify-debouncer-mini"]
+ipc-health-check = ["parity-tokio-ipc", "async-tokio", "tokio/io-util"]
 
 [dependencies]
 async-trait = {version = "0.1", optional = true}
 daemon-slayer-macros = {path = "../daemon-slayer-macros", default-features = false}
 futures = {version = "0.3", optional = true}
 maybe-async-cfg = "0.2"
-notify = {version = "5", default-features = false, features = ["fsevent-sys", "macos_fsevent"]}
-notify-debouncer-mini = {version = "0.2.1", default-features = false}
+notify = {version = "5", default-features = false, features = ["fsevent-sys", "macos_fsevent"], optional = true}
+notify-debouncer-mini = {version = "0.2.1", default-features = false, optional = true}
 once_cell = "1"
 parity-tokio-ipc = {version = "0.9", optional = true}
 tracing = "0.1"
 
 [target.'cfg(windows)'.dependencies]
 signal-hook = {version = "0.3", optional = true}
-tokio = {version = "1", features = ["rt-multi-thread", "signal", "net", "macros"], optional = true}
+tokio = {version = "1", features = ["rt-multi-thread", "signal", "net", "macros", "sync"], optional = true}
 windows-service = {git = "https://github.com/aschey/windows-service-rs", rev = "467408c9aba7d8221e5cf5a9992765ad7abeeb55"}
 
 [target.'cfg(unix)'.dependencies]
