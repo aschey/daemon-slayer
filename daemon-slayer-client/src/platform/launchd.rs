@@ -101,10 +101,14 @@ impl Manager for ServiceManager {
     }
 
     fn install(&self) -> Result<()> {
-        let file = Launchd::new(&self.config.name, &self.config.program)
+        let mut file = Launchd::new(&self.config.name, &self.config.program)
             .wrap_err("Error creating config")?
             .with_program_arguments(self.config.full_args_iter().map(|a| a.to_owned()).collect())
             .with_run_at_load(self.config.autostart);
+
+        for (key, value) in &self.config.env_vars {
+            file = file.with_environment_variable(key.to_string(), value.to_string());
+        }
 
         let path = self.get_plist_path()?;
         file.to_writer_xml(std::fs::File::create(&path).wrap_err("Error creating config file")?)

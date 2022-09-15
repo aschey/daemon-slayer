@@ -77,12 +77,16 @@ fn test_combined(service_name: &str, bin_name: &str, port: i32) {
         }
         thread::sleep(Duration::from_millis(100));
     }
-
-    let config = reqwest::blocking::get(format!("http://127.0.0.1:{port}/config"))
-        .unwrap()
-        .text()
-        .unwrap();
-    assert_eq!("false", config);
+    loop {
+        let config = reqwest::blocking::get(format!("http://127.0.0.1:{port}/config"));
+        println!("Waiting for config: {config:?}");
+        if let Ok(config) = config {
+            if config.text().unwrap() == "false" {
+                break;
+            }
+        }
+        thread::sleep(Duration::from_millis(100));
+    }
 
     std::fs::write(config_file, "test = true").unwrap();
 
