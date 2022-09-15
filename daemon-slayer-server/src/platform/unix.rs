@@ -144,7 +144,7 @@ fn start_file_watcher_async(
     tx: crate::tokio::sync::mpsc::Sender<crate::Event>,
 ) -> Result<
     (
-        notify_debouncer_mini::Debouncer<crate::notify::RecommendedWatcher>,
+        notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>,
         tokio::task::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>>,
     ),
     Box<dyn Error + Send + Sync>,
@@ -153,7 +153,7 @@ fn start_file_watcher_async(
         info!("Not starting file watcher because there are no files configured");
     }
     let (watch_tx, watch_rx) = std::sync::mpsc::channel();
-    let mut debouncer = crate::notify_debouncer_mini::new_debouncer(
+    let mut debouncer = notify_debouncer_mini::new_debouncer(
         std::time::Duration::from_secs(2),
         None,
         watch_tx,
@@ -161,7 +161,7 @@ fn start_file_watcher_async(
     let watcher = debouncer.watcher();
 
     for path in paths.iter() {
-        match watcher.watch(path, crate::notify::RecursiveMode::Recursive) {
+        match watcher.watch(path, notify::RecursiveMode::Recursive) {
             Ok(_) => {
                 info!("Watching {path:?}");
             }
@@ -201,7 +201,7 @@ fn start_file_watcher_sync(
     Box<dyn Error + Send + Sync>,
 > {
     let (watch_tx, watch_rx) = std::sync::mpsc::channel();
-    let mut debouncer = crate::notify_debouncer_mini::new_debouncer(
+    let mut debouncer = notify_debouncer_mini::new_debouncer(
         std::time::Duration::from_secs(2),
         None,
         watch_tx,
@@ -209,7 +209,7 @@ fn start_file_watcher_sync(
     let watcher = debouncer.watcher();
 
     for path in paths.iter() {
-        if let Err(e) = watcher.watch(path, crate::notify::RecursiveMode::Recursive) {
+        if let Err(e) = watcher.watch(path, notify::RecursiveMode::Recursive) {
             error!("Error watching path: {e:?}");
         }
     }
