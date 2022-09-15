@@ -80,6 +80,7 @@ install_crate = {rustup_component_name = "llvm-tools-preview", crate_name = "grc
 clear = true
 dependencies = ["gen-coverage-report"]
 script = """
+rm *.profraw
 handle = glob_array ./**/*.profraw
 for path in ${handle}
     rm ${path}

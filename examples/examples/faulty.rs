@@ -37,7 +37,7 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
 
     let health_check_server = IpcHealthCheckServer::new(ServiceHandler::get_service_name());
     let health_check_client = IpcHealthCheckAsync::new(health_check_server.sock_path());
-    let cli = CliAsync::builder(manager, ServiceHandler::new())
+    let cli = CliAsync::builder_for_all(manager, ServiceHandler::new())
         .with_health_check(Box::new(health_check_client))
         .build();
 

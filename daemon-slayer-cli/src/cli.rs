@@ -83,20 +83,20 @@ pub struct Cli {
 )]
 impl Cli {
     #[cfg(all(feature = "client", feature = "server"))]
-    pub fn new(
+    pub fn for_all(
         manager: ServiceManager,
         service: impl daemon_slayer_server::Service + 'static,
     ) -> Self {
-        Self::builder(manager, service).build()
+        Self::builder_for_all(manager, service).build()
     }
 
     #[cfg(feature = "client")]
-    pub fn new_client(manager: ServiceManager) -> Self {
+    pub fn for_client(manager: ServiceManager) -> Self {
         super::Builder::client(manager).build()
     }
 
     #[cfg(feature = "server")]
-    pub fn new_server(
+    pub fn for_server(
         service: impl daemon_slayer_server::Service + 'static,
         display_name: String,
         description: String,
@@ -105,7 +105,7 @@ impl Cli {
     }
 
     #[cfg(all(feature = "client", feature = "server"))]
-    pub fn builder(
+    pub fn builder_for_all(
         manager: ServiceManager,
         service: impl daemon_slayer_server::Service + 'static,
     ) -> super::Builder {
@@ -113,12 +113,12 @@ impl Cli {
     }
 
     #[cfg(feature = "client")]
-    pub fn client_builder(manager: ServiceManager) -> super::Builder {
+    pub fn builder_for_client(manager: ServiceManager) -> super::Builder {
         super::Builder::client(manager)
     }
 
     #[cfg(feature = "server")]
-    pub fn server_builder(
+    pub fn builder_for_server(
         service: impl daemon_slayer_server::Service + 'static,
         display_name: String,
         description: String,

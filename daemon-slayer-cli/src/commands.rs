@@ -5,20 +5,10 @@ use super::{command::Command, service_commands::ServiceCommands};
 pub(crate) struct Commands(HashMap<&'static str, Command>);
 
 impl Commands {
-    pub(crate) fn insert(&mut self, key: &'static str, value: Command) {
-        self.0.insert(key, value);
-    }
-
-    pub(crate) fn remove(&mut self, key: &'static str) {
-        self.0.remove(key);
-    }
-}
-
-impl Default for Commands {
-    fn default() -> Self {
+    pub(crate) fn new(enable_client: bool, enable_server: bool) -> Self {
         let mut commands = HashMap::new();
         #[cfg(feature = "client")]
-        {
+        if enable_client {
             commands.insert(
                 ServiceCommands::INSTALL,
                 Command::Subcommand {
@@ -97,7 +87,7 @@ impl Default for Commands {
         }
 
         #[cfg(feature = "server")]
-        {
+        if enable_server {
             commands.insert(
                 ServiceCommands::RUN,
                 Command::Subcommand {
@@ -111,6 +101,14 @@ impl Default for Commands {
         }
 
         Self(commands)
+    }
+
+    pub(crate) fn insert(&mut self, key: &'static str, value: Command) {
+        self.0.insert(key, value);
+    }
+
+    pub(crate) fn remove(&mut self, key: &'static str) {
+        self.0.remove(key);
     }
 }
 

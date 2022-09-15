@@ -36,7 +36,7 @@ pub fn main() {
 
         let manager = manager_builder.build().unwrap();
 
-        let cli = CliAsync::new(manager, ServiceHandler::new());
+        let cli = CliAsync::for_all(manager, ServiceHandler::new());
 
         let mut _logger_guard: Option<LoggerGuard> = None;
 

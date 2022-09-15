@@ -34,7 +34,7 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
         .build()
         .unwrap();
 
-    let cli = CliAsync::new(manager, ServiceHandler::new());
+    let cli = CliAsync::for_all(manager, ServiceHandler::new());
 
     let mut _logger_guard: Option<LoggerGuard> = None;
 
@@ -72,8 +72,8 @@ impl HandlerAsync for ServiceHandler {
         "daemon_slayer_async_file_watcher"
     }
 
-    fn get_watch_paths(&self) -> &[PathBuf] {
-        &self.config_paths
+    fn get_watch_paths(&self) -> Vec<PathBuf> {
+        self.config_paths.clone()
     }
 
     fn get_event_handler(&mut self) -> EventHandlerAsync {

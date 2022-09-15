@@ -12,7 +12,7 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         .build()
         .unwrap();
 
-    let cli = CliSync::new_client(manager);
+    let cli = CliSync::for_client(manager);
     cli.handle_input()?;
     Ok(())
 }

@@ -36,7 +36,7 @@ pub fn main() {
     }
 
     let manager = manager_builder.build().unwrap();
-    let cli = CliSync::new(manager, ServiceHandler::new());
+    let cli = CliSync::for_all(manager, ServiceHandler::new());
 
     let mut _logger_guard: Option<LoggerGuard> = None;
 

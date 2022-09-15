@@ -1,5 +1,20 @@
 use crate::{commands::Commands, service_commands::ServiceCommands, Command};
 
+macro_rules! impl_command_builder {
+    ($name: ident, $command: ident) => {
+        pub fn $name(mut self, command: impl Into<Option<Command>>) -> Self {
+            match command.into() {
+                Some(command) => {
+                    self.commands.insert(ServiceCommands::$command, command);
+                }
+                None => {
+                    self.commands.remove(ServiceCommands::$command);
+                }
+            }
+            self
+        }
+    };
+}
 #[maybe_async_cfg::maybe(
     idents(Service, HealthCheck),
     sync(feature = "blocking"),
@@ -33,7 +48,7 @@ impl Builder {
         use daemon_slayer_client::Manager;
 
         Self {
-            commands: Commands::default(),
+            commands: Commands::new(true, true),
             display_name: manager.display_name().to_string(),
             description: manager.description().to_string(),
             clap_command: clap::Command::default(),
@@ -48,7 +63,7 @@ impl Builder {
         use daemon_slayer_client::Manager;
 
         Self {
-            commands: Commands::default(),
+            commands: Commands::new(true, false),
             display_name: manager.display_name().to_string(),
             description: manager.description().to_string(),
             clap_command: clap::Command::default(),
@@ -66,7 +81,7 @@ impl Builder {
         description: String,
     ) -> Self {
         Self {
-            commands: Commands::default(),
+            commands: Commands::new(false, true),
             display_name,
             description,
             clap_command: clap::Command::default(),
@@ -88,64 +103,43 @@ impl Builder {
     }
 
     #[cfg(feature = "client")]
-    pub fn with_install_command(mut self, command: Command) -> Self {
-        self.commands.insert(ServiceCommands::INSTALL, command);
-        self
-    }
+    impl_command_builder!(with_install_command, INSTALL);
 
     #[cfg(feature = "client")]
-    pub fn with_uninstall_command(mut self, command: Command) -> Self {
-        self.commands.insert(ServiceCommands::UNINSTALL, command);
-        self
-    }
+    impl_command_builder!(with_uninstall_command, UNINSTALL);
 
     #[cfg(feature = "client")]
-    pub fn with_start_command(mut self, command: Command) -> Self {
-        self.commands.insert(ServiceCommands::START, command);
-        self
-    }
+    impl_command_builder!(with_start_command, START);
 
     #[cfg(feature = "client")]
-    pub fn with_stop_command(mut self, command: Command) -> Self {
-        self.commands.insert(ServiceCommands::STOP, command);
-        self
-    }
+    impl_command_builder!(with_stop_command, STOP);
 
     #[cfg(feature = "client")]
-    pub fn with_restart_command(mut self, command: Command) -> Self {
-        self.commands.insert(ServiceCommands::RESTART, command);
-        self
-    }
+    impl_command_builder!(with_restart_command, RESTART);
 
     #[cfg(feature = "client")]
-    pub fn with_info_command(mut self, command: Command) -> Self {
-        self.commands.insert(ServiceCommands::INFO, command);
-        self
-    }
+    impl_command_builder!(with_info_command, INFO);
 
     #[cfg(feature = "client")]
-    pub fn with_pid_command(mut self, command: Command) -> Self {
-        self.commands.insert(ServiceCommands::PID, command);
-        self
-    }
+    impl_command_builder!(with_pid_command, PID);
 
     #[cfg(feature = "client")]
-    pub fn with_enable_command(mut self, command: Command) -> Self {
-        self.commands.insert(ServiceCommands::ENABLE, command);
-        self
-    }
+    impl_command_builder!(with_enable_command, ENABLE);
 
     #[cfg(feature = "client")]
-    pub fn with_disable_command(mut self, command: Command) -> Self {
-        self.commands.insert(ServiceCommands::DISABLE, command);
-        self
-    }
+    impl_command_builder!(with_disable_command, DISABLE);
 
     #[cfg(all(feature = "client", feature = "console"))]
-    pub fn with_console_command(mut self, command: Command) -> Self {
-        self.commands.insert(ServiceCommands::CONSOLE, command);
-        self
-    }
+    impl_command_builder!(with_console_command, CONSOLE);
+
+    #[cfg(all(feature = "client", feature = "console"))]
+    impl_command_builder!(with_health_check_command, HEALTH);
+
+    #[cfg(all(feature = "server", feature = "direct"))]
+    impl_command_builder!(with_direct_command, DIRECT);
+
+    #[cfg(feature = "server")]
+    impl_command_builder!(with_run_command, RUN);
 
     #[cfg(feature = "client")]
     pub fn with_health_check(
@@ -163,24 +157,6 @@ impl Builder {
             );
         }
 
-        self
-    }
-
-    #[cfg(all(feature = "client", feature = "console"))]
-    pub fn with_health_check_command(mut self, command: Command) -> Self {
-        self.commands.insert(ServiceCommands::HEALTH, command);
-        self
-    }
-
-    #[cfg(all(feature = "server", feature = "direct"))]
-    pub fn with_direct_command(mut self, command: Command) -> Self {
-        self.commands.insert(ServiceCommands::DIRECT, command);
-        self
-    }
-
-    #[cfg(feature = "server")]
-    pub fn with_run_command(mut self, command: Command) -> Self {
-        self.commands.insert(ServiceCommands::RUN, command);
         self
     }
 }

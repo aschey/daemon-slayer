@@ -17,7 +17,7 @@ pub async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         .build()
         .unwrap();
 
-    let cli = CliAsync::new_client(manager);
+    let cli = CliAsync::for_client(manager);
     cli.handle_input().await?;
     Ok(())
 }

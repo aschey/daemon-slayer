@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use tracing::info;
 
 pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let cli = CliSync::new_server(
+    let cli = CliSync::for_server(
         ServiceHandler::new(),
         "daemon_slayer_test_service".to_owned(),
         "test service".to_owned(),
