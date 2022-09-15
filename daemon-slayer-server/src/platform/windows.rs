@@ -2,11 +2,11 @@ use std::error::Error;
 
 use tracing::{error, info};
 
-use crate::{EventHandlerAsync, HandlerAsync, HandlerSync, ServiceAsync};
+use crate::{EventHandlerAsync, HandlerAsync, HandlerSync};
 
 #[cfg(feature = "async-tokio")]
 pub fn get_service_main_async<T: crate::HandlerAsync + Send>() {
-    let rt = tokio::runtime::Runtime::new().unwrap();
+    let rt = tokio::runtime::Runtime::new().expect("Tokio runtime failed to initialize");
     rt.block_on(get_service_main_impl_async::<T>())
 }
 
@@ -22,7 +22,8 @@ pub fn get_service_main_sync<T: crate::HandlerSync + Send>() {
         start_file_watcher(snake),
         start_event_loop(snake),
         send_stop_signal(snake),
-        run_service_main(snake)
+        run_service_main(snake),
+        join_handle(snake)
     ),
     sync(feature = "blocking", drop_attrs(cfg)),
     async(feature = "async-tokio")
@@ -33,9 +34,15 @@ async fn get_service_main_impl<T: crate::Handler + Send>() {
 
     let (event_tx, event_rx) = get_channel();
 
-    let _file_watcher = start_file_watcher(handler.get_watch_paths(), event_tx.clone());
+    let file_task = match start_file_watcher(handler.get_watch_paths(), event_tx.clone()) {
+        Ok((watcher, handle)) => (Some(watcher), Some(handle)),
+        Err(e) => {
+            error!("Error starting file watcher: {e}");
+            (None, None)
+        }
+    };
 
-    start_event_loop(event_rx, event_handler);
+    let event_handle = start_event_loop(event_rx, event_handler);
 
     let windows_service_event_handler = move |control_event| -> crate::windows_service::service_control_handler::ServiceControlHandlerResult {
         match control_event {
@@ -67,10 +74,8 @@ async fn get_service_main_impl<T: crate::Handler + Send>() {
     };
     let status_handle_ = status_handle.clone();
     let on_started = move || {
-        status_handle_
-            .lock()
-            .unwrap()
-            .set_service_status(crate::windows_service::service::ServiceStatus {
+        if let Err(e) = status_handle_.lock().unwrap().set_service_status(
+            crate::windows_service::service::ServiceStatus {
                 service_type: crate::windows_service::service::ServiceType::OWN_PROCESS,
                 current_state: crate::windows_service::service::ServiceState::Running,
                 controls_accepted: crate::windows_service::service::ServiceControlAccept::STOP,
@@ -78,20 +83,29 @@ async fn get_service_main_impl<T: crate::Handler + Send>() {
                 checkpoint: 0,
                 wait_hint: std::time::Duration::default(),
                 process_id: None,
-            })
-            .unwrap();
+            },
+        ) {
+            error!("Error setting status to 'running': {e:?}");
+        }
     };
 
     let service_result = handler.run_service(on_started).await;
 
     let exit_code = match service_result {
         Ok(()) => 0,
-        Err(_) => 1,
+        Err(e) => {
+            error!("Service exited with error: {e}");
+            1
+        }
     };
-    status_handle
-        .lock()
-        .unwrap()
-        .set_service_status(crate::windows_service::service::ServiceStatus {
+    if let (Some(file_watcher), Some(file_task_handle)) = file_task {
+        drop(file_watcher);
+        join_handle(file_task_handle).await;
+    }
+
+    {
+        let handle = status_handle.lock().unwrap();
+        if let Err(e) = handle.set_service_status(crate::windows_service::service::ServiceStatus {
             service_type: crate::windows_service::service::ServiceType::OWN_PROCESS,
             current_state: crate::windows_service::service::ServiceState::Stopped,
             controls_accepted: crate::windows_service::service::ServiceControlAccept::empty(),
@@ -99,8 +113,13 @@ async fn get_service_main_impl<T: crate::Handler + Send>() {
             checkpoint: 0,
             wait_hint: std::time::Duration::default(),
             process_id: None,
-        })
-        .unwrap();
+        }) {
+            error!("Error setting status to stopped: {e:?}");
+        }
+    }
+
+    drop(status_handle);
+    join_handle(event_handle).await;
 }
 
 #[cfg(feature = "async-tokio")]
@@ -111,11 +130,28 @@ fn get_channel_async() -> (
     tokio::sync::mpsc::channel(32)
 }
 
+#[cfg(feature = "blocking")]
 fn get_channel_sync() -> (
     std::sync::mpsc::Sender<crate::Event>,
     std::sync::mpsc::Receiver<crate::Event>,
 ) {
     std::sync::mpsc::channel()
+}
+
+#[cfg(feature = "async-tokio")]
+async fn join_handle_async(
+    handle: tokio::task::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>>,
+) {
+    if let Err(e) = handle.await {
+        error!("Error joining task: {e:?}");
+    }
+}
+
+#[cfg(feature = "blocking")]
+fn join_handle_sync(handle: std::thread::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>>) {
+    if let Err(e) = handle.join() {
+        error!("Error joining task: {e:?}");
+    }
 }
 
 #[cfg(feature = "async-tokio")]
@@ -126,8 +162,7 @@ fn send_stop_signal_async(
         event_tx
             .send(crate::Event::SignalReceived(crate::Signal::SIGINT))
             .await
-            .unwrap();
-    });
+    })?;
 
     Ok(())
 }
@@ -145,7 +180,10 @@ fn start_file_watcher_sync(
     paths: Vec<std::path::PathBuf>,
     tx: std::sync::mpsc::Sender<crate::Event>,
 ) -> Result<
-    notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>,
+    (
+        notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>,
+        std::thread::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>>,
+    ),
     Box<dyn Error + Send + Sync>,
 > {
     let (watch_tx, watch_rx) = std::sync::mpsc::channel();
@@ -157,19 +195,21 @@ fn start_file_watcher_sync(
     let watcher = debouncer.watcher();
 
     for path in paths.iter() {
-        watcher
-            .watch(path, crate::notify::RecursiveMode::Recursive)
-            .unwrap();
+        if let Err(e) = watcher.watch(path, crate::notify::RecursiveMode::Recursive) {
+            error!("Error watching path: {e:?}");
+        }
     }
 
-    std::thread::spawn(move || {
-        for events in watch_rx {
-            let e = events.unwrap().into_iter().map(|e| e.path).collect();
-            tx.send(crate::Event::FileChanged(e)).unwrap();
-        }
-    });
+    let handle: std::thread::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>> =
+        std::thread::spawn(move || {
+            for events in watch_rx {
+                let e = events.unwrap().into_iter().map(|e| e.path).collect();
+                tx.send(crate::Event::FileChanged(e))?;
+            }
+            Ok(())
+        });
 
-    Ok(debouncer)
+    Ok((debouncer, handle))
 }
 
 #[cfg(feature = "async-tokio")]
@@ -177,7 +217,10 @@ fn start_file_watcher_async(
     paths: Vec<std::path::PathBuf>,
     tx: crate::tokio::sync::mpsc::Sender<crate::Event>,
 ) -> Result<
-    notify_debouncer_mini::Debouncer<crate::notify::RecommendedWatcher>,
+    (
+        notify_debouncer_mini::Debouncer<crate::notify::RecommendedWatcher>,
+        tokio::task::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>>,
+    ),
     Box<dyn Error + Send + Sync>,
 > {
     if paths.is_empty() {
@@ -202,43 +245,49 @@ fn start_file_watcher_async(
         }
     }
 
-    tokio::task::spawn_blocking(move || {
+    let handle = tokio::task::spawn_blocking(move || {
         info!("Starting file watcher task");
         for events in watch_rx {
             info!("Got file event");
             let e = events.unwrap().into_iter().map(|e| e.path).collect();
-            futures::executor::block_on(async {
-                tx.send(crate::Event::FileChanged(e)).await.unwrap();
-            });
+            let handle: Result<(), Box<dyn Error + Send + Sync>> =
+                futures::executor::block_on(async {
+                    tx.send(crate::Event::FileChanged(e)).await?;
+                    Ok(())
+                });
+            handle?;
         }
+        Ok(())
     });
 
-    Ok(debouncer)
+    Ok((debouncer, handle))
 }
 
 #[cfg(feature = "async-tokio")]
 fn start_event_loop_async(
     mut event_rx: tokio::sync::mpsc::Receiver<crate::Event>,
     event_handler: EventHandlerAsync,
-) {
+) -> tokio::task::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>> {
     tokio::spawn(async move {
         while let Some(event) = event_rx.recv().await {
             info!("received event");
-            event_handler(event).await.unwrap();
+            event_handler(event).await?;
         }
-    });
+        Ok(())
+    })
 }
 
 #[cfg(feature = "blocking")]
 fn start_event_loop_sync(
     event_rx: std::sync::mpsc::Receiver<crate::Event>,
     event_handler: crate::EventHandlerSync,
-) {
+) -> std::thread::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>> {
     std::thread::spawn(move || {
         while let Ok(event) = event_rx.recv() {
-            event_handler(event).unwrap();
+            event_handler(event)?;
         }
-    });
+        Ok(())
+    })
 }
 
 #[cfg(feature = "async-tokio")]
@@ -256,34 +305,22 @@ pub async fn get_direct_handler_async(
                 loop {
                     crate::tokio::select! {
                         stop_event = ctrl_c.recv() => {
-
-                            match stop_event {
-                                Some(_) => {
-                                    event_handler(crate::Event::SignalReceived(crate::Signal::SIGINT)).await?;
-                                   // return Ok(());
-                                }
-                                None => {
-                                   //return Ok(());
-                                }
+                            if let Some(()) =  stop_event {
+                                event_handler(crate::Event::SignalReceived(crate::Signal::SIGINT)).await?;
+                                return Ok(());
                             }
                         }
                         file_event = event_rx.recv() => {
-                            match file_event {
-                                Some(file_event) => {
-                                    info!("Received file event");
-                                    event_handler(file_event).await?;
-                                },
-                                None => {
-                                   // return Ok(());
-                                }
+                            if let Some(file_event) = file_event  {
+                                info!("Received file event");
+                                event_handler(file_event).await?;
                             }
                         }
-
                     }
                 }
             });
         handler.run_service(|| {}).await?;
-        //handle.await?;
+        handle.abort()
     }
     Ok(())
 }

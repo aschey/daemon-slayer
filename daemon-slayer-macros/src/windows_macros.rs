@@ -102,7 +102,7 @@ fn get_direct_handler_async(crate_name: &proc_macro2::TokenStream) -> proc_macro
 #[cfg(all(feature = "direct", feature = "async"))]
 fn get_direct_handler_async(crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     quote! {
-         async fn run_service_direct(mut self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        async fn run_service_direct(mut self: Box<Self>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             #crate_name::platform::get_direct_handler_async(*self).await
         }
     }

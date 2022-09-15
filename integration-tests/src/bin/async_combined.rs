@@ -29,14 +29,9 @@ pub fn main() {
         let mut manager_builder = ServiceManager::builder(ServiceHandler::get_service_name())
             .with_description("test service")
             .with_args(["run"]);
-        // .with_env_var("CONFIG_FILE", abs_path.to_string_lossy().to_string())
-        // .build()
-        // .unwrap();
+
         if let Ok(config_file) = std::env::var("CONFIG_FILE") {
-            println!("CONFIG FILE {config_file}");
             manager_builder = manager_builder.with_env_var("CONFIG_FILE", config_file);
-        } else {
-            println!("NO CONFIG FILE");
         }
         let manager = manager_builder.build().unwrap();
 
