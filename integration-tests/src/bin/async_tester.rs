@@ -33,6 +33,7 @@ pub fn main() {
         if let Ok(config_file) = std::env::var("CONFIG_FILE") {
             manager_builder = manager_builder.with_env_var("CONFIG_FILE", config_file);
         }
+
         let manager = manager_builder.build().unwrap();
 
         let cli = CliAsync::new(manager, ServiceHandler::new());

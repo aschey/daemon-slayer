@@ -145,16 +145,26 @@ impl Manager for ServiceManager {
         } else {
             self.config.autostart = false;
         }
-        if self.info()?.state == State::Started {
-            self.stop()?;
-            self.uninstall()?;
-            self.install()?;
-            self.start()?;
-        } else {
-            self.uninstall()?;
-            self.install()?;
+        let was_started = self.info()?.state == State::Started;
+        if was_started {
             self.stop()?;
         }
+
+        let mut config = Launchd::from_file(self.get_plist_path()?)?;
+        config = config.with_run_at_load(self.config.autostart);
+        let path = self.get_plist_path()?;
+        self.run_launchctl(vec!["unload", &path.to_string_lossy()])?;
+        config
+            .to_writer_xml(std::fs::File::create(&path).wrap_err("Error creating config file")?)
+            .wrap_err("Error writing config file")?;
+        self.run_launchctl(vec!["load", &path.to_string_lossy()])?;
+
+        if was_started {
+            self.start()?;
+        } else {
+            self.stop()?;
+        }
+
         Ok(())
     }
 

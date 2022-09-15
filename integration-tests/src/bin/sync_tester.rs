@@ -32,11 +32,9 @@ pub fn main() {
         .with_args(["run"]);
 
     if let Ok(config_file) = std::env::var("CONFIG_FILE") {
-        println!("CONFIG FILE {config_file}");
         manager_builder = manager_builder.with_env_var("CONFIG_FILE", config_file);
-    } else {
-        println!("NO CONFIG FILE");
     }
+
     let manager = manager_builder.build().unwrap();
     let cli = CliSync::new(manager, ServiceHandler::new());
 
