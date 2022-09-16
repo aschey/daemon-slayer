@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 
 use daemon_slayer::client::{Level, Manager, ServiceManager};
 
-use daemon_slayer::cli::{Action, CliAsync, Command};
+use daemon_slayer::cli::{Action, ActionType, CliAsync, Command};
 use daemon_slayer::server::{EventHandlerAsync, HandlerAsync, ServiceAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
@@ -43,7 +43,7 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
 
     let mut _logger_guard: Option<LoggerGuard> = None;
 
-    if cli.action_type() == Action::Server {
+    if cli.action().action_type == ActionType::Server {
         let (logger, guard) = logger_builder.with_ipc_logger(true).build().unwrap();
         _logger_guard = Some(guard);
         logger.init();

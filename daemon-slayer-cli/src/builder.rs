@@ -1,14 +1,14 @@
-use crate::{commands::Commands, service_commands::ServiceCommands, Command};
+use crate::{commands::Commands, service_command::ServiceCommand, Command};
 
 macro_rules! impl_command_builder {
     ($name: ident, $command: ident) => {
         pub fn $name(mut self, command: impl Into<Option<Command>>) -> Self {
             match command.into() {
                 Some(command) => {
-                    self.commands.insert(ServiceCommands::$command, command);
+                    self.commands.insert(ServiceCommand::$command, command);
                 }
                 None => {
-                    self.commands.remove(ServiceCommands::$command);
+                    self.commands.remove(&ServiceCommand::$command);
                 }
             }
             self
@@ -103,43 +103,43 @@ impl Builder {
     }
 
     #[cfg(feature = "client")]
-    impl_command_builder!(with_install_command, INSTALL);
+    impl_command_builder!(with_install_command, Install);
 
     #[cfg(feature = "client")]
-    impl_command_builder!(with_uninstall_command, UNINSTALL);
+    impl_command_builder!(with_uninstall_command, Uninstall);
 
     #[cfg(feature = "client")]
-    impl_command_builder!(with_start_command, START);
+    impl_command_builder!(with_start_command, Start);
 
     #[cfg(feature = "client")]
-    impl_command_builder!(with_stop_command, STOP);
+    impl_command_builder!(with_stop_command, Stop);
 
     #[cfg(feature = "client")]
-    impl_command_builder!(with_restart_command, RESTART);
+    impl_command_builder!(with_restart_command, Restart);
 
     #[cfg(feature = "client")]
-    impl_command_builder!(with_info_command, INFO);
+    impl_command_builder!(with_info_command, Info);
 
     #[cfg(feature = "client")]
-    impl_command_builder!(with_pid_command, PID);
+    impl_command_builder!(with_pid_command, Pid);
 
     #[cfg(feature = "client")]
-    impl_command_builder!(with_enable_command, ENABLE);
+    impl_command_builder!(with_enable_command, Enable);
 
     #[cfg(feature = "client")]
-    impl_command_builder!(with_disable_command, DISABLE);
+    impl_command_builder!(with_disable_command, Disable);
 
     #[cfg(all(feature = "client", feature = "console"))]
-    impl_command_builder!(with_console_command, CONSOLE);
+    impl_command_builder!(with_console_command, Console);
 
     #[cfg(all(feature = "client", feature = "console"))]
-    impl_command_builder!(with_health_check_command, HEALTH);
+    impl_command_builder!(with_health_check_command, Health);
 
     #[cfg(all(feature = "server", feature = "direct"))]
-    impl_command_builder!(with_direct_command, DIRECT);
+    impl_command_builder!(with_direct_command, Direct);
 
     #[cfg(feature = "server")]
-    impl_command_builder!(with_run_command, RUN);
+    impl_command_builder!(with_run_command, Run);
 
     #[cfg(feature = "client")]
     pub fn with_health_check(
@@ -147,11 +147,11 @@ impl Builder {
         health_check: Box<dyn daemon_slayer_client::health_check::HealthCheck + Send + 'static>,
     ) -> Self {
         self.health_check = Some(health_check);
-        if !self.commands.contains_key(ServiceCommands::HEALTH) {
+        if !self.commands.contains_key(&ServiceCommand::Health) {
             self.commands.insert(
-                ServiceCommands::HEALTH,
+                ServiceCommand::Health,
                 Command::Subcommand {
-                    name: ServiceCommands::HEALTH.to_owned(),
+                    name: ServiceCommand::Health.into(),
                     help_text: "Check the health of the service".to_owned(),
                 },
             );

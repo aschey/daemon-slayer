@@ -10,7 +10,7 @@ use axum::routing::get;
 use axum::Router;
 use daemon_slayer::client::{Manager, ServiceManager};
 
-use daemon_slayer::cli::{Action, CliAsync, Command};
+use daemon_slayer::cli::{Action, ActionType, CliAsync, Command, ServiceCommand};
 use daemon_slayer::server::{Event, EventHandlerAsync, HandlerAsync, ServiceAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
@@ -40,7 +40,9 @@ pub fn main() {
 
         let mut _logger_guard: Option<LoggerGuard> = None;
 
-        if cli.action_type() == Action::Server {
+        let action = cli.action();
+
+        if action.action_type == ActionType::Server {
             let (logger, guard) = logger_builder.with_ipc_logger(true).build().unwrap();
             _logger_guard = Some(guard);
             logger.init();
@@ -76,8 +78,15 @@ impl HandlerAsync for ServiceHandler {
     }
 
     fn get_watch_paths(&self) -> Vec<PathBuf> {
-        let abs_path = PathBuf::from(std::env::var("CONFIG_FILE").unwrap());
-        vec![abs_path]
+        match std::env::var("CONFIG_FILE") {
+            Ok(config_file) => {
+                let abs_path = PathBuf::from(config_file);
+                vec![abs_path]
+            }
+            Err(_) => {
+                vec![]
+            }
+        }
     }
 
     fn get_event_handler(&mut self) -> EventHandlerAsync {

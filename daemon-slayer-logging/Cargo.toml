@@ -4,14 +4,18 @@ name = "daemon-slayer-logging"
 version = "0.1.0"
 
 [features]
-async-tokio = ["tokio", "async-trait", "futures", "tracing-ipc"]
+all-async = ["eventlog", "ipc", "async-tokio", "journald"]
+all-sync = ["eventlog", "journald"]
+async-tokio = ["tokio", "async-trait", "futures"]
+eventlog = ["tracing-eventlog"]
+ipc = ["async-tokio", "tracing-ipc"]
+journald = ["tracing-journald"]
 
 [dependencies]
 async-trait = {version = "0.1", optional = true}
 directories = {version = "4"}
 futures = {version = "0.3", optional = true}
 once_cell = "1"
-parity-tokio-ipc = "0.9"
 time = "0.3"
 tracing = "0.1"
 tracing-appender = {version = "0.2"}
@@ -21,11 +25,10 @@ tracing-subscriber = {version = "0.3", features = ["local-time", "env-filter"]}
 
 [target.'cfg(windows)'.dependencies]
 tokio = {version = "1", features = ["rt-multi-thread", "signal", "net", "io-util", "sync"], optional = true}
-tracing-eventlog = {git = "https://github.com/aschey/tracing-eventlog", rev = "e87ec17edfb374101e1a9bda14b0e5b534d1cc56"}
-windows-service = {git = "https://github.com/aschey/windows-service-rs", rev = "467408c9aba7d8221e5cf5a9992765ad7abeeb55"}
+tracing-eventlog = {git = "https://github.com/aschey/tracing-eventlog", rev = "ba94d7635b20f8866067baae2bfb3d28bc883e63", optional = true}
 
 [target.'cfg(unix)'.dependencies]
 tokio = {version = "1", features = ["rt-multi-thread", "net", "io-util", "sync"], optional = true}
 
 [target.'cfg(target_os="linux")'.dependencies]
-tracing-journald = "0.3"
+tracing-journald = {version = "0.3", optional = true}

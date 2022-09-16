@@ -1,14 +1,7 @@
-use std::{
-    env::args,
-    error::Error,
-    io::stdout,
-    sync::atomic::{AtomicBool, Ordering},
-    time::Duration,
-};
+use std::{error::Error, io::stdout};
 
 use directories::ProjectDirs;
 use once_cell::sync::OnceCell;
-use parity_tokio_ipc::{Connection, Endpoint};
 use time::{
     format_description::well_known::{self, Rfc3339},
     UtcOffset,
@@ -17,13 +10,12 @@ use time::{
 use super::{logger_guard::LoggerGuard, timezone::Timezone};
 use tracing::{metadata::LevelFilter, Subscriber};
 use tracing_appender::{
-    non_blocking::{NonBlockingBuilder, WorkerGuard},
+    non_blocking::NonBlockingBuilder,
     rolling::{RollingFileAppender, Rotation},
 };
-#[cfg(windows)]
-use tracing_eventlog::{register, EventLogLayer};
+
 use tracing_subscriber::{
-    fmt::{time::OffsetTime, Layer, MakeWriter},
+    fmt::{time::OffsetTime, Layer},
     prelude::__tracing_subscriber_SubscriberExt,
     registry::LookupSpan,
     util::SubscriberInitExt,
@@ -92,6 +84,26 @@ impl LoggerBuilder {
         self
     }
 
+    pub fn register(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        #[cfg(all(windows, feature = "eventlog"))]
+        {
+            use tracing_eventlog::EventLogRegistry;
+            let log_source = tracing_eventlog::LogSource::application(self.name.clone());
+            log_source.register()?;
+        }
+        Ok(())
+    }
+
+    pub fn deregister(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        #[cfg(all(windows, feature = "eventlog"))]
+        {
+            use tracing_eventlog::EventLogRegistry;
+            let log_source = tracing_eventlog::LogSource::application(self.name.clone());
+            log_source.deregister()?;
+        }
+        Ok(())
+    }
+
     pub fn build(
         self,
     ) -> Result<
@@ -99,7 +111,7 @@ impl LoggerBuilder {
             impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
             LoggerGuard,
         ),
-        Box<dyn Error>,
+        Box<dyn Error + Send + Sync>,
     > {
         let offset = match (self.timezone, LOCAL_TIME.get().unwrap().clone()) {
             (Timezone::Local, Ok(offset)) => offset,
@@ -151,15 +163,15 @@ impl LoggerBuilder {
             })
             .with(tracing_error::ErrorLayer::default());
 
-        #[cfg(feature = "async-tokio")]
+        #[cfg(feature = "ipc")]
         let (ipc_writer, ipc_guard) = if self.enable_ipc_logger {
             tracing_ipc::Writer::new(&self.name)
         } else {
             tracing_ipc::Writer::disabled()
         };
-        #[cfg(feature = "async-tokio")]
+        #[cfg(feature = "ipc")]
         guard.add_guard(Box::new(ipc_guard));
-        #[cfg(feature = "async-tokio")]
+        #[cfg(feature = "ipc")]
         let collector = collector.with({
             Layer::new()
                 .compact()
@@ -170,13 +182,11 @@ impl LoggerBuilder {
                 .with_filter(tracing_ipc::Filter::new(self.level_filter))
         });
 
-        #[cfg(target_os = "linux")]
+        #[cfg(all(target_os = "linux", feature = "journald"))]
         let collector = collector.with(tracing_journald::layer()?);
 
-        #[cfg(windows)]
-        register(&self.name)?;
-        #[cfg(windows)]
-        let collector = collector.with(EventLogLayer::pretty(self.name)?);
+        #[cfg(all(windows, feature = "eventlog"))]
+        let collector = collector.with(tracing_eventlog::EventLogLayer::pretty(self.name)?);
 
         Ok((collector, guard))
     }

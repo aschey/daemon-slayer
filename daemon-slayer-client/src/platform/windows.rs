@@ -15,13 +15,23 @@ use windows_service::{
     },
 };
 
+#[derive(Clone)]
+enum ServiceAccessMode {
+    Read,
+    Write,
+    Execute,
+}
+
 pub struct ServiceManager {
     config: Builder,
 }
 
 impl ServiceManager {
     fn query_info(&self, service: &str, service_type: ServiceType) -> Result<Info> {
-        if self.find_service(service_type)?.is_none() {
+        if self
+            .find_service(service_type, ServiceAccessMode::Read)?
+            .is_none()
+        {
             return Ok(Info {
                 state: State::NotInstalled,
                 autostart: None,
@@ -30,7 +40,7 @@ impl ServiceManager {
             });
         }
 
-        let service = self.open_service(service)?;
+        let service = self.open_service(service, ServiceAccessMode::Read)?;
 
         let service_status = service
             .query_status()
@@ -47,7 +57,7 @@ impl ServiceManager {
         };
 
         let autostart_service = if self.config.is_user() {
-            self.open_base_service()?
+            self.open_base_service(ServiceAccessMode::Read)?
         } else {
             service
         };
@@ -61,7 +71,11 @@ impl ServiceManager {
         })
     }
 
-    fn find_service(&self, service_type: ServiceType) -> Result<Option<ServiceEntry>> {
+    fn find_service(
+        &self,
+        service_type: ServiceType,
+        mode: ServiceAccessMode,
+    ) -> Result<Option<ServiceEntry>> {
         let re_text = if self.config.is_user() {
             // User services have a random id appended to the end like this: some_service_name_18dcf87g
             // The id changes every login so we have to search for it
@@ -70,7 +84,7 @@ impl ServiceManager {
             format!("^{}$", self.config.name)
         };
         let re = Regex::new(&re_text).unwrap();
-        let manager = self.get_manager()?;
+        let manager = self.get_manager(mode)?;
         let user_service = manager
             .get_all_services(ListServiceType::WIN32, ServiceActiveState::ALL)
             .wrap_err("Error getting list of services")?
@@ -85,7 +99,8 @@ impl ServiceManager {
         let service = match &self.config.service_level {
             Level::System => self.config.name.clone(),
             Level::User => {
-                let user_service = self.find_service(ServiceType::USER_OWN_PROCESS)?;
+                let user_service =
+                    self.find_service(ServiceType::USER_OWN_PROCESS, ServiceAccessMode::Read)?;
 
                 match user_service {
                     Some(service) => service.name,
@@ -97,38 +112,57 @@ impl ServiceManager {
         Ok(Some(service))
     }
 
-    fn open_service(&self, service: &str) -> Result<Service> {
+    fn open_service(&self, service: &str, mode: ServiceAccessMode) -> Result<Service> {
         let service = self
-            .get_manager()?
-            .open_service(service, ServiceAccess::all())
+            .get_manager(mode.clone())?
+            .open_service(
+                service,
+                match mode {
+                    ServiceAccessMode::Write => ServiceAccess::all(),
+                    ServiceAccessMode::Read => {
+                        ServiceAccess::QUERY_CONFIG | ServiceAccess::QUERY_STATUS
+                    }
+                    ServiceAccessMode::Execute => {
+                        ServiceAccess::QUERY_CONFIG
+                            | ServiceAccess::QUERY_STATUS
+                            | ServiceAccess::START
+                            | ServiceAccess::STOP
+                    }
+                },
+            )
             .wrap_err("Error opening service")?;
         Ok(service)
     }
 
-    fn open_current_service(&self) -> Result<Service> {
+    fn open_current_service(&self, mode: ServiceAccessMode) -> Result<Service> {
         let name = match self.current_service_name()? {
             Some(name) => name,
             None => return Err("Unable to find service")?,
         };
-        self.open_service(&name)
+        self.open_service(&name, mode)
     }
 
-    fn open_base_service(&self) -> Result<Service> {
-        self.open_service(&self.config.name)
+    fn open_base_service(&self, mode: ServiceAccessMode) -> Result<Service> {
+        self.open_service(&self.config.name, mode)
     }
 
     fn delete_service(&self, service: &str, service_type: ServiceType) -> Result<()> {
         if self.query_info(service, service_type)?.state != State::NotInstalled {
-            let service = self.open_service(service)?;
+            let service = self.open_service(service, ServiceAccessMode::Write)?;
             service.delete().wrap_err("Error deleting service")?;
         }
         Ok(())
     }
 
-    fn get_manager(&self) -> Result<WindowsServiceManager> {
-        let service_manager =
-            WindowsServiceManager::local_computer(None::<&str>, ServiceManagerAccess::all())
-                .wrap_err("Error creating service manager")?;
+    fn get_manager(&self, mode: ServiceAccessMode) -> Result<WindowsServiceManager> {
+        let service_manager = WindowsServiceManager::local_computer(
+            None::<&str>,
+            match mode {
+                ServiceAccessMode::Write => ServiceManagerAccess::all(),
+                _ => ServiceManagerAccess::CONNECT | ServiceManagerAccess::ENUMERATE_SERVICE,
+            },
+        )
+        .wrap_err("Error creating service manager")?;
         Ok(service_manager)
     }
 
@@ -208,10 +242,10 @@ impl Manager for ServiceManager {
     }
 
     fn install(&self) -> Result<()> {
-        if self.open_base_service().is_err() {
+        if self.open_base_service(ServiceAccessMode::Write).is_err() {
             let service_info = self.get_service_info();
             let service = self
-                .get_manager()?
+                .get_manager(ServiceAccessMode::Write)?
                 .create_service(
                     &service_info,
                     ServiceAccess::CHANGE_CONFIG | ServiceAccess::START,
@@ -245,7 +279,7 @@ impl Manager for ServiceManager {
             return Ok(());
         }
 
-        let service = self.open_current_service()?;
+        let service = self.open_current_service(ServiceAccessMode::Execute)?;
         service
             .start::<String>(&[])
             .wrap_err("Error starting service")?;
@@ -256,7 +290,7 @@ impl Manager for ServiceManager {
         if self.info()?.state != State::Started {
             return Ok(());
         }
-        let service = self.open_current_service()?;
+        let service = self.open_current_service(ServiceAccessMode::Execute)?;
         let _ = service.stop().wrap_err("Error stopping service")?;
         Ok(())
     }
@@ -271,7 +305,7 @@ impl Manager for ServiceManager {
     }
 
     fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
-        let service = self.open_base_service()?;
+        let service = self.open_base_service(ServiceAccessMode::Write)?;
         self.config.autostart = enabled;
         service.change_config(&self.get_service_info())?;
         Ok(())

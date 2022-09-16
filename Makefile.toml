@@ -19,10 +19,11 @@ cargo build --features=all-sync,ipc-health-check,http-health-check --examples
 cargo build --features=all-async,all-sync,ipc-health-check,http-health-check --examples
 '''
 
-[tasks.build-powerset]
+[tasks.build-composite]
 args = [
   "hack",
   "--feature-powerset",
+  "--no-dev-deps",
   "--exclude-features",
   "cli client server console direct logging server async-tokio ipc-health-check http-health-check grpc-health-check",
   "build",
@@ -31,9 +32,34 @@ command = "cargo"
 dependencies = ["build-extra"]
 install_crate = "cargo-hack"
 
+[tasks.build-powerset]
+args = [
+  "hack",
+  "--feature-powerset",
+  "--no-dev-deps",
+  "--depth",
+  "2",
+  "--exclude-features",
+  "all-async all-sync async-client async-server sync-client sync-server ipc-health-check http-health-check grpc-health-check console",
+  "build",
+]
+command = "cargo"
+dependencies = ["build-composite"]
+install_crate = "cargo-hack"
+
 [tasks.build-all]
 args = ["build", "--features", "all-async,all-sync,ipc-health-check,http-health-check", "--workspace"]
 command = "cargo"
+
+[tasks.examples]
+script = '''
+cd examples
+cargo build --examples
+cd examples/http-axum
+cargo build
+cd ../grpc-tonic
+cargo build
+'''
 
 [tasks.build-coverage]
 args = ["build", "--workspace"]

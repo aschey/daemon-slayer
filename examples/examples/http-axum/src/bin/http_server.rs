@@ -30,7 +30,7 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let cli = CliAsync::server_builder(
+    let cli = CliAsync::builder_for_server(
         ServiceHandler::new(),
         "daemon_slayer_axum".to_owned(),
         "test service".to_owned(),

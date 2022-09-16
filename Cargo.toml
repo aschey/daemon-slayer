@@ -19,7 +19,16 @@ resolver = "2"
 all-async = ["async-client", "async-server", "daemon-slayer-cli/all-async", "file-watcher"]
 all-sync = ["sync-client", "sync-server", "daemon-slayer-cli/all-sync", "file-watcher"]
 async-client = ["console", "async-tokio", "client", "cli", "daemon-slayer-cli/async-client", "daemon-slayer-client/async-tokio"]
-async-server = ["direct", "async-tokio", "server", "cli", "logging", "daemon-slayer-cli/async-server", "file-watcher"]
+async-server = [
+  "direct",
+  "async-tokio",
+  "server",
+  "cli",
+  "daemon-slayer-logging/all-async",
+  "logging",
+  "daemon-slayer-cli/async-server",
+  "file-watcher",
+]
 async-tokio = [
   "daemon-slayer-server/async-tokio",
   "daemon-slayer-cli/async-tokio",
@@ -36,7 +45,16 @@ ipc-health-check = ["daemon-slayer-client/ipc-health-check", "daemon-slayer-serv
 logging = ["daemon-slayer-logging"]
 server = ["daemon-slayer-server"]
 sync-client = ["client", "cli", "daemon-slayer-cli/sync-client", "daemon-slayer-client/blocking"]
-sync-server = ["direct", "server", "logging", "cli", "daemon-slayer-cli/sync-server", "daemon-slayer-server/blocking", "file-watcher"]
+sync-server = [
+  "direct",
+  "server",
+  "logging",
+  "daemon-slayer-logging/all-sync",
+  "cli",
+  "daemon-slayer-cli/sync-server",
+  "daemon-slayer-server/blocking",
+  "file-watcher",
+]
 
 [dependencies]
 daemon-slayer-cli = {path = "./daemon-slayer-cli", optional = true}

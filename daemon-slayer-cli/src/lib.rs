@@ -1,7 +1,7 @@
 #[cfg(any(feature = "client", feature = "server"))]
 mod action;
 #[cfg(any(feature = "client", feature = "server"))]
-pub use action::Action;
+pub use action::*;
 
 #[cfg(any(feature = "client", feature = "server"))]
 mod command;
@@ -12,7 +12,9 @@ mod input_state;
 #[cfg(any(feature = "client", feature = "server"))]
 pub use input_state::InputState;
 #[cfg(any(feature = "client", feature = "server"))]
-mod service_commands;
+mod service_command;
+#[cfg(any(feature = "client", feature = "server"))]
+pub use service_command::*;
 
 #[cfg(any(feature = "client", feature = "server"))]
 pub use command::*;

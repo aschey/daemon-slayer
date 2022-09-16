@@ -1,4 +1,5 @@
 use daemon_slayer::cli::Action;
+use daemon_slayer::cli::ActionType;
 use daemon_slayer::cli::CliSync;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
@@ -14,7 +15,7 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         "test service".to_owned(),
     );
     let mut _logger_guard: Option<LoggerGuard> = None;
-    if cli.action_type() == Action::Server {
+    if cli.action().action_type == ActionType::Server {
         let (logger, guard) = LoggerBuilder::new(ServiceHandler::get_service_name())
             .build()
             .unwrap();

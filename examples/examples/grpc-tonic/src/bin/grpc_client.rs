@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .subcommand(clap::Command::new("hello").arg(clap::Arg::new("name")));
 
     let health_check = GrpcHealthCheckAsync::new("http://[::1]:50051")?;
-    let cli = CliAsync::client_builder(manager)
+    let cli = CliAsync::builder_for_client(manager)
         .with_base_command(command)
         .with_health_check(Box::new(health_check))
         .build();

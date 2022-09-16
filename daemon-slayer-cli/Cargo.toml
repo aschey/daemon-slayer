@@ -7,19 +7,20 @@ version = "0.1.0"
 all-async = ["async-tokio", "client", "console", "direct", "server"]
 all-sync = ["client", "direct", "server", "blocking"]
 async-client = ["async-tokio", "client", "console", "direct"]
-async-server = ["async-tokio", "server", "direct"]
+async-server = ["async-tokio", "server", "direct", "logging"]
 async-tokio = ["tokio", "async-trait", "futures", "daemon-slayer-server/async-tokio", "daemon-slayer-client/async-tokio"]
 blocking = ["daemon-slayer-server/blocking", "daemon-slayer-client/blocking"]
 client = ["daemon-slayer-client"]
 console = ["daemon-slayer-console", "async-tokio"]
 direct = []
+logging = ["daemon-slayer-logging"]
 server = ["daemon-slayer-server"]
 sync-client = ["client", "direct", "blocking"]
-sync-server = ["server", "direct", "blocking"]
+sync-server = ["server", "direct", "blocking", "logging"]
 
 [dependencies]
 async-trait = {version = "0.1", optional = true}
-clap = {git = "https://github.com/clap-rs/clap", rev = "bf98110adc1bfc90b044ac7faf6acd784f17f7df"}
+clap = {git = "https://github.com/clap-rs/clap", rev = "6dc8c9943c2aaa9d50e2664847b8a7fa5ec06928", features = ["string"]}
 daemon-slayer-client = {path = "../daemon-slayer-client", optional = true}
 daemon-slayer-console = {path = "../daemon-slayer-console", optional = true}
 daemon-slayer-logging = {path = "../daemon-slayer-logging", optional = true}

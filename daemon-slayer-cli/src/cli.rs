@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use crate::{commands::Commands, service_commands::ServiceCommands, Action, Command, InputState};
+use crate::{action::ActionType, service_command::ServiceCommand, Action, Command, InputState};
 use clap::{Arg, ArgAction, ArgMatches};
 #[cfg(feature = "client")]
 use daemon_slayer_client::{Manager, ServiceManager};
@@ -13,19 +13,31 @@ macro_rules! get_handlers {
                 #[cfg(feature = "client")]
                 if let Some(manager) = &mut $self.builder.manager {
                     match *name {
-                        ServiceCommands::INSTALL => {
+                        ServiceCommand::Install => {
+                            #[cfg(feature="logging")]
+                            {
+                                let logger_builder = daemon_slayer_logging::LoggerBuilder::new($self.builder.display_name);
+                                logger_builder.register()?;
+                            }
+
                             manager.install()?;
                             return Ok(true);
                         }
-                        ServiceCommands::UNINSTALL => {
+                        ServiceCommand::Uninstall => {
                             manager.uninstall()?;
+                            #[cfg(feature="logging")]
+                            {
+                                let logger_builder = daemon_slayer_logging::LoggerBuilder::new($self.builder.display_name);
+                                logger_builder.deregister()?;
+                            }
+
                             return Ok(true);
                         }
-                        ServiceCommands::INFO => {
+                        ServiceCommand::Info => {
                             println!("{:?}", manager.info()?);
                             return Ok(true);
                         }
-                        ServiceCommands::PID => {
+                        ServiceCommand::Pid => {
                             println!(
                                 "{}",
                                 manager
@@ -36,23 +48,23 @@ macro_rules! get_handlers {
                             );
                             return Ok(true);
                         }
-                        ServiceCommands::START => {
+                        ServiceCommand::Start => {
                             manager.start()?;
                             return Ok(true);
                         }
-                        ServiceCommands::STOP => {
+                        ServiceCommand::Stop => {
                             manager.stop()?;
                             return Ok(true);
                         }
-                        ServiceCommands::RESTART => {
+                        ServiceCommand::Restart => {
                             manager.restart()?;
                             return Ok(true);
                         }
-                        ServiceCommands::ENABLE => {
+                        ServiceCommand::Enable => {
                             manager.set_autostart_enabled(true)?;
                             return Ok(true);
                         }
-                        ServiceCommands::DISABLE => {
+                        ServiceCommand::Disable => {
                             manager.set_autostart_enabled(false)?;
                             return Ok(true);
                         }
@@ -132,17 +144,17 @@ impl Cli {
         cli
     }
 
-    fn matches(&self, m: &ArgMatches, cmd: &Command, cmd_name: &'static str) -> bool {
+    fn matches(&self, m: &ArgMatches, cmd: &Command, cmd_name: &ServiceCommand) -> bool {
         match cmd {
             Command::Arg {
                 short: _,
                 long: _,
                 help_text: _,
-            } => m.get_one::<bool>(cmd_name) == Some(&true),
+            } => m.get_one::<bool>(cmd_name.clone().into()) == Some(&true),
             Command::Subcommand {
                 name: _,
                 help_text: _,
-            } => m.subcommand().map(|r| r.0) == Some(cmd_name),
+            } => m.subcommand().map(|r| r.0) == Some(cmd_name.clone().into()),
             Command::Default => !m.args_present() && m.subcommand() == None,
         }
     }
@@ -155,11 +167,10 @@ impl Cli {
             .name(&self.builder.display_name)
             .about(&self.builder.description);
         for (name, command) in self.builder.commands.iter() {
+            #[cfg(not(feature = "server"))]
             let mut hide = false;
             #[cfg(feature = "server")]
-            {
-                hide = (*name) == ServiceCommands::RUN;
-            }
+            let hide = (*name) == ServiceCommand::Run;
 
             match command {
                 Command::Arg {
@@ -167,7 +178,7 @@ impl Cli {
                     long,
                     help_text,
                 } => {
-                    let mut arg = Arg::new(*name);
+                    let mut arg = Arg::new(name.to_string());
                     if let Some(short) = short {
                         arg = arg.short(*short);
                     }
@@ -208,7 +219,7 @@ impl Cli {
     ) -> Result<bool, Box<dyn Error + Send + Sync>> {
         get_handlers!(self, matches,
             #[cfg(feature="console")]
-            ServiceCommands::CONSOLE => {
+            ServiceCommand::Console => {
                 let mut console = daemon_slayer_console::Console::new(self.builder.manager.unwrap());
                 if let Some(health_check) = self.builder.health_check {
                     console.add_health_check(health_check);
@@ -216,7 +227,7 @@ impl Cli {
                 console.run().await?;
                 return Ok(true);
             }
-            ServiceCommands::HEALTH => {
+            ServiceCommand::Health => {
                 if let Some(health_check) = &mut self.builder.health_check {
                     match health_check.invoke().await {
                         Ok(_) => println!("healthy"),
@@ -230,7 +241,7 @@ impl Cli {
         for (name, cmd) in self.builder.commands.iter() {
             if self.matches(matches, cmd, name) {
                 match *name {
-                    ServiceCommands::RUN => {
+                    ServiceCommand::Run => {
                         info!("running...");
                         if let Some(service) = self.builder.service {
                             service.run_service_main().await?;
@@ -239,7 +250,7 @@ impl Cli {
                     }
 
                     #[cfg(feature = "direct")]
-                    ServiceCommands::DIRECT => {
+                    ServiceCommand::Direct => {
                         info!("running...");
                         if let Some(service) = self.builder.service {
                             service.run_service_direct().await?;
@@ -265,7 +276,7 @@ impl Cli {
         for (name, cmd) in self.builder.commands.iter() {
             if self.matches(matches, cmd, name) {
                 match *name {
-                    ServiceCommands::RUN => {
+                    ServiceCommand::Run => {
                         info!("running...");
                         if let Some(service) = self.builder.service {
                             service.run_service_main()?;
@@ -274,7 +285,7 @@ impl Cli {
                     }
 
                     #[cfg(feature = "direct")]
-                    ServiceCommands::DIRECT => {
+                    ServiceCommand::Direct => {
                         info!("running...");
                         if let Some(service) = self.builder.service {
                             service.run_service_direct()?;
@@ -289,45 +300,67 @@ impl Cli {
         Ok(false)
     }
 
-    pub fn action_type(&self) -> Action {
+    pub fn action(&self) -> Action {
         let matches = self.builder.clap_command.clone().get_matches();
 
         for (name, cmd) in self.builder.commands.iter() {
             if self.matches(&matches, cmd, name) {
                 #[cfg(feature = "client")]
                 {
-                    match *name {
-                        ServiceCommands::INSTALL
-                        | ServiceCommands::UNINSTALL
-                        | ServiceCommands::INFO
-                        | ServiceCommands::START
-                        | ServiceCommands::STOP
-                        | ServiceCommands::RESTART
-                        | ServiceCommands::PID
-                        | ServiceCommands::ENABLE
-                        | ServiceCommands::HEALTH
-                        | ServiceCommands::DISABLE => {
-                            return Action::Client;
+                    match name {
+                        ServiceCommand::Install
+                        | ServiceCommand::Uninstall
+                        | ServiceCommand::Info
+                        | ServiceCommand::Start
+                        | ServiceCommand::Stop
+                        | ServiceCommand::Restart
+                        | ServiceCommand::Pid
+                        | ServiceCommand::Enable
+                        | ServiceCommand::Health
+                        | ServiceCommand::Disable => {
+                            return Action {
+                                action_type: ActionType::Client,
+                                command: Some(name.to_owned()),
+                            };
                         }
                         #[cfg(feature = "console")]
-                        ServiceCommands::CONSOLE => return Action::Client,
+                        ServiceCommand::Console => {
+                            return Action {
+                                action_type: ActionType::Client,
+                                command: Some(name.to_owned()),
+                            }
+                        }
                         _ => {}
                     }
                 }
                 #[cfg(feature = "server")]
                 {
                     match *name {
-                        ServiceCommands::RUN => {
-                            return Action::Server;
+                        ServiceCommand::Run => {
+                            return Action {
+                                action_type: ActionType::Server,
+                                command: Some(name.to_owned()),
+                            };
                         }
                         #[cfg(feature = "direct")]
-                        ServiceCommands::DIRECT => return Action::Server,
+                        ServiceCommand::Direct => {
+                            return Action {
+                                action_type: ActionType::Server,
+                                command: Some(name.to_owned()),
+                            }
+                        }
                         _ => {}
                     }
                 }
-                return Action::Unknown;
+                return Action {
+                    action_type: ActionType::Unknown,
+                    command: None,
+                };
             }
         }
-        Action::Unknown
+        Action {
+            action_type: ActionType::Unknown,
+            command: None,
+        }
     }
 }
