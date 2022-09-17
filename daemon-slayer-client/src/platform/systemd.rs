@@ -1,4 +1,4 @@
-use crate::{Builder, Info, Manager, Result, State};
+use crate::{config::Builder, Info, Manager, Result, State};
 use eyre::Context;
 use systemd_client::{
     create_unit_configuration_file, create_user_unit_configuration_file,

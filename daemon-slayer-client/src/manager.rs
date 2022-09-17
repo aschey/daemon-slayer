@@ -1,4 +1,4 @@
-use crate::Builder;
+use crate::config::Builder;
 use crate::{Info, Result};
 
 pub trait Manager {
