@@ -9,7 +9,7 @@ use launchd::Launchd;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use crate::{Builder, Info, Level, Manager, Result, State};
+use crate::{config::Builder, Info, Level, Manager, Result, State};
 
 macro_rules! regex {
     ($name: ident, $re:literal $(,)?) => {

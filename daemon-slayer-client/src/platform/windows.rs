@@ -1,4 +1,4 @@
-use crate::{Builder, Info, Level, Manager, Result, State};
+use crate::{config::Builder, Info, Level, Manager, Result, State};
 use eyre::Context;
 use regex::Regex;
 use registry::{Data, Hive, Security};
