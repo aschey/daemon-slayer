@@ -1,3 +1,4 @@
+use crate::stateful_list::StatefulList;
 use ansi_to_tui::IntoText;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode},
@@ -23,8 +24,6 @@ use tui::{
     widgets::{Block, BorderType, Borders, List, ListItem, ListState, Paragraph, Wrap},
     Frame, Terminal,
 };
-
-use crate::stateful_list::StatefulList;
 
 pub struct Console<'a> {
     manager: ServiceManager,
@@ -87,18 +86,18 @@ impl<'a> Console<'a> {
         tx: tokio::sync::mpsc::Sender<bool>,
     ) {
         tokio::spawn(async move {
-            let mut is_healthy = false;
+            let mut is_healthy: Option<bool> = None;
             loop {
                 match health_checker.invoke().await {
                     Ok(()) => {
-                        if !is_healthy {
-                            is_healthy = true;
+                        if is_healthy != Some(true) {
+                            is_healthy = Some(true);
                             let _ = tx.send(true).await;
                         }
                     }
-                    Err(_) => {
-                        if is_healthy {
-                            is_healthy = false;
+                    Err(e) => {
+                        if is_healthy != Some(false) {
+                            is_healthy = Some(false);
                             let _ = tx.send(false).await;
                         }
                     }
