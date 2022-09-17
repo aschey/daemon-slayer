@@ -2,6 +2,9 @@ use std::error::Error;
 
 use tracing::{error, info};
 
+const USER_OWN_PROCESS_TEMPLATE: u32 = 0x50;
+const USER_SHARE_PROCESS_TEMPLATE: u32 = 0x60;
+
 #[cfg(feature = "async-tokio")]
 pub fn get_service_main_async<T: crate::HandlerAsync + Send>() {
     let rt = tokio::runtime::Runtime::new().expect("Tokio runtime failed to initialize");
@@ -16,17 +19,18 @@ pub fn get_service_main_sync<T: crate::HandlerSync + Send>() {
 #[maybe_async_cfg::maybe(
     idents(
         Handler,
+        set_env_vars(snake),
         get_channel(snake),
         start_file_watcher(snake),
         start_event_loop(snake),
         send_stop_signal(snake),
-        run_service_main(snake),
         join_handle(snake)
     ),
     sync(feature = "blocking"),
     async(feature = "async-tokio")
 )]
 async fn get_service_main_impl<T: crate::Handler + Send>() {
+    set_env_vars::<T>();
     let mut handler = T::new();
     let event_handler = handler.get_event_handler();
 
@@ -120,6 +124,42 @@ async fn get_service_main_impl<T: crate::Handler + Send>() {
 
     drop(status_handle);
     join_handle(event_handle).await;
+}
+
+#[maybe_async_cfg::maybe(
+    idents(Handler,),
+    sync(feature = "blocking"),
+    async(feature = "async-tokio")
+)]
+fn set_env_vars<T: crate::Handler + Send>() {
+    let services_key = registry::Hive::LocalMachine
+        .open(
+            format!(
+                "SYSTEM\\CurrentControlSet\\Services\\{}",
+                T::get_service_name()
+            ),
+            registry::Security::Read,
+        )
+        .unwrap();
+
+    let is_user_service = matches!(
+        services_key.value("Type"),
+        Ok(registry::Data::U32(
+            USER_OWN_PROCESS_TEMPLATE | USER_SHARE_PROCESS_TEMPLATE
+        ))
+    );
+
+    // User services don't copy over the environment variables from the template so we need to inject them manually
+    if is_user_service {
+        if let Ok(registry::Data::MultiString(environment_vars)) = services_key.value("Environment")
+        {
+            for env_var in environment_vars {
+                let var_str = env_var.to_string_lossy();
+                let parts = var_str.split('=').collect::<Vec<_>>();
+                std::env::set_var(parts[0], parts[1]);
+            }
+        }
+    }
 }
 
 #[cfg(feature = "async-tokio")]

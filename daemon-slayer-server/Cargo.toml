@@ -22,6 +22,7 @@ parity-tokio-ipc = {version = "0.9", optional = true}
 tracing = "0.1"
 
 [target.'cfg(windows)'.dependencies]
+registry = "1"
 signal-hook = {version = "0.3", optional = true}
 tokio = {version = "1", features = ["rt-multi-thread", "signal", "net", "macros", "sync"], optional = true}
 windows-service = {git = "https://github.com/aschey/windows-service-rs", rev = "467408c9aba7d8221e5cf5a9992765ad7abeeb55"}
