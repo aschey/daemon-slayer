@@ -71,7 +71,7 @@ impl HandlerAsync for ServiceHandler {
             let mut tx = tx.clone();
             Box::pin(async move {
                 info!("stopping");
-                tx.send(()).await?;
+                let _ = tx.send(()).await;
                 Ok(())
             })
         })
@@ -85,7 +85,7 @@ impl HandlerAsync for ServiceHandler {
         on_started();
         let start = Instant::now();
         loop {
-            if Instant::now().duration_since(start) > Duration::from_secs(5) {
+            if Instant::now().duration_since(start) > Duration::from_secs(3) {
                 error!("An error occurred");
                 return Err("Something bad happened")?;
             }

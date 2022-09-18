@@ -72,7 +72,7 @@ impl HandlerAsync for ServiceHandler {
             let mut tx = tx.clone();
             Box::pin(async move {
                 info!("stopping");
-                tx.send(()).await?;
+                let _ = tx.send(()).await;
                 Ok(())
             })
         })

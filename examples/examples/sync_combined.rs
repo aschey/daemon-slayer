@@ -47,7 +47,7 @@ impl HandlerSync for ServiceHandler {
     fn get_event_handler(&mut self) -> EventHandlerSync {
         let tx = self.tx.clone();
         Box::new(move |event| {
-            tx.send(())?;
+            let _ = tx.send(());
             Ok(())
         })
     }

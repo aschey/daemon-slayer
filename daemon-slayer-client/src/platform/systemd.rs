@@ -197,7 +197,7 @@ impl Manager for ServiceManager {
         let last_exit_code = if state == State::NotInstalled {
             None
         } else {
-            Some(service_props.exec_main_code)
+            Some(service_props.exec_main_status)
         };
 
         Ok(Info {
