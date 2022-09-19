@@ -166,6 +166,8 @@ impl Cli {
             .clone()
             .name(&self.builder.display_name)
             .about(&self.builder.description);
+
+        let mut has_default_cmd = false;
         for (name, command) in self.builder.commands.iter() {
             #[cfg(not(feature = "server"))]
             let mut hide = false;
@@ -195,10 +197,15 @@ impl Cli {
                 Command::Subcommand { name, help_text } => {
                     cmd = cmd.subcommand(clap::Command::new(name).about(help_text).hide(hide))
                 }
-                Command::Default => {}
+                Command::Default => {
+                    has_default_cmd = true;
+                }
             }
         }
 
+        if !has_default_cmd && self.builder.show_help_if_no_default {
+            cmd = cmd.arg_required_else_help(true);
+        }
         self.builder.clap_command = cmd;
     }
 

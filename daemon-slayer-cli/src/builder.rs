@@ -25,6 +25,7 @@ pub struct Builder {
     pub(crate) display_name: String,
     pub(crate) description: String,
     pub(crate) clap_command: clap::Command,
+    pub(crate) show_help_if_no_default: bool,
     #[cfg(feature = "client")]
     pub(crate) manager: Option<daemon_slayer_client::ServiceManager>,
     #[cfg(feature = "server")]
@@ -55,6 +56,7 @@ impl Builder {
             health_check: None,
             manager: Some(manager),
             service: Some(Box::new(service)),
+            show_help_if_no_default: true,
         }
     }
 
@@ -71,6 +73,7 @@ impl Builder {
             manager: Some(manager),
             #[cfg(feature = "server")]
             service: None,
+            show_help_if_no_default: true,
         }
     }
 
@@ -90,6 +93,7 @@ impl Builder {
             #[cfg(feature = "client")]
             manager: None,
             service: Some(Box::new(service)),
+            show_help_if_no_default: true,
         }
     }
 
@@ -99,6 +103,11 @@ impl Builder {
 
     pub fn with_base_command(mut self, command: clap::Command) -> Self {
         self.clap_command = command;
+        self
+    }
+
+    pub fn show_help_if_no_default(mut self, show: bool) -> Self {
+        self.show_help_if_no_default = show;
         self
     }
 
