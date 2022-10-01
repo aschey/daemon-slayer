@@ -16,7 +16,7 @@ use tracing_appender::{
 
 use tracing_subscriber::{
     fmt::{time::OffsetTime, Layer},
-    prelude::__tracing_subscriber_SubscriberExt,
+    prelude::*,
     registry::LookupSpan,
     util::SubscriberInitExt,
     EnvFilter, Layer as SubscriberLayer,
@@ -85,7 +85,7 @@ impl LoggerBuilder {
     }
 
     pub fn register(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        #[cfg(all(windows, feature = "eventlog"))]
+        #[cfg(all(windows, feature = "windows-eventlog"))]
         {
             use tracing_eventlog::EventLogRegistry;
             let log_source = tracing_eventlog::LogSource::application(self.name.clone());
@@ -95,7 +95,7 @@ impl LoggerBuilder {
     }
 
     pub fn deregister(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        #[cfg(all(windows, feature = "eventlog"))]
+        #[cfg(all(windows, feature = "windows-eventlog"))]
         {
             use tracing_eventlog::EventLogRegistry;
             let log_source = tracing_eventlog::LogSource::application(self.name.clone());
@@ -182,11 +182,18 @@ impl LoggerBuilder {
                 .with_filter(tracing_ipc::Filter::new(self.level_filter))
         });
 
-        #[cfg(all(target_os = "linux", feature = "journald"))]
+        #[cfg(all(target_os = "linux", feature = "linux-journald"))]
         let collector = collector.with(tracing_journald::layer()?);
 
-        #[cfg(all(windows, feature = "eventlog"))]
+        #[cfg(all(windows, feature = "windows-eventlog"))]
         let collector = collector.with(tracing_eventlog::EventLogLayer::pretty(self.name)?);
+
+        #[cfg(all(target_os = "macos", feature = "mac-oslog"))]
+        let collector = collector.with(tracing_oslog::OsLogger::new(
+            // TODO: figure out service naming stuff
+            &format!("com.service.{}", self.name),
+            "default",
+        ));
 
         Ok((collector, guard))
     }

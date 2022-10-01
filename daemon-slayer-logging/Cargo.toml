@@ -4,12 +4,13 @@ name = "daemon-slayer-logging"
 version = "0.1.0"
 
 [features]
-all-async = ["eventlog", "ipc", "async-tokio", "journald"]
-all-sync = ["eventlog", "journald"]
+all-async = ["ipc", "async-tokio", "linux-journald", "mac-oslog", "windows-eventlog"]
+all-sync = ["linux-journald", "mac-oslog", "windows-eventlog"]
 async-tokio = ["tokio", "async-trait", "futures"]
-eventlog = ["tracing-eventlog"]
 ipc = ["async-tokio", "tracing-ipc"]
-journald = ["tracing-journald"]
+linux-journald = ["tracing-journald"]
+mac-oslog = ["tracing-oslog"]
+windows-eventlog = ["tracing-eventlog"]
 
 [dependencies]
 async-trait = {version = "0.1", optional = true}
@@ -32,3 +33,6 @@ tokio = {version = "1", features = ["rt-multi-thread", "net", "io-util", "sync"]
 
 [target.'cfg(target_os="linux")'.dependencies]
 tracing-journald = {version = "0.3", optional = true}
+
+[target.'cfg(target_os="macos")'.dependencies]
+tracing-oslog = {version = "0.1.2", optional = true}
