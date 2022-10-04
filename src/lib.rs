@@ -18,3 +18,7 @@ pub mod logging {
 pub mod console {
     pub use daemon_slayer_console::*;
 }
+#[cfg(feature = "error-handler")]
+pub mod error_handler {
+    pub use daemon_slayer_error_handler::*;
+}

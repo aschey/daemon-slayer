@@ -1,0 +1,8 @@
+[package]
+edition = "2021"
+name = "daemon-slayer-error-handler"
+version = "0.1.0"
+
+[dependencies]
+color-eyre = "0.6"
+tracing = "0.1"

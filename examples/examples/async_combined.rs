@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use daemon_slayer::client::{Manager, ServiceManager};
 
 use daemon_slayer::cli::{Action, ActionType, CliAsync, Command};
+use daemon_slayer::error_handler::ErrorHandler;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::server::{EventHandlerAsync, HandlerAsync, ServiceAsync};
 
@@ -15,12 +16,12 @@ use futures::{SinkExt, StreamExt};
 use tracing::info;
 
 pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
-    run_async(logger_builder)
+    daemon_slayer::logging::init_local_time();
+    run_async()
 }
 
 #[tokio::main]
-pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Error + Send + Sync>> {
+pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
     let manager = ServiceManager::builder(ServiceHandler::get_service_name())
         .with_description("test service")
         .with_service_level(if cfg!(windows) {
@@ -35,15 +36,16 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
 
     let cli = CliAsync::for_all(manager, ServiceHandler::new());
 
-    let mut _logger_guard: Option<LoggerGuard> = None;
+    let (logger, _guard) = cli
+        .configure_logger()
+        .with_ipc_logger(true)
+        .build()
+        .unwrap();
 
-    if cli.action().action_type == ActionType::Server {
-        let (logger, guard) = logger_builder.with_ipc_logger(true).build().unwrap();
-        _logger_guard = Some(guard);
-        logger.init();
-    }
-
+    logger.init();
+    cli.configure_error_handler().install()?;
     cli.handle_input().await?;
+
     Ok(())
 }
 

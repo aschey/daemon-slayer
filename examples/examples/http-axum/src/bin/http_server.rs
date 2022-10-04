@@ -21,18 +21,16 @@ use tracing::info;
 use tracing::metadata::LevelFilter;
 
 pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name())
-        .with_default_log_level(tracing::Level::TRACE)
-        .with_level_filter(LevelFilter::TRACE)
-        .with_ipc_logger(true);
-    run_async(logger_builder)
+    daemon_slayer::logging::init_local_time();
+    run_async()
 }
 
 #[tokio::main]
-pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Error + Send + Sync>> {
+pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
     let cli = CliAsync::builder_for_server(
         ServiceHandler::new(),
         "daemon_slayer_axum".to_owned(),
+        "daemon slayer axum".to_owned(),
         "test service".to_owned(),
     )
     .with_health_check(Box::new(HttpHealthCheckAsync::new(
@@ -41,9 +39,15 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
     )?))
     .build();
 
-    let (logger, _guard) = logger_builder.build().unwrap();
-
+    let (logger, _guard) = cli
+        .configure_logger()
+        .with_default_log_level(tracing::Level::TRACE)
+        .with_level_filter(LevelFilter::TRACE)
+        .with_ipc_logger(true)
+        .build()?;
     logger.init();
+
+    cli.configure_error_handler().install()?;
 
     cli.handle_input().await?;
     Ok(())

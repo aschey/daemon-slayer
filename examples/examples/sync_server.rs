@@ -1,6 +1,7 @@
 use daemon_slayer::cli::Action;
 use daemon_slayer::cli::ActionType;
 use daemon_slayer::cli::CliSync;
+use daemon_slayer::error_handler::ErrorHandler;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{EventHandlerSync, HandlerSync, ServiceSync};
@@ -12,17 +13,14 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let cli = CliSync::for_server(
         ServiceHandler::new(),
         "daemon_slayer_test_service".to_owned(),
+        "daemon slayer test service".to_owned(),
         "test service".to_owned(),
     );
-    let mut _logger_guard: Option<LoggerGuard> = None;
-    if cli.action().action_type == ActionType::Server {
-        let (logger, guard) = LoggerBuilder::new(ServiceHandler::get_service_name())
-            .build()
-            .unwrap();
-        _logger_guard = Some(guard);
-        logger.init();
-    }
 
+    let (logger, _guard) = cli.configure_logger().build().unwrap();
+
+    logger.init();
+    cli.configure_error_handler().install()?;
     cli.handle_input()?;
     Ok(())
 }

@@ -11,6 +11,7 @@ members = [
   "daemon-slayer-cli",
   "daemon-slayer-logging",
   "daemon-slayer-console",
+  "daemon-slayer-error-handler",
   "integration-tests",
 ]
 resolver = "2"
@@ -18,7 +19,15 @@ resolver = "2"
 [features]
 all-async = ["async-client", "async-server", "daemon-slayer-cli/all-async", "file-watcher"]
 all-sync = ["sync-client", "sync-server", "daemon-slayer-cli/all-sync", "file-watcher"]
-async-client = ["console", "async-tokio", "client", "cli", "daemon-slayer-cli/async-client", "daemon-slayer-client/async-tokio"]
+async-client = [
+  "console",
+  "async-tokio",
+  "client",
+  "cli",
+  "daemon-slayer-cli/async-client",
+  "daemon-slayer-client/async-tokio",
+  "error-handler",
+]
 async-server = [
   "direct",
   "async-tokio",
@@ -28,6 +37,7 @@ async-server = [
   "logging",
   "daemon-slayer-cli/async-server",
   "file-watcher",
+  "error-handler",
 ]
 async-tokio = [
   "daemon-slayer-server/async-tokio",
@@ -38,13 +48,20 @@ cli = ["daemon-slayer-cli"]
 client = ["daemon-slayer-client"]
 console = ["daemon-slayer-console", "daemon-slayer-cli/console"]
 direct = ["daemon-slayer-server/direct", "daemon-slayer-cli/direct"]
+error-handler = ["daemon-slayer-error-handler", "daemon-slayer-cli/error-handler"]
 file-watcher = ["daemon-slayer-server/file-watcher"]
 grpc-health-check = ["daemon-slayer-client/grpc-health-check"]
 http-health-check = ["daemon-slayer-client/http-health-check"]
 ipc-health-check = ["daemon-slayer-client/ipc-health-check", "daemon-slayer-server/ipc-health-check"]
 logging = ["daemon-slayer-logging"]
 server = ["daemon-slayer-server"]
-sync-client = ["client", "cli", "daemon-slayer-cli/sync-client", "daemon-slayer-client/blocking"]
+sync-client = [
+  "client",
+  "cli",
+  "daemon-slayer-cli/sync-client",
+  "daemon-slayer-client/blocking",
+  "error-handler",
+]
 sync-server = [
   "direct",
   "server",
@@ -54,11 +71,13 @@ sync-server = [
   "daemon-slayer-cli/sync-server",
   "daemon-slayer-server/blocking",
   "file-watcher",
+  "error-handler",
 ]
 
 [dependencies]
 daemon-slayer-cli = {path = "./daemon-slayer-cli", optional = true}
 daemon-slayer-client = {path = "./daemon-slayer-client", optional = true}
 daemon-slayer-console = {path = "./daemon-slayer-console", optional = true}
+daemon-slayer-error-handler = {path = "./daemon-slayer-error-handler", optional = true}
 daemon-slayer-logging = {path = "./daemon-slayer-logging", optional = true}
 daemon-slayer-server = {path = "./daemon-slayer-server", optional = true}

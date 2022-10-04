@@ -22,6 +22,7 @@ macro_rules! impl_command_builder {
 )]
 pub struct Builder {
     pub(crate) commands: Commands,
+    pub(crate) name: String,
     pub(crate) display_name: String,
     pub(crate) description: String,
     pub(crate) clap_command: clap::Command,
@@ -50,6 +51,7 @@ impl Builder {
 
         Self {
             commands: Commands::new(true, true),
+            name: manager.name().to_string(),
             display_name: manager.display_name().to_string(),
             description: manager.description().to_string(),
             clap_command: clap::Command::default(),
@@ -66,6 +68,7 @@ impl Builder {
 
         Self {
             commands: Commands::new(true, false),
+            name: manager.name().to_string(),
             display_name: manager.display_name().to_string(),
             description: manager.description().to_string(),
             clap_command: clap::Command::default(),
@@ -80,11 +83,13 @@ impl Builder {
     #[cfg(feature = "server")]
     pub fn server(
         service: impl daemon_slayer_server::Service + 'static,
+        name: String,
         display_name: String,
         description: String,
     ) -> Self {
         Self {
             commands: Commands::new(false, true),
+            name,
             display_name,
             description,
             clap_command: clap::Command::default(),

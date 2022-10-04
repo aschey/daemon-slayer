@@ -16,7 +16,7 @@ macro_rules! get_handlers {
                         ServiceCommand::Install => {
                             #[cfg(feature="logging")]
                             {
-                                let logger_builder = daemon_slayer_logging::LoggerBuilder::new($self.builder.display_name);
+                                let logger_builder = daemon_slayer_logging::LoggerBuilder::new($self.builder.name);
                                 logger_builder.register()?;
                             }
 
@@ -27,7 +27,7 @@ macro_rules! get_handlers {
                             manager.uninstall()?;
                             #[cfg(feature="logging")]
                             {
-                                let logger_builder = daemon_slayer_logging::LoggerBuilder::new($self.builder.display_name);
+                                let logger_builder = daemon_slayer_logging::LoggerBuilder::new($self.builder.name);
                                 logger_builder.deregister()?;
                             }
 
@@ -110,10 +110,11 @@ impl Cli {
     #[cfg(feature = "server")]
     pub fn for_server(
         service: impl daemon_slayer_server::Service + 'static,
+        name: String,
         display_name: String,
         description: String,
     ) -> Self {
-        super::Builder::server(service, display_name, description).build()
+        super::Builder::server(service, name, display_name, description).build()
     }
 
     #[cfg(all(feature = "client", feature = "server"))]
@@ -132,10 +133,11 @@ impl Cli {
     #[cfg(feature = "server")]
     pub fn builder_for_server(
         service: impl daemon_slayer_server::Service + 'static,
+        name: String,
         display_name: String,
         description: String,
     ) -> super::Builder {
-        super::Builder::server(service, display_name, description)
+        super::Builder::server(service, name, display_name, description)
     }
 
     pub(crate) fn from_builder(builder: super::Builder) -> Self {
@@ -305,6 +307,42 @@ impl Cli {
         }
 
         Ok(false)
+    }
+
+    #[cfg(feature = "logging")]
+    pub fn configure_logger(&self) -> daemon_slayer_logging::LoggerBuilder {
+        let logger_builder = daemon_slayer_logging::LoggerBuilder::new(&self.builder.name);
+        let action = self.action();
+        if action.action_type == ActionType::Client {
+            logger_builder
+                .with_log_to_stderr(false)
+                .with_log_to_stdout(false)
+        } else {
+            logger_builder
+                .with_log_to_stderr(true)
+                .with_log_to_stdout(false)
+        }
+    }
+
+    #[cfg(feature = "error-handler")]
+    pub fn configure_error_handler(&self) -> daemon_slayer_error_handler::ErrorHandler {
+        use daemon_slayer_error_handler::{color_eyre::config::Theme, ErrorHandler, PanicBehavior};
+
+        let action = self.action();
+
+        #[cfg(feature = "server")]
+        if action.command == Some(ServiceCommand::Run) {
+            ErrorHandler::default()
+                .with_theme(Theme::new())
+                .with_panic_behavior(PanicBehavior::Log)
+        } else {
+            ErrorHandler::default()
+                .with_panic_behavior(PanicBehavior::Print)
+                .with_theme(Theme::dark())
+        }
+
+        #[cfg(not(feature = "server"))]
+        ErrorHandler::default().with_panic_behavior(PanicBehavior::Print)
     }
 
     pub fn action(&self) -> Action {

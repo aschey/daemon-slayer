@@ -1,6 +1,7 @@
 use std::error::Error;
 
 use daemon_slayer::cli::CliAsync;
+
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{EventHandlerAsync, HandlerAsync};
@@ -33,21 +34,27 @@ impl Greeter for MyGreeter {
 }
 
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
-    run_async(logger_builder)
+    daemon_slayer::logging::init_local_time();
+    run_async()
 }
 
 #[tokio::main]
-async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Error + Send + Sync>> {
+async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
     let cli = CliAsync::for_server(
         ServiceHandler::new(),
+        "daemon slayer tonic".to_owned(),
         "daemon_slayer_tonic".to_owned(),
         "test_service".to_owned(),
     );
 
-    let (logger, _guard) = logger_builder.with_ipc_logger(true).build().unwrap();
+    let (logger, _guard) = cli
+        .configure_logger()
+        .with_ipc_logger(true)
+        .build()
+        .unwrap();
 
     logger.init();
+    cli.configure_error_handler().install()?;
 
     cli.handle_input().await?;
     Ok(())

@@ -22,34 +22,29 @@ use tracing::info;
 
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 
-pub fn main() {
-    let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(async {
-        let mut manager_builder = ServiceManager::builder(ServiceHandler::get_service_name())
-            .with_description("test service")
-            .with_args(["run"]);
+#[tokio::main]
+pub async fn main() {
+    let mut manager_builder = ServiceManager::builder(ServiceHandler::get_service_name())
+        .with_description("test service")
+        .with_args(["run"]);
 
-        if let Ok(config_file) = std::env::var("CONFIG_FILE") {
-            manager_builder = manager_builder.with_env_var("CONFIG_FILE", config_file);
-        }
+    if let Ok(config_file) = std::env::var("CONFIG_FILE") {
+        manager_builder = manager_builder.with_env_var("CONFIG_FILE", config_file);
+    }
 
-        let manager = manager_builder.build().unwrap();
+    let manager = manager_builder.build().unwrap();
 
-        let cli = CliAsync::for_all(manager, ServiceHandler::new());
+    let cli = CliAsync::for_all(manager, ServiceHandler::new());
 
-        let mut _logger_guard: Option<LoggerGuard> = None;
+    let (logger, _guard) = cli
+        .configure_logger()
+        .with_ipc_logger(true)
+        .build()
+        .unwrap();
+    logger.init();
+    cli.configure_error_handler().install().unwrap();
 
-        let action = cli.action();
-
-        if action.action_type == ActionType::Server {
-            let (logger, guard) = logger_builder.with_ipc_logger(true).build().unwrap();
-            _logger_guard = Some(guard);
-            logger.init();
-        }
-
-        cli.handle_input().await.unwrap();
-    });
+    cli.handle_input().await.unwrap();
 }
 
 #[derive(daemon_slayer::server::ServiceAsync)]

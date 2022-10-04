@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use daemon_slayer::client::{Level, Manager, ServiceManager};
 
 use daemon_slayer::cli::{Action, ActionType, CliAsync, Command};
+use daemon_slayer::error_handler::ErrorHandler;
 use daemon_slayer::server::{EventHandlerAsync, HandlerAsync, ServiceAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
@@ -17,12 +18,12 @@ use tracing::info;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 
 pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
-    run_async(logger_builder)
+    daemon_slayer::logging::init_local_time();
+    run_async()
 }
 
 #[tokio::main]
-pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Error + Send + Sync>> {
+pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
     let manager = ServiceManager::builder(ServiceHandler::get_service_name())
         .with_description("test service")
         .with_service_level(if cfg!(windows) {
@@ -41,12 +42,7 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
         .with_health_check(Box::new(health_check_client))
         .build();
 
-    let mut _logger_guard: Option<LoggerGuard> = None;
-
     if cli.action().action_type == ActionType::Server {
-        let (logger, guard) = logger_builder.with_ipc_logger(true).build().unwrap();
-        _logger_guard = Some(guard);
-        logger.init();
         tokio::spawn(async move {
             // Simulate a health check that fails sporadically
             loop {
@@ -57,6 +53,15 @@ pub async fn run_async(logger_builder: LoggerBuilder) -> Result<(), Box<dyn Erro
             }
         });
     }
+
+    let (logger, _guard) = cli
+        .configure_logger()
+        .with_ipc_logger(true)
+        .build()
+        .unwrap();
+    logger.init();
+
+    cli.configure_error_handler().install()?;
 
     cli.handle_input().await?;
     Ok(())
@@ -97,7 +102,7 @@ impl HandlerAsync for ServiceHandler {
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         info!("running service");
         on_started();
-        loop {
+        for _ in 0..5 {
             match tokio::time::timeout(Duration::from_secs(1), self.rx.next()).await {
                 Ok(_) => {
                     info!("stopping service");
@@ -108,5 +113,6 @@ impl HandlerAsync for ServiceHandler {
                 }
             }
         }
+        panic!("Fatal error!");
     }
 }

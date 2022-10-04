@@ -6,10 +6,16 @@ use daemon_slayer::{
         health_check::{HttpHealthCheckAsync, HttpRequestType},
         Manager, ServiceManager,
     },
+    logging::tracing_subscriber::util::SubscriberInitExt,
 };
 
+fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+    daemon_slayer::logging::init_local_time();
+    run_async()
+}
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
     let manager = ServiceManager::builder("daemon_slayer_axum")
         .with_description("test service")
         .with_args(["run"])
@@ -17,13 +23,17 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         .unwrap();
 
     let command = clap::Command::default()
-        .subcommand(clap::Command::new("hello").arg(clap::Arg::new("name")));
+        .subcommand(clap::Command::new("hello").arg(clap::Arg::new("name")))
+        .about("Send a request to the server");
 
     let health_check = HttpHealthCheckAsync::new(HttpRequestType::Get, "http://127.0.0.1:3000")?;
     let cli = CliAsync::builder_for_client(manager)
         .with_base_command(command)
         .with_health_check(Box::new(health_check))
         .build();
+    let (logger, _guard) = cli.configure_logger().build()?;
+    logger.init();
+    cli.configure_error_handler().install()?;
 
     if let InputState::Unhandled(matches) = cli.handle_input().await? {
         if let Some(("hello", args)) = matches.subcommand() {

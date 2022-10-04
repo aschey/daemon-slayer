@@ -25,8 +25,6 @@ use tracing::info;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 
 pub fn main() {
-    let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
-
     let mut manager_builder = ServiceManager::builder(ServiceHandler::get_service_name())
         .with_description("test service")
         .with_args(["run"]);
@@ -38,15 +36,14 @@ pub fn main() {
     let manager = manager_builder.build().unwrap();
     let cli = CliSync::for_all(manager, ServiceHandler::new());
 
-    let mut _logger_guard: Option<LoggerGuard> = None;
+    let (logger, _guard) = cli
+        .configure_logger()
+        .with_ipc_logger(true)
+        .build()
+        .unwrap();
 
-    let action = cli.action();
-
-    if action.action_type == ActionType::Server {
-        let (logger, guard) = logger_builder.with_ipc_logger(true).build().unwrap();
-        _logger_guard = Some(guard);
-        logger.init();
-    }
+    logger.init();
+    cli.configure_error_handler().install().unwrap();
 
     cli.handle_input().unwrap();
 }

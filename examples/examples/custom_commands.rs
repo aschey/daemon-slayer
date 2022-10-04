@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use daemon_slayer::client::{Manager, ServiceManager};
 
 use daemon_slayer::cli::{clap, Action, ActionType, CliAsync, InputState};
+use daemon_slayer::error_handler::ErrorHandler;
 use daemon_slayer::server::{EventHandlerAsync, HandlerAsync, ServiceAsync};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
@@ -15,51 +16,55 @@ use futures::{SinkExt, StreamExt};
 use tracing::info;
 
 pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(async {
-        let manager = ServiceManager::builder(ServiceHandler::get_service_name())
-            .with_description("test service")
-            .with_service_level(if cfg!(windows) {
-                Level::System
-            } else {
-                Level::User
-            })
-            .with_autostart(true)
-            .with_args(["run"])
-            .build()
-            .unwrap();
+    daemon_slayer::logging::init_local_time();
+    run_async()
+}
 
-        let base_command = clap::Command::default()
-            .subcommand(clap::Command::new("custom").about("custom subcommand"))
-            .arg(
-                clap::Arg::new("custom_arg")
-                    .short('c')
-                    .long("custom")
-                    .help("custom arg"),
-            );
-        let cli = CliAsync::builder_for_all(manager, ServiceHandler::new())
-            .with_base_command(base_command)
-            .build();
+#[tokio::main]
+pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
+    let manager = ServiceManager::builder(ServiceHandler::get_service_name())
+        .with_description("test service")
+        .with_service_level(if cfg!(windows) {
+            Level::System
+        } else {
+            Level::User
+        })
+        .with_autostart(true)
+        .with_args(["run"])
+        .build()
+        .unwrap();
 
-        let mut _logger_guard: Option<LoggerGuard> = None;
+    let base_command = clap::Command::default()
+        .subcommand(clap::Command::new("custom").about("custom subcommand"))
+        .arg(
+            clap::Arg::new("custom_arg")
+                .short('c')
+                .long("custom")
+                .help("custom arg"),
+        );
+    let cli = CliAsync::builder_for_all(manager, ServiceHandler::new())
+        .with_base_command(base_command)
+        .build();
 
-        if cli.action().action_type == ActionType::Server {
-            let (logger, guard) = logger_builder.with_ipc_logger(true).build().unwrap();
-            _logger_guard = Some(guard);
-            logger.init();
+    let (logger, _guard) = cli
+        .configure_logger()
+        .with_ipc_logger(true)
+        .build()
+        .unwrap();
+
+    logger.init();
+
+    cli.configure_error_handler().install()?;
+
+    if let InputState::Unhandled(matches) = cli.handle_input().await? {
+        if let Some(("custom", _)) = matches.subcommand() {
+            println!("matched custom command");
         }
-
-        if let InputState::Unhandled(matches) = cli.handle_input().await? {
-            if let Some(("custom", _)) = matches.subcommand() {
-                println!("matched custom command");
-            }
-            if let Some(arg) = matches.get_one::<String>("custom_arg") {
-                println!("custom arg is {}", arg);
-            }
+        if let Some(arg) = matches.get_one::<String>("custom_arg") {
+            println!("custom arg is {}", arg);
         }
-        Ok(())
-    })
+    }
+    Ok(())
 }
 
 #[derive(daemon_slayer::server::ServiceAsync)]
