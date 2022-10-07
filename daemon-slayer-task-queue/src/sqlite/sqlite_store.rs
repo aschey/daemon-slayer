@@ -1,6 +1,6 @@
-use std::{future::Future, pin::Pin, sync::Arc};
+use std::{future::Future, pin::Pin};
 
-use sqlx::{migrate::Migrator, sqlite::SqliteConnectOptions, Database, Pool, Sqlite};
+use sqlx::{migrate::Migrator, sqlite::SqliteConnectOptions, Pool, Sqlite};
 use tokio_cron_scheduler::JobSchedulerError;
 
 static MIGRATOR: Migrator = sqlx::migrate!();

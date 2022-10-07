@@ -8,7 +8,7 @@ use tokio_cron_scheduler::{
 };
 
 use super::sqlite_store::SqliteStore;
-struct SqliteMetadataStore {
+pub(crate) struct SqliteMetadataStore {
     store: Arc<RwLock<SqliteStore>>,
 }
 

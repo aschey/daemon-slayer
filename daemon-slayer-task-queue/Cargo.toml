@@ -8,4 +8,4 @@ version = "0.1.0"
 [dependencies]
 sqlx = {version = "0.6.2", features = ["runtime-tokio-rustls", "sqlite", "migrate", "offline"]}
 tokio = {version = "1.21.2", features = ["sync"]}
-tokio-cron-scheduler = {path = "../../tokio-cron-scheduler", features = ["has_bytes"]}
+tokio-cron-scheduler = {git = "https://github.com/aschey/tokio-cron-scheduler", rev = "679aa598ddc9adeb1b5aff4826e9154872e77308", features = ["has_bytes"]}
