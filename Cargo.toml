@@ -18,7 +18,7 @@ members = [
 resolver = "2"
 
 [features]
-all-async = ["async-client", "async-server", "daemon-slayer-cli/all-async", "file-watcher"]
+all-async = ["async-client", "async-server", "daemon-slayer-cli/all-async", "file-watcher", "task-queue"]
 all-sync = ["sync-client", "sync-server", "daemon-slayer-cli/all-sync", "file-watcher"]
 async-client = [
   "console",
@@ -74,6 +74,7 @@ sync-server = [
   "file-watcher",
   "error-handler",
 ]
+task-queue = ["daemon-slayer-task-queue", "async-tokio", "daemon-slayer-server/task-queue"]
 
 [dependencies]
 daemon-slayer-cli = {path = "./daemon-slayer-cli", optional = true}

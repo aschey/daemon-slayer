@@ -6,6 +6,8 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sqlx = {version = "0.6.2", features = ["runtime-tokio-rustls", "sqlite", "migrate", "offline"]}
-tokio = {version = "1.21.2", features = ["sync"]}
-tokio-cron-scheduler = {git = "https://github.com/aschey/tokio-cron-scheduler", rev = "679aa598ddc9adeb1b5aff4826e9154872e77308", features = ["has_bytes"]}
+aide-de-camp = {git = "https://github.com/aschey/aide-de-camp", rev = "07d9f1e1ec08df67f586ff0a3ff8c3fb46da5c0b"}
+aide-de-camp-sqlite = {git = "https://github.com/aschey/aide-de-camp", rev = "07d9f1e1ec08df67f586ff0a3ff8c3fb46da5c0b", default-features = false, features = ["rustls"]}
+log = "0.4"
+tokio = {version = "1", features = ["sync"]}
+tracing = "0.1"

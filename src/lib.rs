@@ -22,3 +22,7 @@ pub mod console {
 pub mod error_handler {
     pub use daemon_slayer_error_handler::*;
 }
+#[cfg(feature = "task-queue")]
+pub mod task_queue {
+    pub use daemon_slayer_task_queue::*;
+}

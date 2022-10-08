@@ -13,6 +13,7 @@ use daemon_slayer::client::{Manager, ServiceManager};
 use daemon_slayer::cli::{Action, ActionType, CliAsync, CliSync, Command, ServiceCommand};
 use daemon_slayer::server::{
     Event, EventHandlerAsync, EventHandlerSync, HandlerAsync, HandlerSync, ServiceAsync,
+    ServiceContextSync,
 };
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
@@ -100,6 +101,7 @@ impl HandlerSync for ServiceHandler {
                         (*CONFIG.write().unwrap()) = toml::from_str::<Config>(&contents).unwrap();
                     }
                 }
+                _ => {}
             }
             Ok(())
         })
@@ -107,6 +109,7 @@ impl HandlerSync for ServiceHandler {
 
     fn run_service<F: FnOnce() + Send>(
         mut self,
+        context: ServiceContextSync,
         on_started: F,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         info!("running service");

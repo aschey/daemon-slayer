@@ -9,10 +9,12 @@ blocking = ["daemon-slayer-macros/blocking"]
 direct = ["signal-hook", "daemon-slayer-macros/direct"]
 file-watcher = ["notify", "notify-debouncer-mini"]
 ipc-health-check = ["parity-tokio-ipc", "async-tokio", "tokio/io-util"]
+task-queue = ["daemon-slayer-task-queue", "async-tokio"]
 
 [dependencies]
 async-trait = {version = "0.1", optional = true}
-daemon-slayer-macros = {path = "../daemon-slayer-macros", default-features = false}
+daemon-slayer-macros = {path = "../daemon-slayer-macros"}
+daemon-slayer-task-queue = {path = "../daemon-slayer-task-queue", optional = true}
 futures = {version = "0.3", optional = true}
 maybe-async-cfg = "0.2"
 notify = {version = "5", default-features = false, features = ["fsevent-sys", "macos_fsevent"], optional = true}

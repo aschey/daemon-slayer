@@ -11,7 +11,9 @@ use axum::Router;
 use daemon_slayer::client::{Manager, ServiceManager};
 
 use daemon_slayer::cli::{Action, ActionType, CliAsync, Command, ServiceCommand};
-use daemon_slayer::server::{Event, EventHandlerAsync, HandlerAsync, ServiceAsync};
+use daemon_slayer::server::{
+    Event, EventHandlerAsync, HandlerAsync, ServiceAsync, ServiceContextAsync,
+};
 
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
@@ -102,6 +104,7 @@ impl HandlerAsync for ServiceHandler {
                                 toml::from_str::<Config>(&contents).unwrap();
                         }
                     }
+                    _ => {}
                 }
 
                 Ok(())
@@ -111,6 +114,7 @@ impl HandlerAsync for ServiceHandler {
 
     async fn run_service<F: FnOnce() + Send>(
         mut self,
+        context: ServiceContextAsync,
         on_started: F,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         info!("running service");

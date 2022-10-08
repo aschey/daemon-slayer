@@ -4,7 +4,7 @@ use futures::Future;
 use std::pin::Pin;
 use std::{error::Error, path::PathBuf};
 
-use crate::Event;
+use crate::{Event, ServiceConfig};
 
 #[cfg(feature = "async-tokio")]
 pub type EventHandlerAsync = Box<
@@ -17,7 +17,7 @@ pub type EventHandlerAsync = Box<
 pub type EventHandlerSync = Box<dyn Fn(Event) -> Result<(), Box<dyn Error + Send + Sync>> + Send>;
 
 #[maybe_async_cfg::maybe(
-    idents(EventHandler),
+    idents(EventHandler, ServiceContext),
     sync(feature = "blocking"),
     async(feature = "async-tokio", async_trait::async_trait)
 )]
@@ -28,9 +28,11 @@ pub trait Handler {
     fn get_watch_paths(&self) -> Vec<PathBuf> {
         vec![]
     }
+    fn configure(&self, _builder: &mut ServiceConfig) {}
     fn get_event_handler(&mut self) -> EventHandler;
     async fn run_service<F: FnOnce() + Send>(
         self,
+        service_context: crate::ServiceContext,
         on_started: F,
     ) -> Result<(), Box<dyn Error + Send + Sync>>;
 }
