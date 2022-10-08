@@ -1,8 +1,8 @@
 #[cfg(feature = "async-tokio")]
 use futures::Future;
+use std::error::Error;
 #[cfg(feature = "async-tokio")]
 use std::pin::Pin;
-use std::{error::Error, path::PathBuf};
 
 use crate::{Event, ServiceConfig};
 

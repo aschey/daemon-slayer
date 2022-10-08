@@ -225,8 +225,7 @@ async fn get_context_async(
     config: &mut crate::ServiceConfig,
     tx: tokio::sync::mpsc::Sender<crate::Event>,
 ) -> crate::ServiceContextAsync {
-    let task_queue =
-        daemon_slayer_task_queue::TaskQueue::new("./tasks.db", config.router.take().unwrap()).await;
+    let task_queue = config.task_queue_builder.take().unwrap().build().await;
     let mut event_rx = task_queue.subscribe_events();
     tokio::spawn(async move {
         while let Ok(event) = event_rx.recv().await {
