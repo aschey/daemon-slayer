@@ -14,6 +14,7 @@ use tracing::{metadata::LevelFilter, Subscriber};
 use tracing_appender::non_blocking::NonBlockingBuilder;
 
 use tracing_subscriber::{
+    filter::Directive,
     fmt::{time::OffsetTime, Layer},
     prelude::*,
     registry::LookupSpan,
@@ -36,6 +37,7 @@ pub struct LoggerBuilder {
     output_buffer_limit: usize,
     default_log_level: tracing::Level,
     level_filter: LevelFilter,
+    env_filter_directives: Vec<Directive>,
     log_to_stdout: bool,
     log_to_stderr: bool,
     #[cfg(feature = "async-tokio")]
@@ -58,6 +60,7 @@ impl LoggerBuilder {
             log_to_stderr: true,
             #[cfg(feature = "async-tokio")]
             enable_ipc_logger: false,
+            env_filter_directives: vec![],
         }
     }
 
@@ -94,6 +97,11 @@ impl LoggerBuilder {
 
     pub fn with_level_filter(mut self, level_filter: LevelFilter) -> Self {
         self.level_filter = level_filter;
+        self
+    }
+
+    pub fn with_env_filter_directive(mut self, directive: Directive) -> Self {
+        self.env_filter_directives.push(directive);
         self
     }
 
@@ -141,8 +149,13 @@ impl LoggerBuilder {
             _ => OffsetTime::new(UtcOffset::UTC, well_known::Rfc3339),
         };
 
-        let collector = tracing_subscriber::registry()
-            .with(EnvFilter::from_default_env().add_directive(self.default_log_level.into()));
+        let mut env_filter =
+            EnvFilter::from_default_env().add_directive(self.default_log_level.into());
+        for directive in self.env_filter_directives {
+            env_filter = env_filter.add_directive(directive);
+        }
+
+        let collector = tracing_subscriber::registry().with(env_filter);
 
         let mut guard = LoggerGuard::new();
 

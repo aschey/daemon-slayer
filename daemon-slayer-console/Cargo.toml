@@ -10,5 +10,5 @@ crossterm = {version = "0.25", features = ["event-stream"]}
 daemon-slayer-client = {path = "../daemon-slayer-client", features = ["async-tokio"]}
 futures = {version = "0.3"}
 tokio = {version = "1", features = ["rt-multi-thread", "macros"]}
-tracing-ipc = {git = "https://github.com/aschey/tracing-ipc", rev = "f590792497d5da28ff17cad6a49121d889dc6904"}
+tracing-ipc = {git = "https://github.com/aschey/tracing-ipc", rev = "4ec15c91c0dc4dd0cd433e34ba6d1ceb35cebe80"}
 tui = {version = "0.18"}

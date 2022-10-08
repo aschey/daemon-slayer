@@ -7,6 +7,7 @@ use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use std::env::args;
 use std::error::Error;
 use std::net::SocketAddr;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -19,7 +20,7 @@ use daemon_slayer::task_queue::{Decode, Encode, JobError, JobProcessor, TaskQueu
 use futures::{SinkExt, StreamExt};
 use tower_http::trace::TraceLayer;
 use tracing::metadata::LevelFilter;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     daemon_slayer::logging::init_local_time();
@@ -42,8 +43,9 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let (logger, _guard) = cli
         .configure_logger()
-        .with_default_log_level(tracing::Level::INFO)
-        .with_level_filter(LevelFilter::INFO)
+        .with_default_log_level(tracing::Level::TRACE)
+        .with_level_filter(LevelFilter::TRACE)
+        .with_env_filter_directive("sqlx=info".parse()?)
         .with_ipc_logger(true)
         .build()?;
     logger.init();
@@ -56,14 +58,14 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[derive(daemon_slayer::server::ServiceAsync)]
 pub struct ServiceHandler {
-    tx: futures::channel::mpsc::Sender<()>,
-    rx: futures::channel::mpsc::Receiver<()>,
+    tx: tokio::sync::broadcast::Sender<()>,
+    rx: tokio::sync::broadcast::Receiver<()>,
 }
 
 #[async_trait::async_trait]
 impl HandlerAsync for ServiceHandler {
     fn new() -> Self {
-        let (tx, rx) = futures::channel::mpsc::channel(32);
+        let (tx, rx) = tokio::sync::broadcast::channel(32);
         Self { tx, rx }
     }
 
@@ -74,12 +76,12 @@ impl HandlerAsync for ServiceHandler {
     fn get_event_handler(&mut self) -> EventHandlerAsync {
         let tx = self.tx.clone();
         Box::new(move |event| {
-            let mut tx = tx.clone();
+            let tx = tx.clone();
             Box::pin(async move {
                 match event {
                     Event::SignalReceived(_) => {
                         info!("stopping");
-                        if let Err(e) = tx.send(()).await {
+                        if let Err(e) = tx.send(()) {
                             error!("Error sending stop: {e:?}");
                         }
                         Ok(())
@@ -94,8 +96,8 @@ impl HandlerAsync for ServiceHandler {
         })
     }
 
-    fn configure(&self, config: &mut ServiceConfig) {
-        config.add_job_handler(MyJob);
+    fn configure(&self, config: ServiceConfig) -> ServiceConfig {
+        config.with_job_handler(MyJob)
     }
 
     async fn run_service<F: FnOnce() + Send>(
@@ -120,19 +122,37 @@ impl HandlerAsync for ServiceHandler {
 
         on_started();
         info!("started");
-        axum::Server::bind(&addr)
-            .serve(app.into_make_service())
-            .with_graceful_shutdown(async {
-                let r = self.rx.next().await;
-                info!("Got shutdown {r:?}");
-            })
-            .await?;
+        let mut shutdown_rx = self.tx.subscribe();
+        let (finished_tx, mut finished_rx) = tokio::sync::mpsc::channel(32);
+        let handle = tokio::spawn(async move {
+            axum::Server::bind(&addr)
+                .serve(app.into_make_service())
+                .with_graceful_shutdown(async {
+                    let r = shutdown_rx.recv().await;
+                    info!("Got shutdown {r:?}");
+                })
+                .await
+                .unwrap();
+            finished_tx.send(()).await.unwrap();
+        });
+
+        tokio::select! {
+            _ = handle => {},
+            _ = self.rx.recv() => {
+                if (tokio::time::timeout(Duration::from_millis(100), finished_rx.recv()).await).is_err() {
+                    warn!("Server didn't shut down, forcing termination");
+                }
+            }
+        };
+
+        info!("Server terminated");
         Ok(())
     }
 }
 
-async fn start_task(State(queue): State<TaskQueue>) {
-    queue.schedule::<MyJob>(()).await;
+async fn start_task(State(queue): State<TaskQueue>) -> String {
+    let res = queue.schedule::<MyJob>(()).await;
+    res.to_string()
 }
 
 async fn health() -> &'static str {

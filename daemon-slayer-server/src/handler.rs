@@ -24,11 +24,9 @@ pub type EventHandlerSync = Box<dyn Fn(Event) -> Result<(), Box<dyn Error + Send
 pub trait Handler {
     fn new() -> Self;
     fn get_service_name<'a>() -> &'a str;
-    #[cfg(feature = "file-watcher")]
-    fn get_watch_paths(&self) -> Vec<PathBuf> {
-        vec![]
+    fn configure(&self, config: ServiceConfig) -> ServiceConfig {
+        config
     }
-    fn configure(&self, _builder: &mut ServiceConfig) {}
     fn get_event_handler(&mut self) -> EventHandler;
     async fn run_service<F: FnOnce() + Send>(
         self,

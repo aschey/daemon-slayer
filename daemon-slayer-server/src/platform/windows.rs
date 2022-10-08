@@ -36,8 +36,9 @@ async fn get_service_main_impl<T: crate::Handler + Send>() {
 
     let (event_tx, event_rx) = get_channel();
 
+    let config = handler.configure(crate::ServiceConfig::default());
     #[cfg(feature = "file-watcher")]
-    let file_task = match start_file_watcher(handler.get_watch_paths(), event_tx.clone()) {
+    let file_task = match start_file_watcher(&config, event_tx.clone()) {
         Ok((watcher, handle)) => (Some(watcher), Some(handle)),
         Err(e) => {
             error!("Error starting file watcher: {e}");
@@ -92,7 +93,10 @@ async fn get_service_main_impl<T: crate::Handler + Send>() {
             error!("Error setting status to 'running': {e:?}");
         }
     };
-    let context = get_context(&handler, event_tx).await;
+
+    let mut config = handler.configure(crate::ServiceConfig::default());
+
+    let context = get_context(&mut config, event_tx).await;
     let service_result = handler.run_service(context, on_started).await;
 
     let exit_code = match service_result {
@@ -128,14 +132,12 @@ async fn get_service_main_impl<T: crate::Handler + Send>() {
 }
 
 #[cfg(feature = "task-queue")]
-async fn get_context_async<T: crate::HandlerAsync + Send>(
-    service: &T,
+async fn get_context_async(
+    config: &mut crate::ServiceConfig,
     tx: tokio::sync::mpsc::Sender<crate::Event>,
 ) -> crate::ServiceContextAsync {
-    let router = daemon_slayer_task_queue::RunnerRouter::default();
-    let mut config = crate::ServiceConfig { router };
-    service.configure(&mut config);
-    let task_queue = daemon_slayer_task_queue::TaskQueue::new("./tasks.db", config.router).await;
+    let task_queue =
+        daemon_slayer_task_queue::TaskQueue::new("./tasks.db", config.router.take().unwrap()).await;
     let mut event_rx = task_queue.subscribe_events();
     tokio::spawn(async move {
         while let Ok(event) = event_rx.recv().await {
@@ -148,16 +150,16 @@ async fn get_context_async<T: crate::HandlerAsync + Send>(
 }
 
 #[cfg(all(not(feature = "task-queue"), feature = "async-tokio"))]
-async fn get_context_async<T: crate::Handler + Send>(
-    service: &T,
+async fn get_context_async(
+    config: &mut crate::ServiceConfig,
     tx: tokio::sync::mpsc::Sender<crate::Event>,
 ) -> crate::ServiceContextAsync {
     crate::ServiceContextAsync {}
 }
 
 #[cfg(feature = "blocking")]
-fn get_context_sync<T: crate::HandlerSync + Send>(
-    _service: &T,
+fn get_context_sync(
+    _config: &mut crate::ServiceConfig,
     _tx: std::sync::mpsc::Sender<crate::Event>,
 ) -> crate::ServiceContextSync {
     crate::ServiceContextSync {}
@@ -254,7 +256,7 @@ fn send_stop_signal_sync(
 
 #[cfg(all(feature = "blocking", feature = "file-watcher"))]
 fn start_file_watcher_sync(
-    paths: Vec<std::path::PathBuf>,
+    config: &crate::ServiceConfig,
     tx: std::sync::mpsc::Sender<crate::Event>,
 ) -> Result<
     (
@@ -268,7 +270,7 @@ fn start_file_watcher_sync(
         notify_debouncer_mini::new_debouncer(std::time::Duration::from_secs(2), None, watch_tx)?;
     let watcher = debouncer.watcher();
 
-    for path in paths.iter() {
+    for path in config.watch_paths.iter() {
         if let Err(e) = watcher.watch(path, notify::RecursiveMode::Recursive) {
             error!("Error watching path: {e:?}");
         }
@@ -288,7 +290,7 @@ fn start_file_watcher_sync(
 
 #[cfg(all(feature = "async-tokio", feature = "file-watcher"))]
 fn start_file_watcher_async(
-    paths: Vec<std::path::PathBuf>,
+    config: &crate::ServiceConfig,
     tx: crate::tokio::sync::mpsc::Sender<crate::Event>,
 ) -> Result<
     (
@@ -297,7 +299,7 @@ fn start_file_watcher_async(
     ),
     Box<dyn Error + Send + Sync>,
 > {
-    if paths.is_empty() {
+    if config.watch_paths.is_empty() {
         info!("Not starting file watcher because there are no files configured");
     }
     let (watch_tx, watch_rx) = std::sync::mpsc::channel();
@@ -305,7 +307,7 @@ fn start_file_watcher_async(
         notify_debouncer_mini::new_debouncer(std::time::Duration::from_secs(2), None, watch_tx)?;
     let watcher = debouncer.watcher();
 
-    for path in paths.iter() {
+    for path in config.watch_paths.iter() {
         match watcher.watch(path, notify::RecursiveMode::Recursive) {
             Ok(_) => {
                 info!("Watching {path:?}");
@@ -368,12 +370,11 @@ pub async fn get_direct_handler_async(
     #[cfg(feature = "direct")]
     {
         let event_handler = handler.get_event_handler();
-        #[cfg(feature = "file-watcher")]
+        let mut config = handler.configure(crate::ServiceConfig::default());
+
         let (event_tx, mut event_rx) = tokio::sync::mpsc::channel(32);
-        #[cfg(not(feature = "file-watcher"))]
-        let (_event_tx, mut event_rx) = tokio::sync::mpsc::channel(32);
         #[cfg(feature = "file-watcher")]
-        let _file_watcher = start_file_watcher_async(handler.get_watch_paths(), event_tx.clone());
+        let _file_watcher = start_file_watcher_async(&config, event_tx.clone());
         let handle: crate::tokio::task::JoinHandle<Result<(), Box<dyn Error + Send + Sync>>> =
             crate::tokio::spawn(async move {
                 let mut ctrl_c = tokio::signal::windows::ctrl_c()?;
@@ -394,7 +395,7 @@ pub async fn get_direct_handler_async(
                     }
                 }
             });
-        let context = get_context_async(&handler, event_tx.clone()).await;
+        let context = get_context_async(&mut config, event_tx.clone()).await;
         handler.run_service(context, || {}).await?;
         handle.await??;
     }
@@ -408,10 +409,12 @@ pub fn get_direct_handler_sync(
     #[cfg(feature = "direct")]
     {
         let event_handler = handler.get_event_handler();
+        let mut config = handler.configure(crate::ServiceConfig::default());
+
         #[cfg(feature = "file-watcher")]
         let (event_tx, event_rx) = std::sync::mpsc::channel();
         #[cfg(feature = "file-watcher")]
-        let _file_watcher = start_file_watcher_sync(handler.get_watch_paths(), event_tx.clone());
+        let _file_watcher = start_file_watcher_sync(&config, event_tx.clone());
         let handle: std::thread::JoinHandle<Result<(), Box<dyn std::error::Error + Send + Sync>>> =
             std::thread::spawn(move || {
                 let term = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
@@ -432,7 +435,7 @@ pub fn get_direct_handler_sync(
                 Ok(())
             });
 
-        let context = get_context_sync(&handler, event_tx);
+        let context = get_context_sync(&mut config, event_tx);
         handler.run_service(context, || {})?;
         handle.join().unwrap()?;
     }

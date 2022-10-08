@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use aide_de_camp::core::DateTime;
 pub use aide_de_camp::prelude::{Decode, Encode, JobError, RunnerRouter};
 pub use aide_de_camp::prelude::{JobProcessor, Xid};
@@ -23,8 +25,8 @@ pub struct TaskQueue {
 
 impl TaskQueue {
     pub async fn new(url: impl Into<&str>, router: RunnerRouter) -> Self {
-        let opts = SqliteConnectOptions::default()
-            .filename(url.into())
+        let opts = SqliteConnectOptions::from_str(url.into())
+            .unwrap()
             .create_if_missing(true)
             .log_statements(LevelFilter::Debug)
             .log_slow_statements(LevelFilter::Info, std::time::Duration::from_secs(1))
