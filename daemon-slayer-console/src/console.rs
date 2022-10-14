@@ -1,7 +1,7 @@
-use crate::stateful_list::StatefulList;
-use ansi_to_tui::IntoText;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode},
+    event::{
+        self, DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyModifiers,
+    },
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -15,7 +15,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::io::{split, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use tracing_ipc::run_ipc_server;
+use tracing_ipc_widget::LogView;
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Alignment, Constraint, Corner, Direction, Layout, Rect},
@@ -28,7 +28,7 @@ use tui::{
 pub struct Console<'a> {
     manager: ServiceManager,
     info: Info,
-    logs: StatefulList<'a>,
+    logs: LogView<'a>,
     button_index: usize,
     is_healthy: Option<bool>,
     health_check: Option<Box<dyn HealthCheckAsync + Send + 'static>>,
@@ -38,10 +38,11 @@ pub struct Console<'a> {
 impl<'a> Console<'a> {
     pub fn new(manager: ServiceManager) -> Self {
         let info = manager.info().unwrap();
+        let name = manager.name().to_owned();
         Self {
             manager,
             info,
-            logs: StatefulList::new(),
+            logs: LogView::new(name),
             button_index: 0,
             is_healthy: None,
             health_check: None,
@@ -111,16 +112,13 @@ impl<'a> Console<'a> {
         &mut self,
         terminal: &mut Terminal<CrosstermBackend<Stdout>>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let (tx, mut rx) = tokio::sync::mpsc::channel(32);
         let (health_tx, mut health_rx) = tokio::sync::mpsc::channel(32);
         let name = self.manager.name().to_owned();
-        tokio::spawn(async move {
-            run_ipc_server(&name, tx).await;
-        });
+
         if let Some(health_check) = self.health_check.take() {
             Self::health_checker(health_check, health_tx);
         }
-        let mut log_stream_running = true;
+
         let mut event_reader = EventStream::new().fuse();
         let mut last_update = Instant::now();
         loop {
@@ -135,15 +133,7 @@ impl<'a> Console<'a> {
             terminal.draw(|f| self.ui(f))?;
 
             tokio::select! {
-                log = rx.recv(), if log_stream_running => {
-
-                    if let Some(log) = log {
-                        let text = ListItem::new(log.into_text().unwrap());
-                        self.logs.add_item(text);
-                    } else {
-                        log_stream_running = false;
-                    }
-                }
+                _ = self.logs.update() => {}
                 is_healthy = health_rx.recv() => {
                     self.is_healthy = is_healthy;
                 }
@@ -151,21 +141,22 @@ impl<'a> Console<'a> {
                     match maybe_event {
                         Some(Ok(event)) => {
                             if let Event::Key(key) = event {
-                                match key.code {
-                                    KeyCode::Char('q') => return Ok(()),
-                                    KeyCode::Down =>  self.logs.next(),
-                                    KeyCode::Up =>  self.logs.previous(),
-                                    KeyCode::Left => {
+                                match (key.modifiers, key.code) {
+                                    (_, KeyCode::Char('q') | KeyCode::Esc) |
+                                        (KeyModifiers::CONTROL, KeyCode::Char('c')) => return Ok(()),
+                                    (_, KeyCode::Down) =>  self.logs.next(),
+                                    (_, KeyCode::Up) =>  self.logs.previous(),
+                                    (_, KeyCode::Left) => {
                                         if self.button_index > 0 {
                                             self.button_index -= 1;
                                         }
                                     }
-                                    KeyCode::Right => {
+                                    (_, KeyCode::Right) => {
                                         if self.button_index < 4 {
                                             self.button_index += 1;
                                         }
                                     }
-                                    KeyCode::Enter => {
+                                    (_, KeyCode::Enter) => {
                                         match self.button_index {
                                             0 => {
                                                 if self.info.state == State::NotInstalled {
