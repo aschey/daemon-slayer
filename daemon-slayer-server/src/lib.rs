@@ -2,12 +2,9 @@ mod handler;
 pub use handler::*;
 mod service;
 pub use service::*;
-mod event;
-pub use event::*;
 mod signal;
 pub use signal::*;
 pub mod platform;
-mod service_config;
 pub use service_config::*;
 mod service_context;
 pub use service_context::*;
@@ -34,6 +31,7 @@ pub use futures;
 #[cfg(feature = "async-tokio")]
 pub use tokio;
 
+pub use daemon_slayer_core::{BroadcastEventStore, EventStore, Receiver};
 pub use daemon_slayer_macros::*;
 pub use maybe_async_cfg;
 pub use tracing;

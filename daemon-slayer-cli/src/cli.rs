@@ -109,12 +109,12 @@ impl Cli {
 
     #[cfg(feature = "server")]
     pub fn for_server(
-        service: impl daemon_slayer_server::Service + 'static,
+        // service: impl daemon_slayer_server::Service + 'static,
         name: String,
         display_name: String,
         description: String,
     ) -> Self {
-        super::Builder::server(service, name, display_name, description).build()
+        super::Builder::server(name, display_name, description).build()
     }
 
     #[cfg(all(feature = "client", feature = "server"))]
@@ -132,12 +132,12 @@ impl Cli {
 
     #[cfg(feature = "server")]
     pub fn builder_for_server(
-        service: impl daemon_slayer_server::Service + 'static,
+        //service: impl daemon_slayer_server::Service + 'static,
         name: String,
         display_name: String,
         description: String,
     ) -> super::Builder {
-        super::Builder::server(service, name, display_name, description)
+        super::Builder::server(name, display_name, description)
     }
 
     pub(crate) fn from_builder(builder: super::Builder) -> Self {
@@ -251,19 +251,19 @@ impl Cli {
             if self.matches(matches, cmd, name) {
                 match *name {
                     ServiceCommand::Run => {
-                        info!("running...");
-                        if let Some(service) = self.builder.service {
-                            service.run_service_main().await?;
-                        }
+                        // info!("running...");
+                        // if let Some(service) = self.builder.service {
+                        //     service.run_service_main().await?;
+                        // }
                         return Ok(true);
                     }
 
                     #[cfg(feature = "direct")]
                     ServiceCommand::Direct => {
-                        info!("running...");
-                        if let Some(service) = self.builder.service {
-                            service.run_service_direct().await?;
-                        }
+                        // info!("running...");
+                        // if let Some(service) = self.builder.service {
+                        //     service.run_service_direct().await?;
+                        // }
                         return Ok(true);
                     }
                     _ => {}
@@ -286,19 +286,19 @@ impl Cli {
             if self.matches(matches, cmd, name) {
                 match *name {
                     ServiceCommand::Run => {
-                        info!("running...");
-                        if let Some(service) = self.builder.service {
-                            service.run_service_main()?;
-                        }
+                        // info!("running...");
+                        // if let Some(service) = self.builder.service {
+                        //     service.run_service_main()?;
+                        // }
                         return Ok(true);
                     }
 
                     #[cfg(feature = "direct")]
                     ServiceCommand::Direct => {
-                        info!("running...");
-                        if let Some(service) = self.builder.service {
-                            service.run_service_direct()?;
-                        }
+                        // info!("running...");
+                        // if let Some(service) = self.builder.service {
+                        //     service.run_service_direct()?;
+                        // }
                         return Ok(true);
                     }
                     _ => {}

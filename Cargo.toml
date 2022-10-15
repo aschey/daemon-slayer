@@ -7,6 +7,7 @@ version = "0.1.0"
 members = [
   "daemon-slayer-macros",
   "daemon-slayer-client",
+  "daemon-slayer-core",
   "daemon-slayer-server",
   "daemon-slayer-cli",
   "daemon-slayer-logging",
@@ -74,7 +75,7 @@ sync-server = [
   "file-watcher",
   "error-handler",
 ]
-task-queue = ["daemon-slayer-task-queue", "async-tokio", "daemon-slayer-server/task-queue"]
+task-queue = ["daemon-slayer-task-queue", "async-tokio"]
 
 [dependencies]
 daemon-slayer-cli = {path = "./daemon-slayer-cli", optional = true}

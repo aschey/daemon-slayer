@@ -29,8 +29,8 @@ pub struct Builder {
     pub(crate) show_help_if_no_default: bool,
     #[cfg(feature = "client")]
     pub(crate) manager: Option<daemon_slayer_client::ServiceManager>,
-    #[cfg(feature = "server")]
-    pub(crate) service: Option<Box<dyn daemon_slayer_server::Service>>,
+    // #[cfg(feature = "server")]
+    // pub(crate) service: Option<Box<dyn daemon_slayer_server::Service>>,
     #[cfg(feature = "client")]
     pub(crate) health_check:
         Option<Box<dyn daemon_slayer_client::health_check::HealthCheck + Send + 'static>>,
@@ -57,7 +57,7 @@ impl Builder {
             clap_command: clap::Command::default(),
             health_check: None,
             manager: Some(manager),
-            service: Some(Box::new(service)),
+            // service: Some(Box::new(service)),
             show_help_if_no_default: true,
         }
     }
@@ -74,15 +74,15 @@ impl Builder {
             clap_command: clap::Command::default(),
             health_check: None,
             manager: Some(manager),
-            #[cfg(feature = "server")]
-            service: None,
+            // #[cfg(feature = "server")]
+            // service: None,
             show_help_if_no_default: true,
         }
     }
 
     #[cfg(feature = "server")]
     pub fn server(
-        service: impl daemon_slayer_server::Service + 'static,
+        //service: impl daemon_slayer_server::Service + 'static,
         name: String,
         display_name: String,
         description: String,
@@ -97,7 +97,7 @@ impl Builder {
             health_check: None,
             #[cfg(feature = "client")]
             manager: None,
-            service: Some(Box::new(service)),
+            // service: Some(Box::new(service)),
             show_help_if_no_default: true,
         }
     }

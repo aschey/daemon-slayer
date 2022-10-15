@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use axum::extract::{Path, State};
 use axum::routing::get;
 use axum::Router;
@@ -14,9 +15,12 @@ use std::time::{Duration, Instant};
 use daemon_slayer::cli::{Action, BuilderAsync, CliAsync, Command};
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{
-    Event, EventHandlerAsync, HandlerAsync, ServiceAsync, ServiceConfig, ServiceContextAsync,
+    BroadcastEventStore, EventStore, HandlerAsync, Receiver, ServiceAsync, ServiceContextAsync,
+    Signal,
 };
-use daemon_slayer::task_queue::{Decode, Encode, JobError, JobProcessor, TaskQueue, Xid};
+use daemon_slayer::task_queue::{
+    Decode, Encode, JobError, JobProcessor, TaskQueue, TaskQueueBuilder, TaskQueueClient, Xid,
+};
 use futures::{SinkExt, StreamExt};
 use tower_http::trace::TraceLayer;
 use tracing::metadata::LevelFilter;
@@ -30,7 +34,6 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 #[tokio::main]
 pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
     let cli = CliAsync::builder_for_server(
-        ServiceHandler::new(),
         "daemon_slayer_axum".to_owned(),
         "daemon slayer axum".to_owned(),
         "test service".to_owned(),
@@ -52,68 +55,45 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     cli.configure_error_handler().install()?;
 
-    cli.handle_input().await?;
+    ServiceHandler::run_service_direct().await?;
     Ok(())
 }
 
 #[derive(daemon_slayer::server::ServiceAsync)]
 pub struct ServiceHandler {
-    tx: tokio::sync::broadcast::Sender<()>,
-    rx: tokio::sync::broadcast::Receiver<()>,
+    signal_store: BroadcastEventStore<Signal>,
+    task_queue_client: TaskQueueClient,
 }
 
 #[async_trait::async_trait]
 impl HandlerAsync for ServiceHandler {
-    fn new() -> Self {
-        let (tx, rx) = tokio::sync::broadcast::channel(32);
-        Self { tx, rx }
+    async fn new(context: &mut ServiceContextAsync) -> Self {
+        let signal_store = context.subscribe_signals();
+        let task_queue_client = context
+            .add_service::<TaskQueue>(TaskQueueBuilder::default().with_job_handler(MyJob {
+                signal_store: signal_store.clone(),
+            }))
+            .await;
+        Self {
+            signal_store,
+            task_queue_client,
+        }
     }
 
     fn get_service_name<'a>() -> &'a str {
         "daemon_slayer_axum"
     }
 
-    fn get_event_handler(&mut self) -> EventHandlerAsync {
-        let tx = self.tx.clone();
-        Box::new(move |event| {
-            let tx = tx.clone();
-            Box::pin(async move {
-                match event {
-                    Event::SignalReceived(_) => {
-                        info!("stopping");
-                        if let Err(e) = tx.send(()) {
-                            error!("Error sending stop: {e:?}");
-                        }
-                        Ok(())
-                    }
-                    Event::TaskQueueEvent(e) => {
-                        info!("Task queue event: {e:?}");
-                        Ok(())
-                    }
-                    _ => Ok(()),
-                }
-            })
-        })
-    }
-
-    fn configure(&self, config: ServiceConfig) -> ServiceConfig {
-        config.with_job_handler(MyJob)
-    }
-
+    
     async fn run_service<F: FnOnce() + Send>(
         mut self,
-        context: ServiceContextAsync,
+        // context: ServiceContextAsync,
         on_started: F,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         info!("running service");
 
-        async fn greeter(Path(name): Path<String>) -> String {
-            format!("Hello {name}")
-        }
-
-        let task_queue = context.task_queue.clone();
-
-        let app = Router::with_state(task_queue)
+        let signal_store = self.signal_store.clone();
+        let app = Router::with_state(self.task_queue_client)
             .route("/hello/:name", get(greeter))
             .route("/task", get(start_task))
             .route("/health", get(health))
@@ -122,13 +102,15 @@ impl HandlerAsync for ServiceHandler {
 
         on_started();
         info!("started");
-        let mut shutdown_rx = self.tx.subscribe();
+        let mut shutdown_rx = self.signal_store.subscribe_events();
+        let mut shutdown_rx_ = self.signal_store.subscribe_events();
+
         let (finished_tx, mut finished_rx) = tokio::sync::mpsc::channel(32);
         let handle = tokio::spawn(async move {
             axum::Server::bind(&addr)
                 .serve(app.into_make_service())
                 .with_graceful_shutdown(async {
-                    let r = shutdown_rx.recv().await;
+                    let r = shutdown_rx_.recv().await;
                     info!("Got shutdown {r:?}");
                 })
                 .await
@@ -138,7 +120,7 @@ impl HandlerAsync for ServiceHandler {
 
         tokio::select! {
             _ = handle => {},
-            _ = self.rx.recv() => {
+            _ = shutdown_rx.recv() => {
                 if (tokio::time::timeout(Duration::from_millis(100), finished_rx.recv()).await).is_err() {
                     warn!("Server didn't shut down, forcing termination");
                 }
@@ -150,7 +132,11 @@ impl HandlerAsync for ServiceHandler {
     }
 }
 
-async fn start_task(State(queue): State<TaskQueue>) -> String {
+async fn greeter(Path(name): Path<String>) -> String {
+    format!("Hello {name}")
+}
+
+async fn start_task(State(queue): State<TaskQueueClient>) -> String {
     let res = queue.schedule::<MyJob>(()).await;
     res.to_string()
 }
@@ -159,7 +145,9 @@ async fn health() -> &'static str {
     "Healthy"
 }
 
-struct MyJob;
+struct MyJob {
+    signal_store: BroadcastEventStore<Signal>,
+}
 
 #[async_trait::async_trait]
 impl JobProcessor for MyJob {
@@ -167,8 +155,18 @@ impl JobProcessor for MyJob {
     type Error = anyhow::Error;
 
     async fn handle(&self, jid: Xid, payload: Self::Payload) -> Result<(), Self::Error> {
-        tokio::time::sleep(Duration::from_secs(1)).await;
-        info!("Finished job");
+        let mut event_rx = self.signal_store.subscribe_events();
+        for _ in 0..10 {
+            tokio::select! {
+                _ = tokio::time::sleep(Duration::from_secs(1)) => {
+                    info!("Did a thing");
+                }
+                _ = event_rx.recv() => {
+                    warn!("Job cancelled");
+                    return Ok(());
+                }
+            }
+        }
         Ok(())
     }
 
