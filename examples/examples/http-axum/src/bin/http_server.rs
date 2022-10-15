@@ -84,7 +84,6 @@ impl HandlerAsync for ServiceHandler {
         "daemon_slayer_axum"
     }
 
-    
     async fn run_service<F: FnOnce() + Send>(
         mut self,
         // context: ServiceContextAsync,

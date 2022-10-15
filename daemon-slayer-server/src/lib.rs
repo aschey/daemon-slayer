@@ -5,7 +5,6 @@ pub use service::*;
 mod signal;
 pub use signal::*;
 pub mod platform;
-pub use service_config::*;
 mod service_context;
 pub use service_context::*;
 
