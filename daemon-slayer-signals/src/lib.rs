@@ -1,6 +1,12 @@
 mod signal;
 pub use signal::*;
 
+mod signal_handler_builder;
+pub use signal_handler_builder::*;
+
+mod signal_handler_client;
+pub use signal_handler_client::*;
+
 #[cfg(unix)]
 mod unix;
 #[cfg(all(unix, feature = "async-tokio"))]

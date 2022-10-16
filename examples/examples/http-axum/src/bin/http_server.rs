@@ -5,7 +5,7 @@ use axum::Router;
 use daemon_slayer::client::health_check::{HttpHealthCheckAsync, HttpRequestType};
 use daemon_slayer::client::{Manager, ServiceManager};
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
-use daemon_slayer::signals::{Signal, SignalBuilder, SignalHandler};
+use daemon_slayer::signals::{Signal, SignalHandler, SignalHandlerBuilder};
 use std::env::args;
 use std::error::Error;
 use std::net::SocketAddr;
@@ -18,6 +18,7 @@ use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{
     BroadcastEventStore, EventStore, Handler, Receiver, ServiceAsync, ServiceContext,
 };
+use daemon_slayer::signals::SignalHandlerBuilderTrait;
 use daemon_slayer::task_queue::{
     Decode, Encode, JobError, JobProcessor, TaskQueue, TaskQueueBuilder, TaskQueueClient, Xid,
 };
@@ -73,7 +74,7 @@ pub struct ServiceHandler {
 impl Handler for ServiceHandler {
     async fn new(context: &mut ServiceContext) -> Self {
         let (_, signal_store) = context
-            .add_event_service::<SignalHandler>(SignalBuilder::all())
+            .add_event_service::<SignalHandler>(SignalHandlerBuilder::all())
             .await;
         let task_queue_client = context
             .add_service::<TaskQueue>(TaskQueueBuilder::default().with_job_handler(MyJob {
