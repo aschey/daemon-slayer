@@ -138,7 +138,7 @@ async fn greeter(Path(name): Path<String>) -> String {
 }
 
 async fn start_task(State(queue): State<TaskQueueClient>) -> String {
-    let res = queue.schedule::<MyJob>(()).await;
+    let res = queue.schedule::<MyJob>((), 0).await;
     res.to_string()
 }
 

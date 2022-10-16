@@ -8,10 +8,7 @@ use aide_de_camp::{
     runner::event_store::EventStore,
 };
 pub use aide_de_camp_sqlite::sqlx::sqlite::SqliteConnectOptions;
-use aide_de_camp_sqlite::{
-    sqlx::{self, SqlitePool},
-    SqliteQueue, SCHEMA_SQL,
-};
+use aide_de_camp_sqlite::{sqlx::SqlitePool, SqliteQueue, MIGRATOR};
 use tracing::info;
 
 #[derive(Clone)]
@@ -20,35 +17,45 @@ pub struct TaskQueueClient {
 }
 
 impl TaskQueueClient {
-    pub async fn schedule<J>(&self, payload: J::Payload) -> Xid
+    pub async fn schedule<J>(&self, payload: J::Payload, priority: i8) -> Xid
     where
         J: JobProcessor + 'static,
         J::Payload: Decode + Encode,
         J::Error: Into<JobError>,
     {
-        self.queue.schedule::<J>(payload).await.unwrap()
+        self.queue.schedule::<J>(payload, priority).await.unwrap()
     }
 
-    pub async fn schedule_in<J>(&self, payload: J::Payload, scheduled_in: Duration) -> Xid
+    pub async fn schedule_in<J>(
+        &self,
+        payload: J::Payload,
+        scheduled_in: Duration,
+        priority: i8,
+    ) -> Xid
     where
         J: JobProcessor + 'static,
         J::Payload: Decode + Encode,
         J::Error: Into<JobError>,
     {
         self.queue
-            .schedule_in::<J>(payload, scheduled_in)
+            .schedule_in::<J>(payload, scheduled_in, priority)
             .await
             .unwrap()
     }
 
-    pub async fn schedule_at<J>(&self, payload: J::Payload, scheduled_at: DateTime) -> Xid
+    pub async fn schedule_at<J>(
+        &self,
+        payload: J::Payload,
+        scheduled_at: DateTime,
+        priority: i8,
+    ) -> Xid
     where
         J: JobProcessor + 'static,
         J::Payload: Decode + Encode,
         J::Error: Into<JobError>,
     {
         self.queue
-            .schedule_at::<J>(payload, scheduled_at)
+            .schedule_at::<J>(payload, scheduled_at, priority)
             .await
             .unwrap()
     }
@@ -98,7 +105,7 @@ impl TaskQueue {
             .await
             .unwrap();
 
-        sqlx::query(SCHEMA_SQL).execute(&pool).await.unwrap();
+        MIGRATOR.run(&pool).await.unwrap();
         let queue = SqliteQueue::with_pool(pool);
 
         let mut runner = JobRunner::new(queue.clone(), builder.router, builder.concurrency);
