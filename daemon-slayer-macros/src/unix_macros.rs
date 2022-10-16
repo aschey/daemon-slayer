@@ -40,17 +40,7 @@ pub(crate) fn define_service_sync(
     .into()
 }
 
-#[cfg(not(feature = "direct"))]
-fn get_direct_handler_async() -> proc_macro2::TokenStream {
-    proc_macro2::TokenStream::new()
-}
-
-#[cfg(not(feature = "direct"))]
-fn get_direct_handler_sync() -> proc_macro2::TokenStream {
-    proc_macro2::TokenStream::new()
-}
-
-#[cfg(all(feature = "direct", feature = "blocking"))]
+#[cfg(feature = "blocking")]
 fn get_direct_handler_sync() -> proc_macro2::TokenStream {
     quote! {
         fn run_service_direct() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -59,7 +49,7 @@ fn get_direct_handler_sync() -> proc_macro2::TokenStream {
     }
 }
 
-#[cfg(all(feature = "direct", feature = "async"))]
+#[cfg(feature = "async")]
 fn get_direct_handler_async() -> proc_macro2::TokenStream {
     quote! {
         async fn run_service_direct() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

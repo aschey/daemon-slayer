@@ -33,27 +33,31 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let cli = CliAsync::builder_for_server(
-        "daemon_slayer_axum".to_owned(),
-        "daemon slayer axum".to_owned(),
-        "test service".to_owned(),
-    )
-    .with_health_check(Box::new(HttpHealthCheckAsync::new(
-        HttpRequestType::Get,
-        "http://127.0.0.1:3000/health",
-    )?))
-    .build();
-
-    let (logger, _guard) = cli
-        .configure_logger()
-        .with_default_log_level(tracing::Level::TRACE)
-        .with_level_filter(LevelFilter::TRACE)
-        .with_env_filter_directive("sqlx=info".parse()?)
-        .with_ipc_logger(true)
-        .build()?;
+    let (logger, guard) = daemon_slayer::logging::LoggerBuilder::new("daemon_slayer_axum")
+        .build()
+        .unwrap();
     logger.init();
+    //let cli = CliAsync::builder_for_server(
+    //     "daemon_slayer_axum".to_owned(),
+    //     "daemon slayer axum".to_owned(),
+    //     "test service".to_owned(),
+    // )
+    // .with_health_check(Box::new(HttpHealthCheckAsync::new(
+    //     HttpRequestType::Get,
+    //     "http://127.0.0.1:3000/health",
+    // )?))
+    // .build();
 
-    cli.configure_error_handler().install()?;
+    // let (logger, _guard) = cli
+    //     .configure_logger()
+    //     .with_default_log_level(tracing::Level::TRACE)
+    //     .with_level_filter(LevelFilter::TRACE)
+    //     .with_env_filter_directive("sqlx=info".parse()?)
+    //     .with_ipc_logger(true)
+    //     .build()?;
+    // logger.init();
+
+    // cli.configure_error_handler().install()?;
 
     ServiceHandler::run_service_direct().await?;
     Ok(())

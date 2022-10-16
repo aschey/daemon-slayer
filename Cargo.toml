@@ -32,7 +32,6 @@ async-client = [
   "error-handler",
 ]
 async-server = [
-  "direct",
   "async-tokio",
   "server",
   "cli",
@@ -76,7 +75,6 @@ sync-client = [
   "blocking",
 ]
 sync-server = [
-  "direct",
   "server",
   "logging",
   "daemon-slayer-logging/all-sync",

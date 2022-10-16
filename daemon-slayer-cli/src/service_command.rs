@@ -6,7 +6,7 @@ pub enum ServiceCommand {
     Uninstall,
     #[cfg(feature = "server")]
     Run,
-    #[cfg(all(feature = "server", feature = "direct"))]
+    #[cfg(feature = "server")]
     Direct,
     #[cfg(feature = "client")]
     Info,

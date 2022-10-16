@@ -6,6 +6,6 @@ use std::error::Error;
 )]
 pub trait Service {
     async fn run_service_main() -> Result<(), Box<dyn Error + Send + Sync>>;
-    #[cfg(feature = "direct")]
+
     async fn run_service_direct() -> Result<(), Box<dyn Error + Send + Sync>>;
 }
