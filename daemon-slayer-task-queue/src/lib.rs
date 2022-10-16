@@ -46,9 +46,9 @@ impl daemon_slayer_core::Service for TaskQueue {
 }
 
 impl daemon_slayer_core::EventService for TaskQueue {
-    type Event = JobEvent;
+    type EventStoreImpl = JobEventStore;
 
-    fn get_event_store(&mut self) -> Box<dyn EventStore<Item = Self::Event>> {
-        Box::new(JobEventStore::new(self.event_store()))
+    fn get_event_store(&mut self) -> Self::EventStoreImpl {
+        JobEventStore::new(self.event_store())
     }
 }

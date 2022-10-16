@@ -14,13 +14,14 @@ members = [
   "daemon-slayer-console",
   "daemon-slayer-error-handler",
   "daemon-slayer-task-queue",
+  "daemon-slayer-signals",
   "integration-tests",
 ]
 resolver = "2"
 
 [features]
-all-async = ["async-client", "async-server", "daemon-slayer-cli/all-async", "file-watcher", "task-queue"]
-all-sync = ["sync-client", "sync-server", "daemon-slayer-cli/all-sync", "file-watcher"]
+all-async = ["async-client", "async-server", "daemon-slayer-cli/all-async", "file-watcher", "task-queue", "signals"]
+all-sync = ["sync-client", "sync-server", "daemon-slayer-cli/all-sync", "file-watcher", "blocking"]
 async-client = [
   "console",
   "async-tokio",
@@ -40,11 +41,20 @@ async-server = [
   "daemon-slayer-cli/async-server",
   "file-watcher",
   "error-handler",
+  "signals",
 ]
 async-tokio = [
   "daemon-slayer-server/async-tokio",
   "daemon-slayer-cli/async-tokio",
   "daemon-slayer-logging/async-tokio",
+  "daemon-slayer-core/async-tokio",
+  "daemon-slayer-signals/async-tokio",
+]
+blocking = [
+  "daemon-slayer-server/blocking",
+  "daemon-slayer-core/blocking",
+  "daemon-slayer-client/blocking",
+  "daemon-slayer-signals/blocking",
 ]
 cli = ["daemon-slayer-cli"]
 client = ["daemon-slayer-client"]
@@ -57,12 +67,13 @@ http-health-check = ["daemon-slayer-client/http-health-check"]
 ipc-health-check = ["daemon-slayer-client/ipc-health-check", "daemon-slayer-server/ipc-health-check"]
 logging = ["daemon-slayer-logging"]
 server = ["daemon-slayer-server"]
+signals = ["daemon-slayer-signals"]
 sync-client = [
   "client",
   "cli",
   "daemon-slayer-cli/sync-client",
-  "daemon-slayer-client/blocking",
   "error-handler",
+  "blocking",
 ]
 sync-server = [
   "direct",
@@ -71,9 +82,9 @@ sync-server = [
   "daemon-slayer-logging/all-sync",
   "cli",
   "daemon-slayer-cli/sync-server",
-  "daemon-slayer-server/blocking",
   "file-watcher",
   "error-handler",
+  "blocking",
 ]
 task-queue = ["daemon-slayer-task-queue", "async-tokio"]
 
@@ -81,7 +92,9 @@ task-queue = ["daemon-slayer-task-queue", "async-tokio"]
 daemon-slayer-cli = {path = "./daemon-slayer-cli", optional = true}
 daemon-slayer-client = {path = "./daemon-slayer-client", optional = true}
 daemon-slayer-console = {path = "./daemon-slayer-console", optional = true}
+daemon-slayer-core = {path = "./daemon-slayer-core"}
 daemon-slayer-error-handler = {path = "./daemon-slayer-error-handler", optional = true}
 daemon-slayer-logging = {path = "./daemon-slayer-logging", optional = true}
 daemon-slayer-server = {path = "./daemon-slayer-server", optional = true}
+daemon-slayer-signals = {path = "./daemon-slayer-signals", optional = true}
 daemon-slayer-task-queue = {path = "./daemon-slayer-task-queue", optional = true}

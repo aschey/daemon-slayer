@@ -5,6 +5,7 @@ use axum::Router;
 use daemon_slayer::client::health_check::{HttpHealthCheckAsync, HttpRequestType};
 use daemon_slayer::client::{Manager, ServiceManager};
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
+use daemon_slayer::signals::{Signal, SignalBuilder, SignalHandler};
 use std::env::args;
 use std::error::Error;
 use std::net::SocketAddr;
@@ -15,8 +16,7 @@ use std::time::{Duration, Instant};
 use daemon_slayer::cli::{Action, BuilderAsync, CliAsync, Command};
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{
-    BroadcastEventStore, EventStore, HandlerAsync, Receiver, ServiceAsync, ServiceContextAsync,
-    Signal,
+    BroadcastEventStore, EventStore, Handler, Receiver, ServiceAsync, ServiceContext,
 };
 use daemon_slayer::task_queue::{
     Decode, Encode, JobError, JobProcessor, TaskQueue, TaskQueueBuilder, TaskQueueClient, Xid,
@@ -66,9 +66,11 @@ pub struct ServiceHandler {
 }
 
 #[async_trait::async_trait]
-impl HandlerAsync for ServiceHandler {
-    async fn new(context: &mut ServiceContextAsync) -> Self {
-        let signal_store = context.subscribe_signals();
+impl Handler for ServiceHandler {
+    async fn new(context: &mut ServiceContext) -> Self {
+        let (_, signal_store) = context
+            .add_event_service::<SignalHandler>(SignalBuilder::all())
+            .await;
         let task_queue_client = context
             .add_service::<TaskQueue>(TaskQueueBuilder::default().with_job_handler(MyJob {
                 signal_store: signal_store.clone(),

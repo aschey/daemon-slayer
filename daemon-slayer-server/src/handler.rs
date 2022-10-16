@@ -1,8 +1,10 @@
-#[cfg(feature = "async-tokio")]
-use futures::Future;
 use std::error::Error;
+
 #[cfg(feature = "async-tokio")]
-use std::pin::Pin;
+type ServiceContextAsync = crate::ServiceContext;
+
+#[cfg(feature = "blocking")]
+type ServiceContextSync = crate::blocking::ServiceContext;
 
 #[maybe_async_cfg::maybe(
     idents(EventHandler, ServiceContext),
@@ -10,7 +12,7 @@ use std::pin::Pin;
     async(feature = "async-tokio", async_trait::async_trait)
 )]
 pub trait Handler {
-    async fn new(context: &mut crate::ServiceContext) -> Self;
+    async fn new(context: &mut ServiceContext) -> Self;
     fn get_service_name<'a>() -> &'a str;
 
     async fn run_service<F: FnOnce() + Send>(

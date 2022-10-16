@@ -5,27 +5,24 @@ use futures::Future;
 use tap::TapFallible;
 use tracing::warn;
 
-use crate::Signal;
+// use crate::Signal;
 
-pub struct ServiceContextAsync {
-    signal_tx: tokio::sync::broadcast::Sender<crate::Signal>,
+pub struct ServiceContext {
+    //signal_tx: tokio::sync::broadcast::Sender<crate::Signal>,
     handles: Vec<Pin<Box<dyn Future<Output = ()> + Send>>>,
 }
 
-impl ServiceContextAsync {
-    pub(crate) fn new(signal_tx: tokio::sync::broadcast::Sender<crate::Signal>) -> Self {
+impl ServiceContext {
+    pub(crate) fn new() -> Self {
         Self {
-            signal_tx,
+            //   signal_tx,
             handles: vec![],
         }
     }
     pub async fn add_event_service<S: daemon_slayer_core::EventService + 'static>(
         &mut self,
         builder: S::Builder,
-    ) -> (
-        S::Client,
-        Box<dyn daemon_slayer_core::EventStore<Item = S::Event>>,
-    ) {
+    ) -> (S::Client, S::EventStoreImpl) {
         let mut service = S::run_service(builder).await;
         let client = service.get_client();
         let event_store = service.get_event_store();
@@ -46,10 +43,6 @@ impl ServiceContextAsync {
             service.stop().await;
         }));
         client
-    }
-
-    pub fn subscribe_signals(&self) -> BroadcastEventStore<Signal> {
-        daemon_slayer_core::BroadcastEventStore::new(self.signal_tx.clone())
     }
 
     pub(crate) async fn stop(self) {

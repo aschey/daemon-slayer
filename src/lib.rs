@@ -26,3 +26,7 @@ pub mod error_handler {
 pub mod task_queue {
     pub use daemon_slayer_task_queue::*;
 }
+#[cfg(feature = "signals")]
+pub mod signals {
+    pub use daemon_slayer_signals::*;
+}

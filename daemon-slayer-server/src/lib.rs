@@ -1,12 +1,23 @@
 mod handler;
-pub use handler::*;
+
 mod service;
 pub use service::*;
-mod signal;
-pub use signal::*;
+
 pub mod platform;
-mod service_context;
-pub use service_context::*;
+
+#[cfg(feature = "async-tokio")]
+mod async_impl;
+
+#[cfg(feature = "async-tokio")]
+pub use {crate::handler::HandlerAsync as Handler, async_impl::*};
+
+#[cfg(feature = "blocking")]
+mod blocking_impl;
+
+#[cfg(feature = "blocking")]
+pub mod blocking {
+    pub use crate::{blocking_impl::*, handler::HandlerSync as Handler};
+}
 
 #[cfg(target_os = "linux")]
 pub use sd_notify;
@@ -14,10 +25,6 @@ pub use sd_notify;
 #[cfg(windows)]
 pub use windows_service;
 
-#[cfg(any(unix, feature = "direct"))]
-pub use signal_hook;
-#[cfg(all(unix, feature = "async-tokio"))]
-pub use signal_hook_tokio;
 #[cfg(all(feature = "async-tokio", feature = "ipc-health-check"))]
 mod ipc_health_check;
 #[cfg(all(feature = "async-tokio", feature = "ipc-health-check"))]
