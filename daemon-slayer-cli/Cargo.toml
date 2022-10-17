@@ -12,7 +12,6 @@ async-tokio = ["tokio", "async-trait", "futures", "daemon-slayer-server/async-to
 blocking = ["daemon-slayer-server/blocking", "daemon-slayer-client/blocking"]
 client = ["daemon-slayer-client"]
 console = ["daemon-slayer-console", "async-tokio"]
-direct = []
 error-handler = ["daemon-slayer-error-handler"]
 logging = ["daemon-slayer-logging"]
 server = ["daemon-slayer-server"]

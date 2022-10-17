@@ -1,14 +1,4 @@
-use std::{pin::Pin, time::Duration};
-
-use daemon_slayer_core::BroadcastEventStore;
-use futures::Future;
-use tap::TapFallible;
-use tracing::warn;
-
-// use crate::Signal;
-
 pub struct ServiceContext {
-    //signal_tx: tokio::sync::broadcast::Sender<crate::Signal>,
     handles: Vec<Box<dyn FnOnce()>>,
 }
 

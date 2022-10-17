@@ -60,7 +60,6 @@ blocking = [
 cli = ["daemon-slayer-cli"]
 client = ["daemon-slayer-client"]
 console = ["daemon-slayer-console", "daemon-slayer-cli/console"]
-direct = ["daemon-slayer-server/direct", "daemon-slayer-cli/direct"]
 error-handler = ["daemon-slayer-error-handler", "daemon-slayer-cli/error-handler"]
 grpc-health-check = ["daemon-slayer-client/grpc-health-check"]
 http-health-check = ["daemon-slayer-client/http-health-check"]

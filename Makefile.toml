@@ -25,7 +25,7 @@ args = [
   "--feature-powerset",
   "--no-dev-deps",
   "--exclude-features",
-  "cli client server console direct logging server async-tokio ipc-health-check http-health-check grpc-health-check",
+  "cli client server console logging server async-tokio ipc-health-check http-health-check grpc-health-check",
   "build",
 ]
 command = "cargo"
