@@ -34,3 +34,7 @@ pub mod signals {
 pub mod file_watcher {
     pub use daemon_slayer_plugin_file_watcher::*;
 }
+#[cfg(feature = "plugin-ipc-health-check")]
+pub mod ipc_health_check {
+    pub use daemon_slayer_plugin_ipc_health_check::*;
+}

@@ -26,11 +26,6 @@ pub use sd_notify;
 #[cfg(windows)]
 pub use windows_service;
 
-#[cfg(all(feature = "async-tokio", feature = "ipc-health-check"))]
-mod ipc_health_check;
-#[cfg(all(feature = "async-tokio", feature = "ipc-health-check"))]
-pub use ipc_health_check::*;
-
 #[cfg(feature = "async-tokio")]
 pub use async_trait;
 #[cfg(feature = "async-tokio")]
