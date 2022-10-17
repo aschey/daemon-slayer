@@ -32,7 +32,7 @@ impl daemon_slayer_core::blocking::Service for SignalHandler {
 
     type Client = SignalClient;
 
-    fn run_service(builder: Self::Builder) -> Self {
+    fn run_service(_: Self::Builder) -> Self {
         let signal_tx = SENDER
             .get()
             .map(|tx| tx.to_owned())

@@ -1,18 +1,6 @@
+use crate::{Signal, SignalHandlerBuilder, SignalHandlerClient};
 use daemon_slayer_core::BroadcastEventStore;
-use futures::stream::Once;
 use once_cell::sync::OnceCell;
-
-use crate::Signal;
-
-pub struct SignalBuilder {}
-
-impl SignalBuilder {
-    pub fn all() -> Self {
-        Self {}
-    }
-}
-
-pub struct SignalClient {}
 
 pub struct SignalHandler {
     signal_tx: tokio::sync::broadcast::Sender<Signal>,
@@ -30,10 +18,10 @@ impl SignalHandler {
 
 #[async_trait::async_trait]
 impl daemon_slayer_core::Service for SignalHandler {
-    type Builder = SignalBuilder;
-    type Client = SignalClient;
+    type Builder = SignalHandlerBuilder;
+    type Client = SignalHandlerClient;
 
-    async fn run_service(builder: Self::Builder) -> Self {
+    async fn run_service(_: Self::Builder) -> Self {
         let signal_tx = SENDER.get().map(|tx| tx.to_owned()).unwrap_or_else(|| {
             let (tx, _) = tokio::sync::broadcast::channel(32);
             tx
@@ -50,11 +38,11 @@ impl daemon_slayer_core::Service for SignalHandler {
 
             loop {
                 tokio::select! {
-                    _ = ctrl_c_stream.recv() => { signal_tx_.send(Signal::SIGINT) }
-                    _ = ctrl_break_stream.recv() => { signal_tx_.send(Signal::SIGINT) }
-                    _ = ctrl_shutdown_stream.recv() => { signal_tx_.send(Signal::SIGINT) }
-                    _ = ctrl_logoff_stream.recv() => { signal_tx_.send(Signal::SIGINT) }
-                    _ = ctrl_close_stream.recv() => { signal_tx_.send(Signal::SIGINT) }
+                    _ = ctrl_c_stream.recv() => { signal_tx_.send(Signal::SIGINT).ok() }
+                    _ = ctrl_break_stream.recv() => { signal_tx_.send(Signal::SIGINT).ok() }
+                    _ = ctrl_shutdown_stream.recv() => { signal_tx_.send(Signal::SIGINT).ok() }
+                    _ = ctrl_logoff_stream.recv() => { signal_tx_.send(Signal::SIGINT).ok() }
+                    _ = ctrl_close_stream.recv() => { signal_tx_.send(Signal::SIGINT).ok() }
                     _ = shutdown_rx.recv() => { return; }
                 };
             }
@@ -68,11 +56,11 @@ impl daemon_slayer_core::Service for SignalHandler {
     }
 
     fn get_client(&mut self) -> Self::Client {
-        SignalClient {}
+        SignalHandlerClient {}
     }
 
     async fn stop(self) {
-        self.shutdown_tx.send(()).await;
+        self.shutdown_tx.send(()).await.ok();
         self.handle.await;
     }
 }
