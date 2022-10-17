@@ -9,10 +9,9 @@ use notify::RecommendedWatcher;
 use notify_debouncer_mini::Debouncer;
 use tracing::{error, info};
 
-use crate::{
-    file_watcher_builder::FileWatcherBuilder, file_watcher_client::FileWatcherClient,
-    file_watcher_command::FileWatcherCommand,
-};
+use crate::{file_watcher_builder::FileWatcherBuilder, file_watcher_command::FileWatcherCommand};
+
+use super::file_watcher_client::FileWatcherClient;
 
 pub struct FileWatcher {
     file_tx: tokio::sync::broadcast::Sender<Vec<PathBuf>>,

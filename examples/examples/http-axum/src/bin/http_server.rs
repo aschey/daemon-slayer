@@ -9,11 +9,13 @@ use daemon_slayer::signals::{Signal, SignalHandler, SignalHandlerBuilder};
 use std::env::args;
 use std::error::Error;
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use daemon_slayer::cli::{Action, BuilderAsync, CliAsync, Command};
+use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{
     BroadcastEventStore, EventStore, Handler, Receiver, ServiceAsync, ServiceContext,
@@ -80,6 +82,11 @@ impl Handler for ServiceHandler {
             .add_service::<TaskQueue>(TaskQueueBuilder::default().with_job_handler(MyJob {
                 signal_store: signal_store.clone(),
             }))
+            .await;
+        let (file_watcher_client, file_watcher_events) = context
+            .add_event_service::<FileWatcher>(
+                FileWatcherBuilder::default().with_watch_path(PathBuf::from("./Cargo.toml")),
+            )
             .await;
         Self {
             signal_store,

@@ -30,3 +30,7 @@ pub mod task_queue {
 pub mod signals {
     pub use daemon_slayer_plugin_signals::*;
 }
+#[cfg(feature = "plugin-file-watcher")]
+pub mod file_watcher {
+    pub use daemon_slayer_plugin_file_watcher::*;
+}
