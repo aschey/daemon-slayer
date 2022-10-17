@@ -15,6 +15,7 @@ members = [
   "daemon-slayer-error-handler",
   "daemon-slayer-plugins/signals",
   "daemon-slayer-plugins/task-queue",
+  "daemon-slayer-plugins/file-watcher",
   "integration-tests",
 ]
 resolver = "2"
@@ -38,7 +39,6 @@ async-server = [
   "daemon-slayer-logging/all-async",
   "logging",
   "daemon-slayer-cli/async-server",
-  "file-watcher",
   "error-handler",
   "plugin-signals",
 ]
@@ -48,19 +48,20 @@ async-tokio = [
   "daemon-slayer-logging/async-tokio",
   "daemon-slayer-core/async-tokio",
   "daemon-slayer-plugin-signals/async-tokio",
+  "daemon-slayer-plugin-file-watcher/async-tokio",
 ]
 blocking = [
   "daemon-slayer-server/blocking",
   "daemon-slayer-core/blocking",
   "daemon-slayer-client/blocking",
   "daemon-slayer-plugin-signals/blocking",
+  "daemon-slayer-plugin-file-watcher/blocking",
 ]
 cli = ["daemon-slayer-cli"]
 client = ["daemon-slayer-client"]
 console = ["daemon-slayer-console", "daemon-slayer-cli/console"]
 direct = ["daemon-slayer-server/direct", "daemon-slayer-cli/direct"]
 error-handler = ["daemon-slayer-error-handler", "daemon-slayer-cli/error-handler"]
-file-watcher = ["daemon-slayer-server/file-watcher"]
 grpc-health-check = ["daemon-slayer-client/grpc-health-check"]
 http-health-check = ["daemon-slayer-client/http-health-check"]
 ipc-health-check = ["daemon-slayer-client/ipc-health-check", "daemon-slayer-server/ipc-health-check"]
@@ -81,7 +82,6 @@ sync-server = [
   "daemon-slayer-logging/all-sync",
   "cli",
   "daemon-slayer-cli/sync-server",
-  "file-watcher",
   "error-handler",
   "blocking",
 ]
@@ -93,6 +93,8 @@ daemon-slayer-console = {path = "./daemon-slayer-console", optional = true}
 daemon-slayer-core = {path = "./daemon-slayer-core"}
 daemon-slayer-error-handler = {path = "./daemon-slayer-error-handler", optional = true}
 daemon-slayer-logging = {path = "./daemon-slayer-logging", optional = true}
+daemon-slayer-server = {path = "./daemon-slayer-server", optional = true}
+
+daemon-slayer-plugin-file-watcher = {path = "./daemon-slayer-plugins/file-watcher", optional = true}
 daemon-slayer-plugin-signals = {path = "./daemon-slayer-plugins/signals", optional = true}
 daemon-slayer-plugin-task-queue = {path = "./daemon-slayer-plugins/task-queue", optional = true}
-daemon-slayer-server = {path = "./daemon-slayer-server", optional = true}

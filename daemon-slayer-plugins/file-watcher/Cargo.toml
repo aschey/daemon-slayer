@@ -1,0 +1,17 @@
+[package]
+edition = "2021"
+name = "daemon-slayer-plugin-file-watcher"
+version = "0.1.0"
+
+[dependencies]
+async-trait = "0.1.57"
+daemon-slayer-core = {path = "../../daemon-slayer-core"}
+futures = {version = "0.3.24", optional = true}
+notify = {version = "5", default-features = false, features = ["fsevent-sys", "macos_fsevent"]}
+notify-debouncer-mini = {version = "0.2.1", default-features = false}
+tokio = {version = "1", features = ["rt-multi-thread", "net", "io-util", "sync", "macros"], optional = true}
+tracing = "0.1.37"
+
+[features]
+async-tokio = ["tokio", "futures"]
+blocking = []
