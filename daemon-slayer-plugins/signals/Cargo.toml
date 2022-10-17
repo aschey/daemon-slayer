@@ -1,12 +1,12 @@
 [package]
 edition = "2021"
-name = "daemon-slayer-signals"
+name = "daemon-slayer-plugin-signals"
 version = "0.1.0"
 
 [dependencies]
 async-trait = "0.1"
 bus = {version = "2", optional = true}
-daemon-slayer-core = {path = "../daemon-slayer-core"}
+daemon-slayer-core = {path = "../../daemon-slayer-core"}
 futures = {version = "0.3", optional = true}
 
 [target.'cfg(unix)'.dependencies]

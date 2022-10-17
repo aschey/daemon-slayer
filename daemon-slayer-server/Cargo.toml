@@ -25,7 +25,7 @@ tracing = "0.1"
 
 [target.'cfg(windows)'.dependencies]
 bus = {version = "2", optional = true}
-daemon-slayer-signals = {path = "../daemon-slayer-signals"}
+daemon-slayer-plugin-signals = {path = "../daemon-slayer-plugins/signals"}
 registry = "1"
 signal-hook = {version = "0.3", optional = true}
 tokio = {version = "1", features = ["rt-multi-thread", "signal", "net", "macros", "sync"], optional = true}

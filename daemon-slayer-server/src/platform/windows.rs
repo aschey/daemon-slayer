@@ -1,4 +1,4 @@
-use daemon_slayer_signals::Signal;
+use daemon_slayer_plugin_signals::Signal;
 use std::error::Error;
 use tracing::{error, info};
 
@@ -22,9 +22,9 @@ type ServiceContextAsync = crate::ServiceContext;
 type ServiceContextSync = crate::blocking::ServiceContext;
 
 #[cfg(feature = "async-tokio")]
-type SignalHandlerAsync = daemon_slayer_signals::SignalHandler;
+type SignalHandlerAsync = daemon_slayer_plugin_signals::SignalHandler;
 #[cfg(feature = "blocking")]
-type SignalHandlerSync = daemon_slayer_signals::blocking::SignalHandler;
+type SignalHandlerSync = daemon_slayer_plugin_signals::blocking::SignalHandler;
 
 #[maybe_async_cfg::maybe(
     idents(
@@ -162,13 +162,14 @@ fn set_env_vars<T: crate::handler::Handler + Send>() {
 }
 
 #[cfg(feature = "async-tokio")]
-fn get_channel_async() -> tokio::sync::broadcast::Sender<daemon_slayer_signals::Signal> {
+fn get_channel_async() -> tokio::sync::broadcast::Sender<daemon_slayer_plugin_signals::Signal> {
     let (tx, _) = tokio::sync::broadcast::channel(32);
     tx
 }
 
 #[cfg(feature = "blocking")]
-fn get_channel_sync() -> std::sync::Arc<std::sync::Mutex<bus::Bus<daemon_slayer_signals::Signal>>> {
+fn get_channel_sync(
+) -> std::sync::Arc<std::sync::Mutex<bus::Bus<daemon_slayer_plugin_signals::Signal>>> {
     std::sync::Arc::new(std::sync::Mutex::new(bus::Bus::new(32)))
 }
 

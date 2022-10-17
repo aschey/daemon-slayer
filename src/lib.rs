@@ -22,11 +22,11 @@ pub mod console {
 pub mod error_handler {
     pub use daemon_slayer_error_handler::*;
 }
-#[cfg(feature = "task-queue")]
+#[cfg(feature = "plugin-task-queue")]
 pub mod task_queue {
-    pub use daemon_slayer_task_queue::*;
+    pub use daemon_slayer_plugin_task_queue::*;
 }
-#[cfg(feature = "signals")]
+#[cfg(feature = "plugin-signals")]
 pub mod signals {
-    pub use daemon_slayer_signals::*;
+    pub use daemon_slayer_plugin_signals::*;
 }
