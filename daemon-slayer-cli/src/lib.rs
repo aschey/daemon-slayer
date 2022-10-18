@@ -27,3 +27,5 @@ mod cli;
 pub use clap;
 #[cfg(any(feature = "client", feature = "server"))]
 pub use cli::*;
+
+mod cli2;
