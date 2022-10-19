@@ -22,6 +22,7 @@ enum ServiceAccessMode {
     Execute,
 }
 
+#[derive(Clone)]
 pub struct ServiceManager {
     config: Builder,
 }

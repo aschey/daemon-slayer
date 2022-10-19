@@ -7,6 +7,7 @@ use crate::Level;
 
 use super::SystemdConfig;
 
+#[derive(Clone)]
 pub struct Builder {
     pub(crate) name: String,
     #[cfg_attr(unix, allow(unused))]

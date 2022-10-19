@@ -4,7 +4,7 @@ use super::{ActionType, ArgMatchesExt, CommandExt, CommandType, InputState};
 
 #[async_trait::async_trait]
 pub trait CommandProvider {
-    async fn handle_input(&mut self, matches: &clap::ArgMatches) -> InputState;
+    async fn handle_input(self: Box<Self>, matches: &clap::ArgMatches) -> InputState;
 
     fn get_action_type(&self) -> ActionType;
 

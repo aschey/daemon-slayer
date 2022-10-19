@@ -29,7 +29,12 @@ async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let (mut cli, command) = daemon_slayer::cli::Cli::builder()
         .with_base_command(command)
-        .with_provider(daemon_slayer::client::cli::ClientCliProvider::new(manager))
+        .with_provider(daemon_slayer::client::cli::ClientCliProvider::new(
+            manager.clone(),
+        ))
+        .with_provider(daemon_slayer::console::cli::ConsoleCliProvider::new(
+            manager,
+        ))
         .build();
 
     let matches = command.get_matches();

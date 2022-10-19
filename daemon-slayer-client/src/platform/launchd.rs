@@ -22,6 +22,7 @@ regex!(PID_RE, r"pid = (\w+)");
 regex!(AUTOSTART_RE, r"runatload = (\w+)");
 regex!(EXIT_CODE_RE, r"last exit code = (\w+)");
 
+#[derive(Clone)]
 pub struct ServiceManager {
     config: Builder,
 }

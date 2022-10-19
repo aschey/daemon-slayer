@@ -1,4 +1,4 @@
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct SystemdConfig {
     pub(crate) after: Vec<String>,
 }

@@ -133,7 +133,7 @@ impl daemon_slayer_core::cli::CommandProvider for ClientCliProvider {
     }
 
     async fn handle_input(
-        &mut self,
+        mut self: Box<Self>,
         matches: &daemon_slayer_core::cli::clap::ArgMatches,
     ) -> daemon_slayer_core::cli::InputState {
         for (name, command_type) in &self.commands {

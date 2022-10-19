@@ -4,7 +4,7 @@ name = "daemon-slayer-client"
 version = "0.1.0"
 
 [dependencies]
-async-trait = {version = "0.1", optional = true}
+async-trait = {version = "0.1"}
 daemon-slayer-core = {path = "../daemon-slayer-core"}
 eyre = "0.6"
 maybe-async-cfg = "0.2"
@@ -32,7 +32,7 @@ once_cell = "1.14"
 regex = "1.6"
 
 [features]
-async-tokio = ["async-trait", "tokio"]
+async-tokio = ["tokio"]
 blocking = ["reqwest/blocking"]
 grpc-health-check = ["tonic", "tonic-health", "async-tokio"]
 http-health-check = ["reqwest"]

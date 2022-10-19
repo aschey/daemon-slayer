@@ -1,7 +1,7 @@
 use crate::config::Builder;
 use crate::{Info, Result};
 
-pub trait Manager {
+pub trait Manager: Clone {
     fn builder(name: impl Into<String>) -> Builder;
     fn new(name: impl Into<String>) -> Result<Self>
     where
