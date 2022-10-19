@@ -59,7 +59,7 @@ impl CommandExt for clap::Command {
                 help_text,
                 hide,
             } => self.subcommand(clap::Command::new(name).about(help_text).hide(*hide)),
-            CommandType::Default => self,
+            CommandType::Default => self.arg_required_else_help(false),
         }
     }
 }

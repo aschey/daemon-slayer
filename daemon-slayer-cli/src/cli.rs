@@ -1,9 +1,18 @@
 use daemon_slayer_core::cli::{ActionType, CommandProvider, InputState};
 
-#[derive(Default)]
 pub struct Builder {
-    pub(crate) base_command: clap::Command,
+    base_command: clap::Command,
     pub(crate) providers: Vec<Box<dyn CommandProvider>>,
+}
+
+impl Default for Builder {
+    fn default() -> Self {
+        let base_command = clap::Command::default().arg_required_else_help(true);
+        Self {
+            base_command,
+            providers: Default::default(),
+        }
+    }
 }
 
 impl Builder {
@@ -21,6 +30,7 @@ impl Builder {
         for provider in &self.providers {
             command = provider.update_command(command);
         }
+
         (Cli::new(self.providers), command)
     }
 }
