@@ -6,15 +6,15 @@ use std::{collections::HashMap, hash::Hash, marker::PhantomData};
 
 use crate::Console;
 
-pub struct ConsoleCliProvider {
+pub struct ConsoleCliProvider<'a> {
     command: CommandType,
-    manager: ServiceManager,
+    console: Console<'a>,
 }
 
-impl ConsoleCliProvider {
-    pub fn new(manager: ServiceManager) -> Self {
+impl<'a> ConsoleCliProvider<'a> {
+    pub fn new(console: Console<'a>) -> Self {
         Self {
-            manager,
+            console,
             command: CommandType::Subcommand {
                 name: "console".to_owned(),
                 help_text: "view service console".to_owned(),
@@ -28,7 +28,7 @@ impl ConsoleCliProvider {
     }
 }
 #[async_trait::async_trait]
-impl daemon_slayer_core::cli::CommandProvider for ConsoleCliProvider {
+impl<'a> daemon_slayer_core::cli::CommandProvider for ConsoleCliProvider<'a> {
     fn get_action_type(&self) -> ActionType {
         ActionType::Server
     }
@@ -42,8 +42,7 @@ impl daemon_slayer_core::cli::CommandProvider for ConsoleCliProvider {
         matches: &daemon_slayer_core::cli::clap::ArgMatches,
     ) -> daemon_slayer_core::cli::InputState {
         if matches.matches(&self.command) {
-            let mut console = Console::new(self.manager);
-            console.run().await.unwrap();
+            self.console.run().await.unwrap();
             return InputState::Handled;
         }
         InputState::Unhandled

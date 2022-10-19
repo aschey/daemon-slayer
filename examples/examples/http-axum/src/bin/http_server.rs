@@ -14,7 +14,6 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
-use daemon_slayer::ipc_health_check;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{
     BroadcastEventStore, EventStore, Handler, Receiver, Service, ServiceContext,
@@ -94,9 +93,7 @@ impl Handler for ServiceHandler {
                 FileWatcherBuilder::default().with_watch_path(PathBuf::from("./Cargo.toml")),
             )
             .await;
-        let _ = context.add_service::<ipc_health_check::Server>(ipc_health_check::Builder::new(
-            "daemon_slayer_axum".to_owned(),
-        ));
+
         Self {
             signal_store,
             task_queue_client,

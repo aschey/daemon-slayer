@@ -1,16 +1,13 @@
 use daemon_slayer_core::health_check::HealthCheck;
 use std::error::Error;
-#[cfg(feature = "async-tokio")]
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-#[cfg(feature = "ipc-health-check")]
-#[cfg(feature = "async-tokio")]
+#[derive(Clone)]
 pub struct IpcHealthCheckAsync {
     sock_path: String,
     read_buf: [u8; 256],
 }
 
-#[cfg(feature = "ipc-health-check")]
 impl IpcHealthCheckAsync {
     pub fn new(sock_path: impl Into<String>) -> Self {
         Self {
@@ -20,7 +17,6 @@ impl IpcHealthCheckAsync {
     }
 }
 
-#[cfg(feature = "ipc-health-check")]
 #[async_trait::async_trait]
 impl HealthCheck for IpcHealthCheckAsync {
     async fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {

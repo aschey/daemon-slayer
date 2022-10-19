@@ -3,6 +3,7 @@ use std::error::Error;
 use daemon_slayer::{
     cli::clap,
     client::{Manager, ServiceManager},
+    console::Console,
     logging::tracing_subscriber::util::SubscriberInitExt,
 };
 
@@ -23,15 +24,22 @@ async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         .subcommand(clap::Command::new("hello").arg(clap::Arg::new("name")))
         .arg_required_else_help(true)
         .about("Send a request to the server");
-
+    let health_check = daemon_slayer::health_check::HttpHealthCheck::new(
+        daemon_slayer::health_check::HttpRequestType::Get,
+        "http://127.0.0.1:3000",
+    )
+    .unwrap();
+    let mut console = Console::new(manager.clone());
+    console.add_health_check(Box::new(health_check.clone()));
     let (mut cli, command) = daemon_slayer::cli::Cli::builder()
         .with_base_command(command)
         .with_provider(daemon_slayer::client::cli::ClientCliProvider::new(
             manager.clone(),
         ))
         .with_provider(daemon_slayer::console::cli::ConsoleCliProvider::new(
-            manager,
+            console,
         ))
+        .with_provider(daemon_slayer::health_check::cli::HealthCheckCliProvider::new(health_check))
         .build();
 
     let matches = command.get_matches();

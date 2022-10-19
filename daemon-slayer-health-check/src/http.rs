@@ -3,6 +3,7 @@ use std::error::Error;
 use daemon_slayer_core::health_check::HealthCheck;
 
 #[cfg(feature = "http-health-check")]
+#[derive(Clone)]
 pub enum HttpRequestType {
     Get,
     Head,
@@ -10,6 +11,7 @@ pub enum HttpRequestType {
 
 #[cfg(feature = "http-health-check")]
 #[maybe_async_cfg::maybe(sync(feature = "blocking"), async(feature = "async-tokio"))]
+#[derive(Clone)]
 pub struct HttpHealthCheck {
     request_type: HttpRequestType,
     url: reqwest::Url,

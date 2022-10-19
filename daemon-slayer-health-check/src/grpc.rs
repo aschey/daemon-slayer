@@ -2,6 +2,7 @@ use std::error::Error;
 
 use daemon_slayer_core::health_check::HealthCheck;
 
+#[derive(Clone)]
 pub struct GrpcHealthCheckAsync {
     endpoint: tonic::transport::Endpoint,
 }
