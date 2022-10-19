@@ -22,15 +22,13 @@ members = [
 resolver = "2"
 
 [features]
-all-async = ["async-client", "async-server", "daemon-slayer-cli/all-async", "plugin-signals"]
-all-sync = ["sync-client", "sync-server", "daemon-slayer-cli/all-sync", "blocking", "plugin-signals"]
+all-async = ["async-client", "async-server", "plugin-signals"]
+all-sync = ["sync-client", "sync-server", "blocking", "plugin-signals"]
 async-client = [
   "console",
   "async-tokio",
   "client",
   "cli",
-  "daemon-slayer-cli/async-client",
-  "daemon-slayer-client/async-tokio",
   "error-handler",
 ]
 async-server = [
@@ -39,13 +37,11 @@ async-server = [
   "cli",
   "daemon-slayer-logging/all-async",
   "logging",
-  "daemon-slayer-cli/async-server",
   "error-handler",
   "plugin-signals",
 ]
 async-tokio = [
   "daemon-slayer-server/async-tokio",
-  "daemon-slayer-cli/async-tokio",
   "daemon-slayer-logging/async-tokio",
   "daemon-slayer-core/async-tokio",
   "daemon-slayer-plugin-signals/async-tokio",
@@ -60,8 +56,8 @@ blocking = [
 ]
 cli = ["daemon-slayer-cli"]
 client = ["daemon-slayer-client"]
-console = ["daemon-slayer-console", "daemon-slayer-cli/console"]
-error-handler = ["daemon-slayer-error-handler", "daemon-slayer-cli/error-handler"]
+console = ["daemon-slayer-console"]
+error-handler = ["daemon-slayer-error-handler"]
 grpc-health-check = ["daemon-slayer-client/grpc-health-check"]
 http-health-check = ["daemon-slayer-client/http-health-check"]
 ipc-health-check = ["daemon-slayer-client/ipc-health-check"]
@@ -74,7 +70,6 @@ server = ["daemon-slayer-server"]
 sync-client = [
   "client",
   "cli",
-  "daemon-slayer-cli/sync-client",
   "error-handler",
   "blocking",
 ]
@@ -83,7 +78,6 @@ sync-server = [
   "logging",
   "daemon-slayer-logging/all-sync",
   "cli",
-  "daemon-slayer-cli/sync-server",
   "error-handler",
   "blocking",
 ]

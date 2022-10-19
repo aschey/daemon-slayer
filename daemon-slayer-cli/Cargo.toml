@@ -3,36 +3,8 @@ edition = "2021"
 name = "daemon-slayer-cli"
 version = "0.1.0"
 
-[features]
-all-async = ["async-tokio", "client", "console", "server"]
-all-sync = ["client", "server", "blocking"]
-async-client = ["async-tokio", "client", "console"]
-async-server = ["async-tokio", "server", "logging"]
-async-tokio = ["tokio", "async-trait", "futures", "daemon-slayer-server/async-tokio", "daemon-slayer-client/async-tokio"]
-blocking = ["daemon-slayer-server/blocking", "daemon-slayer-client/blocking"]
-client = ["daemon-slayer-client"]
-console = ["daemon-slayer-console", "async-tokio"]
-error-handler = ["daemon-slayer-error-handler"]
-logging = ["daemon-slayer-logging"]
-server = ["daemon-slayer-server"]
-sync-client = ["client", "blocking"]
-sync-server = ["server", "blocking", "logging"]
-
 [dependencies]
 async-trait = {version = "0.1", optional = true}
 clap = {version = "4", features = ["string"]}
-daemon-slayer-client = {path = "../daemon-slayer-client", optional = true}
-daemon-slayer-console = {path = "../daemon-slayer-console", optional = true}
 daemon-slayer-core = {path = "../daemon-slayer-core"}
-daemon-slayer-error-handler = {path = "../daemon-slayer-error-handler", optional = true}
-daemon-slayer-logging = {path = "../daemon-slayer-logging", optional = true}
-daemon-slayer-server = {path = "../daemon-slayer-server", optional = true}
-eyre = "0.6"
-futures = {version = "0.3", optional = true}
-maybe-async-cfg = "0.2"
-parity-tokio-ipc = "0.9"
-strum = "0.24.1"
-strum_macros = "0.24.3"
-time = {version = "0.3", optional = true}
-tokio = {version = "1", features = ["rt-multi-thread", "macros"], optional = true}
 tracing = "0.1"
