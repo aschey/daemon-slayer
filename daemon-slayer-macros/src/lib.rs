@@ -21,7 +21,7 @@ mod platform {
 }
 
 #[cfg(feature = "async")]
-#[proc_macro_derive(ServiceAsync)]
+#[proc_macro_derive(Service)]
 pub fn derive_service_async(input: TokenStream) -> TokenStream {
     let DeriveInput { ident, .. } = parse_macro_input!(input);
 
@@ -30,7 +30,7 @@ pub fn derive_service_async(input: TokenStream) -> TokenStream {
 }
 
 #[cfg(feature = "blocking")]
-#[proc_macro_derive(ServiceSync)]
+#[proc_macro_derive(BlockingService)]
 pub fn derive_service_sync(input: TokenStream) -> TokenStream {
     let DeriveInput { ident, .. } = parse_macro_input!(input);
 

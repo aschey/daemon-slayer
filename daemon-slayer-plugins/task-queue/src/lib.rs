@@ -7,7 +7,7 @@ pub use aide_de_camp::prelude::{Decode, Encode, JobError, RunnerRouter};
 pub use aide_de_camp::prelude::{JobProcessor, ShutdownOptions, Xid};
 pub use aide_de_camp::runner::job_event::JobEvent;
 pub use aide_de_camp_sqlite::sqlx::sqlite::SqliteConnectOptions;
-use daemon_slayer_core::EventStore;
+use daemon_slayer_core::server::EventStore;
 
 pub struct JobEventStore {
     inner: aide_de_camp::runner::event_store::EventStore<JobEvent>,
@@ -22,13 +22,13 @@ impl JobEventStore {
 impl EventStore for JobEventStore {
     type Item = JobEvent;
 
-    fn subscribe_events(&self) -> Box<dyn daemon_slayer_core::Receiver<Item = Self::Item>> {
+    fn subscribe_events(&self) -> Box<dyn daemon_slayer_core::server::Receiver<Item = Self::Item>> {
         Box::new(self.inner.subscribe_events())
     }
 }
 
 #[async_trait::async_trait]
-impl daemon_slayer_core::Service for TaskQueue {
+impl daemon_slayer_core::server::Service for TaskQueue {
     type Builder = TaskQueueBuilder;
     type Client = TaskQueueClient;
 
@@ -45,7 +45,7 @@ impl daemon_slayer_core::Service for TaskQueue {
     }
 }
 
-impl daemon_slayer_core::EventService for TaskQueue {
+impl daemon_slayer_core::server::EventService for TaskQueue {
     type EventStoreImpl = JobEventStore;
 
     fn get_event_store(&mut self) -> Self::EventStoreImpl {

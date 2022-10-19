@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use daemon_slayer_core::BroadcastEventStore;
+use daemon_slayer_core::server::BroadcastEventStore;
 use notify::RecommendedWatcher;
 use notify_debouncer_mini::Debouncer;
 use tracing::{error, info};
@@ -20,7 +20,7 @@ pub struct FileWatcher {
 }
 
 #[async_trait::async_trait]
-impl daemon_slayer_core::Service for FileWatcher {
+impl daemon_slayer_core::server::Service for FileWatcher {
     type Builder = FileWatcherBuilder;
 
     type Client = FileWatcherClient;
@@ -90,7 +90,7 @@ impl daemon_slayer_core::Service for FileWatcher {
     }
 }
 
-impl daemon_slayer_core::EventService for FileWatcher {
+impl daemon_slayer_core::server::EventService for FileWatcher {
     type EventStoreImpl = BroadcastEventStore<Vec<PathBuf>>;
 
     fn get_event_store(&mut self) -> Self::EventStoreImpl {

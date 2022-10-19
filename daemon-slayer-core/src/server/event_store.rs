@@ -5,5 +5,5 @@
 )]
 pub trait EventStore {
     type Item: Send;
-    fn subscribe_events(&self) -> Box<dyn crate::receiver::Receiver<Item = Self::Item>>;
+    fn subscribe_events(&self) -> Box<dyn crate::server::receiver::Receiver<Item = Self::Item>>;
 }

@@ -1,3 +1,4 @@
+use crate::server::blocking::{EventStore, Receiver};
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
@@ -11,11 +12,9 @@ impl<T: Send> BroadcastEventStore<T> {
     }
 }
 
-impl<T: Send + Sync + Clone + 'static> crate::event_store::EventStoreSync
-    for BroadcastEventStore<T>
-{
+impl<T: Send + Sync + Clone + 'static> EventStore for BroadcastEventStore<T> {
     type Item = T;
-    fn subscribe_events(&self) -> Box<dyn crate::receiver::ReceiverSync<Item = Self::Item>> {
+    fn subscribe_events(&self) -> Box<dyn Receiver<Item = Self::Item>> {
         Box::new(self.bus.lock().unwrap().add_rx())
     }
 }

@@ -14,12 +14,11 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use daemon_slayer::cli::{Action, BuilderAsync, CliAsync, Command};
 use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
 use daemon_slayer::ipc_health_check;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{
-    BroadcastEventStore, EventStore, Handler, Receiver, ServiceAsync, ServiceContext,
+    BroadcastEventStore, EventStore, Handler, Receiver, Service, ServiceContext,
 };
 use daemon_slayer::signals::SignalHandlerBuilderTrait;
 use daemon_slayer::task_queue::{
@@ -41,6 +40,13 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         .build()
         .unwrap();
     logger.init();
+    let (cli, command) = daemon_slayer::cli::Cli::builder()
+        .with_provider(daemon_slayer::server::cli::ServerCliProvider::<
+            ServiceHandler,
+        >::default())
+        .build();
+    let matches = command.get_matches();
+    cli.handle_input(&matches).await;
     //let cli = CliAsync::builder_for_server(
     //     "daemon_slayer_axum".to_owned(),
     //     "daemon slayer axum".to_owned(),
@@ -63,11 +69,11 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     // cli.configure_error_handler().install()?;
 
-    ServiceHandler::run_service_direct().await?;
+    //    ServiceHandler::run_service_direct().await?;
     Ok(())
 }
 
-#[derive(daemon_slayer::server::ServiceAsync)]
+#[derive(daemon_slayer::server::Service)]
 pub struct ServiceHandler {
     signal_store: BroadcastEventStore<Signal>,
     task_queue_client: TaskQueueClient,

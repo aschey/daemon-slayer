@@ -14,7 +14,7 @@ pub struct Server {
 }
 
 #[async_trait::async_trait]
-impl daemon_slayer_core::Service for Server {
+impl daemon_slayer_core::server::Service for Server {
     type Builder = Builder;
 
     type Client = Client;

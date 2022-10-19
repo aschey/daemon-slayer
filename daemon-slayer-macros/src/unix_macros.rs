@@ -10,7 +10,7 @@ pub(crate) fn define_service_async(
     let direct_handler = get_direct_handler_async();
     quote! {
         #[#crate_name::async_trait::async_trait]
-        impl #crate_name::ServiceAsync for #ident {
+        impl #crate_name::Service for #ident {
             async fn run_service_main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 #crate_name::platform::run_service_main_async::<#ident>().await
             }
@@ -28,7 +28,7 @@ pub(crate) fn define_service_sync(
 ) -> TokenStream {
     let direct_handler = get_direct_handler_sync();
     quote! {
-        impl #crate_name::ServiceSync for #ident {
+        impl #crate_name::blocking::Service for #ident {
             fn run_service_main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 #crate_name::platform::run_service_main_sync::<#ident>()
             }

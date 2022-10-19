@@ -40,7 +40,7 @@ fn get_service_impl_async(
 ) -> proc_macro2::TokenStream {
     quote! {
         #[#crate_name::async_trait::async_trait]
-        impl #crate_name::ServiceAsync for #ident {
+        impl #crate_name::Service for #ident {
             async fn run_service_main() ->  Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 #crate_name::windows_service::service_dispatcher::start(#ident::get_service_name(), func_service_main)?;
                 Ok(())
@@ -58,7 +58,7 @@ fn get_service_impl_sync(
     direct_handler: &proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
     quote! {
-        impl #crate_name::ServiceSync for #ident {
+        impl #crate_name::blocking::Service for #ident {
             fn run_service_main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 #crate_name::windows_service::service_dispatcher::start(#ident::get_service_name(), func_service_main)?;
                 Ok(())

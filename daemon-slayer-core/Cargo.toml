@@ -6,6 +6,7 @@ version = "0.1.0"
 [dependencies]
 async-trait = "0.1"
 bus = {version = "2", optional = true}
+clap = "4.0.17"
 maybe-async-cfg = "0.2"
 tokio = {version = "1", features = ["sync"], optional = true}
 

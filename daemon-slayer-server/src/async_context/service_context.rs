@@ -1,6 +1,6 @@
 use std::{pin::Pin, time::Duration};
 
-use daemon_slayer_core::BroadcastEventStore;
+use daemon_slayer_core::server::BroadcastEventStore;
 use futures::Future;
 use tap::TapFallible;
 use tracing::warn;
@@ -19,7 +19,7 @@ impl ServiceContext {
             handles: vec![],
         }
     }
-    pub async fn add_event_service<S: daemon_slayer_core::EventService + 'static>(
+    pub async fn add_event_service<S: daemon_slayer_core::server::EventService + 'static>(
         &mut self,
         builder: S::Builder,
     ) -> (S::Client, S::EventStoreImpl) {
@@ -32,7 +32,7 @@ impl ServiceContext {
         (client, event_store)
     }
 
-    pub async fn add_service<S: daemon_slayer_core::Service + 'static>(
+    pub async fn add_service<S: daemon_slayer_core::server::Service + 'static>(
         &mut self,
         builder: S::Builder,
     ) -> S::Client {

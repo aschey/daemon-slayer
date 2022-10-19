@@ -5,7 +5,7 @@ use std::{
     thread::JoinHandle,
 };
 
-use daemon_slayer_core::blocking::BroadcastEventStore;
+use daemon_slayer_core::server::blocking::BroadcastEventStore;
 use notify::RecommendedWatcher;
 use notify_debouncer_mini::Debouncer;
 use tracing::{error, info};
@@ -20,7 +20,7 @@ pub struct FileWatcher {
     handle: JoinHandle<()>,
 }
 
-impl daemon_slayer_core::blocking::Service for FileWatcher {
+impl daemon_slayer_core::server::blocking::Service for FileWatcher {
     type Builder = FileWatcherBuilder;
 
     type Client = FileWatcherClient;
@@ -87,7 +87,7 @@ impl daemon_slayer_core::blocking::Service for FileWatcher {
     }
 }
 
-impl daemon_slayer_core::blocking::EventService for FileWatcher {
+impl daemon_slayer_core::server::blocking::EventService for FileWatcher {
     type EventStoreImpl = BroadcastEventStore<Vec<PathBuf>>;
 
     fn get_event_store(&mut self) -> Self::EventStoreImpl {

@@ -9,7 +9,7 @@ impl ServiceContext {
             handles: vec![],
         }
     }
-    pub fn add_event_service<S: daemon_slayer_core::blocking::EventService + 'static>(
+    pub fn add_event_service<S: daemon_slayer_core::server::blocking::EventService + 'static>(
         &mut self,
         builder: S::Builder,
     ) -> (S::Client, S::EventStoreImpl) {
@@ -23,7 +23,7 @@ impl ServiceContext {
         (client, event_store)
     }
 
-    pub fn add_service<S: daemon_slayer_core::blocking::Service + 'static>(
+    pub fn add_service<S: daemon_slayer_core::server::blocking::Service + 'static>(
         &mut self,
         builder: S::Builder,
     ) -> S::Client {

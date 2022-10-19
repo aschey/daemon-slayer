@@ -3,7 +3,7 @@ use std::{
     thread::{self, JoinHandle},
 };
 
-use daemon_slayer_core::blocking::BroadcastEventStore;
+use daemon_slayer_core::server::blocking::BroadcastEventStore;
 
 use crate::Signal;
 
@@ -17,7 +17,7 @@ pub struct SignalHandler {
     handle: JoinHandle<()>,
 }
 
-impl daemon_slayer_core::blocking::Service for SignalHandler {
+impl daemon_slayer_core::server::blocking::Service for SignalHandler {
     type Builder = SignalHandlerBuilder;
 
     type Client = SignalHandlerClient;
@@ -53,7 +53,7 @@ impl daemon_slayer_core::blocking::Service for SignalHandler {
     }
 }
 
-impl daemon_slayer_core::blocking::EventService for SignalHandler {
+impl daemon_slayer_core::server::blocking::EventService for SignalHandler {
     type EventStoreImpl = BroadcastEventStore<Signal>;
     fn get_event_store(&mut self) -> Self::EventStoreImpl {
         BroadcastEventStore::new(self.signal_tx.clone())
