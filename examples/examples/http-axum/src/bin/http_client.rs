@@ -2,10 +2,7 @@ use std::error::Error;
 
 use daemon_slayer::{
     cli::clap,
-    client::{
-        health_check::{HttpHealthCheckAsync, HttpRequestType},
-        Manager, ServiceManager,
-    },
+    client::{Manager, ServiceManager},
     logging::tracing_subscriber::util::SubscriberInitExt,
 };
 

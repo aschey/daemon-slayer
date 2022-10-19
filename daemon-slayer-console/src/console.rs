@@ -5,7 +5,8 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use daemon_slayer_client::{health_check::HealthCheckAsync, Info, Manager, ServiceManager, State};
+use daemon_slayer_client::{Info, Manager, ServiceManager, State};
+use daemon_slayer_core::health_check::HealthCheck;
 use futures::{select, FutureExt, Stream, StreamExt};
 use std::{
     error::Error,
@@ -31,7 +32,7 @@ pub struct Console<'a> {
     logs: LogView<'a>,
     button_index: usize,
     is_healthy: Option<bool>,
-    health_check: Option<Box<dyn HealthCheckAsync + Send + 'static>>,
+    health_check: Option<Box<dyn HealthCheck + Send + 'static>>,
     has_health_check: bool,
 }
 
@@ -50,7 +51,7 @@ impl<'a> Console<'a> {
         }
     }
 
-    pub fn add_health_check(&mut self, health_check: Box<dyn HealthCheckAsync + Send + 'static>) {
+    pub fn add_health_check(&mut self, health_check: Box<dyn HealthCheck + Send + 'static>) {
         self.health_check = Some(health_check);
         self.has_health_check = true;
     }
@@ -83,7 +84,7 @@ impl<'a> Console<'a> {
     }
 
     fn health_checker(
-        mut health_checker: Box<dyn HealthCheckAsync + Send + 'static>,
+        mut health_checker: Box<dyn HealthCheck + Send + 'static>,
         tx: tokio::sync::mpsc::Sender<bool>,
     ) {
         tokio::spawn(async move {

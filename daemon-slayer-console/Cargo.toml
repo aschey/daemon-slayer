@@ -6,7 +6,7 @@ version = "0.1.0"
 [dependencies]
 async-trait = {version = "0.1"}
 crossterm = {version = "0.25", features = ["event-stream"]}
-daemon-slayer-client = {path = "../daemon-slayer-client", features = ["async-tokio"]}
+daemon-slayer-client = {path = "../daemon-slayer-client"}
 daemon-slayer-core = {path = "../daemon-slayer-core"}
 futures = {version = "0.3"}
 tokio = {version = "1", features = ["rt-multi-thread", "macros"]}

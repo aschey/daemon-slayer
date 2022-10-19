@@ -1,5 +1,7 @@
 use std::error::Error;
 
+use daemon_slayer_core::health_check::HealthCheck;
+
 #[cfg(feature = "http-health-check")]
 pub enum HttpRequestType {
     Get,
@@ -29,7 +31,7 @@ impl HttpHealthCheck {
 
 #[cfg(all(feature = "async-tokio", feature = "http-health-check"))]
 #[async_trait::async_trait]
-impl super::HealthCheckAsync for HttpHealthCheckAsync {
+impl HealthCheck for HttpHealthCheckAsync {
     async fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
         match &self.request_type {
             HttpRequestType::Get => {
@@ -48,7 +50,7 @@ impl super::HealthCheckAsync for HttpHealthCheckAsync {
 }
 
 #[cfg(all(feature = "blocking", feature = "http-health-check"))]
-impl super::HealthCheckSync for HttpHealthCheckSync {
+impl daemon_slayer_core::health_check::blocking::HealthCheck for HttpHealthCheckSync {
     fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
         match &self.request_type {
             HttpRequestType::Get => {

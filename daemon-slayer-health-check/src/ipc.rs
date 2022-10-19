@@ -1,3 +1,4 @@
+use daemon_slayer_core::health_check::HealthCheck;
 use std::error::Error;
 #[cfg(feature = "async-tokio")]
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -21,7 +22,7 @@ impl IpcHealthCheckAsync {
 
 #[cfg(feature = "ipc-health-check")]
 #[async_trait::async_trait]
-impl super::HealthCheckAsync for IpcHealthCheckAsync {
+impl HealthCheck for IpcHealthCheckAsync {
     async fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut client = parity_tokio_ipc::Endpoint::connect(&self.sock_path).await?;
         let _ = client.write_u8(0).await?;

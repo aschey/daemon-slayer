@@ -1,0 +1,21 @@
+[package]
+edition = "2021"
+name = "daemon-slayer-health-check"
+version = "0.1.0"
+
+[dependencies]
+async-trait = {version = "0.1"}
+daemon-slayer-core = {path = "../daemon-slayer-core"}
+maybe-async-cfg = "0.2"
+parity-tokio-ipc = {version = "0.9", optional = true}
+reqwest = {version = "0.11", optional = true}
+tokio = {version = "1", features = ["net"], optional = true}
+tonic = {version = "0.8", optional = true}
+tonic-health = {version = "0.7", optional = true}
+
+[features]
+async-tokio = ["tokio"]
+blocking = ["reqwest/blocking"]
+grpc-health-check = ["tonic", "tonic-health", "async-tokio"]
+http-health-check = ["reqwest"]
+ipc-health-check = ["parity-tokio-ipc", "async-tokio"]

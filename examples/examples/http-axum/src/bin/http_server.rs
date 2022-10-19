@@ -2,7 +2,6 @@ use anyhow::anyhow;
 use axum::extract::{Path, State};
 use axum::routing::get;
 use axum::Router;
-use daemon_slayer::client::health_check::{HttpHealthCheckAsync, HttpRequestType};
 use daemon_slayer::client::{Manager, ServiceManager};
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::signals::{Signal, SignalHandler, SignalHandlerBuilder};
