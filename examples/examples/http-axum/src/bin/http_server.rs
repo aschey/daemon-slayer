@@ -40,7 +40,7 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         .build()
         .unwrap();
     logger.init();
-    let (cli, command) = daemon_slayer::cli::Cli::builder()
+    let (mut cli, command) = daemon_slayer::cli::Cli::builder()
         .with_provider(daemon_slayer::server::cli::ServerCliProvider::<
             ServiceHandler,
         >::default())

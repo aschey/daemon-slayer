@@ -5,10 +5,13 @@ version = "0.1.0"
 
 [dependencies]
 async-trait = {version = "0.1", optional = true}
+daemon-slayer-core = {path = "../daemon-slayer-core"}
 eyre = "0.6"
 maybe-async-cfg = "0.2"
 parity-tokio-ipc = {version = "0.9", optional = true}
 reqwest = {version = "0.11", optional = true}
+strum = "0.24"
+strum_macros = "0.24"
 tokio = {version = "1", features = ["net"], optional = true}
 tonic = {version = "0.8", optional = true}
 tonic-health = {version = "0.7", optional = true}

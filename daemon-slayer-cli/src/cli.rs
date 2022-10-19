@@ -58,8 +58,8 @@ impl Cli {
         ActionType::Unknown
     }
 
-    pub async fn handle_input(&self, matches: &clap::ArgMatches) -> InputState {
-        for provider in &self.providers {
+    pub async fn handle_input(&mut self, matches: &clap::ArgMatches) -> InputState {
+        for provider in &mut self.providers {
             if provider.handle_input(matches).await == InputState::Handled {
                 return InputState::Handled;
             }

@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use daemon_slayer_core::blocking::BroadcastEventStore;
+use daemon_slayer_core::server::blocking::BroadcastEventStore;
 use once_cell::sync::OnceCell;
 
 use crate::Signal;
@@ -27,7 +27,7 @@ pub struct SignalClient {}
 
 static SENDER: OnceCell<Arc<Mutex<bus::Bus<Signal>>>> = OnceCell::new();
 
-impl daemon_slayer_core::blocking::Service for SignalHandler {
+impl daemon_slayer_core::server::blocking::Service for SignalHandler {
     type Builder = SignalBuilder;
 
     type Client = SignalClient;
@@ -71,7 +71,7 @@ impl daemon_slayer_core::blocking::Service for SignalHandler {
     }
 }
 
-impl daemon_slayer_core::blocking::EventService for SignalHandler {
+impl daemon_slayer_core::server::blocking::EventService for SignalHandler {
     type EventStoreImpl = BroadcastEventStore<Signal>;
     fn get_event_store(&mut self) -> Self::EventStoreImpl {
         BroadcastEventStore::new(self.signal_tx.clone())
