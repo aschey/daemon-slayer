@@ -32,14 +32,7 @@ async fn run_async() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let manager = ServiceManager::builder("daemon_slayer_tonic")
         .with_description("test service")
-        .with_program(
-            current_exe()
-                .unwrap()
-                .parent()
-                .unwrap()
-                .join("grpc_server.exe")
-                .to_string_lossy(),
-        )
+        .with_program(current_exe().unwrap().parent().unwrap().join("grpc_server"))
         .with_service_level(if cfg!(windows) {
             Level::System
         } else {

@@ -30,8 +30,7 @@ async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
                 .unwrap()
                 .parent()
                 .unwrap()
-                .join("http_server")
-                .to_string_lossy(),
+                .join("http_server")               
         )
         .with_service_level(if cfg!(windows) {
             Level::System

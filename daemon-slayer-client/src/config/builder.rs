@@ -1,6 +1,8 @@
 use crate::Manager;
 use crate::Result;
+use std::env::consts::EXE_EXTENSION;
 use std::env::current_exe;
+use std::path::PathBuf;
 
 use crate::platform::ServiceManager;
 use crate::Level;
@@ -14,11 +16,12 @@ pub struct Builder {
     pub(crate) display_name: String,
     #[cfg_attr(unix, allow(unused))]
     pub(crate) description: String,
-    pub(crate) program: String,
+    pub(crate) program: PathBuf,
     pub(crate) args: Vec<String>,
     pub(crate) service_level: Level,
     pub(crate) env_vars: Vec<(String, String)>,
     pub(crate) autostart: bool,
+    #[cfg_attr(not(platform = "linux"), allow(unused))]
     pub(crate) systemd_config: SystemdConfig,
 }
 
@@ -30,7 +33,7 @@ impl Builder {
             display_name: name,
             description: "".to_owned(),
             args: vec![],
-            program: current_exe().unwrap().to_string_lossy().to_string(),
+            program: current_exe().unwrap(),
             service_level: Level::System,
             autostart: false,
             env_vars: vec![],
@@ -52,11 +55,10 @@ impl Builder {
         }
     }
 
-    pub fn with_program(self, program: impl Into<String>) -> Self {
-        Self {
-            program: program.into(),
-            ..self
-        }
+    pub fn with_program(self, program: impl Into<PathBuf>) -> Self {
+        let mut program = program.into();
+        program.set_extension(EXE_EXTENSION);
+        Self { program, ..self }
     }
 
     pub fn with_args<T: Into<String>>(self, args: impl IntoIterator<Item = T>) -> Self {

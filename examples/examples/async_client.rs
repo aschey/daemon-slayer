@@ -29,8 +29,7 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
                 .unwrap()
                 .parent()
                 .unwrap()
-                .join("async_server.exe")
-                .to_string_lossy(),
+                .join("async_server"),
         )
         .with_service_level(if cfg!(windows) {
             Level::System
