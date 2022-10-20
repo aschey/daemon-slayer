@@ -9,6 +9,7 @@ pub use service_context::*;
 
 pub mod platform;
 
+#[cfg(feature = "cli")]
 pub mod cli;
 
 #[cfg(target_os = "linux")]

@@ -44,7 +44,13 @@ server-base = [
   "plugin-signals",
 ]
 
-cli = ["daemon-slayer-cli"]
+cli = [
+  "daemon-slayer-cli",
+  "daemon-slayer-server/cli",
+  "daemon-slayer-client/cli",
+  "daemon-slayer-console/cli",
+  "daemon-slayer-health-check/cli",
+]
 client = ["daemon-slayer-client"]
 console = ["daemon-slayer-console"]
 error-handler = ["daemon-slayer-error-handler"]

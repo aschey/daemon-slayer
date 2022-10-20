@@ -7,8 +7,11 @@ version = "0.1.0"
 async-trait = {version = "0.1"}
 crossterm = {version = "0.25", features = ["event-stream"]}
 daemon-slayer-client = {path = "../daemon-slayer-client"}
-daemon-slayer-core = {path = "../daemon-slayer-core"}
+daemon-slayer-core = {path = "../daemon-slayer-core", features = ["cli"], optional = true}
 futures = {version = "0.3"}
 tokio = {version = "1", features = ["rt-multi-thread", "macros"]}
 tracing-ipc-widget = {git = "https://github.com/aschey/tracing-ipc", rev = "75d0d6dcc5eddf0b09843f83cf1daa215799945a"}
 tui = {version = "0.19"}
+
+[features]
+cli = ["daemon-slayer-core"]

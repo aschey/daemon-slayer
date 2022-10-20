@@ -10,5 +10,5 @@ pub use http::*;
 mod ipc;
 #[cfg(feature = "ipc-health-check")]
 pub use ipc::*;
-
+#[cfg(feature = "cli")]
 pub mod cli;
