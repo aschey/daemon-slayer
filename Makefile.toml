@@ -11,47 +11,13 @@ args = ["hack", "--feature-powerset", "--no-dev-deps", "clippy", "--", "-D", "wa
 command = "cargo"
 install_crate = "cargo-hack"
 
-[tasks.build-extra]
+[tasks.build-all]
 script = '''
-cargo build --features=ipc-health-check,http-health-check --examples
-cargo build --features=all-async,ipc-health-check,http-health-check --examples
-cargo build --features=all-sync,ipc-health-check,http-health-check --examples
-cargo build --features=all-async,all-sync,ipc-health-check,http-health-check --examples
+cargo build
+cargo build --features=client-base,server-base,grpc-health-check,http-health-check,ipc-health-check,all-plugins
 '''
 
-[tasks.build-composite]
-args = [
-  "hack",
-  "--feature-powerset",
-  "--no-dev-deps",
-  "--exclude-features",
-  "cli client server console logging server async-tokio ipc-health-check http-health-check grpc-health-check",
-  "build",
-]
-command = "cargo"
-dependencies = ["build-extra"]
-install_crate = "cargo-hack"
-
-[tasks.build-powerset]
-args = [
-  "hack",
-  "--feature-powerset",
-  "--no-dev-deps",
-  "--depth",
-  "2",
-  "--exclude-features",
-  "all-async all-sync async-client async-server sync-client sync-server ipc-health-check http-health-check grpc-health-check console",
-  "build",
-]
-command = "cargo"
-dependencies = ["build-composite"]
-install_crate = "cargo-hack"
-
-[tasks.build-all]
-args = ["build", "--features", "all-async,all-sync,ipc-health-check,http-health-check", "--workspace"]
-command = "cargo"
-
-[tasks.examples]
+[tasks.build-examples]
 script = '''
 cd examples
 cargo build --examples

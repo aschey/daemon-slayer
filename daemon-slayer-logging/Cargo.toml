@@ -4,7 +4,7 @@ name = "daemon-slayer-logging"
 version = "0.1.0"
 
 [features]
-all-async = ["ipc", "linux-journald", "mac-oslog", "windows-eventlog"]
+base = ["ipc", "linux-journald", "mac-oslog", "windows-eventlog"]
 file = ["directories"]
 ipc = ["tracing-ipc"]
 linux-journald = ["tracing-journald"]

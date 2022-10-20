@@ -8,7 +8,7 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-daemon-slayer = {path = "../../..", features = ["all-async", "grpc-health-check"]}
+daemon-slayer = {path = "../../..", features = ["server-base", "client-base", "grpc-health-check", "all-plugins"]}
 prost = "0.11.0"
 tokio = {version = "1.21.0", features = ["macros", "rt-multi-thread", "sync"]}
 tonic = "0.8.1"

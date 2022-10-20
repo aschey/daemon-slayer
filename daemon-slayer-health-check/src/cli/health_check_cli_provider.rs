@@ -29,7 +29,9 @@ impl<H: daemon_slayer_core::health_check::HealthCheck + Send>
         if matches.matches(&self.command) {
             match self.health_check.invoke().await {
                 Ok(()) => println!("Healthy"),
-                Err(e) => println!("Unhealthy"),
+                Err(e) => {
+                    println!("Unhealthy: {e:?}");
+                }
             }
             return InputState::Handled;
         }

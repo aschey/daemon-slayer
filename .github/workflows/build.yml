@@ -32,8 +32,7 @@ jobs:
         run: |
           curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.19.4/protoc-3.19.4-${{ matrix.protoc-target }}.zip
           unzip protoc-3.19.4-${{ matrix.protoc-target }}.zip -d "${{ github.workspace }}/protoc"
-          cargo install cargo-hack
           cargo install cargo-make
-          cargo make build-powerset
-          cargo make examples
+          cargo make build-all
+          cargo make build-examples
           ${{ matrix.cargo }} test --workspace -- --nocapture

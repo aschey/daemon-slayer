@@ -23,17 +23,22 @@ members = [
 resolver = "2"
 
 [features]
-all-async = ["async-client", "async-server", "plugin-signals"]
-async-client = [
+all-plugins = [
+  "plugin-signals",
+  "plugin-file-watcher",
+  "plugin-ipc-health-check",
+  "plugin-task-queue",
+]
+client-base = [
   "console",
   "client",
   "cli",
   "error-handler",
 ]
-async-server = [
+server-base = [
   "server",
   "cli",
-  "daemon-slayer-logging/all-async",
+  "daemon-slayer-logging/base",
   "logging",
   "error-handler",
   "plugin-signals",

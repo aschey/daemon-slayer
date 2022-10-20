@@ -10,7 +10,7 @@ version = "0.1.0"
 assert_cmd = "2.0.4"
 async-trait = {version = "0.1.57"}
 axum = "0.5.15"
-daemon-slayer = {path = "..", features = ["all-async", "ipc-health-check", "http-health-check"]}
+daemon-slayer = {path = "..", features = ["server-base", "client-base", "ipc-health-check", "all-plugins"]}
 futures = {version = "0.3.23"}
 tokio = {version = "1.20.1", features = ["rt-multi-thread", "time", "macros"]}
 tonic = "0.8.1"
