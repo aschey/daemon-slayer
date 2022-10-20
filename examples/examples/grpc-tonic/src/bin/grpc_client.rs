@@ -1,6 +1,16 @@
-use daemon_slayer::cli::{clap, CliAsync, InputState};
-use daemon_slayer::client::{health_check::GrpcHealthCheckAsync, Manager, ServiceManager};
-use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
+use std::{env::current_exe, error::Error, path::PathBuf};
+
+use daemon_slayer::{
+    cli::{
+        clap::{Arg, Command},
+        Cli, InputState,
+    },
+    client::{cli::ClientCliProvider, Level, Manager, ServiceManager},
+    console::{cli::ConsoleCliProvider, Console},
+    error_handler::ErrorHandler,
+    health_check::{cli::HealthCheckCliProvider, GrpcHealthCheck},
+    logging::tracing_subscriber::util::SubscriberInitExt,
+};
 use hello_world::greeter_client::GreeterClient;
 use hello_world::HelloRequest;
 
@@ -15,32 +25,49 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 #[tokio::main]
 async fn run_async() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let manager = ServiceManager::builder("daemon_slayer_async_server")
-        .with_description("test service")
-        .with_args(["run"])
-        .build()
-        .unwrap();
-
-    let command = clap::Command::default().subcommand(
-        clap::Command::new("hello")
-            .arg(clap::Arg::new("name"))
-            .about("send a request to the server"),
-    );
-
-    let health_check = GrpcHealthCheckAsync::new("http://[::1]:50051")?;
-    let cli = CliAsync::builder_for_client(manager)
-        .with_base_command(command)
-        .with_health_check(Box::new(health_check))
-        .build();
-
-    let (logger, _guard) = cli.configure_logger().build()?;
+    let (logger, guard) =
+        daemon_slayer::logging::LoggerBuilder::for_client("daemon_slayer_tonic").build()?;
+    ErrorHandler::for_client().install()?;
     logger.init();
 
-    cli.configure_error_handler().install()?;
+    let manager = ServiceManager::builder("daemon_slayer_tonic")
+        .with_description("test service")
+        .with_program(
+            current_exe()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join("grpc_server.exe")
+                .to_string_lossy(),
+        )
+        .with_service_level(if cfg!(windows) {
+            Level::System
+        } else {
+            Level::User
+        })
+        .with_args(["run"])
+        .build()?;
 
-    if let InputState::Unhandled(matches) = cli.handle_input().await? {
+    let command = Command::default()
+        .subcommand(Command::new("hello").arg(Arg::new("name")))
+        .arg_required_else_help(true)
+        .about("Send a request to the server");
+    let health_check = GrpcHealthCheck::new("http://[::1]:50052")?;
+
+    let mut console = Console::new(manager.clone());
+    console.add_health_check(Box::new(health_check.clone()));
+    let (mut cli, command) = Cli::builder()
+        .with_base_command(command)
+        .with_provider(ClientCliProvider::new(manager.clone()))
+        .with_provider(ConsoleCliProvider::new(console))
+        .with_provider(HealthCheckCliProvider::new(health_check))
+        .build();
+
+    let matches = command.get_matches();
+
+    if cli.handle_input(&matches).await == InputState::Unhandled {
         if let Some(("hello", args)) = matches.subcommand() {
-            let mut client = GreeterClient::connect("http://[::1]:50051").await?;
+            let mut client = GreeterClient::connect("http://[::1]:50052").await?;
 
             let request = tonic::Request::new(HelloRequest {
                 name: args

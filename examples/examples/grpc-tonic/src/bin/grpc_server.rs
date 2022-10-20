@@ -1,15 +1,24 @@
 use std::error::Error;
 
-use daemon_slayer::cli::CliAsync;
-
+use daemon_slayer::cli::Cli;
+use daemon_slayer::client::{Manager, ServiceManager};
+use daemon_slayer::error_handler::ErrorHandler;
+use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
-use daemon_slayer::server::{EventHandlerAsync, HandlerAsync};
+use daemon_slayer::server::{
+    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Receiver, Service,
+    ServiceContext,
+};
+use daemon_slayer::signals::{
+    Signal, SignalHandler, SignalHandlerBuilder, SignalHandlerBuilderTrait,
+};
 use tonic::{transport::Server, Request, Response, Status};
 
 use hello_world::greeter_server::{Greeter, GreeterServer};
 use hello_world::{HelloReply, HelloRequest};
 use tracing::info;
+use tracing::metadata::LevelFilter;
 
 pub mod hello_world {
     tonic::include_proto!("helloworld");
@@ -40,53 +49,38 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let cli = CliAsync::for_server(
-        ServiceHandler::new(),
-        "daemon slayer tonic".to_owned(),
-        "daemon_slayer_tonic".to_owned(),
-        "test_service".to_owned(),
-    );
-
-    let (logger, _guard) = cli
-        .configure_logger()
+    let (logger, guard) = LoggerBuilder::for_server("daemon_slayer_tonic")
         .with_ipc_logger(true)
-        .build()
-        .unwrap();
+        .build()?;
+
+    ErrorHandler::for_server().install()?;
 
     logger.init();
-    cli.configure_error_handler().install()?;
-
-    cli.handle_input().await?;
+    let (mut cli, command) = Cli::builder()
+        .with_provider(ServerCliProvider::<ServiceHandler>::default())
+        .build();
+    let matches = command.get_matches();
+    cli.handle_input(&matches).await;
     Ok(())
 }
 
-#[derive(daemon_slayer::server::ServiceAsync)]
+#[derive(daemon_slayer::server::Service)]
 pub struct ServiceHandler {
-    tx: tokio::sync::mpsc::Sender<()>,
-    rx: tokio::sync::mpsc::Receiver<()>,
+    signal_store: BroadcastEventStore<Signal>,
 }
 
 #[tonic::async_trait]
-impl HandlerAsync for ServiceHandler {
-    fn new() -> Self {
-        let (tx, rx) = tokio::sync::mpsc::channel(32);
-        Self { tx, rx }
+impl Handler for ServiceHandler {
+    async fn new(context: &mut ServiceContext) -> Self {
+        let (_, signal_store) = context
+            .add_event_service::<SignalHandler>(SignalHandlerBuilder::all())
+            .await;
+
+        Self { signal_store }
     }
 
     fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_async_server"
-    }
-
-    fn get_event_handler(&mut self) -> EventHandlerAsync {
-        let tx = self.tx.clone();
-        Box::new(move |event| {
-            let tx = tx.clone();
-            Box::pin(async move {
-                info!("stopping");
-                let _ = tx.send(()).await;
-                Ok(())
-            })
-        })
+        "daemon_slayer_tonic"
     }
 
     async fn run_service<F: FnOnce() + Send>(
@@ -95,7 +89,7 @@ impl HandlerAsync for ServiceHandler {
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         info!("running service");
         on_started();
-        let addr = "[::1]:50051".parse().unwrap();
+        let addr = "[::1]:50052".parse().unwrap();
         let greeter = MyGreeter::default();
 
         println!("GreeterServer listening on {}", addr);
@@ -104,11 +98,13 @@ impl HandlerAsync for ServiceHandler {
         health_reporter
             .set_serving::<GreeterServer<MyGreeter>>()
             .await;
-
+        let mut shutdown_rx = self.signal_store.subscribe_events();
         Server::builder()
             .add_service(GreeterServer::new(greeter))
             .add_service(health_service)
-            .serve_with_shutdown(addr, async { self.rx.recv().await.unwrap_or_default() })
+            .serve_with_shutdown(addr, async {
+                shutdown_rx.recv().await;
+            })
             .await?;
 
         Ok(())
