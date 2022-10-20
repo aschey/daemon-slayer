@@ -1,9 +1,14 @@
-use std::error::Error;
+use std::{env::current_exe, error::Error, path::PathBuf};
 
 use daemon_slayer::{
-    cli::clap,
-    client::{Manager, ServiceManager},
-    console::Console,
+    cli::{
+        clap::{Arg, Command},
+        Cli, InputState,
+    },
+    client::{cli::ClientCliProvider, Level, Manager, ServiceManager},
+    console::{cli::ConsoleCliProvider, Console},
+    error_handler::ErrorHandler,
+    health_check::{cli::HealthCheckCliProvider, HttpHealthCheck, HttpRequestType},
     logging::tracing_subscriber::util::SubscriberInitExt,
 };
 
@@ -14,46 +19,46 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
+    let (logger, guard) =
+        daemon_slayer::logging::LoggerBuilder::for_client("daemon_slayer_axum").build()?;
+    ErrorHandler::for_client().install()?;
+
     let manager = ServiceManager::builder("daemon_slayer_axum")
         .with_description("test service")
+        .with_program(
+            current_exe()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join("http_server")
+                .to_string_lossy(),
+        )
+        .with_service_level(if cfg!(windows) {
+            Level::System
+        } else {
+            Level::User
+        })
         .with_args(["run"])
-        .build()
-        .unwrap();
+        .build()?;
 
-    let command = clap::Command::default()
-        .subcommand(clap::Command::new("hello").arg(clap::Arg::new("name")))
+    let command = Command::default()
+        .subcommand(Command::new("hello").arg(Arg::new("name")))
         .arg_required_else_help(true)
         .about("Send a request to the server");
-    let health_check = daemon_slayer::health_check::HttpHealthCheck::new(
-        daemon_slayer::health_check::HttpRequestType::Get,
-        "http://127.0.0.1:3000",
-    )
-    .unwrap();
+    let health_check = HttpHealthCheck::new(HttpRequestType::Get, "http://127.0.0.1:3000/health")?;
+
     let mut console = Console::new(manager.clone());
     console.add_health_check(Box::new(health_check.clone()));
-    let (mut cli, command) = daemon_slayer::cli::Cli::builder()
+    let (mut cli, command) = Cli::builder()
         .with_base_command(command)
-        .with_provider(daemon_slayer::client::cli::ClientCliProvider::new(
-            manager.clone(),
-        ))
-        .with_provider(daemon_slayer::console::cli::ConsoleCliProvider::new(
-            console,
-        ))
-        .with_provider(daemon_slayer::health_check::cli::HealthCheckCliProvider::new(health_check))
+        .with_provider(ClientCliProvider::new(manager.clone()))
+        .with_provider(ConsoleCliProvider::new(console))
+        .with_provider(HealthCheckCliProvider::new(health_check))
         .build();
 
     let matches = command.get_matches();
 
-    //    let health_check = HttpHealthCheckAsync::new(HttpRequestType::Get, "http://127.0.0.1:3000")?;
-    // let cli = CliAsync::builder_for_client(manager)
-    //     .with_base_command(command)
-    //     .with_health_check(Box::new(health_check))
-    //     .build();
-    // let (logger, _guard) = cli.configure_logger().build()?;
-    // logger.init();
-    // cli.configure_error_handler().install()?;
-
-    if let daemon_slayer::cli::InputState::Unhandled = cli.handle_input(&matches).await {
+    if let InputState::Unhandled = cli.handle_input(&matches).await {
         if let Some(("hello", args)) = matches.subcommand() {
             let unknown = "unknown".to_string();
             let name = args.get_one::<String>("name").unwrap_or(&unknown);

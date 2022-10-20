@@ -35,18 +35,22 @@ impl HttpHealthCheck {
 #[async_trait::async_trait]
 impl HealthCheck for HttpHealthCheckAsync {
     async fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        match &self.request_type {
-            HttpRequestType::Get => {
-                reqwest::get(self.url.clone()).await?;
-            }
+        let response = match &self.request_type {
+            HttpRequestType::Get => reqwest::get(self.url.clone()).await?,
             HttpRequestType::Head => {
                 reqwest::Client::builder()
                     .build()?
                     .head(self.url.clone())
                     .send()
-                    .await?;
+                    .await?
             }
         };
+
+        let status = response.status();
+        if !status.is_success() {
+            return Err(format!("Received status {status}"))?;
+        }
+
         Ok(())
     }
 }
@@ -54,17 +58,18 @@ impl HealthCheck for HttpHealthCheckAsync {
 #[cfg(all(feature = "blocking", feature = "http-health-check"))]
 impl daemon_slayer_core::health_check::blocking::HealthCheck for HttpHealthCheckSync {
     fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        match &self.request_type {
-            HttpRequestType::Get => {
-                reqwest::blocking::get(self.url.clone())?;
-            }
-            HttpRequestType::Head => {
-                reqwest::blocking::Client::builder()
-                    .build()?
-                    .head(self.url.clone())
-                    .send()?;
-            }
+        let response = match &self.request_type {
+            HttpRequestType::Get => reqwest::blocking::get(self.url.clone())?,
+            HttpRequestType::Head => reqwest::blocking::Client::builder()
+                .build()?
+                .head(self.url.clone())
+                .send()?,
         };
+
+        let status = response.status();
+        if !status.is_success() {
+            return Err(format!("Received status {status}"))?;
+        }
         Ok(())
     }
 }

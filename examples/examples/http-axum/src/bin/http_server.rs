@@ -3,6 +3,7 @@ use axum::extract::{Path, State};
 use axum::routing::get;
 use axum::Router;
 use daemon_slayer::client::{Manager, ServiceManager};
+use daemon_slayer::error_handler::ErrorHandler;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::signals::{Signal, SignalHandler, SignalHandlerBuilder};
 use std::env::args;
@@ -13,10 +14,12 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use daemon_slayer::cli::Cli;
 use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{
-    BroadcastEventStore, EventStore, Handler, Receiver, Service, ServiceContext,
+    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Receiver, Service,
+    ServiceContext,
 };
 use daemon_slayer::signals::SignalHandlerBuilderTrait;
 use daemon_slayer::task_queue::{
@@ -34,40 +37,21 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let (logger, guard) = daemon_slayer::logging::LoggerBuilder::new("daemon_slayer_axum")
-        .build()
-        .unwrap();
+    let (logger, guard) = LoggerBuilder::for_server("daemon_slayer_axum")
+        .with_default_log_level(tracing::Level::TRACE)
+        .with_level_filter(LevelFilter::TRACE)
+        .with_env_filter_directive("sqlx=info".parse()?)
+        .with_ipc_logger(true)
+        .build()?;
+    ErrorHandler::for_server().install()?;
+
     logger.init();
-    let (mut cli, command) = daemon_slayer::cli::Cli::builder()
-        .with_provider(daemon_slayer::server::cli::ServerCliProvider::<
-            ServiceHandler,
-        >::default())
+    let (mut cli, command) = Cli::builder()
+        .with_provider(ServerCliProvider::<ServiceHandler>::default())
         .build();
     let matches = command.get_matches();
     cli.handle_input(&matches).await;
-    //let cli = CliAsync::builder_for_server(
-    //     "daemon_slayer_axum".to_owned(),
-    //     "daemon slayer axum".to_owned(),
-    //     "test service".to_owned(),
-    // )
-    // .with_health_check(Box::new(HttpHealthCheckAsync::new(
-    //     HttpRequestType::Get,
-    //     "http://127.0.0.1:3000/health",
-    // )?))
-    // .build();
 
-    // let (logger, _guard) = cli
-    //     .configure_logger()
-    //     .with_default_log_level(tracing::Level::TRACE)
-    //     .with_level_filter(LevelFilter::TRACE)
-    //     .with_env_filter_directive("sqlx=info".parse()?)
-    //     .with_ipc_logger(true)
-    //     .build()?;
-    // logger.init();
-
-    // cli.configure_error_handler().install()?;
-
-    //    ServiceHandler::run_service_direct().await?;
     Ok(())
 }
 

@@ -21,6 +21,18 @@ impl Default for ErrorHandler {
 }
 
 impl ErrorHandler {
+    pub fn for_server() -> Self {
+        Self::default()
+    }
+
+    pub fn for_client() -> Self {
+        Self {
+            theme: Theme::dark(),
+            write_to_stdout: false,
+            write_to_stderr: true,
+        }
+    }
+
     pub fn with_theme(self, theme: Theme) -> Self {
         Self { theme, ..self }
     }

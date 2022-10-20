@@ -64,6 +64,16 @@ impl LoggerBuilder {
         }
     }
 
+    pub fn for_server(name: impl Into<String>) -> Self {
+        Self::new(name)
+    }
+
+    pub fn for_client(name: impl Into<String>) -> Self {
+        let mut builder = Self::new(name);
+        builder.log_to_stderr = false;
+        builder
+    }
+
     #[cfg(feature = "file")]
     pub fn with_file_rotation_period(mut self, rotation: tracing_appender::Rotation) -> Self {
         self.file_rotation_period = rotation;

@@ -22,7 +22,7 @@ time = "0.3"
 tracing = "0.1"
 tracing-appender = {version = "0.2"}
 tracing-error = {version = "0.2"}
-tracing-ipc = {git = "https://github.com/aschey/tracing-ipc", rev = "5e0808feff41bbf24436afcc30e01d1379ff070e", optional = true}
+tracing-ipc = {git = "https://github.com/aschey/tracing-ipc", rev = "75d0d6dcc5eddf0b09843f83cf1daa215799945a", optional = true}
 tracing-subscriber = {version = "0.3", features = ["local-time", "env-filter"]}
 
 [target.'cfg(windows)'.dependencies]
