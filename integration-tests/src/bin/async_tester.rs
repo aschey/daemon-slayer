@@ -8,21 +8,26 @@ use std::time::{Duration, Instant};
 use axum::extract::Path;
 use axum::routing::get;
 use axum::Router;
+use daemon_slayer::cli::Cli;
+use daemon_slayer::client::cli::ClientCliProvider;
 use daemon_slayer::client::{Manager, ServiceManager};
 
-use daemon_slayer::cli::{Action, ActionType, CliAsync, Command, ServiceCommand};
-use daemon_slayer::server::{
-    Event, EventHandlerAsync, HandlerAsync, ServiceAsync, ServiceContextAsync,
-};
-
+use daemon_slayer::error_handler::ErrorHandler;
+use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
 use daemon_slayer::client::Level;
+use daemon_slayer::server::cli::ServerCliProvider;
+use daemon_slayer::server::{BroadcastEventStore, EventStore, Handler, ServiceContext};
+use daemon_slayer::signals::{
+    Signal, SignalHandler, SignalHandlerBuilder, SignalHandlerBuilderTrait,
+};
 use futures::{SinkExt, StreamExt};
 use serde_derive::Deserialize;
 use tracing::info;
 
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
+use tracing::log::Log;
 
 #[tokio::main]
 pub async fn main() {
@@ -36,23 +41,25 @@ pub async fn main() {
 
     let manager = manager_builder.build().unwrap();
 
-    let cli = CliAsync::for_all(manager, ServiceHandler::new());
+    let (cli, command) = Cli::builder()
+        .with_provider(ClientCliProvider::new(manager))
+        .with_provider(ServerCliProvider::<ServiceHandler>::default())
+        .build();
 
-    let (logger, _guard) = cli
-        .configure_logger()
+    let (logger, _guard) = LoggerBuilder::for_server(ServiceHandler::get_service_name())
         .with_ipc_logger(true)
         .build()
         .unwrap();
     logger.init();
-    cli.configure_error_handler().install().unwrap();
+    ErrorHandler::for_server().install().unwrap();
 
-    cli.handle_input().await.unwrap();
+    let matches = command.get_matches();
+    cli.handle_input(&matches).await;
 }
 
-#[derive(daemon_slayer::server::ServiceAsync)]
+#[derive(daemon_slayer::server::Service)]
 pub struct ServiceHandler {
-    tx: futures::channel::mpsc::Sender<()>,
-    rx: futures::channel::mpsc::Receiver<()>,
+    signal_store: BroadcastEventStore<Signal>,
 }
 
 static CONFIG: RwLock<Config> = RwLock::new(Config { test: false });
@@ -63,58 +70,78 @@ struct Config {
 }
 
 #[async_trait::async_trait]
-impl HandlerAsync for ServiceHandler {
-    fn new() -> Self {
-        let (tx, rx) = futures::channel::mpsc::channel(32);
+impl Handler for ServiceHandler {
+    async fn new(context: &mut ServiceContext) -> Self {
+        let (_, signal_store) = context
+            .add_event_service::<SignalHandler>(SignalHandlerBuilder::all())
+            .await;
 
-        Self { tx, rx }
+        if let Ok(config_file) = std::env::var("CONFIG_FILE") {
+            let abs_path = PathBuf::from(config_file);
+            let (_, file_watcher_events) = context
+                .add_event_service::<FileWatcher>(
+                    FileWatcherBuilder::default().with_watch_path(abs_path),
+                )
+                .await;
+            let mut event_store = file_watcher_events.subscribe_events();
+            tokio::spawn(async move {
+                while let Some(files) = event_store.recv().await {
+                    info!("reloading");
+                    if let Some(file) = files.get(0) {
+                        let contents = std::fs::read_to_string(file).unwrap();
+                        (*CONFIG.write().unwrap()) = toml::from_str::<Config>(&contents).unwrap();
+                    }
+                }
+            });
+        }
+
+        Self { signal_store }
     }
 
     fn get_service_name<'a>() -> &'a str {
         "daemon_slayer_test_service_async"
     }
 
-    fn get_watch_paths(&self) -> Vec<PathBuf> {
-        match std::env::var("CONFIG_FILE") {
-            Ok(config_file) => {
-                let abs_path = PathBuf::from(config_file);
-                vec![abs_path]
-            }
-            Err(_) => {
-                vec![]
-            }
-        }
-    }
+    // fn get_watch_paths(&self) -> Vec<PathBuf> {
+    //     match std::env::var("CONFIG_FILE") {
+    //         Ok(config_file) => {
+    //             let abs_path = PathBuf::from(config_file);
+    //             vec![abs_path]
+    //         }
+    //         Err(_) => {
+    //             vec![]
+    //         }
+    //     }
+    // }
 
-    fn get_event_handler(&mut self) -> EventHandlerAsync {
-        let tx = self.tx.clone();
-        Box::new(move |event| {
-            let mut tx = tx.clone();
-            Box::pin(async move {
-                match event {
-                    Event::SignalReceived(_) => {
-                        info!("stopping");
-                        tx.send(()).await?;
-                    }
-                    Event::FileChanged(files) => {
-                        info!("reloading");
-                        if let Some(file) = files.get(0) {
-                            let contents = std::fs::read_to_string(file).unwrap();
-                            (*CONFIG.write().unwrap()) =
-                                toml::from_str::<Config>(&contents).unwrap();
-                        }
-                    }
-                    _ => {}
-                }
+    // fn get_event_handler(&mut self) -> EventHandlerAsync {
+    //     let tx = self.tx.clone();
+    //     Box::new(move |event| {
+    //         let mut tx = tx.clone();
+    //         Box::pin(async move {
+    //             match event {
+    //                 Event::SignalReceived(_) => {
+    //                     info!("stopping");
+    //                     tx.send(()).await?;
+    //                 }
+    //                 Event::FileChanged(files) => {
+    //                     info!("reloading");
+    //                     if let Some(file) = files.get(0) {
+    //                         let contents = std::fs::read_to_string(file).unwrap();
+    //                         (*CONFIG.write().unwrap()) =
+    //                             toml::from_str::<Config>(&contents).unwrap();
+    //                     }
+    //                 }
+    //                 _ => {}
+    //             }
 
-                Ok(())
-            })
-        })
-    }
+    //             Ok(())
+    //         })
+    //     })
+    // }
 
     async fn run_service<F: FnOnce() + Send>(
         mut self,
-        context: ServiceContextAsync,
         on_started: F,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         info!("running service");
@@ -126,12 +153,14 @@ impl HandlerAsync for ServiceHandler {
 
         on_started();
         info!("started");
+        let mut signal_rx = self.signal_store.subscribe_events();
         axum::Server::bind(&addr)
             .serve(app.into_make_service())
             .with_graceful_shutdown(async {
-                let _ = self.rx.next().await;
+                let _ = signal_rx.recv().await;
             })
-            .await?;
+            .await
+            .unwrap();
         Ok(())
     }
 }

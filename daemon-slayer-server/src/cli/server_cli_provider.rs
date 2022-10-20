@@ -4,18 +4,20 @@ use daemon_slayer_core::cli::{
 use std::{collections::HashMap, hash::Hash, marker::PhantomData};
 use strum_macros::Display;
 
+use crate::Service;
+
 #[derive(Display, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ServerAction {
     Run,
     Direct,
 }
 
-pub struct ServerCliProvider<S: crate::Service + Send + Sync> {
+pub struct ServerCliProvider<S: Service + Send + Sync> {
     commands: HashMap<ServerAction, CommandType>,
     _phantom: PhantomData<S>,
 }
 
-impl<S: crate::Service + Send + Sync> Default for ServerCliProvider<S> {
+impl<S: Service + Send + Sync> Default for ServerCliProvider<S> {
     fn default() -> Self {
         let mut commands = HashMap::default();
         commands.insert(
@@ -36,7 +38,7 @@ impl<S: crate::Service + Send + Sync> Default for ServerCliProvider<S> {
     }
 }
 
-impl<S: crate::Service + Send + Sync> ServerCliProvider<S> {
+impl<S: Service + Send + Sync> ServerCliProvider<S> {
     pub fn with_action(
         mut self,
         action: ServerAction,
@@ -54,9 +56,7 @@ impl<S: crate::Service + Send + Sync> ServerCliProvider<S> {
     }
 }
 #[async_trait::async_trait]
-impl<S: crate::Service + Send + Sync> daemon_slayer_core::cli::CommandProvider
-    for ServerCliProvider<S>
-{
+impl<S: Service + Send + Sync> daemon_slayer_core::cli::CommandProvider for ServerCliProvider<S> {
     fn get_action_type(&self) -> ActionType {
         ActionType::Server
     }
@@ -65,10 +65,7 @@ impl<S: crate::Service + Send + Sync> daemon_slayer_core::cli::CommandProvider
         self.commands.values().collect()
     }
 
-    async fn handle_input(
-        mut self: Box<Self>,
-        matches: &daemon_slayer_core::cli::clap::ArgMatches,
-    ) -> daemon_slayer_core::cli::InputState {
+    async fn handle_input(mut self: Box<Self>, matches: &clap::ArgMatches) -> InputState {
         for (name, command_type) in &self.commands {
             if matches.matches(command_type) {
                 match name {

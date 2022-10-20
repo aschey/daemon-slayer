@@ -20,22 +20,12 @@ mod platform {
     pub(crate) use crate::unix_macros::*;
 }
 
-#[cfg(feature = "async")]
 #[proc_macro_derive(Service)]
-pub fn derive_service_async(input: TokenStream) -> TokenStream {
+pub fn derive_service(input: TokenStream) -> TokenStream {
     let DeriveInput { ident, .. } = parse_macro_input!(input);
 
     let crate_name = get_crate_name();
-    platform::define_service_async(ident, crate_name)
-}
-
-#[cfg(feature = "blocking")]
-#[proc_macro_derive(BlockingService)]
-pub fn derive_service_sync(input: TokenStream) -> TokenStream {
-    let DeriveInput { ident, .. } = parse_macro_input!(input);
-
-    let crate_name = get_crate_name();
-    platform::define_service_sync(ident, crate_name)
+    platform::define_service(ident, crate_name)
 }
 
 fn get_crate_name() -> proc_macro2::TokenStream {

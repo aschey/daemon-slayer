@@ -1,50 +1,20 @@
-use daemon_slayer_plugin_signals::Signal;
+use daemon_slayer_plugin_signals::{Signal, SignalHandler};
 use std::error::Error;
 use tracing::{error, info};
+
+use crate::ServiceContext;
 
 const USER_OWN_PROCESS_TEMPLATE: u32 = 0x50;
 const USER_SHARE_PROCESS_TEMPLATE: u32 = 0x60;
 
-#[cfg(feature = "async-tokio")]
-pub fn get_service_main_async<T: crate::Handler + Send>() {
+pub fn get_service_main<T: crate::Handler + Send>() {
     let rt = tokio::runtime::Runtime::new().expect("Tokio runtime failed to initialize");
-    rt.block_on(get_service_main_impl_async::<T>())
+    rt.block_on(get_service_main_impl::<T>())
 }
 
-#[cfg(feature = "blocking")]
-pub fn get_service_main_sync<T: crate::blocking::Handler + Send>() {
-    get_service_main_impl_sync::<T>()
-}
-
-#[cfg(feature = "async-tokio")]
-type ServiceContextAsync = crate::ServiceContext;
-#[cfg(feature = "blocking")]
-type ServiceContextSync = crate::blocking::ServiceContext;
-
-#[cfg(feature = "async-tokio")]
-type SignalHandlerAsync = daemon_slayer_plugin_signals::SignalHandler;
-#[cfg(feature = "blocking")]
-type SignalHandlerSync = daemon_slayer_plugin_signals::blocking::SignalHandler;
-
-#[maybe_async_cfg::maybe(
-    idents(
-        Handler,
-        ServiceContext,
-        SignalHandler,
-        set_env_vars(snake),
-        get_channel(snake),
-        start_file_watcher(snake),
-        start_event_loop(snake),
-        send_stop_signal(snake),
-        join_handle(snake),
-        get_context(snake),
-    ),
-    sync(feature = "blocking"),
-    async(feature = "async-tokio")
-)]
 async fn get_service_main_impl<T: crate::handler::Handler + Send>() {
     set_env_vars::<T>();
-    let signal_tx = get_channel();
+    let (signal_tx, _) = tokio::sync::broadcast::channel(32);
     SignalHandler::set_sender(signal_tx.clone());
 
     let mut context = ServiceContext::new();
@@ -58,7 +28,7 @@ async fn get_service_main_impl<T: crate::handler::Handler + Send>() {
 
             // Handle stop
             crate::windows_service::service::ServiceControl::Stop => {
-                if let Err(e) = send_stop_signal(&signal_tx) {
+                if let Err(e) = signal_tx.send(Signal::SIGINT) {
                     error!("Error sending stop signal: {e:?}");
                 }
                 crate::windows_service::service_control_handler::ServiceControlHandlerResult::NoError
@@ -125,11 +95,6 @@ async fn get_service_main_impl<T: crate::handler::Handler + Send>() {
     drop(status_handle);
 }
 
-#[maybe_async_cfg::maybe(
-    idents(Handler,),
-    sync(feature = "blocking"),
-    async(feature = "async-tokio")
-)]
 fn set_env_vars<T: crate::handler::Handler + Send>() {
     let services_key = registry::Hive::LocalMachine
         .open(
@@ -161,40 +126,6 @@ fn set_env_vars<T: crate::handler::Handler + Send>() {
     }
 }
 
-#[cfg(feature = "async-tokio")]
-fn get_channel_async() -> tokio::sync::broadcast::Sender<daemon_slayer_plugin_signals::Signal> {
-    let (tx, _) = tokio::sync::broadcast::channel(32);
-    tx
-}
-
-#[cfg(feature = "blocking")]
-fn get_channel_sync(
-) -> std::sync::Arc<std::sync::Mutex<bus::Bus<daemon_slayer_plugin_signals::Signal>>> {
-    std::sync::Arc::new(std::sync::Mutex::new(bus::Bus::new(32)))
-}
-
-#[cfg(feature = "async-tokio")]
-fn send_stop_signal_async(
-    event_tx: &tokio::sync::broadcast::Sender<Signal>,
-) -> Result<(), Box<dyn Error + Send + Sync>> {
-    event_tx.send(Signal::SIGINT)?;
-
-    Ok(())
-}
-
-#[cfg(feature = "blocking")]
-fn send_stop_signal_sync(
-    event_tx: &std::sync::Arc<std::sync::Mutex<bus::Bus<Signal>>>,
-) -> Result<(), Box<dyn Error + Send + Sync>> {
-    event_tx.lock().unwrap().broadcast(Signal::SIGINT);
-    Ok(())
-}
-
-#[maybe_async_cfg::maybe(
-    idents(Handler, ServiceContext, SignalHandler, get_channel(snake)),
-    sync(feature = "blocking"),
-    async(feature = "async-tokio")
-)]
 pub async fn get_direct_handler<T: crate::handler::Handler + Send>(
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     let mut context = ServiceContext::new();

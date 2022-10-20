@@ -7,11 +7,6 @@ fn test_async_combined() {
     test_combined("daemon_slayer_test_service_async", "async_tester", 3002);
 }
 
-#[test]
-fn test_sync_combined() {
-    test_combined("daemon_slayer_test_service_sync", "sync_tester", 3001);
-}
-
 fn test_combined(service_name: &str, bin_name: &str, port: i32) {
     let manager = ServiceManager::builder(service_name).build().unwrap();
     if manager.info().unwrap().state != State::NotInstalled {

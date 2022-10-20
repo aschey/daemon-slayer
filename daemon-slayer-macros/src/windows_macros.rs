@@ -2,17 +2,6 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::Ident;
 
-#[maybe_async_cfg::maybe(
-    idents(
-        Handler,
-        EventHandler,
-        get_service_main(snake),
-        get_direct_handler(snake),
-        get_service_impl(snake)
-    ),
-    sync(feature = "blocking"),
-    async(feature = "async")
-)]
 pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream) -> TokenStream {
     let direct_handler = crate::windows_macros::get_direct_handler(&crate_name, &ident);
     let service_main = crate::windows_macros::get_service_main(&crate_name, &ident);
@@ -32,8 +21,7 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
     .into()
 }
 
-#[cfg(feature = "async")]
-fn get_service_impl_async(
+fn get_service_impl(
     crate_name: &proc_macro2::TokenStream,
     ident: &Ident,
     direct_handler: &proc_macro2::TokenStream,
@@ -51,64 +39,22 @@ fn get_service_impl_async(
     }
 }
 
-#[cfg(feature = "blocking")]
-fn get_service_impl_sync(
-    crate_name: &proc_macro2::TokenStream,
-    ident: &Ident,
-    direct_handler: &proc_macro2::TokenStream,
-) -> proc_macro2::TokenStream {
-    quote! {
-        impl #crate_name::blocking::Service for #ident {
-            fn run_service_main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-                #crate_name::windows_service::service_dispatcher::start(#ident::get_service_name(), func_service_main)?;
-                Ok(())
-            }
-
-            #direct_handler
-        }
-    }
-}
-
-#[cfg(feature = "async")]
-fn get_service_main_async(
+fn get_service_main(
     crate_name: &proc_macro2::TokenStream,
     ident: &Ident,
 ) -> proc_macro2::TokenStream {
     quote! {
-        #crate_name::platform::get_service_main_async::<#ident>();
+        #crate_name::platform::get_service_main::<#ident>();
     }
 }
 
-#[cfg(feature = "blocking")]
-fn get_service_main_sync(
-    crate_name: &proc_macro2::TokenStream,
-    ident: &Ident,
-) -> proc_macro2::TokenStream {
-    quote! {
-        #crate_name::platform::get_service_main_sync::<#ident>();
-    }
-}
-
-#[cfg(feature = "async")]
-fn get_direct_handler_async(
+fn get_direct_handler(
     crate_name: &proc_macro2::TokenStream,
     ident: &Ident,
 ) -> proc_macro2::TokenStream {
     quote! {
         async fn run_service_direct() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-            #crate_name::platform::get_direct_handler_async::<#ident>().await
-        }
-    }
-}
-
-#[cfg(feature = "blocking")]
-fn get_direct_handler_sync(
-    crate_name: &proc_macro2::TokenStream,
-    ident: &Ident,
-) -> proc_macro2::TokenStream {
-    quote! {
-        fn run_service_direct() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-            #crate_name::platform::get_direct_handler_sync::<#ident>()
+            #crate_name::platform::get_direct_handler::<#ident>().await
         }
     }
 }

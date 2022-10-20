@@ -1,14 +1,6 @@
-#[cfg(feature = "async-tokio")]
-type ServiceContextAsync = crate::ServiceContext;
-#[cfg(feature = "blocking")]
-type ServiceContextSync = crate::blocking::ServiceContext;
+use crate::{handler::Handler, service_context::ServiceContext};
 
-#[maybe_async_cfg::maybe(
-    idents(Handler, ServiceContext),
-    sync(feature = "blocking"),
-    async(feature = "async-tokio")
-)]
-pub async fn run_service_main<T: crate::handler::Handler + Send>(
+pub async fn run_service_main<T: Handler + Send>(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut context = ServiceContext::new();
     let handler = T::new(&mut context).await;

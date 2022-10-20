@@ -24,16 +24,13 @@ resolver = "2"
 
 [features]
 all-async = ["async-client", "async-server", "plugin-signals"]
-all-sync = ["sync-client", "sync-server", "blocking", "plugin-signals"]
 async-client = [
   "console",
-  "async-tokio",
   "client",
   "cli",
   "error-handler",
 ]
 async-server = [
-  "async-tokio",
   "server",
   "cli",
   "daemon-slayer-logging/all-async",
@@ -41,21 +38,7 @@ async-server = [
   "error-handler",
   "plugin-signals",
 ]
-async-tokio = [
-  "daemon-slayer-server/async-tokio",
-  "daemon-slayer-logging/async-tokio",
-  "daemon-slayer-core/async-tokio",
-  "daemon-slayer-health-check/async-tokio",
-  "daemon-slayer-plugin-signals/async-tokio",
-  "daemon-slayer-plugin-file-watcher/async-tokio",
-]
-blocking = [
-  "daemon-slayer-server/blocking",
-  "daemon-slayer-core/blocking",
-  "daemon-slayer-health-check/blocking",
-  "daemon-slayer-plugin-signals/blocking",
-  "daemon-slayer-plugin-file-watcher/blocking",
-]
+
 cli = ["daemon-slayer-cli"]
 client = ["daemon-slayer-client"]
 console = ["daemon-slayer-console"]
@@ -66,24 +49,10 @@ http-health-check = ["health-check", "daemon-slayer-health-check/http-health-che
 ipc-health-check = ["health-check", "daemon-slayer-health-check/ipc-health-check"]
 logging = ["daemon-slayer-logging"]
 plugin-file-watcher = ["daemon-slayer-plugin-file-watcher"]
-plugin-ipc-health-check = ["daemon-slayer-plugin-ipc-health-check", "async-tokio"]
+plugin-ipc-health-check = ["daemon-slayer-plugin-ipc-health-check"]
 plugin-signals = ["daemon-slayer-plugin-signals"]
-plugin-task-queue = ["daemon-slayer-plugin-task-queue", "async-tokio"]
+plugin-task-queue = ["daemon-slayer-plugin-task-queue"]
 server = ["daemon-slayer-server"]
-sync-client = [
-  "client",
-  "cli",
-  "error-handler",
-  "blocking",
-]
-sync-server = [
-  "server",
-  "logging",
-  "daemon-slayer-logging/all-sync",
-  "cli",
-  "error-handler",
-  "blocking",
-]
 
 [dependencies]
 daemon-slayer-cli = {path = "./daemon-slayer-cli", optional = true}

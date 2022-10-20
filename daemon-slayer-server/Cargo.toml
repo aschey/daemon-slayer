@@ -3,16 +3,11 @@ edition = "2021"
 name = "daemon-slayer-server"
 version = "0.1.0"
 
-[features]
-async-tokio = ["tokio", "async-trait", "futures", "daemon-slayer-macros/async", "daemon-slayer-core/async-tokio"]
-blocking = ["daemon-slayer-macros/blocking", "daemon-slayer-core/blocking", "bus"]
-
 [dependencies]
-async-trait = {version = "0.1", optional = true}
+async-trait = {version = "0.1"}
 daemon-slayer-core = {path = "../daemon-slayer-core"}
 daemon-slayer-macros = {path = "../daemon-slayer-macros"}
-futures = {version = "0.3", optional = true}
-maybe-async-cfg = "0.2"
+futures = {version = "0.3"}
 once_cell = "1"
 strum = {version = "0.24.1", features = ["strum_macros"]}
 strum_macros = "0.24.3"
@@ -24,11 +19,11 @@ bus = {version = "2", optional = true}
 daemon-slayer-plugin-signals = {path = "../daemon-slayer-plugins/signals"}
 registry = "1"
 signal-hook = {version = "0.3", optional = true}
-tokio = {version = "1", features = ["rt-multi-thread", "signal", "net", "macros", "sync"], optional = true}
+tokio = {version = "1", features = ["rt-multi-thread", "signal", "net", "macros", "sync"]}
 windows-service = {git = "https://github.com/aschey/windows-service-rs", rev = "467408c9aba7d8221e5cf5a9992765ad7abeeb55"}
 
 [target.'cfg(unix)'.dependencies]
-tokio = {version = "1", features = ["rt-multi-thread", "net", "io-util", "sync", "macros"], optional = true}
+tokio = {version = "1", features = ["rt-multi-thread", "net", "io-util", "sync", "macros"]}
 
 [target.'cfg(target_os="linux")'.dependencies]
 sd-notify = "0.4"

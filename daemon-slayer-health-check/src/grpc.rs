@@ -3,11 +3,11 @@ use std::error::Error;
 use daemon_slayer_core::health_check::HealthCheck;
 
 #[derive(Clone)]
-pub struct GrpcHealthCheckAsync {
+pub struct GrpcHealthCheck {
     endpoint: tonic::transport::Endpoint,
 }
 
-impl GrpcHealthCheckAsync {
+impl GrpcHealthCheck {
     pub fn new<D>(endpoint: D) -> Result<Self, Box<dyn Error + Send + Sync>>
     where
         D: std::convert::TryInto<tonic::transport::Endpoint>,
@@ -19,9 +19,8 @@ impl GrpcHealthCheckAsync {
     }
 }
 
-#[cfg(feature = "grpc-health-check")]
 #[async_trait::async_trait]
-impl HealthCheck for GrpcHealthCheckAsync {
+impl HealthCheck for GrpcHealthCheck {
     async fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut client =
             tonic_health::proto::health_client::HealthClient::connect(self.endpoint.clone())

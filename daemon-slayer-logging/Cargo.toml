@@ -4,11 +4,9 @@ name = "daemon-slayer-logging"
 version = "0.1.0"
 
 [features]
-all-async = ["ipc", "async-tokio", "linux-journald", "mac-oslog", "windows-eventlog"]
-all-sync = ["linux-journald", "mac-oslog", "windows-eventlog"]
-async-tokio = ["tokio", "async-trait", "futures"]
+all-async = ["ipc", "linux-journald", "mac-oslog", "windows-eventlog"]
 file = ["directories"]
-ipc = ["async-tokio", "tracing-ipc"]
+ipc = ["tracing-ipc"]
 linux-journald = ["tracing-journald"]
 mac-oslog = ["tracing-oslog"]
 windows-eventlog = ["tracing-eventlog"]

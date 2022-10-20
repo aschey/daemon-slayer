@@ -1,16 +1,8 @@
 use std::error::Error;
 
-#[cfg(feature = "async-tokio")]
-type ServiceContextAsync = crate::ServiceContext;
+use crate::service_context::ServiceContext;
 
-#[cfg(feature = "blocking")]
-type ServiceContextSync = crate::blocking::ServiceContext;
-
-#[maybe_async_cfg::maybe(
-    idents(EventHandler, ServiceContext),
-    sync(feature = "blocking"),
-    async(feature = "async-tokio", async_trait::async_trait)
-)]
+#[async_trait::async_trait]
 pub trait Handler {
     async fn new(context: &mut ServiceContext) -> Self;
     fn get_service_name<'a>() -> &'a str;

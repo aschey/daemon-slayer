@@ -1,7 +1,4 @@
-#[maybe_async_cfg::maybe(
-    sync(feature = "blocking"),
-    async(feature = "async-tokio", async_trait::async_trait)
-)]
+#[async_trait::async_trait]
 pub trait Service: Send {
     type Builder;
     type Client;

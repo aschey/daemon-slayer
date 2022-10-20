@@ -1,9 +1,6 @@
-#[maybe_async_cfg::maybe(
-    idents(Receiver),
-    sync(feature = "blocking"),
-    async(feature = "async-tokio")
-)]
+use super::Receiver;
+
 pub trait EventStore {
     type Item: Send;
-    fn subscribe_events(&self) -> Box<dyn crate::server::receiver::Receiver<Item = Self::Item>>;
+    fn subscribe_events(&self) -> Box<dyn Receiver<Item = Self::Item>>;
 }

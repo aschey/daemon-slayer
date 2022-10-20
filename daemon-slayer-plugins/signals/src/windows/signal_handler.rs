@@ -1,6 +1,8 @@
-use crate::{Signal, SignalHandlerBuilder, SignalHandlerClient};
+use crate::Signal;
 use daemon_slayer_core::server::BroadcastEventStore;
 use once_cell::sync::OnceCell;
+
+use super::{SignalHandlerBuilder, SignalHandlerClient};
 
 pub struct SignalHandler {
     signal_tx: tokio::sync::broadcast::Sender<Signal>,
@@ -61,7 +63,7 @@ impl daemon_slayer_core::server::Service for SignalHandler {
 
     async fn stop(self) {
         self.shutdown_tx.send(()).await.ok();
-        self.handle.await;
+        self.handle.await.unwrap();
     }
 }
 
