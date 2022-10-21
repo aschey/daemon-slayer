@@ -16,7 +16,7 @@ pub struct Builder {
     pub(crate) display_name: String,
     #[cfg_attr(unix, allow(unused))]
     pub(crate) description: String,
-    pub(crate) program: PathBuf,
+    pub(crate) program: String,
     pub(crate) args: Vec<String>,
     pub(crate) service_level: Level,
     pub(crate) env_vars: Vec<(String, String)>,
@@ -33,7 +33,7 @@ impl Builder {
             display_name: name,
             description: "".to_owned(),
             args: vec![],
-            program: current_exe().unwrap(),
+            program: current_exe().unwrap().to_string_lossy().to_string(),
             service_level: Level::System,
             autostart: false,
             env_vars: vec![],
@@ -58,7 +58,10 @@ impl Builder {
     pub fn with_program(self, program: impl Into<PathBuf>) -> Self {
         let mut program = program.into();
         program.set_extension(EXE_EXTENSION);
-        Self { program, ..self }
+        Self {
+            program: program.to_string_lossy().to_string(),
+            ..self
+        }
     }
 
     pub fn with_args<T: Into<String>>(self, args: impl IntoIterator<Item = T>) -> Self {
