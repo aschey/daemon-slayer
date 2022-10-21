@@ -12,6 +12,7 @@ members = [
   "daemon-slayer-cli",
   "daemon-slayer-logging",
   "daemon-slayer-console",
+  "daemon-slayer-tray",
   "daemon-slayer-health-check",
   "daemon-slayer-error-handler",
   "daemon-slayer-plugins/signals",
@@ -64,6 +65,7 @@ plugin-ipc-health-check = ["daemon-slayer-plugin-ipc-health-check"]
 plugin-signals = ["daemon-slayer-plugin-signals"]
 plugin-task-queue = ["daemon-slayer-plugin-task-queue"]
 server = ["daemon-slayer-server"]
+tray = ["daemon-slayer-tray", "client"]
 
 [dependencies]
 daemon-slayer-cli = {path = "./daemon-slayer-cli", optional = true}
@@ -74,6 +76,7 @@ daemon-slayer-error-handler = {path = "./daemon-slayer-error-handler", optional 
 daemon-slayer-health-check = {path = "./daemon-slayer-health-check", optional = true}
 daemon-slayer-logging = {path = "./daemon-slayer-logging", optional = true}
 daemon-slayer-server = {path = "./daemon-slayer-server", optional = true}
+daemon-slayer-tray = {path = "./daemon-slayer-tray", optional = true}
 
 daemon-slayer-plugin-file-watcher = {path = "./daemon-slayer-plugins/file-watcher", optional = true}
 daemon-slayer-plugin-ipc-health-check = {path = "./daemon-slayer-plugins/ipc-health-check", optional = true}

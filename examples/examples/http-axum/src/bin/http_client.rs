@@ -19,19 +19,14 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let (logger, guard) =
+    let (logger, _guard) =
         daemon_slayer::logging::LoggerBuilder::for_client("daemon_slayer_axum").build()?;
+    logger.init();
     ErrorHandler::for_client().install()?;
 
     let manager = ServiceManager::builder("daemon_slayer_axum")
         .with_description("test service")
-        .with_program(
-            current_exe()
-                .unwrap()
-                .parent()
-                .unwrap()
-                .join("http_server")               
-        )
+        .with_program(current_exe().unwrap().parent().unwrap().join("http_server"))
         .with_service_level(if cfg!(windows) {
             Level::System
         } else {
@@ -48,7 +43,7 @@ async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let mut console = Console::new(manager.clone());
     console.add_health_check(Box::new(health_check.clone()));
-    let (mut cli, command) = Cli::builder()
+    let (cli, command) = Cli::builder()
         .with_base_command(command)
         .with_provider(ClientCliProvider::new(manager.clone()))
         .with_provider(ConsoleCliProvider::new(console))

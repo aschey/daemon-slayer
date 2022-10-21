@@ -37,15 +37,15 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let (logger, guard) = LoggerBuilder::for_server("daemon_slayer_axum")
+    let (logger, _guard) = LoggerBuilder::for_server("daemon_slayer_axum")
         .with_default_log_level(tracing::Level::TRACE)
         .with_level_filter(LevelFilter::TRACE)
         .with_env_filter_directive("sqlx=info".parse()?)
         .with_ipc_logger(true)
         .build()?;
+    logger.init();
     ErrorHandler::for_server().install()?;
 
-    logger.init();
     let (mut cli, command) = Cli::builder()
         .with_provider(ServerCliProvider::<ServiceHandler>::default())
         .build();
