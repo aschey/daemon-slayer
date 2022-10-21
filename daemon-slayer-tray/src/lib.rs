@@ -31,7 +31,9 @@ pub fn start(icon_path: &std::path::Path, manager: ServiceManager) {
             .unwrap(),
     );
     #[cfg(target_os = "macos")]
-    let system_tray = system_tray.with_title("Tao");
+    if let Some(t) = system_tray.as_mut() {
+        t.set_title("Tao")
+    }
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::WaitUntil(
