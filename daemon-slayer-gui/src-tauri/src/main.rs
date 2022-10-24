@@ -13,15 +13,53 @@ struct Payload {
     service_state: String,
 }
 
+#[derive(Clone)]
+struct ManagerWrapper {
+    manager: ServiceManager,
+}
+
+impl ManagerWrapper {
+    fn get_service_state(&self) -> String {
+        let state = self.manager.info().unwrap().state;
+        match state {
+            ServiceState::Started => "started".to_string(),
+            ServiceState::Stopped => "stopped".to_string(),
+            ServiceState::NotInstalled => "not_installed".to_string(),
+        }
+    }
+
+    fn get_start_stop_text(&self) -> &str {
+        if self.get_service_state() == "started" {
+            "Stop"
+        } else {
+            "Start"
+        }
+    }
+
+    fn toggle(&self) {
+        if self.get_service_state() == "started" {
+            self.manager.stop().unwrap();
+        } else {
+            self.manager.start().unwrap();
+        }
+    }
+
+    fn restart(&self) {
+        self.manager.restart().unwrap();
+    }
+}
+
 fn main() {
-    let manager = ServiceManager::builder("daemon_slayer_axum")
-        .with_service_level(Level::User)
-        .build()
-        .unwrap();
-    let state = manager.info().unwrap().state;
+    let manager = ManagerWrapper {
+        manager: ServiceManager::builder("daemon_slayer_axum")
+            .with_service_level(Level::User)
+            .build()
+            .unwrap(),
+    };
+
     let tray_open = CustomMenuItem::new("open".to_string(), "Open");
     let tray_start_stop =
-        CustomMenuItem::new("start_stop".to_string(), get_start_stop_text(&state));
+        CustomMenuItem::new("start_stop".to_string(), manager.get_start_stop_text());
     let tray_restart = CustomMenuItem::new("restart".to_string(), "Restart");
     let tray_quit = CustomMenuItem::new("quit".to_string(), "Quit");
 
@@ -41,19 +79,15 @@ fn main() {
         .setup(move |app| {
             let win = app.get_window("main").unwrap();
             tauri::async_runtime::spawn(async move {
-                let mut state = manager_.info().unwrap().state;
+                let mut state = manager_.get_service_state();
                 loop {
-                    let new_state = manager_.info().unwrap().state;
+                    let new_state = manager_.get_service_state();
                     if new_state != state {
                         state = new_state;
                         win.emit(
                             "service_state",
                             Payload {
-                                service_state: match state {
-                                    ServiceState::Started => "started".to_string(),
-                                    ServiceState::Stopped => "stopped".to_string(),
-                                    ServiceState::NotInstalled => "not_installed".to_string(),
-                                },
+                                service_state: state.clone(),
                             },
                         )
                         .unwrap();
@@ -76,10 +110,9 @@ fn main() {
             }
         })
         .on_system_tray_event(move |app, event| {
-            let state = manager.info().unwrap().state;
             app.tray_handle()
                 .get_item("start_stop")
-                .set_title(get_start_stop_text(&state))
+                .set_title(manager.get_start_stop_text())
                 .unwrap();
             on_tray_event(app, &event);
             let win = app.get_window("main").unwrap();
@@ -100,14 +133,10 @@ fn main() {
                         win.show().unwrap();
                     }
                     "start_stop" => {
-                        if state == ServiceState::Started {
-                            manager.stop().unwrap();
-                        } else {
-                            manager.start().unwrap();
-                        }
+                        manager.toggle();
                     }
                     "restart" => {
-                        manager.restart().unwrap();
+                        manager.restart();
                     }
                     "quit" => {
                         app.exit(0);
@@ -121,28 +150,11 @@ fn main() {
 }
 
 #[tauri::command]
-fn toggle(state: String, manager: State<ServiceManager>) {
-    if state == "started" {
-        manager.stop().unwrap();
-    } else {
-        manager.start().unwrap();
-    }
+fn toggle(manager: State<ManagerWrapper>) {
+    manager.toggle();
 }
 
 #[tauri::command]
-fn get_service_state(manager: State<ServiceManager>) -> String {
-    let state = manager.info().unwrap().state;
-    match state {
-        ServiceState::Started => "started".to_string(),
-        ServiceState::Stopped => "stopped".to_string(),
-        ServiceState::NotInstalled => "not_installed".to_string(),
-    }
-}
-
-fn get_start_stop_text(state: &ServiceState) -> &str {
-    if state == &ServiceState::Started {
-        "Stop"
-    } else {
-        "Start"
-    }
+fn get_service_state(manager: State<ManagerWrapper>) -> String {
+    manager.get_service_state()
 }

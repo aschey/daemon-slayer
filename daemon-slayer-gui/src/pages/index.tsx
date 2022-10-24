@@ -21,7 +21,7 @@ const Index = (props: AppProps & { colorScheme: ColorScheme }) => {
     return serviceState === 'started' ? 'Stop' : 'Start';
   };
   return (
-    <Button onClick={() => invoke('toggle', { state: serviceState })}>
+    <Button onClick={() => invoke('toggle')}>
       {getButtonText()}
     </Button>
   );
