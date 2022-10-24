@@ -61,7 +61,6 @@
         "title": "daemon-slayer-gui",
         "width": 400,
         "visible": false,
-        "decorations": false,
         "skipTaskbar": true,
         "alwaysOnTop": true
       }

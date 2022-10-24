@@ -1,9 +1,9 @@
 use std::{sync::Arc, time::Duration};
 
-use daemon_slayer_client::{Manager, ServiceManager, State as ServiceState};
+use daemon_slayer_client::{Level, Manager, ServiceManager, State as ServiceState};
 use tauri::{
-    CustomMenuItem, Manager as TauriManager, State, SystemTray, SystemTrayEvent, SystemTrayMenu,
-    WindowEvent,
+    api, tauri_build_context, CustomMenuItem, Manager as TauriManager, RunEvent, State, SystemTray,
+    SystemTrayEvent, SystemTrayMenu, WindowBuilder, WindowEvent, WindowUrl,
 };
 use tauri_plugin_positioner::{on_tray_event, Position, WindowExt};
 
@@ -14,20 +14,26 @@ struct Payload {
 }
 
 fn main() {
-    let manager = ServiceManager::new("daemon_slayer_axum").unwrap();
+    let manager = ServiceManager::builder("daemon_slayer_axum")
+        .with_service_level(Level::User)
+        .build()
+        .unwrap();
     let state = manager.info().unwrap().state;
+    let tray_open = CustomMenuItem::new("open".to_string(), "Open");
     let tray_start_stop =
         CustomMenuItem::new("start_stop".to_string(), get_start_stop_text(&state));
     let tray_restart = CustomMenuItem::new("restart".to_string(), "Restart");
     let tray_quit = CustomMenuItem::new("quit".to_string(), "Quit");
 
     let tray_menu = SystemTrayMenu::new()
+        .add_item(tray_open)
         .add_item(tray_start_stop)
         .add_item(tray_restart)
         .add_item(tray_quit);
 
     let system_tray = SystemTray::new().with_menu(tray_menu);
     let manager_ = manager.clone();
+
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![toggle, get_service_state])
         .plugin(tauri_plugin_positioner::init())
@@ -60,7 +66,12 @@ fn main() {
         })
         .manage(manager.clone())
         .on_window_event(|event| {
+            #[cfg(not(target_os = "linux"))]
             if let WindowEvent::Focused(false) = event.event() {
+                event.window().hide().unwrap();
+            }
+            if let WindowEvent::CloseRequested { api, .. } = event.event() {
+                api.prevent_close();
                 event.window().hide().unwrap();
             }
         })
@@ -72,6 +83,7 @@ fn main() {
                 .unwrap();
             on_tray_event(app, &event);
             let win = app.get_window("main").unwrap();
+
             if let SystemTrayEvent::LeftClick { .. } = event {
                 if win.is_visible().unwrap() {
                     win.hide().unwrap();
@@ -82,6 +94,11 @@ fn main() {
             }
             if let SystemTrayEvent::MenuItemClick { id, .. } = event {
                 match id.as_str() {
+                    "open" => {
+                        #[cfg(not(target_os = "linux"))]
+                        win.move_window(Position::TrayCenter).unwrap();
+                        win.show().unwrap();
+                    }
                     "start_stop" => {
                         if state == ServiceState::Started {
                             manager.stop().unwrap();
