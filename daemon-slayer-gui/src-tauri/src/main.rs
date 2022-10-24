@@ -73,7 +73,7 @@ fn main() {
     let manager_ = manager.clone();
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![toggle, get_service_state])
+        .invoke_handler(tauri::generate_handler![toggle, restart, get_service_state])
         .plugin(tauri_plugin_positioner::init())
         .system_tray(system_tray)
         .setup(move |app| {
@@ -152,6 +152,11 @@ fn main() {
 #[tauri::command]
 fn toggle(manager: State<ManagerWrapper>) {
     manager.toggle();
+}
+
+#[tauri::command]
+fn restart(manager: State<ManagerWrapper>) {
+    manager.restart();
 }
 
 #[tauri::command]
