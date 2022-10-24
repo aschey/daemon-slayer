@@ -10,7 +10,7 @@ daemon-slayer-client = {path = "../daemon-slayer-client"}
 daemon-slayer-core = {path = "../daemon-slayer-core", features = ["cli"], optional = true}
 futures = {version = "0.3"}
 tokio = {version = "1", features = ["rt-multi-thread", "macros"]}
-tracing-ipc-widget = {git = "https://github.com/aschey/tracing-ipc", rev = "75d0d6dcc5eddf0b09843f83cf1daa215799945a"}
+tracing-ipc-widget = {git = "https://github.com/aschey/tracing-ipc", rev = "936431c1ec358d8cf9099708599c65edf8753782"}
 tui = {version = "0.19"}
 
 [features]
