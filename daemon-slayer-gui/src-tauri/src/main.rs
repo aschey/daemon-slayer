@@ -6,6 +6,7 @@ use tauri::{
     SystemTrayEvent, SystemTrayMenu, WindowBuilder, WindowEvent, WindowUrl,
 };
 use tauri_plugin_positioner::{on_tray_event, Position, WindowExt};
+use tracing_ipc::run_ipc_client;
 
 #[derive(Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -78,6 +79,16 @@ fn main() {
         .system_tray(system_tray)
         .setup(move |app| {
             let win = app.get_window("main").unwrap();
+            let (log_tx, mut log_rx) = tokio::sync::mpsc::channel(32);
+            tauri::async_runtime::spawn(async move {
+                run_ipc_client("daemon_slayer_axum", log_tx).await;
+            });
+            let win_ = win.clone();
+            tauri::async_runtime::spawn(async move {
+                while let Some(log) = log_rx.recv().await {
+                    win_.emit("log", log).unwrap();
+                }
+            });
             tauri::async_runtime::spawn(async move {
                 let mut state = manager_.get_service_state();
                 loop {
