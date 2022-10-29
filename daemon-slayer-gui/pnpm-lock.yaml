@@ -8,6 +8,7 @@ specifiers:
   '@mantine/hooks': 5.6.2
   '@mantine/next': 5.6.2
   '@mantine/notifications': 5.6.2
+  '@tanstack/react-table': ^8.5.21
   '@tauri-apps/api': 1.1.0
   '@tauri-apps/cli': 1.1.1
   '@types/node': 18.11.7
@@ -27,6 +28,7 @@ dependencies:
   '@mantine/hooks': 5.6.2_react@18.2.0
   '@mantine/next': 5.6.2_onxdffetnfmpdxwcgp3zfqmiie
   '@mantine/notifications': 5.6.2_flpsrn4ztwxtwu74zpyotzqome
+  '@tanstack/react-table': 8.5.21_biqbaboplfbrettd7655fr4n2y
   '@tauri-apps/api': 1.1.0
   ansicolor: 1.1.100
   next: 13.0.0_biqbaboplfbrettd7655fr4n2y
@@ -644,6 +646,23 @@ packages:
     resolution: {integrity: sha512-rEUrBSGIoSFuYxwBYtlUFMlE2CwGhmW+w9355/5oduSw8e5h2+Tj4UrAGNNgP9915++wj5vkQo0UuOBqOAq4nw==}
     dependencies:
       tslib: 2.4.0
+    dev: false
+
+  /@tanstack/react-table/8.5.21_biqbaboplfbrettd7655fr4n2y:
+    resolution: {integrity: sha512-YW46a8bPRhm41MHo77HTGu7GPMEEcfnjc39geCOn6D/9cODHK9SRTu5N26m7+9H8ImPEsOmaBZajgDaLzGiraA==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      react: '>=16'
+      react-dom: '>=16'
+    dependencies:
+      '@tanstack/table-core': 8.5.21
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+    dev: false
+
+  /@tanstack/table-core/8.5.21:
+    resolution: {integrity: sha512-e5hDtr3OxP6lOOieMbYnUwvQbavACYvqIArGY0WIF0W7jAjeIkvjgC7lxRyKoW8hJrPC5GCKHW5RjoNel+IeGA==}
+    engines: {node: '>=12'}
     dev: false
 
   /@tauri-apps/api/1.1.0:

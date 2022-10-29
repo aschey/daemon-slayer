@@ -1,17 +1,39 @@
 /** @jsxImportSource @emotion/react */
 
 import { AppProps } from "next/app";
-import { ColorScheme, Button } from "@mantine/core";
+import { ColorScheme, Button, Table } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { parse } from "ansicolor";
 import { css } from "@emotion/react";
 import { EmotionJSX } from "@emotion/react/types/jsx-namespace";
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+
+type LogMessage = {
+  spans: EmotionJSX.Element[];
+};
 
 const Index = (props: AppProps & { colorScheme: ColorScheme }) => {
   const [serviceState, setServiceState] = useState("");
-  const [logs, setLogs] = useState<EmotionJSX.Element[][]>([]);
+  const [logs, setLogs] = useState<LogMessage[]>([]);
+
+  const columnHelper = createColumnHelper<LogMessage>();
+  const columns = [
+    columnHelper.accessor("spans", { cell: (info) => info.getValue() }),
+  ];
+
+  const table = useReactTable({
+    data: logs,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
   useEffect(() => {
     invoke<string>("get_service_state").then(setServiceState);
 
@@ -32,7 +54,7 @@ const Index = (props: AppProps & { colorScheme: ColorScheme }) => {
         </span>
       ));
 
-      setLogs((logs) => [parsedLog, ...logs]);
+      setLogs((logs) => [{ spans: parsedLog }, ...logs]);
     });
     return () => {
       unlistenServiceState.then((unlisten) => unlisten());
@@ -47,9 +69,19 @@ const Index = (props: AppProps & { colorScheme: ColorScheme }) => {
     <>
       <Button onClick={() => invoke("toggle")}>{getButtonText()}</Button>
       <Button onClick={() => invoke("restart")}>Restart</Button>
-      {logs.map((log, i) => (
-        <div key={i}>{log}</div>
-      ))}
+      <Table>
+        <tbody>
+          {table.getRowModel().rows.map((row) => (
+            <tr key={row.id}>
+              {row.getVisibleCells().map((cell) => (
+                <td key={cell.id}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </Table>
     </>
   );
 };
