@@ -76,12 +76,12 @@ const Index = (props: AppProps & { colorScheme: ColorScheme }) => {
             style={{
               height: "490px",
               overflow: "auto",
+              position: "relative",
             }}
           >
             <div
               style={{
                 height: `${rowVirtualizer.totalSize}px`,
-                width: "100%",
                 position: "relative",
                 fontFamily: "monospace",
               }}

@@ -1,13 +1,13 @@
-import { GetServerSidePropsContext } from 'next';
-import { useState } from 'react';
-import { AppProps } from 'next/app';
-import Head from 'next/head';
+import { GetServerSidePropsContext } from "next";
+import { useState } from "react";
+import { AppProps } from "next/app";
+import Head from "next/head";
 import {
   MantineProvider,
   ColorScheme,
   ColorSchemeProvider,
-} from '@mantine/core';
-import { NotificationsProvider } from '@mantine/notifications';
+} from "@mantine/core";
+import { NotificationsProvider } from "@mantine/notifications";
 
 const App = (props: AppProps & { colorScheme: ColorScheme }) => {
   const { Component, pageProps } = props;
@@ -17,7 +17,7 @@ const App = (props: AppProps & { colorScheme: ColorScheme }) => {
 
   const toggleColorScheme = (value?: ColorScheme) => {
     const nextColorScheme =
-      value || (colorScheme === 'dark' ? 'light' : 'dark');
+      value || (colorScheme === "dark" ? "light" : "dark");
     setColorScheme(nextColorScheme);
   };
 
@@ -26,10 +26,10 @@ const App = (props: AppProps & { colorScheme: ColorScheme }) => {
       <Head>
         <title>Mantine next example</title>
         <meta
-          name='viewport'
-          content='minimum-scale=1, initial-scale=1, width=device-width'
+          name="viewport"
+          content="minimum-scale=1, initial-scale=1, width=device-width"
         />
-        <link rel='shortcut icon' href='/favicon.svg' />
+        <link rel="shortcut icon" href="/favicon.svg" />
       </Head>
 
       <ColorSchemeProvider
@@ -51,7 +51,7 @@ const App = (props: AppProps & { colorScheme: ColorScheme }) => {
 };
 
 App.getInitialProps = ({ ctx }: { ctx: GetServerSidePropsContext }) => ({
-  colorScheme: 'dark',
+  colorScheme: "dark",
 });
 
 export default App;
