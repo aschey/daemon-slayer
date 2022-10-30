@@ -1,21 +1,23 @@
 /** @jsxImportSource @emotion/react */
 
 import { AppProps } from "next/app";
-import { ColorScheme, Button, Table, Tabs, AppShell } from "@mantine/core";
+import {
+  ColorScheme,
+  Button,
+  Table,
+  Tabs,
+  AppShell,
+  Group,
+  Card,
+} from "@mantine/core";
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { parse } from "ansicolor";
 import { css } from "@emotion/react";
 import { EmotionJSX } from "@emotion/react/types/jsx-namespace";
-import {
-  createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  Row,
-  useReactTable,
-} from "@tanstack/react-table";
 import { useVirtual } from "react-virtual";
+import { showNotification } from "@mantine/notifications";
 
 type LogMessage = {
   spans: EmotionJSX.Element[];
@@ -42,16 +44,22 @@ const Index = (props: AppProps & { colorScheme: ColorScheme }) => {
     );
 
     const unlistenLogs = listen<string>("log", (event) => {
-      const parsedLog = parse(event.payload).spans.map((s, i) => (
-        <span
-          key={i}
-          css={css`
-            ${s.css}
-          `}
-        >
-          {s.text}
-        </span>
-      ));
+      const parsedLog = parse(event.payload).spans.map((s, i) => {
+        let cssStr = s.css;
+        if (s.color?.dim && !s.color?.name) {
+          cssStr = "color:rgba(125,125,125,0.5)";
+        }
+        return (
+          <span
+            key={i}
+            css={css`
+              ${cssStr}
+            `}
+          >
+            {s.text}
+          </span>
+        );
+      });
 
       setLogs((logs) => [{ spans: parsedLog }, ...logs]);
     });
@@ -66,15 +74,37 @@ const Index = (props: AppProps & { colorScheme: ColorScheme }) => {
   };
   return (
     <AppShell>
-      <Button onClick={() => invoke("toggle")}>{getButtonText()}</Button>
-      <Button onClick={() => invoke("restart")}>Restart</Button>
+      <Group style={{ paddingBottom: "5px" }}>
+        <Button
+          onClick={() => {
+            invoke("toggle");
+            showNotification({
+              message: `Service ${
+                serviceState === "started" ? "stopped" : "started"
+              }`,
+            });
+          }}
+        >
+          {getButtonText()}
+        </Button>
+        <Button
+          onClick={() => {
+            invoke("restart");
+            showNotification({ message: "Service restarted" });
+          }}
+        >
+          Restart
+        </Button>
+      </Group>
+
       <Tabs defaultValue="logs">
         <Tabs.Tab value="logs">Logs</Tabs.Tab>
         <Tabs.Panel value="logs">
-          <div
+          <Card
             ref={parentRef}
             style={{
-              height: "490px",
+              marginTop: "10px",
+              height: "480px",
               overflow: "auto",
               position: "relative",
             }}
@@ -105,7 +135,7 @@ const Index = (props: AppProps & { colorScheme: ColorScheme }) => {
                 );
               })}
             </div>
-          </div>
+          </Card>
         </Tabs.Panel>
       </Tabs>
     </AppShell>

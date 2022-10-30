@@ -41,7 +41,7 @@ const App = (props: AppProps & { colorScheme: ColorScheme }) => {
           withGlobalStyles
           withNormalizeCSS
         >
-          <NotificationsProvider>
+          <NotificationsProvider position="top-right">
             <Component {...pageProps} />
           </NotificationsProvider>
         </MantineProvider>
