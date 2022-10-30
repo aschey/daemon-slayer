@@ -76,6 +76,7 @@ const Index = (props: AppProps & { colorScheme: ColorScheme }) => {
     <AppShell>
       <Group style={{ paddingBottom: "5px" }}>
         <Button
+          style={{ fontFamily: "system-ui" }}
           onClick={() => {
             invoke("toggle");
             showNotification({
@@ -88,6 +89,7 @@ const Index = (props: AppProps & { colorScheme: ColorScheme }) => {
           {getButtonText()}
         </Button>
         <Button
+          style={{ fontFamily: "system-ui" }}
           onClick={() => {
             invoke("restart");
             showNotification({ message: "Service restarted" });
