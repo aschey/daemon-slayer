@@ -1,9 +1,9 @@
 /** @jsxImportSource @emotion/react */
 
 import { AppProps } from "next/app";
-import { ColorScheme, Button, Table } from "@mantine/core";
+import { ColorScheme, Button, Table, Tabs, AppShell } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/tauri";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { parse } from "ansicolor";
 import { css } from "@emotion/react";
@@ -12,8 +12,10 @@ import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
+  Row,
   useReactTable,
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 type LogMessage = {
   spans: EmotionJSX.Element[];
@@ -23,16 +25,18 @@ const Index = (props: AppProps & { colorScheme: ColorScheme }) => {
   const [serviceState, setServiceState] = useState("");
   const [logs, setLogs] = useState<LogMessage[]>([]);
 
+  const tableContainerRef = useRef<HTMLDivElement>(undefined);
+
+  const rowVirtualizer = useVirtualizer({
+    count: logs.length,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => 60,
+  });
+
   const columnHelper = createColumnHelper<LogMessage>();
   const columns = [
     columnHelper.accessor("spans", { cell: (info) => info.getValue() }),
   ];
-
-  const table = useReactTable({
-    data: logs,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
 
   useEffect(() => {
     invoke<string>("get_service_state").then(setServiceState);
@@ -66,23 +70,52 @@ const Index = (props: AppProps & { colorScheme: ColorScheme }) => {
     return serviceState === "started" ? "Stop" : "Start";
   };
   return (
-    <>
+    <AppShell>
       <Button onClick={() => invoke("toggle")}>{getButtonText()}</Button>
       <Button onClick={() => invoke("restart")}>Restart</Button>
-      <Table>
-        <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-    </>
+      <Tabs defaultValue="logs">
+        <Tabs.Tab value="logs">Logs</Tabs.Tab>
+        <Tabs.Panel value="logs">
+          <div
+            ref={tableContainerRef}
+            style={{
+              height: "490px",
+              overflow: "auto",
+            }}
+          >
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                width: "100%",
+                position: "relative",
+                fontFamily: "monospace",
+              }}
+            >
+              <tbody>
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const row = logs[virtualRow.index];
+                  return (
+                    <div
+                      key={virtualRow.index}
+                      ref={virtualRow.measureElement}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                    >
+                      {row.spans}
+                    </div>
+                  );
+                })}
+              </tbody>
+            </div>
+          </div>
+        </Tabs.Panel>
+      </Tabs>
+    </AppShell>
   );
 };
 
