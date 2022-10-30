@@ -53,18 +53,7 @@
     "updater": {
       "active": false
     },
-    "windows": [
-      {
-        "fullscreen": false,
-        "height": 600,
-        "resizable": true,
-        "title": "daemon-slayer-gui",
-        "width": 800,
-        "visible": false,
-        "skipTaskbar": true,
-        "alwaysOnTop": true
-      }
-    ],
+    "windows": [],
     "systemTray": {
       "iconPath": "./icons/icon.png"
     }

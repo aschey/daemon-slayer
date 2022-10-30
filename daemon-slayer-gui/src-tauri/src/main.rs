@@ -78,7 +78,20 @@ fn main() {
         .plugin(tauri_plugin_positioner::init())
         .system_tray(system_tray)
         .setup(move |app| {
-            let win = app.get_window("main").unwrap();
+            let win = app.get_window("main").unwrap_or_else(|| {
+                WindowBuilder::new(
+                    &app.app_handle(),
+                    "main",
+                    WindowUrl::App("index.html".into()),
+                )
+                .always_on_top(true)
+                .inner_size(800.0, 600.0)
+                .title("daemon-slayer-gui")
+                .visible(false)
+                .skip_taskbar(true)
+                .build()
+                .unwrap()
+            });
             let (log_tx, mut log_rx) = tokio::sync::mpsc::channel(32);
             tauri::async_runtime::spawn(async move {
                 run_ipc_client("daemon_slayer_axum", log_tx).await;
