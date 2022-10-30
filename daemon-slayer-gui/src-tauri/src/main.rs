@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{env::args, os, sync::Arc, time::Duration};
 
 use daemon_slayer_client::{Level, Manager, ServiceManager, State as ServiceState};
 use tauri::{
@@ -52,7 +52,7 @@ impl ManagerWrapper {
 
 fn main() {
     let manager = ManagerWrapper {
-        manager: ServiceManager::builder("daemon_slayer_axum")
+        manager: ServiceManager::builder(args().nth(1).unwrap())
             .with_service_level(Level::User)
             .build()
             .unwrap(),
