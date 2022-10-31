@@ -1,4 +1,9 @@
-use crate::server::{EventStore, Receiver};
+use std::pin::Pin;
+
+use futures::Stream;
+use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
+
+use crate::server::EventStore;
 
 #[derive(Clone)]
 pub struct BroadcastEventStore<T> {
@@ -12,8 +17,10 @@ impl<T: Send> BroadcastEventStore<T> {
 }
 
 impl<T: Send + Clone + 'static> EventStore for BroadcastEventStore<T> {
-    type Item = T;
-    fn subscribe_events(&self) -> Box<dyn Receiver<Item = Self::Item>> {
-        Box::new(self.tx.subscribe())
+    type Item = Result<T, BroadcastStreamRecvError>;
+    fn subscribe_events(&self) -> Pin<Box<dyn Stream<Item = Self::Item> + Send>> {
+        Box::pin(tokio_stream::wrappers::BroadcastStream::new(
+            self.tx.subscribe(),
+        ))
     }
 }

@@ -1,4 +1,6 @@
 mod task_queue;
+use std::pin::Pin;
+
 pub use task_queue::*;
 mod task_queue_builder;
 pub use task_queue_builder::*;
@@ -7,7 +9,9 @@ pub use aide_de_camp::prelude::{Decode, Encode, JobError, RunnerRouter};
 pub use aide_de_camp::prelude::{JobProcessor, ShutdownOptions, Xid};
 pub use aide_de_camp::runner::job_event::JobEvent;
 pub use aide_de_camp_sqlite::sqlx::sqlite::SqliteConnectOptions;
-use daemon_slayer_core::server::EventStore;
+use daemon_slayer_core::server::{EventStore, Stream};
+use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
+use tokio_stream::wrappers::BroadcastStream;
 
 pub struct JobEventStore {
     inner: aide_de_camp::runner::event_store::EventStore<JobEvent>,
@@ -20,10 +24,10 @@ impl JobEventStore {
 }
 
 impl EventStore for JobEventStore {
-    type Item = JobEvent;
+    type Item = Result<JobEvent, BroadcastStreamRecvError>;
 
-    fn subscribe_events(&self) -> Box<dyn daemon_slayer_core::server::Receiver<Item = Self::Item>> {
-        Box::new(self.inner.subscribe_events())
+    fn subscribe_events(&self) -> Pin<Box<dyn Stream<Item = Self::Item> + Send>> {
+        Box::pin(BroadcastStream::new(self.inner.subscribe_events()))
     }
 }
 

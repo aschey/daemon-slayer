@@ -18,8 +18,7 @@ use daemon_slayer::cli::Cli;
 use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{
-    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Receiver, Service,
-    ServiceContext,
+    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Service, ServiceContext,
 };
 use daemon_slayer::signals::SignalHandlerBuilderTrait;
 use daemon_slayer::task_queue::{
@@ -113,7 +112,7 @@ impl Handler for ServiceHandler {
             axum::Server::bind(&addr)
                 .serve(app.into_make_service())
                 .with_graceful_shutdown(async {
-                    let r = shutdown_rx_.recv().await;
+                    let r = shutdown_rx_.next().await;
                     info!("Got shutdown {r:?}");
                 })
                 .await
@@ -123,7 +122,7 @@ impl Handler for ServiceHandler {
 
         tokio::select! {
             _ = handle => {},
-            _ = shutdown_rx.recv() => {
+            _ = shutdown_rx.next() => {
                 if (tokio::time::timeout(Duration::from_millis(100), finished_rx.recv()).await).is_err() {
                     warn!("Server didn't shut down, forcing termination");
                 }
@@ -164,7 +163,7 @@ impl JobProcessor for MyJob {
                 _ = tokio::time::sleep(Duration::from_secs(1)) => {
                     info!("Did a thing");
                 }
-                _ = event_rx.recv() => {
+                _ = event_rx.next() => {
                     warn!("Job cancelled");
                     return Ok(());
                 }

@@ -25,7 +25,7 @@ pub use futures;
 pub use tokio;
 
 pub use daemon_slayer_core::server::{
-    BackgroundService, BroadcastEventStore, EventService, EventStore, Receiver,
+    BackgroundService, BroadcastEventStore, EventService, EventStore,
 };
 
 pub use daemon_slayer_macros::*;

@@ -6,9 +6,11 @@ version = "0.1.0"
 [dependencies]
 async-trait = "0.1"
 clap = {version = "4", optional = true}
+futures = {version = "0.3", optional = true}
 tokio = {version = "1", features = ["sync"]}
+tokio-stream = {version = "0.1", features = ["sync"], optional = true}
 
 [features]
 cli = ["clap"]
 health-check = []
-server = []
+server = ["tokio-stream", "futures"]

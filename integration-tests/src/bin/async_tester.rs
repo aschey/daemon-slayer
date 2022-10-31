@@ -85,7 +85,7 @@ impl Handler for ServiceHandler {
                 .await;
             let mut event_store = file_watcher_events.subscribe_events();
             tokio::spawn(async move {
-                while let Some(files) = event_store.recv().await {
+                while let Some(Ok(files)) = event_store.next().await {
                     info!("reloading");
                     if let Some(file) = files.get(0) {
                         let contents = std::fs::read_to_string(file).unwrap();
@@ -157,7 +157,7 @@ impl Handler for ServiceHandler {
         axum::Server::bind(&addr)
             .serve(app.into_make_service())
             .with_graceful_shutdown(async {
-                let _ = signal_rx.recv().await;
+                let _ = signal_rx.next().await;
             })
             .await
             .unwrap();
