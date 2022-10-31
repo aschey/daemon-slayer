@@ -6,8 +6,8 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-aide-de-camp = {git = "https://github.com/aschey/aide-de-camp", rev = "c602bdefda4d7b1f776e8523bea465c1fdf2fd44"}
-aide-de-camp-sqlite = {git = "https://github.com/aschey/aide-de-camp", rev = "c602bdefda4d7b1f776e8523bea465c1fdf2fd44", default-features = false, features = ["rustls"]}
+aide-de-camp = {git = "https://github.com/aschey/aide-de-camp", rev = "a56f4b7160c224b3fd83e296895bbfff4fe873df"}
+aide-de-camp-sqlite = {git = "https://github.com/aschey/aide-de-camp", rev = "a56f4b7160c224b3fd83e296895bbfff4fe873df", default-features = false, features = ["rustls"]}
 async-trait = "0.1.57"
 daemon-slayer-core = {path = "../../daemon-slayer-core", features = ["server"]}
 log = "0.4"
