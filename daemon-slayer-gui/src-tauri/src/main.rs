@@ -53,7 +53,11 @@ impl ManagerWrapper {
 fn main() {
     let manager = ManagerWrapper {
         manager: ServiceManager::builder(args().nth(1).unwrap())
-            .with_service_level(Level::User)
+            .with_service_level(if cfg!(windows) {
+                Level::System
+            } else {
+                Level::User
+            })
             .build()
             .unwrap(),
     };
