@@ -20,7 +20,7 @@ pub struct FileWatcher {
 }
 
 #[async_trait::async_trait]
-impl daemon_slayer_core::server::Service for FileWatcher {
+impl daemon_slayer_core::server::BackgroundService for FileWatcher {
     type Builder = FileWatcherBuilder;
 
     type Client = FileWatcherClient;

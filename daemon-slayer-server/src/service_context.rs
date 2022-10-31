@@ -31,7 +31,7 @@ impl ServiceContext {
         (client, event_store)
     }
 
-    pub async fn add_service<S: daemon_slayer_core::server::Service + 'static>(
+    pub async fn add_service<S: daemon_slayer_core::server::BackgroundService + 'static>(
         &mut self,
         builder: S::Builder,
     ) -> S::Client {

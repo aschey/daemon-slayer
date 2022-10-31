@@ -28,7 +28,7 @@ impl EventStore for JobEventStore {
 }
 
 #[async_trait::async_trait]
-impl daemon_slayer_core::server::Service for TaskQueue {
+impl daemon_slayer_core::server::BackgroundService for TaskQueue {
     type Builder = TaskQueueBuilder;
     type Client = TaskQueueClient;
 

@@ -1,5 +1,5 @@
 #[async_trait::async_trait]
-pub trait Service: Send {
+pub trait BackgroundService: Send {
     type Builder;
     type Client;
 

@@ -7,8 +7,8 @@ pub use event_store::*;
 mod receiver;
 pub use receiver::*;
 
-mod service;
-pub use service::*;
+mod background_service;
+pub use background_service::*;
 
 mod broadcast_event_store;
 pub use broadcast_event_store::*;

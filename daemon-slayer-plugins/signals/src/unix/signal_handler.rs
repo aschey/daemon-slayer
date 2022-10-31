@@ -13,7 +13,7 @@ pub struct SignalHandler {
 }
 
 #[async_trait::async_trait]
-impl daemon_slayer_core::server::Service for SignalHandler {
+impl daemon_slayer_core::server::BackgroundService for SignalHandler {
     type Builder = SignalHandlerBuilder;
 
     type Client = SignalHandlerClient;
