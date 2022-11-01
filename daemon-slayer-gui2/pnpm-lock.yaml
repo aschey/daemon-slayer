@@ -1,6 +1,7 @@
 lockfileVersion: 5.4
 
 specifiers:
+  '@solid-primitives/scheduled': ^1.2.0
   '@tanstack/solid-virtual': 3.0.0-beta.18
   '@tauri-apps/api': ^1.1.0
   '@tauri-apps/cli': ^1.1.0
@@ -14,6 +15,7 @@ specifiers:
   vite-plugin-solid: ^2.3.0
 
 dependencies:
+  '@solid-primitives/scheduled': 1.2.0_solid-js@1.6.1
   '@tanstack/solid-virtual': 3.0.0-beta.18
   '@tauri-apps/api': 1.1.0
   ansicolor: 1.1.100
@@ -398,6 +400,14 @@ packages:
       '@jridgewell/resolve-uri': 3.1.0
       '@jridgewell/sourcemap-codec': 1.4.14
     dev: true
+
+  /@solid-primitives/scheduled/1.2.0_solid-js@1.6.1:
+    resolution: {integrity: sha512-59QbtGACZD8RIkD0jNQVUHRBF6uW7dKzDVFYSgogRdfxRO9kgXc6aGkLrCjd4k4g3kYe+XiBLcvYKyut4F7BHg==}
+    peerDependencies:
+      solid-js: ^1.6.0
+    dependencies:
+      solid-js: 1.6.1
+    dev: false
 
   /@tanstack/solid-virtual/3.0.0-beta.18:
     resolution: {integrity: sha512-xx3OZ3rh8OeUDBethnV7JKYhKQKAjL5OiA+yy5XHljB0QQMZQKxVwI1M59d6n3lkn9zqo60gV0L13gNVewSkXA==}

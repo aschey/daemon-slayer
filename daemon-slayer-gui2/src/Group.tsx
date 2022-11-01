@@ -1,4 +1,4 @@
-import { styled } from 'solid-styled-components';
+import { styled } from "solid-styled-components";
 
 export const Group = styled.div`
   box-sizing: border-box;

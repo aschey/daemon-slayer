@@ -1,21 +1,21 @@
 /* @refresh reload */
-import { render } from 'solid-js/web';
+import { render } from "solid-js/web";
 
-import './style.css';
-import App from './App';
+import "./style.css";
+import App from "./App";
 import {
   createGlobalStyles,
   ThemeProp,
   ThemeProvider,
-} from 'solid-styled-components';
-import { Toaster } from 'solid-toast';
+} from "solid-styled-components";
+import { Toaster } from "solid-toast";
 
 const theme = {
   colors: {
-    primary: 'rgb(24,100,171)',
-    primaryBackground: '#2f2f2f',
-    secondaryBackground: '#3f3f3f',
-    text: '#ffffff',
+    primary: "rgb(24,100,171)",
+    primaryBackground: "#2f2f2f",
+    secondaryBackground: "#3f3f3f",
+    text: "#ffffff",
   },
 };
 
@@ -25,7 +25,7 @@ const GlobalStyles = () => {
       background: ${(props: ThemeProp) =>
         props.theme?.colors.primaryBackground};
       color: ${(props: ThemeProp) => props.theme?.colors.text};
-      font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+      font-family: system-ui;
       font-size: 16px;
       line-height: 24px;
       font-weight: 400;
@@ -47,5 +47,5 @@ render(
       <App />
     </ThemeProvider>
   ),
-  document.getElementById('root') as HTMLElement
+  document.getElementById("root") as HTMLElement
 );

@@ -5,8 +5,8 @@ import {
   JSX,
   Setter,
   useContext,
-} from 'solid-js';
-import { css, DefaultTheme, styled, useTheme } from 'solid-styled-components';
+} from "solid-js";
+import { css, DefaultTheme, styled, useTheme } from "solid-styled-components";
 
 const TabContext = createContext<TabData>();
 
@@ -38,7 +38,7 @@ export const Tab = (props: { value: string; children: JSX.Element }) => {
         border: none;
         border-bottom: ${props.value === tabData?.selected()
           ? `2px solid ${tabData?.theme.colors.primary}`
-          : '0'};
+          : "0"};
 
         appearance: none;
         background: none;
@@ -56,9 +56,10 @@ export const TabContent = (props: { value: string; children: JSX.Element }) => {
   return (
     <div
       class={css`
-        display: ${props.value === tabData?.selected() ? 'block' : 'none'};
+        display: ${props.value === tabData?.selected() ? "block" : "none"};
         padding: 6px 12px;
         border-top: none;
+        height: 100%;
       `}
     >
       {props.children}
