@@ -16,7 +16,6 @@ members = [
   "daemon-slayer-health-check",
   "daemon-slayer-error-handler",
   "daemon-slayer-gui/src-tauri",
-  "daemon-slayer-gui2/src-tauri",
   "daemon-slayer-plugins/signals",
   "daemon-slayer-plugins/task-queue",
   "daemon-slayer-plugins/file-watcher",

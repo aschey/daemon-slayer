@@ -128,10 +128,6 @@ fn main() {
         })
         .manage(manager.clone())
         .on_window_event(|event| {
-            #[cfg(not(target_os = "linux"))]
-            if let WindowEvent::Focused(false) = event.event() {
-                event.window().hide().unwrap();
-            }
             if let WindowEvent::CloseRequested { api, .. } = event.event() {
                 api.prevent_close();
                 event.window().hide().unwrap();
