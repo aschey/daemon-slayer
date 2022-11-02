@@ -8,7 +8,7 @@ import { Tab, TabBar, TabContent, Tabs } from "./Tabs";
 import { Card } from "./Card";
 import { listen } from "@tauri-apps/api/event";
 import { parse } from "ansicolor";
-import { css, useTheme } from "solid-styled-components";
+import { useTheme } from "solid-styled-components";
 import toast from "solid-toast";
 import { createVirtualizer } from "@tanstack/solid-virtual";
 import { debounce } from "@solid-primitives/scheduled";
@@ -20,6 +20,8 @@ type LogMessage = {
 function App() {
   const [serviceState, setServiceState] = createSignal("");
   const [panelHeight, setPanelHeight] = createSignal(window.innerHeight - 130);
+  const [atBottom, setAtBottom] = createSignal(true);
+  const [scrollPos, setScrollPos] = createSignal(0);
   const [logs, setLogs] = createSignal<LogMessage[]>([]);
   const theme = useTheme();
 
@@ -41,6 +43,13 @@ function App() {
   }, 20);
 
   onMount(async () => {
+    parentRef?.addEventListener("scroll", function (el) {
+      setAtBottom(
+        parentRef!.scrollTop + parentRef!.clientHeight ==
+          parentRef!.scrollHeight
+      );
+      setScrollPos(parentRef!.scrollTop);
+    });
     addEventListener("resize", () => {
       updateSizes();
       setPanelHeight(window.innerHeight - 130);
@@ -60,7 +69,13 @@ function App() {
         }
         return { css: cssStr, text: s.text };
       });
-      setLogs((logs) => [{ spans: parsedLog }, ...logs]);
+
+      setLogs((logs) => [...logs, { spans: parsedLog }]);
+      if (atBottom()) {
+        parentRef?.scrollTo({ top: parentRef.scrollHeight });
+      } else {
+        parentRef?.scrollTo({ top: scrollPos() });
+      }
     });
   });
 
