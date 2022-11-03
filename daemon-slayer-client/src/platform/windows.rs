@@ -1,4 +1,7 @@
-use crate::{config::Builder, Info, Level, Manager, Result, State};
+use crate::{
+    config::{Builder, Trustee},
+    Info, Level, Manager, Result, State,
+};
 use eyre::Context;
 use regex::Regex;
 use registry::{Data, Hive, Security};
@@ -6,7 +9,7 @@ use std::{thread, time::Duration};
 use utfx::U16CString;
 use windows_service::{
     service::{
-        Service, ServiceAccess, ServiceConfig, ServiceErrorControl, ServiceExitCode, ServiceInfo,
+        Service, ServiceAccess, ServiceErrorControl, ServiceExitCode, ServiceInfo,
         ServiceStartType, ServiceState, ServiceType,
     },
     service_manager::{
@@ -77,7 +80,7 @@ impl ServiceManager {
         service_type: ServiceType,
         mode: ServiceAccessMode,
     ) -> Result<Option<ServiceEntry>> {
-        let re_text = if self.config.is_user() {
+        let re_text = if service_type == ServiceType::USER_OWN_PROCESS {
             // User services have a random id appended to the end like this: some_service_name_18dcf87g
             // The id changes every login so we have to search for it
             format!(r"^{}_[a-z\d]+$", self.config.name)
@@ -148,6 +151,14 @@ impl ServiceManager {
     }
 
     fn delete_service(&self, service: &str, service_type: ServiceType) -> Result<()> {
+        // For user-level services, the service won't show up in the service list so we have to
+        // attempt to open it to see if it exists
+        if self.config.service_level == Level::User && service_type == ServiceType::OWN_PROCESS {
+            if let Ok(service) = self.open_service(service, ServiceAccessMode::Write) {
+                service.delete().wrap_err("Error deleting service")?;
+                return Ok(());
+            }
+        }
         if self.query_info(service, service_type)?.state != State::NotInstalled {
             let service = self.open_service(service, ServiceAccessMode::Write)?;
             service.delete().wrap_err("Error deleting service")?;
@@ -245,8 +256,8 @@ impl Manager for ServiceManager {
     fn install(&self) -> Result<()> {
         if self.open_base_service(ServiceAccessMode::Write).is_err() {
             let service_info = self.get_service_info();
-            let service = self
-                .get_manager(ServiceAccessMode::Write)?
+            let manager = self.get_manager(ServiceAccessMode::Write)?;
+            let service = manager
                 .create_service(
                     &service_info,
                     ServiceAccess::CHANGE_CONFIG | ServiceAccess::START,
@@ -256,6 +267,30 @@ impl Manager for ServiceManager {
             service
                 .set_description(&self.config.description)
                 .wrap_err("Error setting description")?;
+
+            if let Some((trustee, access)) = &self.config.windows_config.additional_access {
+                let trustee = match trustee {
+                    Trustee::CurrentUser => windows_service::service::Trustee::CurrentUser,
+                    Trustee::Name(name) => windows_service::service::Trustee::Name(name.clone()),
+                };
+
+                let mut service_access = ServiceAccess::empty();
+                for permission in access.iter() {
+                    service_access |= match permission {
+                        crate::config::ServiceAccess::QueryStatus => ServiceAccess::QUERY_STATUS,
+                        crate::config::ServiceAccess::Start => ServiceAccess::START,
+                        crate::config::ServiceAccess::Stop => ServiceAccess::STOP,
+                        crate::config::ServiceAccess::PauseContinue => {
+                            ServiceAccess::PAUSE_CONTINUE
+                        }
+                        crate::config::ServiceAccess::Interrogate => ServiceAccess::INTERROGATE,
+                        crate::config::ServiceAccess::Delete => ServiceAccess::DELETE,
+                        crate::config::ServiceAccess::QueryConfig => ServiceAccess::QUERY_CONFIG,
+                        crate::config::ServiceAccess::ChangeConfig => ServiceAccess::CHANGE_CONFIG,
+                    }
+                }
+                service.grant_user_access(trustee, service_access)?;
+            }
         }
         self.add_environment_variables()?;
         Ok(())
@@ -263,11 +298,11 @@ impl Manager for ServiceManager {
 
     fn uninstall(&self) -> Result<()> {
         if self.config.is_user() {
-            let current_service_name = match self.current_service_name()? {
-                Some(name) => name,
-                None => return Ok(()),
+            if let Some(current_service_name) = self.current_service_name()? {
+                self.delete_service(&current_service_name, ServiceType::USER_OWN_PROCESS)?;
             };
-            self.delete_service(&current_service_name, ServiceType::USER_OWN_PROCESS)?;
+            // Still attempt to delete the service template if the user service wasn't found
+            // Could be that the user service wasn't created yet
         }
         let name = self.config.name.clone();
         self.delete_service(&name, ServiceType::OWN_PROCESS)?;

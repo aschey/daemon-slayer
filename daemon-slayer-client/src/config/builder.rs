@@ -8,6 +8,7 @@ use crate::platform::ServiceManager;
 use crate::Level;
 
 use super::SystemdConfig;
+use super::WindowsConfig;
 
 #[derive(Clone)]
 pub struct Builder {
@@ -23,6 +24,8 @@ pub struct Builder {
     pub(crate) autostart: bool,
     #[cfg_attr(not(platform = "linux"), allow(unused))]
     pub(crate) systemd_config: SystemdConfig,
+    #[cfg_attr(not(windows), allow(unused))]
+    pub(crate) windows_config: WindowsConfig,
 }
 
 impl Builder {
@@ -38,6 +41,7 @@ impl Builder {
             autostart: false,
             env_vars: vec![],
             systemd_config: SystemdConfig::default(),
+            windows_config: WindowsConfig::default(),
         }
     }
 
@@ -90,6 +94,13 @@ impl Builder {
     pub fn with_systemd_config(self, systemd_config: SystemdConfig) -> Self {
         Self {
             systemd_config,
+            ..self
+        }
+    }
+
+    pub fn with_windows_config(self, windows_config: WindowsConfig) -> Self {
+        Self {
+            windows_config,
             ..self
         }
     }

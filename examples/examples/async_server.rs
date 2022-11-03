@@ -16,8 +16,7 @@ use daemon_slayer::cli::Cli;
 use daemon_slayer::ipc_health_check;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{
-    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Receiver, Service,
-    ServiceContext,
+    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Service, ServiceContext,
 };
 use daemon_slayer::signals::SignalHandlerBuilderTrait;
 use futures::{SinkExt, StreamExt};
@@ -79,7 +78,7 @@ impl Handler for ServiceHandler {
         on_started();
         let mut signal_rx = self.signal_store.subscribe_events();
         loop {
-            match tokio::time::timeout(Duration::from_secs(1), signal_rx.recv()).await {
+            match tokio::time::timeout(Duration::from_secs(1), signal_rx.next()).await {
                 Ok(_) => {
                     info!("stopping service");
                     return Ok(());

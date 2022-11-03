@@ -1,4 +1,5 @@
 use daemon_slayer::client::cli::ClientCliProvider;
+use daemon_slayer::client::config::{ServiceAccess, Trustee, WindowsConfig};
 use daemon_slayer::client::{Level, Manager, ServiceManager};
 use daemon_slayer::console::cli::ConsoleCliProvider;
 use daemon_slayer::console::Console;
@@ -20,8 +21,7 @@ use daemon_slayer::cli::{ActionType, Cli};
 use daemon_slayer::ipc_health_check;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{
-    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Receiver, Service,
-    ServiceContext,
+    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Service, ServiceContext,
 };
 use daemon_slayer::signals::SignalHandlerBuilderTrait;
 use futures::{SinkExt, StreamExt};
@@ -44,6 +44,10 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         } else {
             Level::User
         })
+        .with_windows_config(WindowsConfig::default().with_additional_access(
+            Trustee::CurrentUser,
+            ServiceAccess::Start | ServiceAccess::Stop,
+        ))
         .build()?;
 
     let health_check = IpcHealthCheck::new("daemon_slayer_errors");
@@ -123,7 +127,7 @@ impl Handler for ServiceHandler {
                 error!("An error occurred");
                 return Err("Something bad happened")?;
             }
-            match tokio::time::timeout(Duration::from_secs(1), signal_rx.recv()).await {
+            match tokio::time::timeout(Duration::from_secs(1), signal_rx.next()).await {
                 Ok(_) => {
                     info!("stopping service");
                     return Ok(());

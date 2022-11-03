@@ -6,9 +6,9 @@ use daemon_slayer::error_handler::ErrorHandler;
 use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
+use daemon_slayer::server::futures::StreamExt;
 use daemon_slayer::server::{
-    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Receiver, Service,
-    ServiceContext,
+    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Service, ServiceContext,
 };
 use daemon_slayer::signals::{
     Signal, SignalHandler, SignalHandlerBuilder, SignalHandlerBuilderTrait,
@@ -103,7 +103,7 @@ impl Handler for ServiceHandler {
             .add_service(GreeterServer::new(greeter))
             .add_service(health_service)
             .serve_with_shutdown(addr, async {
-                shutdown_rx.recv().await;
+                shutdown_rx.next().await;
             })
             .await?;
 

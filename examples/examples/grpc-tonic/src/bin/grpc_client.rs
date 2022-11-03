@@ -5,7 +5,11 @@ use daemon_slayer::{
         clap::{Arg, Command},
         Cli, InputState,
     },
-    client::{cli::ClientCliProvider, Level, Manager, ServiceManager},
+    client::{
+        cli::ClientCliProvider,
+        config::{ServiceAccess, Trustee, WindowsConfig},
+        Level, Manager, ServiceManager,
+    },
     console::{cli::ConsoleCliProvider, Console},
     error_handler::ErrorHandler,
     health_check::{cli::HealthCheckCliProvider, GrpcHealthCheck},
@@ -38,6 +42,10 @@ async fn run_async() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         } else {
             Level::User
         })
+        .with_windows_config(WindowsConfig::default().with_additional_access(
+            Trustee::CurrentUser,
+            ServiceAccess::Start | ServiceAccess::Stop,
+        ))
         .with_args(["run"])
         .build()?;
 
