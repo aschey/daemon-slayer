@@ -15,6 +15,7 @@ tauri-build = {version = "1.1", features = [] }
 
 [dependencies]
 daemon-slayer-client = {path = "../../daemon-slayer-client"}
+daemon-slayer-health-check = {path = "../../daemon-slayer-health-check", features = ["http-health-check"] }
 serde = {version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tauri = {version = "1.1", features = ["api-all", "system-tray"] }

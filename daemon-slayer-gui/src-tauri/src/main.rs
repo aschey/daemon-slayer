@@ -1,6 +1,8 @@
 use std::{env::args, os, sync::Arc, time::Duration};
 
-use daemon_slayer_client::{Level, Manager, ServiceManager, State as ServiceState};
+use daemon_slayer_client::{Info, Level, Manager, ServiceManager, State as ServiceState};
+use daemon_slayer_health_check::HealthCheck;
+use daemon_slayer_health_check::{HttpHealthCheck, HttpRequestType};
 use tauri::{
     api, tauri_build_context, CustomMenuItem, Manager as TauriManager, RunEvent, State, SystemTray,
     SystemTrayEvent, SystemTrayMenu, WindowBuilder, WindowEvent, WindowUrl,
@@ -8,29 +10,18 @@ use tauri::{
 use tauri_plugin_positioner::{on_tray_event, Position, WindowExt};
 use tracing_ipc::run_ipc_client;
 
-#[derive(Clone, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Payload {
-    service_state: String,
-}
-
 #[derive(Clone)]
 struct ManagerWrapper {
     manager: ServiceManager,
 }
 
 impl ManagerWrapper {
-    fn get_service_state(&self) -> String {
-        let state = self.manager.info().unwrap().state;
-        match state {
-            ServiceState::Started => "started".to_string(),
-            ServiceState::Stopped => "stopped".to_string(),
-            ServiceState::NotInstalled => "not_installed".to_string(),
-        }
+    fn get_service_info(&self) -> Info {
+        self.manager.info().unwrap()
     }
 
     fn get_start_stop_text(&self) -> &str {
-        if self.get_service_state() == "started" {
+        if self.get_service_info().state == daemon_slayer_client::State::Started {
             "Stop"
         } else {
             "Start"
@@ -38,7 +29,7 @@ impl ManagerWrapper {
     }
 
     fn toggle(&self) {
-        if self.get_service_state() == "started" {
+        if self.get_service_info().state == daemon_slayer_client::State::Started {
             self.manager.stop().unwrap();
         } else {
             self.manager.start().unwrap();
@@ -69,6 +60,7 @@ fn main() {
     let tray_quit = CustomMenuItem::new("quit".to_string(), "Quit");
 
     let tray_menu = SystemTrayMenu::new()
+        .add_item(CustomMenuItem::new("status", "").disabled())
         .add_item(tray_open)
         .add_item(tray_start_stop)
         .add_item(tray_restart)
@@ -78,7 +70,7 @@ fn main() {
     let manager_ = manager.clone();
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![toggle, restart, get_service_state])
+        .invoke_handler(tauri::generate_handler![toggle, restart, get_service_info])
         .plugin(tauri_plugin_positioner::init())
         .system_tray(system_tray)
         .setup(move |app| {
@@ -96,6 +88,7 @@ fn main() {
                 .build()
                 .unwrap()
             });
+
             let (log_tx, mut log_rx) = tokio::sync::mpsc::channel(32);
             tauri::async_runtime::spawn(async move {
                 run_ipc_client("daemon_slayer_axum", log_tx).await;
@@ -106,19 +99,30 @@ fn main() {
                     win_.emit("log", log).unwrap();
                 }
             });
+            let tray_handle = app.tray_handle();
+            let status_handle = tray_handle.get_item("status");
             tauri::async_runtime::spawn(async move {
-                let mut state = manager_.get_service_state();
-                loop {
-                    let new_state = manager_.get_service_state();
-                    if new_state != state {
-                        state = new_state;
-                        win.emit(
-                            "service_state",
-                            Payload {
-                                service_state: state.clone(),
-                            },
-                        )
+                let mut info = manager_.get_service_info();
+                let mut health_check =
+                    HttpHealthCheck::new(HttpRequestType::Get, "http://127.0.0.1:3000/health")
                         .unwrap();
+                loop {
+                    let new_info = manager_.get_service_info();
+                    if new_info != info {
+                        info = new_info;
+                        win.emit("service_info", info.clone()).unwrap();
+                    }
+                    if info.state == daemon_slayer_client::State::Started {
+                        match health_check.invoke().await {
+                            Ok(_) => {
+                                status_handle.set_title("✓ Healthy").unwrap();
+                            }
+                            Err(_) => {
+                                status_handle.set_title("✕ Unhealthy").unwrap();
+                            }
+                        };
+                    } else {
+                        status_handle.set_title("■ Stopped").unwrap();
                     }
 
                     tokio::time::sleep(Duration::from_secs(1)).await;
@@ -184,6 +188,6 @@ fn restart(manager: State<ManagerWrapper>) {
 }
 
 #[tauri::command]
-fn get_service_state(manager: State<ManagerWrapper>) -> String {
-    manager.get_service_state()
+fn get_service_info(manager: State<ManagerWrapper>) -> daemon_slayer_client::Info {
+    manager.get_service_info()
 }

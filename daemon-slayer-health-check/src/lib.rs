@@ -12,3 +12,5 @@ mod ipc;
 pub use ipc::*;
 #[cfg(feature = "cli")]
 pub mod cli;
+
+pub use daemon_slayer_core::health_check::HealthCheck;

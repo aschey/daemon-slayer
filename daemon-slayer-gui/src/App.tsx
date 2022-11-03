@@ -13,15 +13,30 @@ import toast from "solid-toast";
 import { createVirtualizer } from "@tanstack/solid-virtual";
 import { debounce } from "@solid-primitives/scheduled";
 
-type LogMessage = {
+interface LogMessage {
   spans: { css: string; text: string }[];
-};
+}
+
+type State = "Started" | "Stopped" | "NotInstalled";
+
+interface ServiceInfo {
+  state: State;
+  autostart?: boolean;
+  pid?: number;
+  last_exit_code?: number;
+}
 
 function App() {
-  const [serviceState, setServiceState] = createSignal("");
+  const [serviceState, setServiceState] = createSignal<ServiceInfo>({
+    state: "NotInstalled",
+    autostart: undefined,
+    pid: undefined,
+    last_exit_code: undefined,
+  });
   const [panelHeight, setPanelHeight] = createSignal(window.innerHeight - 130);
   const [atBottom, setAtBottom] = createSignal(true);
   const [scrollPos, setScrollPos] = createSignal(0);
+  const [programmaticScroll, setProgrammaticScroll] = createSignal(false);
   const [logs, setLogs] = createSignal<LogMessage[]>([]);
   const theme = useTheme();
 
@@ -42,23 +57,34 @@ function App() {
     });
   }, 20);
 
-  onMount(async () => {
-    parentRef?.addEventListener("scroll", function (el) {
-      setAtBottom(
-        parentRef!.scrollTop + parentRef!.clientHeight ==
-          parentRef!.scrollHeight
+  const handleScroll = debounce(() => {
+    if (!programmaticScroll()) {
+      console.log(
+        parentRef!.scrollHeight,
+        parentRef!.scrollTop + parentRef!.clientHeight
       );
-      setScrollPos(parentRef!.scrollTop);
-    });
+      setAtBottom(
+        parentRef!.scrollTop + parentRef!.clientHeight >=
+          parentRef!.scrollHeight - 20
+      );
+    } else {
+      setProgrammaticScroll(false);
+    }
+
+    setScrollPos(parentRef!.scrollTop);
+  }, 10);
+
+  onMount(async () => {
+    parentRef?.addEventListener("scroll", handleScroll);
     addEventListener("resize", () => {
       updateSizes();
       setPanelHeight(window.innerHeight - 130);
     });
 
-    setServiceState(await invoke<string>("get_service_state"));
+    setServiceState(await invoke<ServiceInfo>("get_service_info"));
 
-    await listen<{ serviceState: string }>("service_state", (event) =>
-      setServiceState(event.payload.serviceState)
+    await listen<ServiceInfo>("service_info", (event) =>
+      setServiceState(event.payload)
     );
 
     await listen<string>("log", (event) => {
@@ -89,7 +115,7 @@ function App() {
     });
 
   const getButtonText = () => {
-    return serviceState() === "started" ? "Stop" : "Start";
+    return serviceState().state === "Started" ? "Stop" : "Start";
   };
 
   return (
@@ -99,7 +125,9 @@ function App() {
           onClick={() => {
             invoke("toggle");
             notify(
-              `Service ${serviceState() === "started" ? "stopped" : "started"}`
+              `Service ${
+                serviceState().state === "Started" ? "stopped" : "started"
+              }`
             );
           }}
         >
