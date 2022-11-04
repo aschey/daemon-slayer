@@ -36,7 +36,7 @@ impl daemon_slayer_core::server::BackgroundService for FileWatcher {
                 Vec<notify::Error>,
             >| {
                 let e = events.unwrap().into_iter().map(|e| e.path).collect();
-                file_tx_.send(e);
+                file_tx_.send(e).unwrap();
             },
         )
         .unwrap();

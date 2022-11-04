@@ -139,9 +139,9 @@ impl<'a> Console<'a> {
                     self.is_healthy = is_healthy;
                 }
                 maybe_event = event_reader.next() => {
-                    match maybe_event {
-                        Some(Ok(event)) => {
-                            if let Event::Key(key) = event {
+                    if let Some(event) = maybe_event {
+                        match event {
+                            Ok(Event::Key(key)) => {
                                 match (key.modifiers, key.code) {
                                     (_, KeyCode::Char('q') | KeyCode::Esc) |
                                         (KeyModifiers::CONTROL, KeyCode::Char('c')) => return Ok(()),
@@ -185,9 +185,9 @@ impl<'a> Console<'a> {
                                     _ => {}
                                 }
                             }
+                            _ => {}
+                            Err(e) => return Ok(())
                         }
-                        None => {}
-                        _ => return Ok(())
                     }
                 },
                 _ =  tokio::time::sleep(Duration::from_millis(1000)) => {},

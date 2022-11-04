@@ -25,7 +25,7 @@ impl ArgMatchesExt for clap::ArgMatches {
                 help_text: _,
                 hide: _,
             } => self.subcommand().map(|r| r.0) == Some(name),
-            CommandType::Default => !self.args_present() && self.subcommand() == None,
+            CommandType::Default => !self.args_present() && self.subcommand().is_none(),
         }
     }
 }

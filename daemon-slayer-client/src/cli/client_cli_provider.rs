@@ -111,14 +111,12 @@ impl ClientCliProvider {
         action: ClientAction,
         command_type: impl Into<Option<CommandType>>,
     ) -> Self {
-        match command_type.into() {
-            Some(command_type) => {
-                self.commands.insert(action, command_type);
-            }
-            None => {
-                self.commands.remove(&action);
-            }
+        if let Some(command_type) = command_type.into() {
+            self.commands.insert(action, command_type);
+        } else {
+            self.commands.remove(&action);
         }
+
         self
     }
 }
