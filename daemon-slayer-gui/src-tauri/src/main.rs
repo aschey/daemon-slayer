@@ -1,3 +1,4 @@
+use std::sync::RwLock;
 use std::{env::args, os, sync::Arc, time::Duration};
 
 use daemon_slayer_client::{Info, Level, Manager, ServiceManager, State as ServiceState};
@@ -28,11 +29,19 @@ impl ManagerWrapper {
         }
     }
 
-    fn toggle(&self) {
+    fn toggle_start_stop(&self) {
         if self.get_service_info().state == daemon_slayer_client::State::Started {
             self.manager.stop().unwrap();
         } else {
             self.manager.start().unwrap();
+        }
+    }
+
+    fn toggle_enable_disable(&mut self) {
+        if self.get_service_info().autostart == Some(true) {
+            self.manager.set_autostart_enabled(false).unwrap();
+        } else {
+            self.manager.set_autostart_enabled(true).unwrap();
         }
     }
 
@@ -42,7 +51,7 @@ impl ManagerWrapper {
 }
 
 fn main() {
-    let manager = ManagerWrapper {
+    let manager = Arc::new(RwLock::new(ManagerWrapper {
         manager: ServiceManager::builder(args().nth(1).unwrap())
             .with_service_level(if cfg!(windows) {
                 Level::System
@@ -51,26 +60,28 @@ fn main() {
             })
             .build()
             .unwrap(),
-    };
-
-    let tray_open = CustomMenuItem::new("open".to_string(), "Open");
-    let tray_start_stop =
-        CustomMenuItem::new("start_stop".to_string(), manager.get_start_stop_text());
-    let tray_restart = CustomMenuItem::new("restart".to_string(), "Restart");
-    let tray_quit = CustomMenuItem::new("quit".to_string(), "Quit");
+    }));
 
     let tray_menu = SystemTrayMenu::new()
         .add_item(CustomMenuItem::new("status", "").disabled())
-        .add_item(tray_open)
-        .add_item(tray_start_stop)
-        .add_item(tray_restart)
-        .add_item(tray_quit);
+        .add_item(CustomMenuItem::new("open".to_string(), "Open"))
+        .add_item(CustomMenuItem::new(
+            "start_stop".to_string(),
+            manager.read().unwrap().get_start_stop_text(),
+        ))
+        .add_item(CustomMenuItem::new("restart".to_string(), "Restart"))
+        .add_item(CustomMenuItem::new("quit".to_string(), "Quit"));
 
     let system_tray = SystemTray::new().with_menu(tray_menu);
     let manager_ = manager.clone();
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![toggle, restart, get_service_info])
+        .invoke_handler(tauri::generate_handler![
+            toggle_start_stop,
+            toggle_enable_disable,
+            restart,
+            get_service_info
+        ])
         .plugin(tauri_plugin_positioner::init())
         .system_tray(system_tray)
         .setup(move |app| {
@@ -102,12 +113,12 @@ fn main() {
             let tray_handle = app.tray_handle();
             let status_handle = tray_handle.get_item("status");
             tauri::async_runtime::spawn(async move {
-                let mut info = manager_.get_service_info();
+                let mut info = manager_.read().unwrap().get_service_info();
                 let mut health_check =
                     HttpHealthCheck::new(HttpRequestType::Get, "http://127.0.0.1:3000/health")
                         .unwrap();
                 loop {
-                    let new_info = manager_.get_service_info();
+                    let new_info = manager_.read().unwrap().get_service_info();
                     if new_info != info {
                         info = new_info;
                         win.emit("service_info", info.clone()).unwrap();
@@ -140,7 +151,7 @@ fn main() {
         .on_system_tray_event(move |app, event| {
             app.tray_handle()
                 .get_item("start_stop")
-                .set_title(manager.get_start_stop_text())
+                .set_title(manager.read().unwrap().get_start_stop_text())
                 .unwrap();
             on_tray_event(app, &event);
             let win = app.get_window("main").unwrap();
@@ -162,10 +173,10 @@ fn main() {
                         win.show().unwrap();
                     }
                     "start_stop" => {
-                        manager.toggle();
+                        manager.read().unwrap().toggle_start_stop();
                     }
                     "restart" => {
-                        manager.restart();
+                        manager.read().unwrap().restart();
                     }
                     "quit" => {
                         app.exit(0);
@@ -179,16 +190,21 @@ fn main() {
 }
 
 #[tauri::command]
-fn toggle(manager: State<ManagerWrapper>) {
-    manager.toggle();
+fn toggle_start_stop(manager: State<Arc<RwLock<ManagerWrapper>>>) {
+    manager.read().unwrap().toggle_start_stop();
 }
 
 #[tauri::command]
-fn restart(manager: State<ManagerWrapper>) {
-    manager.restart();
+fn toggle_enable_disable(manager: State<Arc<RwLock<ManagerWrapper>>>) {
+    manager.write().unwrap().toggle_enable_disable();
 }
 
 #[tauri::command]
-fn get_service_info(manager: State<ManagerWrapper>) -> daemon_slayer_client::Info {
-    manager.get_service_info()
+fn restart(manager: State<Arc<RwLock<ManagerWrapper>>>) {
+    manager.read().unwrap().restart();
+}
+
+#[tauri::command]
+fn get_service_info(manager: State<Arc<RwLock<ManagerWrapper>>>) -> daemon_slayer_client::Info {
+    manager.read().unwrap().get_service_info()
 }

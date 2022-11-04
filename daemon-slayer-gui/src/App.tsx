@@ -114,8 +114,12 @@ function App() {
       },
     });
 
-  const getButtonText = () => {
+  const getStartStopText = () => {
     return serviceState().state === "Started" ? "Stop" : "Start";
+  };
+
+  const getEnableDisableText = () => {
+    return serviceState().autostart ? "Disable" : "Enable";
   };
 
   const labelWidth = "150px";
@@ -154,7 +158,7 @@ function App() {
         <Group>
           <Button
             onClick={() => {
-              invoke("toggle");
+              invoke("toggle_start_stop");
               notify(
                 `Service ${
                   serviceState().state === "Started" ? "stopped" : "started"
@@ -162,15 +166,25 @@ function App() {
               );
             }}
           >
-            {getButtonText()}
+            {getStartStopText()}
           </Button>
           <Button
-            onClick={() => {
-              invoke("restart");
+            onClick={async () => {
+              await invoke("restart");
               notify("Service restarted");
             }}
           >
             Restart
+          </Button>
+          <Button
+            onClick={async () => {
+              await invoke("toggle_enable_disable");
+              notify(
+                `Service ${serviceState().autostart ? "disabled" : "enabled"}`
+              );
+            }}
+          >
+            {getEnableDisableText()}
           </Button>
         </Group>
       </div>
