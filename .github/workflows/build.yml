@@ -26,11 +26,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: cache-${{ hashFiles('**/Cargo.toml') }}
-      - name: Install Gtk (ubuntu only)
+      - name: Install extra deps (ubuntu only)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev
+          sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libayatana-appindicator3-dev librsvg2-dev
       - name: test
         env:
           PROTOC: ${{ github.workspace }}/protoc/bin/protoc
@@ -39,5 +39,4 @@ jobs:
           unzip protoc-3.19.4-${{ matrix.protoc-target }}.zip -d "${{ github.workspace }}/protoc"
           cargo install cargo-make
           cargo make build-all
-          cargo make build-examples
           ${{ matrix.cargo }} test --workspace -- --nocapture
