@@ -133,7 +133,7 @@ function App() {
           "justify-content": "space-between",
         }}
       >
-        <Card>
+        <Card minimal>
           <div>
             <AlignedLabel width={labelWidth}>State: </AlignedLabel>
             <div />
