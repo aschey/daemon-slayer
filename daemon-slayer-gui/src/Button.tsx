@@ -2,6 +2,9 @@ import { styled } from "solid-styled-components";
 
 export const Button = styled.button`
   border-radius: 8px;
+  display: flex;
+  align-items: center;
+  height: 32px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
