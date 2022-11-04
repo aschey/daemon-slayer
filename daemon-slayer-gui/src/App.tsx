@@ -1,7 +1,6 @@
 import { createEffect, createSignal, JSX, onMount } from "solid-js";
 import logo from "./assets/logo.svg";
 import { invoke } from "@tauri-apps/api/tauri";
-import "./App.css";
 import { Group } from "./Group";
 import { Button } from "./Button";
 import { Tab, TabBar, TabContent, Tabs } from "./Tabs";
@@ -12,6 +11,7 @@ import { useTheme } from "solid-styled-components";
 import toast from "solid-toast";
 import { createVirtualizer } from "@tanstack/solid-virtual";
 import { debounce } from "@solid-primitives/scheduled";
+import { AlignedLabel } from "./AlignedLabel";
 
 interface LogMessage {
   spans: { css: string; text: string }[];
@@ -33,7 +33,7 @@ function App() {
     pid: undefined,
     last_exit_code: undefined,
   });
-  const [panelHeight, setPanelHeight] = createSignal(window.innerHeight - 130);
+  const [panelHeight, setPanelHeight] = createSignal(window.innerHeight - 220);
   const [atBottom, setAtBottom] = createSignal(true);
   const [scrollPos, setScrollPos] = createSignal(0);
   const [programmaticScroll, setProgrammaticScroll] = createSignal(false);
@@ -78,7 +78,7 @@ function App() {
     parentRef?.addEventListener("scroll", handleScroll);
     addEventListener("resize", () => {
       updateSizes();
-      setPanelHeight(window.innerHeight - 130);
+      setPanelHeight(window.innerHeight - 220);
     });
 
     setServiceState(await invoke<ServiceInfo>("get_service_info"));
@@ -118,30 +118,63 @@ function App() {
     return serviceState().state === "Started" ? "Stop" : "Start";
   };
 
+  const labelWidth = "150px";
+
   return (
     <>
-      <Group style={{ "padding-bottom": "5px" }}>
-        <Button
-          onClick={() => {
-            invoke("toggle");
-            notify(
-              `Service ${
-                serviceState().state === "Started" ? "stopped" : "started"
-              }`
-            );
-          }}
-        >
-          {getButtonText()}
-        </Button>
-        <Button
-          onClick={() => {
-            invoke("restart");
-            notify("Service restarted");
-          }}
-        >
-          Restart
-        </Button>
-      </Group>
+      <div
+        style={{
+          display: "flex",
+          "padding-bottom": "5px",
+          "justify-content": "space-between",
+        }}
+      >
+        <Card>
+          <div>
+            <AlignedLabel width={labelWidth}>State: </AlignedLabel>
+            <div />
+          </div>
+          <div>
+            <AlignedLabel width={labelWidth}>Autostart: </AlignedLabel>
+            <div />
+          </div>
+          <div>
+            <AlignedLabel width={labelWidth}>Health: </AlignedLabel>
+            <div />
+          </div>
+          <div>
+            <AlignedLabel width={labelWidth}>Exit Code: </AlignedLabel>
+            <div />
+          </div>
+          <div>
+            <AlignedLabel width={labelWidth}>PID: </AlignedLabel>
+            <div />
+          </div>
+        </Card>
+        <Group>
+          <Button
+            onClick={() => {
+              invoke("toggle");
+              notify(
+                `Service ${
+                  serviceState().state === "Started" ? "stopped" : "started"
+                }`
+              );
+            }}
+          >
+            {getButtonText()}
+          </Button>
+          <Button
+            onClick={() => {
+              invoke("restart");
+              notify("Service restarted");
+            }}
+          >
+            Restart
+          </Button>
+        </Group>
+      </div>
+
       <Tabs default="logs">
         <TabBar>
           <Tab value="logs">Logs</Tab>

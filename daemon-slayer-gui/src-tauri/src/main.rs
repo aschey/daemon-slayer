@@ -146,18 +146,19 @@ fn main() {
             let win = app.get_window("main").unwrap();
 
             if let SystemTrayEvent::LeftClick { .. } = event {
-                if win.is_visible().unwrap() {
+                let size = win.inner_size().unwrap();
+
+                if win.is_visible().unwrap() && size.width > 0 && size.height > 0 {
                     win.hide().unwrap();
                 } else {
-                    win.move_window(Position::TrayCenter).unwrap();
+                    win.unminimize().unwrap();
                     win.show().unwrap();
                 }
             }
             if let SystemTrayEvent::MenuItemClick { id, .. } = event {
                 match id.as_str() {
                     "open" => {
-                        #[cfg(not(target_os = "linux"))]
-                        win.move_window(Position::TrayCenter).unwrap();
+                        win.unminimize().unwrap();
                         win.show().unwrap();
                     }
                     "start_stop" => {

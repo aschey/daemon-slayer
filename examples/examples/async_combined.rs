@@ -49,7 +49,7 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         })
         .with_windows_config(WindowsConfig::default().with_additional_access(
             Trustee::CurrentUser,
-            ServiceAccess::Start | ServiceAccess::Stop,
+            ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
         ))
         .build()?;
 

@@ -23,6 +23,7 @@ enum ServiceAccessMode {
     Read,
     Write,
     Execute,
+    ChangeConfig,
 }
 
 #[derive(Clone)]
@@ -123,6 +124,11 @@ impl ServiceManager {
                 service,
                 match mode {
                     ServiceAccessMode::Write => ServiceAccess::all(),
+                    ServiceAccessMode::ChangeConfig => {
+                        ServiceAccess::QUERY_CONFIG
+                            | ServiceAccess::QUERY_STATUS
+                            | ServiceAccess::CHANGE_CONFIG
+                    }
                     ServiceAccessMode::Read => {
                         ServiceAccess::QUERY_CONFIG | ServiceAccess::QUERY_STATUS
                     }
@@ -341,7 +347,7 @@ impl Manager for ServiceManager {
     }
 
     fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
-        let service = self.open_base_service(ServiceAccessMode::Write)?;
+        let service = self.open_base_service(ServiceAccessMode::ChangeConfig)?;
         self.config.autostart = enabled;
         service.change_config(&self.get_service_info())?;
         Ok(())
