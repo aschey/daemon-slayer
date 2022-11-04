@@ -126,9 +126,11 @@ fn main() {
                     if info.state == daemon_slayer_client::State::Started {
                         match health_check.invoke().await {
                             Ok(_) => {
+                                win.emit("healthy", true).unwrap();
                                 status_handle.set_title("✓ Healthy").unwrap();
                             }
                             Err(_) => {
+                                win.emit("healthy", false).unwrap();
                                 status_handle.set_title("✕ Unhealthy").unwrap();
                             }
                         };

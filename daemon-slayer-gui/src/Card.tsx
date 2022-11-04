@@ -1,11 +1,13 @@
 import { JSX } from "solid-js/jsx-runtime";
 import { styled } from "solid-styled-components";
 
-export const Card = (props: {
+interface CardProps
+  extends JSX.DOMAttributes<HTMLDivElement>,
+    JSX.HTMLAttributes<HTMLDivElement> {
   minimal?: boolean;
-  style?: JSX.CSSProperties;
-  children: JSX.Element;
-}) => {
+}
+
+export const Card = (props: CardProps) => {
   const Container = styled.div`
     background: ${(styledProps) =>
       props.minimal
@@ -18,5 +20,5 @@ export const Card = (props: {
         ? `2px solid ${styledProps.theme?.colors.primary}`
         : undefined};
   `;
-  return <Container style={props.style}>{props.children}</Container>;
+  return <Container {...props}>{props.children}</Container>;
 };

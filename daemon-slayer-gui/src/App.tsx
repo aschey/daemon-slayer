@@ -27,7 +27,7 @@ interface ServiceInfo {
 }
 
 function App() {
-  const [serviceState, setServiceState] = createSignal<ServiceInfo>({
+  const [serviceInfo, setServiceInfo] = createSignal<ServiceInfo>({
     state: "NotInstalled",
     autostart: undefined,
     pid: undefined,
@@ -37,6 +37,7 @@ function App() {
   const [atBottom, setAtBottom] = createSignal(true);
   const [scrollPos, setScrollPos] = createSignal(0);
   const [programmaticScroll, setProgrammaticScroll] = createSignal(false);
+  const [healthy, setHealthy] = createSignal(false);
   const [logs, setLogs] = createSignal<LogMessage[]>([]);
   const theme = useTheme();
 
@@ -59,10 +60,6 @@ function App() {
 
   const handleScroll = debounce(() => {
     if (!programmaticScroll()) {
-      console.log(
-        parentRef!.scrollHeight,
-        parentRef!.scrollTop + parentRef!.clientHeight
-      );
       setAtBottom(
         parentRef!.scrollTop + parentRef!.clientHeight >=
           parentRef!.scrollHeight - 20
@@ -81,11 +78,13 @@ function App() {
       setPanelHeight(window.innerHeight - 220);
     });
 
-    setServiceState(await invoke<ServiceInfo>("get_service_info"));
+    setServiceInfo(await invoke<ServiceInfo>("get_service_info"));
 
     await listen<ServiceInfo>("service_info", (event) =>
-      setServiceState(event.payload)
+      setServiceInfo(event.payload)
     );
+
+    await listen<boolean>("healthy", (event) => setHealthy(event.payload));
 
     await listen<string>("log", (event) => {
       const parsedLog = parse(event.payload).spans.map((s, i) => {
@@ -115,11 +114,11 @@ function App() {
     });
 
   const getStartStopText = () => {
-    return serviceState().state === "Started" ? "Stop" : "Start";
+    return serviceInfo().state === "Started" ? "Stop" : "Start";
   };
 
   const getEnableDisableText = () => {
-    return serviceState().autostart ? "Disable" : "Enable";
+    return serviceInfo().autostart ? "Disable" : "Enable";
   };
 
   const labelWidth = "150px";
@@ -136,23 +135,23 @@ function App() {
         <Card minimal>
           <div>
             <AlignedLabel width={labelWidth}>State: </AlignedLabel>
-            <div />
+            <span>{serviceInfo().state}</span>
           </div>
           <div>
             <AlignedLabel width={labelWidth}>Autostart: </AlignedLabel>
-            <div />
+            <span>{serviceInfo().autostart ? "enabled" : "disabled"}</span>
           </div>
           <div>
             <AlignedLabel width={labelWidth}>Health: </AlignedLabel>
-            <div />
+            <span>{healthy() ? "healthy" : "unhealthy"}</span>
           </div>
           <div>
             <AlignedLabel width={labelWidth}>Exit Code: </AlignedLabel>
-            <div />
+            <span>{serviceInfo().last_exit_code ?? "N/A"}</span>
           </div>
           <div>
             <AlignedLabel width={labelWidth}>PID: </AlignedLabel>
-            <div />
+            <span>{serviceInfo().pid ?? "N/A"}</span>
           </div>
         </Card>
         <Group>
@@ -161,7 +160,7 @@ function App() {
               invoke("toggle_start_stop");
               notify(
                 `Service ${
-                  serviceState().state === "Started" ? "stopped" : "started"
+                  serviceInfo().state === "Started" ? "stopped" : "started"
                 }`
               );
             }}
@@ -180,7 +179,7 @@ function App() {
             onClick={async () => {
               await invoke("toggle_enable_disable");
               notify(
-                `Service ${serviceState().autostart ? "disabled" : "enabled"}`
+                `Service ${serviceInfo().autostart ? "disabled" : "enabled"}`
               );
             }}
           >
