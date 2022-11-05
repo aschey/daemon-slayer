@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     error::Error,
     io::{stderr, stdout},
 };
@@ -29,6 +30,18 @@ pub fn init_local_time() {
     LOCAL_TIME.get_or_init(OffsetTime::local_rfc_3339);
 }
 
+#[derive(Hash, Eq, PartialEq, Clone)]
+pub enum LogTarget {
+    File,
+    EventLog,
+    JournalD,
+    OsLog,
+    Stdout,
+    Stderr,
+    Ipc,
+}
+
+#[derive(Clone)]
 pub struct LoggerBuilder {
     name: String,
     #[cfg(feature = "file")]
@@ -37,6 +50,7 @@ pub struct LoggerBuilder {
     output_buffer_limit: usize,
     default_log_level: tracing::Level,
     level_filter: LevelFilter,
+    target_directives: HashMap<LogTarget, Vec<Directive>>,
     env_filter_directives: Vec<Directive>,
     log_to_stdout: bool,
     log_to_stderr: bool,
@@ -58,18 +72,9 @@ impl LoggerBuilder {
             log_to_stdout: false,
             log_to_stderr: true,
             enable_ipc_logger: false,
+            target_directives: Default::default(),
             env_filter_directives: vec![],
         }
-    }
-
-    pub fn for_server(name: impl Into<String>) -> Self {
-        Self::new(name)
-    }
-
-    pub fn for_client(name: impl Into<String>) -> Self {
-        let mut builder = Self::new(name);
-        builder.log_to_stderr = false;
-        builder
     }
 
     #[cfg(feature = "file")]
@@ -118,6 +123,28 @@ impl LoggerBuilder {
         self
     }
 
+    pub fn with_target_directive(mut self, target: LogTarget, directive: Directive) -> Self {
+        if let Some(directives) = self.target_directives.get_mut(&target) {
+            directives.push(directive);
+        } else {
+            self.target_directives.insert(target, vec![directive]);
+        }
+        self
+    }
+
+    fn get_filter_for_target(&self, target: LogTarget) -> EnvFilter {
+        if let Some(directives) = self.target_directives.get(&target) {
+            let mut env_filter =
+                EnvFilter::from_default_env().add_directive(self.default_log_level.into());
+            for directive in directives {
+                env_filter = env_filter.add_directive(directive.clone());
+            }
+            env_filter
+        } else {
+            EnvFilter::from_default_env().add_directive(self.level_filter.into())
+        }
+    }
+
     pub fn register(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
         #[cfg(all(windows, feature = "windows-eventlog"))]
         {
@@ -147,7 +174,7 @@ impl LoggerBuilder {
         ),
         Box<dyn Error + Send + Sync>,
     > {
-        let offset = match (self.timezone, LOCAL_TIME.get()) {
+        let offset = match (&self.timezone, LOCAL_TIME.get()) {
             (Timezone::Local, Some(Ok(offset))) => offset.to_owned(),
             (Timezone::Local, Some(Err(e))) => {
                 println!("Error getting local time: {e}");
@@ -158,8 +185,8 @@ impl LoggerBuilder {
 
         let mut env_filter =
             EnvFilter::from_default_env().add_directive(self.default_log_level.into());
-        for directive in self.env_filter_directives {
-            env_filter = env_filter.add_directive(directive);
+        for directive in &self.env_filter_directives {
+            env_filter = env_filter.add_directive(directive.clone());
         }
 
         let collector = tracing_subscriber::registry().with(env_filter);
@@ -213,9 +240,9 @@ impl LoggerBuilder {
                     .with_thread_names(true)
                     .with_writer(non_blocking_stdout)
                     .with_filter(if self.log_to_stdout {
-                        self.level_filter
+                        self.get_filter_for_target(LogTarget::Stdout)
                     } else {
-                        LevelFilter::OFF
+                        EnvFilter::from_default_env().add_directive(LevelFilter::OFF.into())
                     })
             })
             .with({
@@ -226,9 +253,9 @@ impl LoggerBuilder {
                     .with_thread_names(true)
                     .with_writer(non_blocking_stderr)
                     .with_filter(if self.log_to_stderr {
-                        self.level_filter
+                        self.get_filter_for_target(LogTarget::Stderr)
                     } else {
-                        LevelFilter::OFF
+                        EnvFilter::from_default_env().add_directive(LevelFilter::OFF.into())
                     })
             })
             .with(tracing_error::ErrorLayer::default());
@@ -249,14 +276,27 @@ impl LoggerBuilder {
                 .with_thread_ids(true)
                 .with_thread_names(true)
                 .with_writer(ipc_writer)
-                .with_filter(tracing_ipc::Filter::new(self.level_filter))
+                .with_filter(tracing_ipc::Filter::new(
+                    self.get_filter_for_target(LogTarget::Ipc),
+                ))
         });
 
-        #[cfg(all(target_os = "linux", feature = "journald"))]
-        let collector = collector.with(tracing_journald::layer()?);
+        #[cfg(all(target_os = "linux", feature = "linux-journald"))]
+        let collector = collector.with(
+            tracing_journald::layer()?.with_filter(self.get_filter_for_target(LogTarget::JournalD)),
+        );
 
-        #[cfg(all(windows, feature = "eventlog"))]
-        let collector = collector.with(tracing_eventlog::EventLogLayer::pretty(self.name)?);
+        #[cfg(all(target_os = "macos", feature = "mac-oslog"))]
+        let collector = collector.with(
+            tracing_oslog::OsLogger::new(self.name.clone(), "default")
+                .with_filter(self.get_filter_for_target(LogTarget::OsLog)),
+        );
+
+        #[cfg(all(windows, feature = "windows-eventlog"))]
+        let collector = collector.with(
+            tracing_eventlog::EventLogLayer::pretty(self.name.clone())?
+                .with_filter(self.get_filter_for_target(LogTarget::EventLog)),
+        );
 
         Ok((collector, guard))
     }

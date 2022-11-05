@@ -1,6 +1,8 @@
 use daemon_slayer::client::{Manager, ServiceManager};
+use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::ErrorHandler;
 use daemon_slayer::health_check::IpcHealthCheck;
+use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::signals::{Signal, SignalHandler, SignalHandlerBuilder};
 use std::env::args;
@@ -31,17 +33,21 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let (logger, _guard) = LoggerBuilder::for_server("daemon_slayer_async_server")
-        .with_ipc_logger(true)
-        .build()?;
-    ErrorHandler::for_server().install()?;
+    let logger_builder = LoggerBuilder::new("daemon_slayer_async_server").with_ipc_logger(true);
 
-    logger.init();
-    let (cli, command) = Cli::builder()
+    let logging_provider = LoggingCliProvider::new(logger_builder);
+
+    let cli = Cli::builder()
+        .with_default_server_commands()
         .with_provider(ServerCliProvider::<ServiceHandler>::default())
+        .with_provider(logging_provider.clone())
+        .with_provider(ErrorHandlerCliProvider::default())
         .build();
-    let matches = command.get_matches();
-    cli.handle_input(&matches).await;
+
+    let (logger, _guard) = logging_provider.get_logger();
+    logger.init();
+
+    cli.handle_input().await;
 
     Ok(())
 }

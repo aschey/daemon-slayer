@@ -9,8 +9,6 @@ daemon-slayer-core = {path = "../daemon-slayer-core", features = ["server"]}
 daemon-slayer-macros = {path = "../daemon-slayer-macros"}
 futures = {version = "0.3"}
 once_cell = "1"
-strum = {version = "0.24.1", features = ["strum_macros"]}
-strum_macros = "0.24.3"
 tap = "1"
 tracing = "0.1"
 

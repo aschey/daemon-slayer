@@ -3,8 +3,9 @@ use axum::extract::{Path, State};
 use axum::routing::get;
 use axum::Router;
 use daemon_slayer::client::{Manager, ServiceManager};
-use daemon_slayer::error_handler::ErrorHandler;
+use daemon_slayer::error_handler::{cli::ErrorHandlerCliProvider, ErrorHandler};
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
+use daemon_slayer::logging::LogTarget;
 use daemon_slayer::signals::{Signal, SignalHandler, SignalHandlerBuilder};
 use std::env::args;
 use std::error::Error;
@@ -16,7 +17,7 @@ use std::time::{Duration, Instant};
 
 use daemon_slayer::cli::Cli;
 use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
-use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
+use daemon_slayer::logging::{cli::LoggingCliProvider, LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{
     cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Service, ServiceContext,
 };
@@ -36,20 +37,26 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let (logger, _guard) = LoggerBuilder::for_server("daemon_slayer_axum")
+    let logger_builder = LoggerBuilder::new("daemon_slayer_axum")
         .with_default_log_level(tracing::Level::TRACE)
         .with_level_filter(LevelFilter::TRACE)
+        .with_target_directive(LogTarget::EventLog, LevelFilter::INFO.into())
         .with_env_filter_directive("sqlx=info".parse()?)
-        .with_ipc_logger(true)
-        .build()?;
-    logger.init();
-    ErrorHandler::for_server().install()?;
+        .with_ipc_logger(true);
 
-    let (mut cli, command) = Cli::builder()
+    let logging_provider = LoggingCliProvider::new(logger_builder);
+
+    let cli = Cli::builder()
+        .with_default_server_commands()
         .with_provider(ServerCliProvider::<ServiceHandler>::default())
+        .with_provider(logging_provider.clone())
+        .with_provider(ErrorHandlerCliProvider::default())
         .build();
-    let matches = command.get_matches();
-    cli.handle_input(&matches).await;
+
+    let (logger, _guard) = logging_provider.get_logger();
+    logger.init();
+
+    cli.handle_input().await;
 
     Ok(())
 }
@@ -71,11 +78,11 @@ impl Handler for ServiceHandler {
                 signal_store: signal_store.clone(),
             }))
             .await;
-        let (file_watcher_client, file_watcher_events) = context
-            .add_event_service::<FileWatcher>(
-                FileWatcherBuilder::default().with_watch_path(PathBuf::from("./Cargo.toml")),
-            )
-            .await;
+        // let (file_watcher_client, file_watcher_events) = context
+        //     .add_event_service::<FileWatcher>(
+        //         FileWatcherBuilder::default().with_watch_path(PathBuf::from("../Cargo.toml")),
+        //     )
+        //     .await;
 
         Self {
             signal_store,
@@ -94,7 +101,6 @@ impl Handler for ServiceHandler {
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         info!("running service");
 
-        let signal_store = self.signal_store.clone();
         let app = Router::with_state(self.task_queue_client)
             .route("/hello/:name", get(greeter))
             .route("/task", get(start_task))

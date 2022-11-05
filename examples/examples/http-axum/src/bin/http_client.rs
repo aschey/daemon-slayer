@@ -11,9 +11,11 @@ use daemon_slayer::{
         Level, Manager, ServiceManager,
     },
     console::{cli::ConsoleCliProvider, Console},
-    error_handler::ErrorHandler,
+    error_handler::{cli::ErrorHandlerCliProvider, ErrorHandler},
     health_check::{cli::HealthCheckCliProvider, HttpHealthCheck, HttpRequestType},
-    logging::tracing_subscriber::util::SubscriberInitExt,
+    logging::{
+        cli::LoggingCliProvider, tracing_subscriber::util::SubscriberInitExt, LoggerBuilder,
+    },
 };
 
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -23,11 +25,6 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let (logger, _guard) =
-        daemon_slayer::logging::LoggerBuilder::for_client("daemon_slayer_axum").build()?;
-    logger.init();
-    ErrorHandler::for_client().install()?;
-
     let manager = ServiceManager::builder("daemon_slayer_axum")
         .with_description("test service")
         .with_program(current_exe().unwrap().parent().unwrap().join("http_server"))
@@ -51,16 +48,21 @@ async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let mut console = Console::new(manager.clone());
     console.add_health_check(Box::new(health_check.clone()));
-    let (cli, command) = Cli::builder()
+    let logging_provider = LoggingCliProvider::new(LoggerBuilder::new("daemon_slayer_axum"));
+    let cli = Cli::builder()
         .with_base_command(command)
+        .with_default_client_commands()
         .with_provider(ClientCliProvider::new(manager.clone()))
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(HealthCheckCliProvider::new(health_check))
+        .with_provider(ErrorHandlerCliProvider::default())
+        .with_provider(logging_provider.clone())
         .build();
 
-    let matches = command.get_matches();
+    let (logger, _guard) = logging_provider.get_logger();
+    logger.init();
 
-    if let InputState::Unhandled = cli.handle_input(&matches).await {
+    if let (InputState::Unhandled, matches) = cli.handle_input().await {
         if let Some(("hello", args)) = matches.subcommand() {
             let unknown = "unknown".to_string();
             let name = args.get_one::<String>("name").unwrap_or(&unknown);

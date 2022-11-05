@@ -6,6 +6,7 @@ use daemon_slayer::console::Console;
 use daemon_slayer::error_handler::{self, ErrorHandler};
 use daemon_slayer::health_check::cli::HealthCheckCliProvider;
 use daemon_slayer::health_check::IpcHealthCheck;
+use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::signals::{Signal, SignalHandler, SignalHandlerBuilder};
 use std::env::args;
@@ -50,6 +51,9 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         ))
         .build()?;
 
+    let logger_builder = LoggerBuilder::new("daemon_slayer_custom_command").with_ipc_logger(true);
+    let logging_provider = LoggingCliProvider::new(logger_builder);
+
     let health_check = IpcHealthCheck::new("daemon_slayer_custom_command");
 
     let mut console = Console::new(manager.clone());
@@ -64,40 +68,20 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
                 .help("custom arg"),
         );
 
-    let (cli, command) = Cli::builder()
+    let cli = Cli::builder()
         .with_base_command(base_command)
+        .with_default_server_commands()
+        .with_default_client_commands()
         .with_provider(ClientCliProvider::new(manager.clone()))
         .with_provider(ServerCliProvider::<ServiceHandler>::default())
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(HealthCheckCliProvider::new(health_check))
         .build();
 
-    let matches = command.get_matches();
-
-    let (logger, _guard, error_handler) = match cli.action_type(&matches) {
-        ActionType::Server => {
-            let (logger, guard) = LoggerBuilder::for_server("daemon_slayer_custom_command")
-                .with_ipc_logger(true)
-                .build()?;
-            (logger, guard, ErrorHandler::for_server())
-        }
-        ActionType::Client => {
-            let (logger, guard) = LoggerBuilder::for_client("daemon_slayer_custom_command")
-                .with_ipc_logger(true)
-                .build()?;
-            (logger, guard, ErrorHandler::for_client())
-        }
-        ActionType::Unknown => {
-            let (logger, guard) = LoggerBuilder::new("daemon_slayer_custom_command")
-                .with_ipc_logger(true)
-                .build()?;
-            (logger, guard, ErrorHandler::default())
-        }
-    };
+    let (logger, _guard) = logging_provider.get_logger();
     logger.init();
-    error_handler.install().unwrap();
 
-    if cli.handle_input(&matches).await == InputState::Unhandled {
+    if let (InputState::Unhandled, matches) = cli.handle_input().await {
         if let Some(("custom", _)) = matches.subcommand() {
             println!("matched custom command");
         }

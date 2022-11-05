@@ -7,6 +7,9 @@ pub use input_state::*;
 mod action_type;
 pub use action_type::*;
 
+mod action;
+pub use action::*;
+
 mod command_type;
 pub use command_type::*;
 

@@ -12,8 +12,10 @@ use daemon_slayer::cli::Cli;
 use daemon_slayer::client::cli::ClientCliProvider;
 use daemon_slayer::client::{Manager, ServiceManager};
 
+use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::ErrorHandler;
 use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
+use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
 use daemon_slayer::client::Level;
@@ -40,21 +42,23 @@ pub async fn main() {
     }
 
     let manager = manager_builder.build().unwrap();
+    let logger_builder =
+        LoggerBuilder::new(ServiceHandler::get_service_name()).with_ipc_logger(true);
+    let logging_provider = LoggingCliProvider::new(logger_builder);
 
-    let (cli, command) = Cli::builder()
+    let cli = Cli::builder()
+        .with_default_client_commands()
+        .with_default_server_commands()
         .with_provider(ClientCliProvider::new(manager))
         .with_provider(ServerCliProvider::<ServiceHandler>::default())
+        .with_provider(ErrorHandlerCliProvider::default())
+        .with_provider(logging_provider.clone())
         .build();
 
-    let (logger, _guard) = LoggerBuilder::for_server(ServiceHandler::get_service_name())
-        .with_ipc_logger(true)
-        .build()
-        .unwrap();
+    let (logger, _guard) = logging_provider.get_logger();
     logger.init();
-    ErrorHandler::for_server().install().unwrap();
 
-    let matches = command.get_matches();
-    cli.handle_input(&matches).await;
+    cli.handle_input().await;
 }
 
 #[derive(daemon_slayer::server::Service)]

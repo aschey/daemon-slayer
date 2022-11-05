@@ -6,9 +6,11 @@ use daemon_slayer::client::{
 };
 use daemon_slayer::console::cli::ConsoleCliProvider;
 use daemon_slayer::console::Console;
+use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::{self, ErrorHandler};
 use daemon_slayer::health_check::cli::HealthCheckCliProvider;
 use daemon_slayer::health_check::IpcHealthCheck;
+use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::signals::{Signal, SignalHandler, SignalHandlerBuilder};
 use std::env::args;
@@ -53,42 +55,28 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         ))
         .build()?;
 
+    let logger_builder = LoggerBuilder::new("daemon_slayer_async_combined").with_ipc_logger(true);
+    let logging_provider = LoggingCliProvider::new(logger_builder);
+
     let health_check = IpcHealthCheck::new("daemon_slayer_async_combined");
 
     let mut console = Console::new(manager.clone());
     console.add_health_check(Box::new(health_check.clone()));
-    let (cli, command) = Cli::builder()
+    let cli = Cli::builder()
+        .with_default_client_commands()
+        .with_default_server_commands()
         .with_provider(ClientCliProvider::new(manager.clone()))
         .with_provider(ServerCliProvider::<ServiceHandler>::default())
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(HealthCheckCliProvider::new(health_check))
+        .with_provider(logging_provider.clone())
+        .with_provider(ErrorHandlerCliProvider::default())
         .build();
 
-    let matches = command.get_matches();
+    let (logger, _guard) = logging_provider.get_logger();
 
-    let (logger, _guard, error_handler) = match cli.action_type(&matches) {
-        ActionType::Server => {
-            let (logger, guard) = LoggerBuilder::for_server("daemon_slayer_async_combined")
-                .with_ipc_logger(true)
-                .build()?;
-            (logger, guard, ErrorHandler::for_server())
-        }
-        ActionType::Client => {
-            let (logger, guard) = LoggerBuilder::for_client("daemon_slayer_async_combined")
-                .with_ipc_logger(true)
-                .build()?;
-            (logger, guard, ErrorHandler::for_client())
-        }
-        ActionType::Unknown => {
-            let (logger, guard) = LoggerBuilder::new("daemon_slayer_async_combined")
-                .with_ipc_logger(true)
-                .build()?;
-            (logger, guard, ErrorHandler::default())
-        }
-    };
     logger.init();
-    error_handler.install().unwrap();
-    cli.handle_input(&matches).await;
+    cli.handle_input().await;
 
     Ok(())
 }

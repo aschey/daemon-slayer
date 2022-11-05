@@ -348,8 +348,30 @@ impl Manager for ServiceManager {
 
     fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
         let service = self.open_base_service(ServiceAccessMode::ChangeConfig)?;
-        self.config.autostart = enabled;
-        service.change_config(&self.get_service_info())?;
+        let mut config = service.query_config()?;
+        config.start_type = if enabled {
+            ServiceStartType::AutoStart
+        } else {
+            ServiceStartType::OnDemand
+        };
+        let exe_string = config.executable_path.to_string_lossy().to_string();
+        let mut parts = exe_string.split(' ');
+
+        let exe_path = parts.next().unwrap();
+        let args = parts.collect::<Vec<_>>();
+        let info = ServiceInfo {
+            name: (&self.config.name).into(),
+            display_name: config.display_name,
+            service_type: config.service_type,
+            start_type: config.start_type,
+            error_control: config.error_control,
+            executable_path: exe_path.into(),
+            launch_arguments: args.iter().map(Into::into).collect(),
+            dependencies: config.dependencies,
+            account_name: config.account_name,
+            account_password: None,
+        };
+        service.change_config(&info)?;
         Ok(())
     }
 

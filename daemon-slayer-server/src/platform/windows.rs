@@ -28,6 +28,7 @@ async fn get_service_main_impl<T: crate::handler::Handler + Send>() {
 
             // Handle stop
             crate::windows_service::service::ServiceControl::Stop => {
+                info!("Received stop command from service manager");
                 if let Err(e) = signal_tx.send(Signal::SIGINT) {
                     error!("Error sending stop signal: {e:?}");
                 }
@@ -50,6 +51,7 @@ async fn get_service_main_impl<T: crate::handler::Handler + Send>() {
     };
     let status_handle_ = status_handle.clone();
     let on_started = move || {
+        info!("Setting status to 'running'");
         if let Err(e) = status_handle_.lock().unwrap().set_service_status(
             crate::windows_service::service::ServiceStatus {
                 service_type: crate::windows_service::service::ServiceType::OWN_PROCESS,

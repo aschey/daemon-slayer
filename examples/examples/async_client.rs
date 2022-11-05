@@ -11,9 +11,11 @@ use daemon_slayer::{
         Level, Manager, ServiceManager,
     },
     console::{cli::ConsoleCliProvider, Console},
-    error_handler::ErrorHandler,
+    error_handler::{cli::ErrorHandlerCliProvider, ErrorHandler},
     health_check::{cli::HealthCheckCliProvider, HttpHealthCheck, HttpRequestType, IpcHealthCheck},
-    logging::tracing_subscriber::util::SubscriberInitExt,
+    logging::{
+        cli::LoggingCliProvider, tracing_subscriber::util::SubscriberInitExt, LoggerBuilder,
+    },
 };
 
 pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -23,9 +25,8 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let (logger, _guard) =
-        daemon_slayer::logging::LoggerBuilder::for_client("daemon_slayer_async_server").build()?;
-    ErrorHandler::for_client().install()?;
+    let logger_builder = LoggerBuilder::new("daemon_slayer_async_server");
+    let logging_provider = LoggingCliProvider::new(logger_builder);
     let manager = ServiceManager::builder("daemon_slayer_async_server")
         .with_description("test service")
         .with_program(
@@ -46,19 +47,23 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         ))
         .with_args(["run"])
         .build()?;
-    logger.init();
 
     let health_check = IpcHealthCheck::new("daemon_slayer_async_server");
 
     let mut console = Console::new(manager.clone());
     console.add_health_check(Box::new(health_check.clone()));
-    let (cli, command) = Cli::builder()
+    let cli = Cli::builder()
+        .with_default_client_commands()
         .with_provider(ClientCliProvider::new(manager.clone()))
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(HealthCheckCliProvider::new(health_check))
+        .with_provider(logging_provider.clone())
+        .with_provider(ErrorHandlerCliProvider::default())
         .build();
 
-    let matches = command.get_matches();
-    cli.handle_input(&matches).await;
+    let (logger, _guard) = logging_provider.get_logger();
+    logger.init();
+
+    cli.handle_input().await;
     Ok(())
 }

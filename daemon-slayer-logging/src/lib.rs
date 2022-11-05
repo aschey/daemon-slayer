@@ -1,3 +1,5 @@
+#[cfg(feature = "cli")]
+pub mod cli;
 mod logger_builder;
 mod logger_guard;
 pub use logger_builder::*;

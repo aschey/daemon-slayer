@@ -7,12 +7,12 @@ use daemon_slayer::{
 };
 
 pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let (logger, _guard) = LoggerBuilder::for_server("daemon_slayer_axum")
+    let (logger, _guard) = LoggerBuilder::new("daemon_slayer_axum")
         .with_default_log_level(tracing::Level::TRACE)
         .build()?;
 
     logger.init();
-    ErrorHandler::for_server().install()?;
+    ErrorHandler::default().install()?;
 
     let manager = ServiceManager::builder("daemon_slayer_axum")
         .with_description("test service")

@@ -1,42 +1,12 @@
-use daemon_slayer_core::cli::{ActionType, CommandProvider, InputState};
+use std::collections::HashMap;
 
-pub struct Builder {
-    base_command: clap::Command,
-    pub(crate) providers: Vec<Box<dyn CommandProvider>>,
-}
+use daemon_slayer_core::cli::{Action, ActionType, CommandProvider, CommandType, InputState};
 
-impl Default for Builder {
-    fn default() -> Self {
-        let base_command = clap::Command::default().arg_required_else_help(true);
-        Self {
-            base_command,
-            providers: Default::default(),
-        }
-    }
-}
-
-impl Builder {
-    pub fn with_base_command(mut self, command: clap::Command) -> Self {
-        self.base_command = command;
-        self
-    }
-    pub fn with_provider(mut self, provider: impl CommandProvider + 'static) -> Self {
-        self.providers.push(Box::new(provider));
-        self
-    }
-
-    pub fn build(self) -> (Cli, clap::Command) {
-        let mut command = self.base_command;
-        for provider in &self.providers {
-            command = provider.update_command(command);
-        }
-
-        (Cli::new(self.providers), command)
-    }
-}
+use crate::Builder;
 
 pub struct Cli {
-    pub(crate) providers: Vec<Box<dyn CommandProvider>>,
+    providers: Vec<Box<dyn CommandProvider>>,
+    matches: clap::ArgMatches,
 }
 
 impl Cli {
@@ -44,8 +14,14 @@ impl Cli {
         Builder::default()
     }
 
-    fn new(providers: Vec<Box<dyn CommandProvider>>) -> Self {
-        Self { providers }
+    pub(crate) fn new(
+        mut providers: Vec<Box<dyn CommandProvider>>,
+        matches: clap::ArgMatches,
+    ) -> Self {
+        for provider in &mut providers {
+            provider.initialize(&matches);
+        }
+        Self { providers, matches }
     }
 
     pub fn action_type(&self, matches: &clap::ArgMatches) -> ActionType {
@@ -58,12 +34,12 @@ impl Cli {
         ActionType::Unknown
     }
 
-    pub async fn handle_input(self, matches: &clap::ArgMatches) -> InputState {
+    pub async fn handle_input(self) -> (InputState, clap::ArgMatches) {
         for provider in self.providers {
-            if provider.handle_input(matches).await == InputState::Handled {
-                return InputState::Handled;
+            if provider.handle_input(&self.matches).await == InputState::Handled {
+                return (InputState::Handled, self.matches);
             }
         }
-        InputState::Unhandled
+        (InputState::Unhandled, self.matches)
     }
 }

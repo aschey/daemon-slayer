@@ -48,10 +48,12 @@ server-base = [
 
 cli = [
   "daemon-slayer-cli",
+  "daemon-slayer-logging/cli",
   "daemon-slayer-server/cli",
   "daemon-slayer-client/cli",
   "daemon-slayer-console/cli",
   "daemon-slayer-health-check/cli",
+  "daemon-slayer-error-handler/cli",
 ]
 client = ["daemon-slayer-client"]
 console = ["daemon-slayer-console"]

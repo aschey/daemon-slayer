@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{ActionType, ArgMatchesExt, CommandExt, CommandType, InputState};
+use super::{Action, ActionType, ArgMatchesExt, CommandExt, CommandType, InputState};
 
 #[async_trait::async_trait]
 pub trait CommandProvider {
@@ -9,6 +9,10 @@ pub trait CommandProvider {
     fn get_action_type(&self) -> ActionType;
 
     fn get_commands(&self) -> Vec<&CommandType>;
+
+    fn set_base_commands(&mut self, _: HashMap<Action, CommandType>) {}
+
+    fn initialize(&mut self, _: &clap::ArgMatches) {}
 
     fn update_command(&self, mut command: clap::Command) -> clap::Command {
         for command_type in self.get_commands() {
