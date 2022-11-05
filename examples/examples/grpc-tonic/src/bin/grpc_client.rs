@@ -11,9 +11,9 @@ use daemon_slayer::{
         Level, Manager, ServiceManager,
     },
     console::{cli::ConsoleCliProvider, Console},
-    error_handler::ErrorHandler,
+    error_handler::{cli::ErrorHandlerCliProvider, ErrorHandler},
     health_check::{cli::HealthCheckCliProvider, GrpcHealthCheck},
-    logging::tracing_subscriber::util::SubscriberInitExt,
+    logging::{cli::LoggingCliProvider, tracing_subscriber::util::SubscriberInitExt},
 };
 use hello_world::greeter_client::GreeterClient;
 use hello_world::HelloRequest;
@@ -29,10 +29,8 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 #[tokio::main]
 async fn run_async() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (logger, guard) =
-        daemon_slayer::logging::LoggerBuilder::for_client("daemon_slayer_tonic").build()?;
-    ErrorHandler::for_client().install()?;
-    logger.init();
+    let logger_builder = daemon_slayer::logging::LoggerBuilder::new("daemon_slayer_tonic");
+    let logging_provider = LoggingCliProvider::new(logger_builder);
 
     let manager = ServiceManager::builder("daemon_slayer_tonic")
         .with_description("test service")
@@ -57,16 +55,19 @@ async fn run_async() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let mut console = Console::new(manager.clone());
     console.add_health_check(Box::new(health_check.clone()));
-    let (mut cli, command) = Cli::builder()
+    let cli = Cli::builder()
         .with_base_command(command)
         .with_provider(ClientCliProvider::new(manager.clone()))
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(HealthCheckCliProvider::new(health_check))
-        .build();
+        .with_provider(logging_provider.clone())
+        .with_provider(ErrorHandlerCliProvider::default())
+        .initialize();
 
-    let matches = command.get_matches();
+    let (logger, _guard) = logging_provider.get_logger();
+    logger.init();
 
-    if cli.handle_input(&matches).await == InputState::Unhandled {
+    if let (InputState::Unhandled, matches) = cli.handle_input().await {
         if let Some(("hello", args)) = matches.subcommand() {
             let mut client = GreeterClient::connect("http://[::1]:50052").await?;
 

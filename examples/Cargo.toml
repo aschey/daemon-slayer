@@ -7,12 +7,12 @@ version = "0.1.0"
 [workspace]
 
 [dependencies]
-assert_cmd = "2.0.4"
-async-trait = {version = "0.1.57"}
-axum = "0.5.15"
+assert_cmd = "2.0.6"
+async-trait = {version = "0.1.58"}
+axum = "0.5.17"
 daemon-slayer = {path = "..", features = ["server-base", "client-base", "ipc-health-check", "http-health-check", "all-plugins"]}
-futures = {version = "0.3.23"}
-tokio = {version = "1.20.1", features = ["rt-multi-thread", "time", "macros"]}
-tonic = "0.8.1"
+futures = {version = "0.3.25"}
+tokio = {version = "1.21.2", features = ["rt-multi-thread", "time", "macros"]}
+tonic = "0.8.2"
 tower-http = {version = "0.3.4", features = ["trace"]}
-tracing = "0.1.36"
+tracing = "0.1.37"

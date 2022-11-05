@@ -57,7 +57,7 @@ async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         .with_provider(HealthCheckCliProvider::new(health_check))
         .with_provider(ErrorHandlerCliProvider::default())
         .with_provider(logging_provider.clone())
-        .build();
+        .initialize();
 
     let (logger, _guard) = logging_provider.get_logger();
     logger.init();

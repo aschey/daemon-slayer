@@ -5,17 +5,17 @@ publish = false
 version = "0.1.0"
 
 [dependencies]
-async-trait = "0.1.57"
-axum = "0.5.16"
+async-trait = "0.1.58"
+axum = "0.5.17"
 daemon-slayer = {path = "..", features = ["server-base", "client-base", "ipc-health-check", "all-plugins"]}
-futures = "0.3.24"
-reqwest = {version = "0.11.11", features = ["blocking"]}
-serde = "1.0.144"
-serde_derive = "1.0.144"
+futures = "0.3.25"
+reqwest = {version = "0.11.12", features = ["blocking"]}
+serde = "1.0.147"
+serde_derive = "1.0.147"
 tempfile = "3.3.0"
-tokio = {version = "1.21.0", features = ["rt-multi-thread"]}
+tokio = {version = "1.21.2", features = ["rt-multi-thread"]}
 toml = "0.5.8"
-tracing = "0.1.36"
+tracing = "0.1.37"
 
 [dev-dependencies]
-assert_cmd = "2.0.4"
+assert_cmd = "2.0.6"

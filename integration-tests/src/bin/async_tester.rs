@@ -53,7 +53,7 @@ pub async fn main() {
         .with_provider(ServerCliProvider::<ServiceHandler>::default())
         .with_provider(ErrorHandlerCliProvider::default())
         .with_provider(logging_provider.clone())
-        .build();
+        .initialize();
 
     let (logger, _guard) = logging_provider.get_logger();
     logger.init();

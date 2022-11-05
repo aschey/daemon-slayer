@@ -8,7 +8,7 @@ version = "0.1.0"
 [dependencies]
 aide-de-camp = {git = "https://github.com/aschey/aide-de-camp", rev = "a56f4b7160c224b3fd83e296895bbfff4fe873df"}
 aide-de-camp-sqlite = {git = "https://github.com/aschey/aide-de-camp", rev = "a56f4b7160c224b3fd83e296895bbfff4fe873df", default-features = false, features = ["rustls"]}
-async-trait = "0.1.57"
+async-trait = "0.1"
 daemon-slayer-core = {path = "../../daemon-slayer-core", features = ["server"]}
 log = "0.4"
 tokio = {version = "1", features = ["sync"]}

@@ -140,7 +140,7 @@ impl Builder {
         self
     }
 
-    pub fn build(mut self) -> Cli {
+    pub fn initialize(mut self) -> Cli {
         let mut command = self.base_command;
         for command_type in self.commands.values() {
             command = command.add_command_handler(command_type);

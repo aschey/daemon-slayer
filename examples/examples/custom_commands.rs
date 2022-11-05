@@ -76,7 +76,7 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         .with_provider(ServerCliProvider::<ServiceHandler>::default())
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(HealthCheckCliProvider::new(health_check))
-        .build();
+        .initialize();
 
     let (logger, _guard) = logging_provider.get_logger();
     logger.init();
