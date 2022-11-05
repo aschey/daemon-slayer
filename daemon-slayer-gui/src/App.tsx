@@ -33,7 +33,7 @@ function App() {
     pid: undefined,
     last_exit_code: undefined,
   });
-  const [panelHeight, setPanelHeight] = createSignal(window.innerHeight - 220);
+  const [panelHeight, setPanelHeight] = createSignal(window.innerHeight - 230);
   const [atBottom, setAtBottom] = createSignal(true);
   const [scrollPos, setScrollPos] = createSignal(0);
   const [programmaticScroll, setProgrammaticScroll] = createSignal(false);
