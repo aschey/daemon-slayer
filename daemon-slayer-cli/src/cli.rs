@@ -34,6 +34,10 @@ impl Cli {
         ActionType::Unknown
     }
 
+    pub fn get_matches(&self) -> &clap::ArgMatches {
+        &self.matches
+    }
+
     pub async fn handle_input(self) -> (InputState, clap::ArgMatches) {
         for provider in self.providers {
             if provider.handle_input(&self.matches).await == InputState::Handled {

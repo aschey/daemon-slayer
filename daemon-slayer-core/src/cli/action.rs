@@ -1,4 +1,3 @@
-use strum::EnumProperty;
 use strum_macros::{Display, EnumProperty, EnumString};
 
 use super::ActionType;
@@ -32,6 +31,7 @@ pub enum Action {
 
 impl Action {
     pub fn action_type(&self) -> ActionType {
+        use strum::EnumProperty;
         match self.get_str("Type").unwrap() {
             "client" => ActionType::Client,
             "server" => ActionType::Server,

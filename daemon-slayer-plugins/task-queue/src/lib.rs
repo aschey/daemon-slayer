@@ -9,7 +9,7 @@ pub use aide_de_camp::prelude::{Decode, Encode, JobError, RunnerRouter};
 pub use aide_de_camp::prelude::{JobProcessor, ShutdownOptions, Xid};
 pub use aide_de_camp::runner::job_event::JobEvent;
 pub use aide_de_camp_sqlite::sqlx::sqlite::SqliteConnectOptions;
-use daemon_slayer_core::server::{EventStore, Stream};
+use daemon_slayer_core::server::{EventStore, Stream, SubsystemHandle};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_stream::wrappers::BroadcastStream;
 
@@ -36,7 +36,7 @@ impl daemon_slayer_core::server::BackgroundService for TaskQueue {
     type Builder = TaskQueueBuilder;
     type Client = TaskQueueClient;
 
-    async fn run_service(builder: Self::Builder) -> Self {
+    async fn run_service(builder: Self::Builder, subsys: SubsystemHandle) -> Self {
         Self::from_builder(builder).await
     }
 

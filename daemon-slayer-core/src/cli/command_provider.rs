@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::{Action, ActionType, ArgMatchesExt, CommandExt, CommandType, InputState};
 
 #[async_trait::async_trait]
-pub trait CommandProvider {
+pub trait CommandProvider: Send {
     async fn handle_input(self: Box<Self>, matches: &clap::ArgMatches) -> InputState;
 
     fn get_action_type(&self) -> ActionType;

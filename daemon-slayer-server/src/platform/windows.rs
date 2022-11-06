@@ -1,5 +1,6 @@
+use daemon_slayer_core::server::{SubsystemHandle, Toplevel};
 use daemon_slayer_plugin_signals::{Signal, SignalHandler};
-use std::error::Error;
+use std::{error::Error, time::Duration};
 use tracing::{error, info};
 
 use crate::ServiceContext;
@@ -7,17 +8,30 @@ use crate::ServiceContext;
 const USER_OWN_PROCESS_TEMPLATE: u32 = 0x50;
 const USER_SHARE_PROCESS_TEMPLATE: u32 = 0x60;
 
-pub fn get_service_main<T: crate::Handler + Send>() {
+pub fn get_service_main<T: crate::Handler + Send + 'static>() {
     let rt = tokio::runtime::Runtime::new().expect("Tokio runtime failed to initialize");
-    rt.block_on(get_service_main_impl::<T>())
+    if let Err(e) = rt.block_on(get_service_main_impl::<T>()) {
+        error!("{e}");
+    }
 }
 
-async fn get_service_main_impl<T: crate::handler::Handler + Send>() {
+async fn get_service_main_impl<T: crate::handler::Handler + Send + 'static>(
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    Toplevel::new()
+        .start("service_main", run_subsys::<T>)
+        .handle_shutdown_requests(Duration::from_millis(5000))
+        .await?;
+    Ok(())
+}
+
+async fn run_subsys<T: crate::handler::Handler + Send + 'static>(
+    subsys: SubsystemHandle,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     set_env_vars::<T>();
     let (signal_tx, _) = tokio::sync::broadcast::channel(32);
     SignalHandler::set_sender(signal_tx.clone());
 
-    let mut context = ServiceContext::new();
+    let mut context = ServiceContext::new(subsys);
     let handler = T::new(&mut context).await;
 
     let windows_service_event_handler = move |control_event| -> crate::windows_service::service_control_handler::ServiceControlHandlerResult {
@@ -45,8 +59,7 @@ async fn get_service_main_impl<T: crate::handler::Handler + Send>() {
     ) {
         Ok(handle) => std::sync::Arc::new(std::sync::Mutex::new(handle)),
         Err(e) => {
-            error!("Error registering control handler {e}");
-            return;
+            return Err(format!("Error registering control handler {e}"))?;
         }
     };
     let status_handle_ = status_handle.clone();
@@ -95,6 +108,7 @@ async fn get_service_main_impl<T: crate::handler::Handler + Send>() {
     }
 
     drop(status_handle);
+    Ok(())
 }
 
 fn set_env_vars<T: crate::handler::Handler + Send>() {
@@ -128,9 +142,19 @@ fn set_env_vars<T: crate::handler::Handler + Send>() {
     }
 }
 
-pub async fn get_direct_handler<T: crate::handler::Handler + Send>(
+pub async fn get_direct_handler<T: crate::handler::Handler + Send + 'static>(
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let mut context = ServiceContext::new();
+    Toplevel::new()
+        .start("service_main", direct_subsys::<T>)
+        .handle_shutdown_requests(Duration::from_millis(5000))
+        .await?;
+    Ok(())
+}
+
+async fn direct_subsys<T: crate::handler::Handler + Send + 'static>(
+    subsys: SubsystemHandle,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut context = ServiceContext::new(subsys);
     let handler = T::new(&mut context).await;
 
     handler.run_service(|| {}).await?;

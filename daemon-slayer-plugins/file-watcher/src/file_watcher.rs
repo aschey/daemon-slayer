@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use daemon_slayer_core::server::BroadcastEventStore;
+use daemon_slayer_core::server::{BroadcastEventStore, FutureExt, SubsystemHandle};
 use notify::RecommendedWatcher;
 use notify_debouncer_mini::Debouncer;
 use tracing::{error, info};
@@ -25,7 +25,7 @@ impl daemon_slayer_core::server::BackgroundService for FileWatcher {
 
     type Client = FileWatcherClient;
 
-    async fn run_service(builder: Self::Builder) -> Self {
+    async fn run_service(builder: Self::Builder, subsys: SubsystemHandle) -> Self {
         let (file_tx, _) = tokio::sync::broadcast::channel(32);
         let file_tx_ = file_tx.clone();
         let mut debouncer = notify_debouncer_mini::new_debouncer(
@@ -54,12 +54,8 @@ impl daemon_slayer_core::server::BackgroundService for FileWatcher {
         }
         let (command_tx, mut command_rx) = tokio::sync::mpsc::channel(32);
         let handle = tokio::spawn(async move {
-            while let Some(command) = command_rx.recv().await {
+            while let Ok(Some(command)) = command_rx.recv().cancel_on_shutdown(&subsys).await {
                 match command {
-                    FileWatcherCommand::Stop => {
-                        debouncer.stop();
-                        return;
-                    }
                     FileWatcherCommand::Watch(path, recursive_mode) => {
                         debouncer.watcher().watch(&path, recursive_mode).unwrap()
                     }
@@ -68,6 +64,7 @@ impl daemon_slayer_core::server::BackgroundService for FileWatcher {
                     }
                 }
             }
+            debouncer.stop();
         });
 
         Self {
@@ -82,10 +79,6 @@ impl daemon_slayer_core::server::BackgroundService for FileWatcher {
     }
 
     async fn stop(self) {
-        self.command_tx
-            .send(FileWatcherCommand::Stop)
-            .await
-            .unwrap();
         self.handle.await.unwrap();
     }
 }

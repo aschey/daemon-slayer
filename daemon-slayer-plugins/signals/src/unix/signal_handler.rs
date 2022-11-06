@@ -1,4 +1,4 @@
-use daemon_slayer_core::server::BroadcastEventStore;
+use daemon_slayer_core::server::{BroadcastEventStore, SubsystemHandle};
 
 use crate::Signal;
 
@@ -18,7 +18,7 @@ impl daemon_slayer_core::server::BackgroundService for SignalHandler {
 
     type Client = SignalHandlerClient;
 
-    async fn run_service(builder: Self::Builder) -> Self {
+    async fn run_service(builder: Self::Builder, subsys: SubsystemHandle) -> Self {
         let signals = builder.signals;
         let signals_handle = signals.handle();
 
@@ -30,7 +30,11 @@ impl daemon_slayer_core::server::BackgroundService for SignalHandler {
             let mut signals = signals.fuse();
             while let Some(signal) = signals.next().await {
                 let signal_name = signal_hook::low_level::signal_name(signal).unwrap_or("unknown");
-                signal_tx_.send(signal_name.into()).unwrap();
+                let signal: Signal = signal_name.into();
+                signal_tx_.send(signal.clone()).ok();
+                if let Signal::SIGTERM | Signal::SIGQUIT | Signal::SIGINT = signal {
+                    subsys.request_global_shutdown();
+                }
             }
         });
         Self {

@@ -19,7 +19,8 @@ use daemon_slayer::cli::Cli;
 use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
 use daemon_slayer::logging::{cli::LoggingCliProvider, LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{
-    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Service, ServiceContext,
+    cli::ServerCliProvider, BroadcastEventStore, EventStore, FutureExt, Handler, Service,
+    ServiceContext, SubsystemHandle,
 };
 use daemon_slayer::signals::SignalHandlerBuilderTrait;
 use daemon_slayer::task_queue::{
@@ -63,19 +64,20 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[derive(daemon_slayer::server::Service)]
 pub struct ServiceHandler {
-    signal_store: BroadcastEventStore<Signal>,
+    subsys: SubsystemHandle,
     task_queue_client: TaskQueueClient,
 }
 
 #[async_trait::async_trait]
 impl Handler for ServiceHandler {
     async fn new(context: &mut ServiceContext) -> Self {
+        let subsys = context.get_subsystem_handle();
         let (_, signal_store) = context
             .add_event_service::<SignalHandler>(SignalHandlerBuilder::all())
             .await;
         let task_queue_client = context
             .add_service::<TaskQueue>(TaskQueueBuilder::default().with_job_handler(MyJob {
-                signal_store: signal_store.clone(),
+                subsys: subsys.clone(),
             }))
             .await;
         // let (file_watcher_client, file_watcher_events) = context
@@ -85,7 +87,7 @@ impl Handler for ServiceHandler {
         //     .await;
 
         Self {
-            signal_store,
+            subsys,
             task_queue_client,
         }
     }
@@ -96,46 +98,37 @@ impl Handler for ServiceHandler {
 
     async fn run_service<F: FnOnce() + Send>(
         mut self,
-        // context: ServiceContextAsync,
         on_started: F,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         info!("running service");
 
-        let app = Router::with_state(self.task_queue_client)
-            .route("/hello/:name", get(greeter))
-            .route("/task", get(start_task))
-            .route("/health", get(health))
-            .layer(TraceLayer::new_for_http());
-        let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+        self.subsys.start::<Box<dyn Error + Send + Sync>, _, _>(
+            "http_server",
+            |subsys| async move {
+                info!("running service");
 
+                let app = Router::with_state(self.task_queue_client)
+                    .route("/hello/:name", get(greeter))
+                    .route("/task", get(start_task))
+                    .route("/health", get(health))
+                    .layer(TraceLayer::new_for_http());
+                let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+
+                axum::Server::bind(&addr)
+                    .serve(app.into_make_service())
+                    .with_graceful_shutdown(async {
+                        subsys.on_shutdown_requested().await;
+                        info!("Got shutdown request");
+                    })
+                    .await?;
+                info!("Server terminated");
+                Ok(())
+            },
+        );
         on_started();
         info!("started");
-        let mut shutdown_rx = self.signal_store.subscribe_events();
-        let mut shutdown_rx_ = self.signal_store.subscribe_events();
 
-        let (finished_tx, mut finished_rx) = tokio::sync::mpsc::channel(32);
-        let handle = tokio::spawn(async move {
-            axum::Server::bind(&addr)
-                .serve(app.into_make_service())
-                .with_graceful_shutdown(async {
-                    let r = shutdown_rx_.next().await;
-                    info!("Got shutdown {r:?}");
-                })
-                .await
-                .unwrap();
-            finished_tx.send(()).await.unwrap();
-        });
-
-        tokio::select! {
-            _ = handle => {},
-            _ = shutdown_rx.next() => {
-                if (tokio::time::timeout(Duration::from_millis(100), finished_rx.recv()).await).is_err() {
-                    warn!("Server didn't shut down, forcing termination");
-                }
-            }
-        };
-
-        info!("Server terminated");
+        self.subsys.on_shutdown_requested().await;
         Ok(())
     }
 }
@@ -154,7 +147,7 @@ async fn health() -> &'static str {
 }
 
 struct MyJob {
-    signal_store: BroadcastEventStore<Signal>,
+    subsys: SubsystemHandle,
 }
 
 #[async_trait::async_trait]
@@ -163,17 +156,14 @@ impl JobProcessor for MyJob {
     type Error = anyhow::Error;
 
     async fn handle(&self, jid: Xid, payload: Self::Payload) -> Result<(), Self::Error> {
-        let mut event_rx = self.signal_store.subscribe_events();
         for _ in 0..10 {
-            tokio::select! {
-                _ = tokio::time::sleep(Duration::from_secs(1)) => {
-                    info!("Did a thing");
-                }
-                _ = event_rx.next() => {
-                    warn!("Job cancelled");
-                    return Ok(());
-                }
+            if let Err(e) = tokio::time::sleep(Duration::from_secs(1))
+                .cancel_on_shutdown(&self.subsys)
+                .await
+            {
+                warn!("job cancelled")
             }
+            info!("Did a thing");
         }
         Ok(())
     }
