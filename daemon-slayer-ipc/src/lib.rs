@@ -1,10 +1,11 @@
-use std::io;
-use std::time::Duration;
-
 use futures::future::Ready;
 use futures::stream::{AbortHandle, Abortable};
-use futures::{future, Sink, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt};
+use futures::{future, Future, Sink, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt};
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
+use std::io;
+use std::marker::PhantomData;
+use std::sync::Arc;
+use std::time::Duration;
 use tarpc::client::{self, Config, NewClient};
 use tarpc::context::{self, Context};
 use tarpc::serde::{Deserialize, Serialize};
@@ -17,8 +18,7 @@ use tarpc::tokio_util::codec::length_delimited::LengthDelimitedCodec;
 use tarpc::transport::channel::UnboundedChannel;
 use tarpc::{serde_transport as transport, ClientMessage, Response};
 use tokio::io::{AsyncRead, AsyncWrite};
-
-pub struct RpcService {}
+use tokio::sync::Mutex;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum TwoWayMessage<Req, Resp> {
@@ -26,44 +26,77 @@ pub enum TwoWayMessage<Req, Resp> {
     Response(tarpc::Response<Resp>),
 }
 
-impl RpcService {
-    pub fn spawn_server<Req, Resp, Service, MakeService, Codec, MakeCodec>(
-        id: String,
-        make_service: MakeService,
-        make_codec: MakeCodec,
-    ) where
-        Resp: Serialize + for<'de> Deserialize<'de> + Send + 'static,
-        Req: Serialize + for<'de> Deserialize<'de> + Send + 'static,
-        Service: Serve<Req, Resp = Resp> + Send + Clone + 'static,
-        Service::Fut: Send,
-        MakeCodec: Fn() -> Codec + Send + Sync + 'static,
-        MakeService: Fn(UnboundedChannel<Response<Resp>, ClientMessage<Req>>) -> Service
-            + Send
-            + Sync
-            + 'static,
-        Codec: Serializer<TwoWayMessage<Req, Resp>>
-            + Deserializer<TwoWayMessage<Req, Resp>>
-            + Unpin
-            + Default
-            + Send
-            + 'static,
-        std::io::Error: std::convert::From<
-            <Codec as tarpc::tokio_serde::Deserializer<TwoWayMessage<Req, Resp>>>::Error,
-        >,
-        std::io::Error: std::convert::From<
-            <Codec as tarpc::tokio_serde::Serializer<TwoWayMessage<Req, Resp>>>::Error,
-        >,
-    {
+pub trait ServiceFactory: Clone + Send + Sync + 'static
+where
+    std::io::Error: std::convert::From<
+        <Self::Codec as tarpc::tokio_serde::Deserializer<TwoWayMessage<Self::Req, Self::Resp>>>::Error,
+    >,
+    std::io::Error: std::convert::From<
+        <Self::Codec as tarpc::tokio_serde::Serializer<TwoWayMessage<Self::Req, Self::Resp>>>::Error,
+    >,
+{
+    type Resp: Serialize + for<'de> Deserialize<'de> + Send + Unpin + 'static;
+    type Req: Serialize + for<'de> Deserialize<'de> + Send + Unpin + 'static;
+    type Client: Clone + Send + 'static;
+
+    type Service: Serve<Self::Req, Resp = Self::Resp> + Send + Clone + 'static;
+
+    type Codec: Serializer<TwoWayMessage<Self::Req, Self::Resp>>
+        + Deserializer<TwoWayMessage<Self::Req, Self::Resp>>
+        + Unpin
+        + Default
+        + Send
+        + 'static;
+    fn make_service(&self, client: Self::Client) -> Self::Service;
+    fn make_client(
+        &self,
+        chan: UnboundedChannel<Response<Self::Resp>, ClientMessage<Self::Req>>,
+    ) -> Self::Client;
+    fn make_codec(&self) -> Self::Codec;
+}
+
+pub struct RpcService<F: ServiceFactory>
+where
+    <<F as ServiceFactory>::Service as tarpc::server::Serve<<F as ServiceFactory>::Req>>::Fut: Send,
+    std::io::Error: std::convert::From<
+        <F::Codec as tarpc::tokio_serde::Deserializer<TwoWayMessage<F::Req, F::Resp>>>::Error,
+    >,
+    std::io::Error: std::convert::From<
+        <F::Codec as tarpc::tokio_serde::Serializer<TwoWayMessage<F::Req, F::Resp>>>::Error,
+    >,
+{
+    id: String,
+    service_factory: F,
+}
+
+impl<F: ServiceFactory> RpcService<F>
+where
+    <<F as ServiceFactory>::Service as tarpc::server::Serve<<F as ServiceFactory>::Req>>::Fut: Send,
+    std::io::Error: std::convert::From<
+        <F::Codec as tarpc::tokio_serde::Deserializer<TwoWayMessage<F::Req, F::Resp>>>::Error,
+    >,
+    std::io::Error: std::convert::From<
+        <F::Codec as tarpc::tokio_serde::Serializer<TwoWayMessage<F::Req, F::Resp>>>::Error,
+    >,
+{
+    pub fn new(id: String, service_factory: F) -> Self {
+        Self {
+            id,
+            service_factory,
+        }
+    }
+    pub fn spawn_server(&self) {
         #[cfg(unix)]
-        let bind_addr = format!("/tmp/{id}_rpc.sock");
+        let bind_addr = format!("/tmp/{}_rpc.sock", self.id);
         #[cfg(windows)]
-        let bind_addr = format!("\\\\.\\pipe\\{id}_rpc");
+        let bind_addr = format!("\\\\.\\pipe\\{}_rpc", self.id);
 
         let mut endpoint = Endpoint::new(bind_addr);
 
         endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
         let mut codec_builder = LengthDelimitedCodec::builder();
         let incoming = endpoint.incoming().expect("failed to open new socket");
+        let service_factory = self.service_factory.clone();
         tokio::spawn(async move {
             incoming
                 .filter_map(|r| future::ready(r.ok()))
@@ -72,65 +105,37 @@ impl RpcService {
                         .max_frame_length(usize::MAX)
                         .new_framed(stream);
 
-                    let transport = transport::new(framed, make_codec());
+                    let transport = transport::new(framed, service_factory.make_codec());
 
                     let (server_chan, client_chan) = Self::spawn_twoway(transport);
-                    (BaseChannel::with_defaults(server_chan), client_chan)
+                    let peer = service_factory.make_client(client_chan);
+                    (BaseChannel::with_defaults(server_chan), peer)
                 })
-                .map(|(base_chan, client_chan)| base_chan.execute(make_service(client_chan)))
+                .map(|(base_chan, peer)| base_chan.execute(service_factory.make_service(peer)))
                 .buffer_unordered(10)
                 .for_each(|_| async {})
                 .await;
         });
     }
 
-    pub async fn get_client<Req, Resp, Service, MakeService, Codec, MakeCodec, MakeClient, Client>(
-        id: String,
-        make_service: MakeService,
-        make_client: MakeClient,
-        make_codec: MakeCodec,
-    ) -> Client
-    where
-        Resp: Serialize + for<'de> Deserialize<'de> + Send + 'static,
-        Req: Serialize + for<'de> Deserialize<'de> + Send + 'static,
-        Service: Serve<Req, Resp = Resp> + Send + Clone + 'static,
-        Service::Fut: Send,
-        Client: Clone + Send + 'static,
-        MakeCodec: Fn() -> Codec + Send + Sync + 'static,
-        MakeService: Fn(Client) -> Service + Send + Sync + 'static,
-        MakeClient: FnOnce(UnboundedChannel<Response<Resp>, ClientMessage<Req>>) -> Client
-            + Send
-            + Sync
-            + 'static,
-        Codec: Serializer<TwoWayMessage<Req, Resp>>
-            + Deserializer<TwoWayMessage<Req, Resp>>
-            + Unpin
-            + Default
-            + Send
-            + 'static,
-        std::io::Error: std::convert::From<
-            <Codec as tarpc::tokio_serde::Deserializer<TwoWayMessage<Req, Resp>>>::Error,
-        >,
-        std::io::Error: std::convert::From<
-            <Codec as tarpc::tokio_serde::Serializer<TwoWayMessage<Req, Resp>>>::Error,
-        >,
-    {
+    pub async fn get_client(&self) -> F::Client {
         #[cfg(unix)]
-        let bind_addr = format!("/tmp/{id}_rpc.sock");
+        let bind_addr = format!("/tmp/{id}_rpc.sock", self.id);
         #[cfg(windows)]
-        let bind_addr = format!("\\\\.\\pipe\\{id}_rpc");
+        let bind_addr = format!("\\\\.\\pipe\\{}_rpc", self.id);
         let conn = Endpoint::connect(bind_addr.to_string())
             .await
             .expect("Failed to connect client.");
         let mut codec_builder = LengthDelimitedCodec::builder();
         let framed = codec_builder.max_frame_length(usize::MAX).new_framed(conn);
 
-        let transport = transport::new(framed, make_codec());
+        let transport = transport::new(framed, self.service_factory.make_codec());
         let (server_chan, client_chan) = Self::spawn_twoway(transport);
-        let peer = make_client(client_chan);
+        let peer = self.service_factory.make_client(client_chan);
         let peer_ = peer.clone();
+        let service_factory = self.service_factory.clone();
         tokio::spawn(async move {
-            let service = make_service(peer_);
+            let service = service_factory.make_service(peer_);
             BaseChannel::with_defaults(server_chan)
                 .execute(service)
                 .await;
