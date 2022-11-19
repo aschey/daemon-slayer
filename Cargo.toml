@@ -13,6 +13,7 @@ members = [
   "daemon-slayer-logging",
   "daemon-slayer-console",
   "daemon-slayer-tray",
+  "daemon-slayer-ipc",
   "daemon-slayer-health-check",
   "daemon-slayer-error-handler",
   "daemon-slayer-gui/src-tauri",
