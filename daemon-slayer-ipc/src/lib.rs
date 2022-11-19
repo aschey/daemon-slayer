@@ -65,7 +65,7 @@ where
         <F::Codec as tarpc::tokio_serde::Serializer<TwoWayMessage<F::Req, F::Resp>>>::Error,
     >,
 {
-    id: String,
+    bind_addr: String,
     service_factory: F,
 }
 
@@ -80,19 +80,18 @@ where
     >,
 {
     pub fn new(id: String, service_factory: F) -> Self {
+        #[cfg(unix)]
+        let bind_addr = format!("/tmp/{}_rpc.sock", id);
+        #[cfg(windows)]
+        let bind_addr = format!("\\\\.\\pipe\\{}_rpc", id);
+
         Self {
-            id,
+            bind_addr,
             service_factory,
         }
     }
     pub fn spawn_server(&self) {
-        #[cfg(unix)]
-        let bind_addr = format!("/tmp/{}_rpc.sock", self.id);
-        #[cfg(windows)]
-        let bind_addr = format!("\\\\.\\pipe\\{}_rpc", self.id);
-
-        let mut endpoint = Endpoint::new(bind_addr);
-
+        let mut endpoint = Endpoint::new(self.bind_addr.clone());
         endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
         let mut codec_builder = LengthDelimitedCodec::builder();
         let incoming = endpoint.incoming().expect("failed to open new socket");
@@ -119,11 +118,7 @@ where
     }
 
     pub async fn get_client(&self) -> F::Client {
-        #[cfg(unix)]
-        let bind_addr = format!("/tmp/{id}_rpc.sock", self.id);
-        #[cfg(windows)]
-        let bind_addr = format!("\\\\.\\pipe\\{}_rpc", self.id);
-        let conn = Endpoint::connect(bind_addr.to_string())
+        let conn = Endpoint::connect(self.bind_addr.clone())
             .await
             .expect("Failed to connect client.");
         let mut codec_builder = LengthDelimitedCodec::builder();
