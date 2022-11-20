@@ -84,14 +84,9 @@ where
         <F::Codec as tarpc::tokio_serde::Serializer<TwoWayMessage<F::Req, F::Resp>>>::Error,
     >,
 {
-    pub fn new(id: String, service_factory: F) -> Self {
-        #[cfg(unix)]
-        let bind_addr = format!("/tmp/{}_rpc.sock", id);
-        #[cfg(windows)]
-        let bind_addr = format!("\\\\.\\pipe\\{}_rpc", id);
-
+    pub fn new(id: &str, service_factory: F) -> Self {
         Self {
-            bind_addr,
+            bind_addr: get_socket_address(id, "rpc"),
             service_factory,
         }
     }
@@ -105,11 +100,7 @@ where
             incoming
                 .filter_map(|r| future::ready(r.ok()))
                 .map(|stream| {
-                    let framed = codec_builder
-                        .max_frame_length(usize::MAX)
-                        .new_framed(stream);
-
-                    let transport = transport::new(framed, service_factory.make_codec());
+                    let transport = build_transport(stream, service_factory.make_codec());
 
                     let (server_chan, client_chan) = Self::spawn_twoway(transport);
                     let peer = service_factory.make_client(client_chan);
@@ -126,10 +117,8 @@ where
         let conn = Endpoint::connect(self.bind_addr.clone())
             .await
             .expect("Failed to connect client.");
-        let mut codec_builder = LengthDelimitedCodec::builder();
-        let framed = codec_builder.max_frame_length(usize::MAX).new_framed(conn);
 
-        let transport = transport::new(framed, self.service_factory.make_codec());
+        let transport = build_transport(conn, self.service_factory.make_codec());
         let (server_chan, client_chan) = Self::spawn_twoway(transport);
         let peer = self.service_factory.make_client(client_chan);
         let peer_ = peer.clone();
@@ -197,4 +186,29 @@ where
 
         (server_ret, client_ret)
     }
+}
+
+pub(crate) fn get_socket_address(id: &str, suffix: &str) -> String {
+    #[cfg(unix)]
+    let addr = format!("/tmp/{}_{}.sock", id, suffix);
+    #[cfg(windows)]
+    let addr = format!("\\\\.\\pipe\\{}_{}", id, suffix);
+    addr
+}
+
+pub(crate) fn build_transport<S, Item, SinkItem, Codec>(
+    stream: S,
+    codec: Codec,
+) -> Transport<S, Item, SinkItem, Codec>
+where
+    S: AsyncRead + AsyncWrite,
+    Item: for<'de> Deserialize<'de>,
+    SinkItem: Serialize,
+    Codec: Serializer<SinkItem> + Deserializer<Item>,
+{
+    let mut codec_builder = LengthDelimitedCodec::builder();
+    let framed = codec_builder
+        .max_frame_length(usize::MAX)
+        .new_framed(stream);
+    transport::new(framed, codec)
 }

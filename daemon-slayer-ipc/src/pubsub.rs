@@ -1,6 +1,7 @@
+use bytes::{Buf, Bytes, BytesMut};
 use futures::{
     channel::oneshot,
-    future::{self, AbortHandle},
+    future::{self, AbortHandle, Ready},
     prelude::*,
 };
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
@@ -8,47 +9,124 @@ use std::{
     collections::HashMap,
     env,
     error::Error,
+    hash::Hash,
     io,
+    marker::PhantomData,
     net::SocketAddr,
+    ops::Deref,
+    pin::Pin,
     sync::{Arc, Mutex, RwLock},
 };
-
 use tarpc::{
     client, context, serde_transport,
     server::{self, Channel},
-    tokio_serde::formats::{Bincode, Json},
+    tokio_serde::{
+        formats::{Bincode, Json},
+        Deserializer, Serializer,
+    },
     tokio_util::codec::LengthDelimitedCodec,
     transport,
 };
 
+use crate::{build_transport, get_socket_address};
+
+// #[async_trait::async_trait]
+// pub trait PubSubPublisher {
+//     type Message: serde::Serialize;
+//     type Codec: Serializer<Self::Message>;
+
+//     async fn publish(&self, topic: String, message: Self::Message);
+//     fn make_codec(&self) -> Self::Codec;
+// }
+
+#[async_trait::async_trait]
+pub trait PubSubSubscriber: Clone + Send + Sync + 'static {
+    type Message: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone + Send + 'static;
+    type Codec: Serializer<Self::Message> + Deserializer<Self::Message> + Unpin;
+
+    async fn topics(&self) -> Vec<String>;
+    async fn on_event(&self, topic: String, message: Self::Message);
+    fn make_codec(&self) -> Self::Codec;
+}
+
+pub struct PubSubPublisher<M, C>
+where
+    M: serde::Serialize,
+    C: Serializer<M> + Unpin,
+    <C as tarpc::tokio_serde::Serializer<M>>::Error: std::fmt::Debug,
+{
+    client: PublisherClient,
+    message_phantom: PhantomData<M>,
+    serializer: C,
+}
+
+impl<M, C> PubSubPublisher<M, C>
+where
+    M: serde::Serialize,
+    C: Serializer<M> + Unpin,
+    <C as tarpc::tokio_serde::Serializer<M>>::Error: std::fmt::Debug,
+{
+    fn from_client(client: PublisherClient, serializer: C) -> Self {
+        Self {
+            client,
+            message_phantom: Default::default(),
+            serializer,
+        }
+    }
+    pub async fn publish(&mut self, topic: String, message: M) {
+        let value = Pin::new(&mut self.serializer).serialize(&message).unwrap();
+
+        self.client.publish(context::current(), topic, value).await;
+    }
+}
+
 #[tarpc::service]
 pub trait Subscriber {
     async fn topics() -> Vec<String>;
-    async fn receive(topic: String, message: String);
+    async fn receive(topic: String, message: Bytes);
     async fn id() -> u32;
 }
+
 #[tarpc::service]
 pub trait Publisher {
-    async fn publish(topic: String, message: String);
+    async fn publish(topic: String, message: Bytes);
 }
+
 #[derive(Clone, Debug)]
-pub struct SubscriberServer {
+pub struct SubscriberServer<S, M>
+where
+    S: PubSubSubscriber<Message = M>,
+    M: Clone + Send + 'static,
+    <<S as PubSubSubscriber>::Codec as tarpc::tokio_serde::Deserializer<M>>::Error: std::fmt::Debug,
+{
     id: u32,
-    topics: Vec<String>,
+
+    subscriber: S,
 }
 
-#[tarpc::server]
-impl Subscriber for SubscriberServer {
-    async fn topics(self, _: context::Context) -> Vec<String> {
-        self.topics.clone()
+impl<S, M> Subscriber for SubscriberServer<S, M>
+where
+    S: PubSubSubscriber<Message = M>,
+    M: Clone + Send + 'static,
+    <<S as PubSubSubscriber>::Codec as tarpc::tokio_serde::Deserializer<M>>::Error: std::fmt::Debug,
+{
+    type TopicsFut = Pin<Box<dyn Future<Output = Vec<String>> + Send>>;
+    fn topics(self, _: context::Context) -> Self::TopicsFut {
+        // let topics = self.subscriber.clone().topics();
+        Box::pin(async move { self.subscriber.topics().await })
     }
 
-    async fn receive(self, _: context::Context, topic: String, message: String) {
-        println!("ReceivedMessage");
+    type ReceiveFut = Pin<Box<dyn Future<Output = ()> + Send>>;
+    fn receive(self, _: context::Context, topic: String, message: Bytes) -> Self::ReceiveFut {
+        let mut codec = self.subscriber.make_codec();
+        let mut_message = BytesMut::from(message.deref());
+        let value = Pin::new(&mut codec).deserialize(&mut_message).unwrap();
+        Box::pin(async move { self.subscriber.on_event(topic, value).await })
     }
 
-    async fn id(self, _: context::Context) -> u32 {
-        self.id
+    type IdFut = Ready<u32>;
+    fn id(self, _: context::Context) -> Self::IdFut {
+        future::ready(self.id)
     }
 }
 
@@ -60,23 +138,23 @@ impl Drop for SubscriberHandle {
     }
 }
 
-impl SubscriberServer {
-    pub async fn connect(topics: Vec<String>) -> SubscriberHandle {
-        let bind_addr = format!("\\\\.\\pipe\\test_pubsub_subscriber");
+impl<S, M> SubscriberServer<S, M>
+where
+    S: PubSubSubscriber<Message = M>,
+    M: Clone + Send + 'static,
+    <<S as PubSubSubscriber>::Codec as tarpc::tokio_serde::Deserializer<M>>::Error: std::fmt::Debug,
+{
+    pub async fn connect(app_id: &str, subscriber: S) -> SubscriberHandle {
+        let bind_addr = get_socket_address(app_id, "subscriber");
         let publisher = Endpoint::connect(bind_addr)
             .await
             .expect("Failed to connect client.");
 
-        let mut codec_builder = LengthDelimitedCodec::builder();
-        let framed = codec_builder
-            .max_frame_length(usize::MAX)
-            .new_framed(publisher);
-
-        let publisher = serde_transport::new(framed, Bincode::default());
+        let publisher = build_transport(publisher, Bincode::default());
 
         let id = rand::random::<u32>();
         let mut handler = server::BaseChannel::with_defaults(publisher).requests();
-        let subscriber = SubscriberServer { id, topics };
+        let subscriber = SubscriberServer { id, subscriber };
         // The first request is for the topics being subscribed to.
         match handler.next().await {
             Some(id) => id.unwrap().execute(subscriber.clone().serve()).await,
@@ -108,40 +186,32 @@ pub struct Subscription {
 
 #[derive(Clone, Debug)]
 pub struct PublisherServer {
-    pub clients: Arc<Mutex<HashMap<u32, Subscription>>>,
-    pub subscriptions: Arc<RwLock<HashMap<String, HashMap<u32, SubscriberClient>>>>,
+    app_id: String,
+    clients: Arc<Mutex<HashMap<u32, Subscription>>>,
+    subscriptions: Arc<RwLock<HashMap<String, HashMap<u32, SubscriberClient>>>>,
 }
 
-// struct PublisherAddrs {
-//     publisher: SocketAddr,
-//     subscriptions: SocketAddr,
-// }
-
 impl PublisherServer {
+    pub fn new(id: &str) -> Self {
+        Self {
+            app_id: id.to_owned(),
+            clients: Default::default(),
+            subscriptions: Default::default(),
+        }
+    }
+
     pub async fn start(self) {
-        let bind_addr = format!("\\\\.\\pipe\\test_pubsub_publisher");
+        let bind_addr = get_socket_address(&self.app_id, "publisher");
         let mut endpoint = Endpoint::new(bind_addr);
         endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
 
-        // let mut connecting_publishers = tcp::listen("localhost:0", Json::default).await?;
-
         self.clone().start_subscription_manager().await;
-        // let publisher_addrs = PublisherAddrs {
-        //     publisher: connecting_publishers.local_addr(),
-        //     subscriptions: self.clone().start_subscription_manager().await?,
-        // };
 
-        //info!(publisher_addr = %publisher_addrs.publisher, "listening for publishers.",);
-        let mut codec_builder = LengthDelimitedCodec::builder();
         tokio::spawn(async move {
             let incoming = endpoint.incoming().unwrap();
             futures::pin_mut!(incoming);
             while let Some(Ok(publisher)) = incoming.next().await {
-                let framed = codec_builder
-                    .max_frame_length(usize::MAX)
-                    .new_framed(publisher);
-
-                let transport = serde_transport::new(framed, Bincode::default());
+                let transport = build_transport(publisher, Bincode::default());
 
                 server::BaseChannel::with_defaults(transport)
                     .execute(self.clone().serve())
@@ -151,24 +221,18 @@ impl PublisherServer {
     }
 
     async fn start_subscription_manager(mut self) {
-        let bind_addr = format!("\\\\.\\pipe\\test_pubsub_subscriber");
+        let bind_addr = get_socket_address(&self.app_id, "subscriber");
         let mut endpoint = Endpoint::new(bind_addr);
-        // let mut connecting_subscribers = tcp::listen("localhost:0", Json::default)
-        //     .await?
-        //     .filter_map(|r| future::ready(r.ok()));
-        // let new_subscriber_addr = connecting_subscribers.get_ref().local_addr();
-        // info!(?new_subscriber_addr, "listening for subscribers.");
+
         endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
 
-        let mut codec_builder = LengthDelimitedCodec::builder();
         tokio::spawn(async move {
             let connecting_subscribers = endpoint.incoming().unwrap();
             futures::pin_mut!(connecting_subscribers);
             while let Some(Ok(conn)) = connecting_subscribers.next().await {
                 //let subscriber_addr = conn.peer_addr().unwrap();
-                let conn = codec_builder.max_frame_length(usize::MAX).new_framed(conn);
 
-                let transport = serde_transport::new(conn, Bincode::default());
+                let transport = build_transport(conn, Bincode::default());
                 let tarpc::client::NewClient {
                     client: subscriber,
                     dispatch,
@@ -238,7 +302,7 @@ impl PublisherServer {
 
 #[tarpc::server]
 impl Publisher for PublisherServer {
-    async fn publish(self, _: context::Context, topic: String, message: String) {
+    async fn publish(self, _: context::Context, topic: String, message: Bytes) {
         println!("received message to publish.");
         let mut subscribers = match self.subscriptions.read().unwrap().get(&topic) {
             None => return,
@@ -256,4 +320,17 @@ impl Publisher for PublisherServer {
             }
         }
     }
+}
+
+pub async fn get_publisher<S, M>(app_id: &str, subscriber: S) -> PubSubPublisher<M, S::Codec>
+where
+    S: PubSubSubscriber<Message = M>,
+    M: serde::Serialize + Clone + Send + 'static,
+    <<S as PubSubSubscriber>::Codec as tarpc::tokio_serde::Serializer<M>>::Error: std::fmt::Debug,
+{
+    let bind_addr = get_socket_address(app_id, "publisher");
+    let mut endpoint = Endpoint::connect(bind_addr).await.unwrap();
+    let transport = build_transport(endpoint, Bincode::default());
+    let client = PublisherClient::new(client::Config::default(), transport).spawn();
+    PubSubPublisher::from_client(client, subscriber.make_codec())
 }
