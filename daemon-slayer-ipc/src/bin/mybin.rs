@@ -1,7 +1,7 @@
 use bytes::{Bytes, BytesMut};
 use daemon_slayer_ipc::{
-    get_publisher, PublisherClient, PublisherServer, ServiceFactory, Subscriber, SubscriberServer,
-    TwoWayMessage,
+    get_publisher, Codec, PublisherClient, PublisherServer, ServiceFactory, Subscriber,
+    SubscriberServer, TwoWayMessage,
 };
 use futures::Future;
 use parity_tokio_ipc::Endpoint;
@@ -80,25 +80,46 @@ impl Ping for PingServer {
     }
 }
 
+#[derive(strum_macros::Display)]
+enum MyTopic {
+    Foo,
+    Bar,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, strum_macros::Display)]
+enum MyMessage {
+    Yes(String),
+    No,
+}
+
 #[derive(Clone)]
 struct MySubscriber {}
 
 #[async_trait::async_trait]
 impl daemon_slayer_ipc::PubSubSubscriber for MySubscriber {
-    type Message = String;
-    type Codec = Bincode<String, String>;
+    type Topic = MyTopic;
+    type Message = MyMessage;
 
-    async fn topics(&self) -> Vec<String> {
-        vec!["calculus".into(), "cool shorts".into()]
+    async fn topics(&self) -> Vec<MyTopic> {
+        vec![MyTopic::Foo, MyTopic::Bar]
     }
     async fn on_event(&self, topic: String, message: Self::Message) {
         println!("got {topic} {message}");
     }
-
-    fn make_codec(&self) -> Self::Codec {
-        Bincode::default()
-    }
 }
+
+// #[derive(Clone)]
+// struct MyCodec {}
+
+// impl daemon_slayer_ipc::CodecFactory for MyCodec {
+//     type Encode = String;
+//     type Decode = String;
+//     type Codec = Bincode<Self::Encode, Self::Decode>;
+
+//     fn make_codec(&self) -> Self::Codec {
+//         Bincode::default()
+//     }
+// }
 
 #[tokio::main]
 async fn main() {
@@ -108,26 +129,27 @@ async fn main() {
     // let client = rpc.get_client().await;
     // client.ping(context::current()).await;
     let app_id = "supertest";
+    let codec = Codec::Cbor;
     PublisherServer::new(&app_id).start().await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    let _subscriber0 = SubscriberServer::connect(&app_id, MySubscriber {}).await;
+    let _subscriber0 = SubscriberServer::connect(&app_id, MySubscriber {}, codec.clone()).await;
 
     // let _subscriber1 =
     //     SubscriberServer::connect(&app_id, vec!["cool shorts".into(), "history".into()]).await;
 
-    let mut publisher = get_publisher(app_id, MySubscriber {}).await; //PublisherClient::new(client::Config::default(), transport).spawn();
+    let mut publisher = get_publisher::<MyTopic, MyMessage>(app_id, codec).await; //PublisherClient::new(client::Config::default(), transport).spawn();
 
-    publisher.publish("calculus".into(), "sqrt(2)".into()).await;
-
-    publisher
-        .publish("cool shorts".into(), "hello to all".into())
-        .await;
-
-    publisher.publish("history".into(), "napoleon".into()).await;
+    publisher.publish(MyTopic::Bar, MyMessage::No).await;
 
     publisher
-        .publish("cool shorts".into(), "hello to who?".into())
+        .publish(MyTopic::Foo, MyMessage::Yes("hi".to_owned()))
         .await;
+
+    // publisher.publish("history".into(), "napoleon".into()).await;
+
+    // publisher
+    //     .publish("cool shorts".into(), "hello to who?".into())
+    //     .await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 }

@@ -10,10 +10,13 @@ name = "mybin"
 
 [dependencies]
 async-trait = "0.1.58"
-bytes = { version = "1.2.1", features = ["serde"] }
+bytes = {version = "1.2.1", features = ["serde"]}
 futures = "0.3.25"
 parity-tokio-ipc = "0.9.0"
 rand = "0.8.5"
 serde = "1.0.147"
-tarpc = {version = "0.31.0", features = ["tokio1", "serde-transport", "serde-transport-json", "serde-transport-bincode"]}
+strum = "0.24.1"
+strum_macros = "0.24.3"
+tarpc = {version = "0.31.0", features = ["tokio1", "serde-transport"]}
 tokio = {version = "1.21.2", features = ["rt-multi-thread", "net", "macros"]}
+tokio-serde = {version = "0.8.0", features = ["bincode", "messagepack", "json", "cbor"]}

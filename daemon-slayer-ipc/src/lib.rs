@@ -6,6 +6,7 @@ use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use std::collections::HashMap;
 use std::io;
 use std::marker::PhantomData;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
 use tarpc::client::{self, Config, NewClient};
@@ -14,9 +15,10 @@ use tarpc::serde::{Deserialize, Serialize};
 use tarpc::serde_transport::Transport;
 use tarpc::server::incoming::Incoming;
 use tarpc::server::{BaseChannel, Channel, Serve};
-use tarpc::tokio_serde::formats::Bincode;
+use tarpc::tokio_serde::formats::{Bincode, Json};
 use tarpc::tokio_serde::{Deserializer, Serializer};
 use tarpc::tokio_util::codec::length_delimited::LengthDelimitedCodec;
+use tarpc::tokio_util::codec::Decoder;
 use tarpc::transport::channel::UnboundedChannel;
 use tarpc::{serde_transport as transport, ClientMessage, Response};
 use tokio::io::{AsyncRead, AsyncWrite};
@@ -29,6 +31,14 @@ pub use pubsub::*;
 pub enum TwoWayMessage<Req, Resp> {
     Request(tarpc::ClientMessage<Req>),
     Response(tarpc::Response<Resp>),
+}
+
+#[derive(Clone, Debug)]
+pub enum Codec {
+    Bincode,
+    Json,
+    MessagePack,
+    Cbor,
 }
 
 pub trait ServiceFactory: Clone + Send + Sync + 'static
