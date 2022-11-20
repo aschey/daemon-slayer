@@ -23,6 +23,7 @@ use tarpc::transport::channel::UnboundedChannel;
 use tarpc::{serde_transport as transport, ClientMessage, Response};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::{Mutex, RwLock};
+use tokio_serde::formats::{Cbor, MessagePack};
 
 mod pubsub;
 pub use pubsub::*;
@@ -42,13 +43,12 @@ pub enum Codec {
 }
 
 pub trait ServiceFactory: Clone + Send + Sync + 'static
-where
-    std::io::Error: std::convert::From<
-        <Self::Codec as tarpc::tokio_serde::Deserializer<TwoWayMessage<Self::Req, Self::Resp>>>::Error,
-    >,
-    std::io::Error: std::convert::From<
-        <Self::Codec as tarpc::tokio_serde::Serializer<TwoWayMessage<Self::Req, Self::Resp>>>::Error,
-    >,
+// std::io::Error: std::convert::From<
+//     <Self::Codec as tarpc::tokio_serde::Deserializer<TwoWayMessage<Self::Req, Self::Resp>>>::Error,
+// >,
+// std::io::Error: std::convert::From<
+//     <Self::Codec as tarpc::tokio_serde::Serializer<TwoWayMessage<Self::Req, Self::Resp>>>::Error,
+// >,
 {
     type Resp: Serialize + for<'de> Deserialize<'de> + Send + Unpin + 'static;
     type Req: Serialize + for<'de> Deserialize<'de> + Send + Unpin + 'static;
@@ -56,48 +56,50 @@ where
 
     type Service: Serve<Self::Req, Resp = Self::Resp> + Send + Clone + 'static;
 
-    type Codec: Serializer<TwoWayMessage<Self::Req, Self::Resp>>
-        + Deserializer<TwoWayMessage<Self::Req, Self::Resp>>
-        + Unpin
-        + Default
-        + Send
-        + 'static;
+    // type Codec: Serializer<TwoWayMessage<Self::Req, Self::Resp>>
+    //     + Deserializer<TwoWayMessage<Self::Req, Self::Resp>>
+    //     + Unpin
+    //     + Default
+    //     + Send
+    //     + 'static;
     fn make_service(&self, client: Self::Client) -> Self::Service;
     fn make_client(
         &self,
         chan: UnboundedChannel<Response<Self::Resp>, ClientMessage<Self::Req>>,
     ) -> Self::Client;
-    fn make_codec(&self) -> Self::Codec;
+    // fn make_codec(&self) -> Self::Codec;
 }
 
 pub struct RpcService<F: ServiceFactory>
 where
     <<F as ServiceFactory>::Service as tarpc::server::Serve<<F as ServiceFactory>::Req>>::Fut: Send,
-    std::io::Error: std::convert::From<
-        <F::Codec as tarpc::tokio_serde::Deserializer<TwoWayMessage<F::Req, F::Resp>>>::Error,
-    >,
-    std::io::Error: std::convert::From<
-        <F::Codec as tarpc::tokio_serde::Serializer<TwoWayMessage<F::Req, F::Resp>>>::Error,
-    >,
+    // std::io::Error: std::convert::From<
+    //     <F::Codec as tarpc::tokio_serde::Deserializer<TwoWayMessage<F::Req, F::Resp>>>::Error,
+    // >,
+    // std::io::Error: std::convert::From<
+    //     <F::Codec as tarpc::tokio_serde::Serializer<TwoWayMessage<F::Req, F::Resp>>>::Error,
+    // >,
 {
     bind_addr: String,
     service_factory: F,
+    codec: Codec,
 }
 
 impl<F: ServiceFactory> RpcService<F>
 where
     <<F as ServiceFactory>::Service as tarpc::server::Serve<<F as ServiceFactory>::Req>>::Fut: Send,
-    std::io::Error: std::convert::From<
-        <F::Codec as tarpc::tokio_serde::Deserializer<TwoWayMessage<F::Req, F::Resp>>>::Error,
-    >,
-    std::io::Error: std::convert::From<
-        <F::Codec as tarpc::tokio_serde::Serializer<TwoWayMessage<F::Req, F::Resp>>>::Error,
-    >,
+    // std::io::Error: std::convert::From<
+    //     <F::Codec as tarpc::tokio_serde::Deserializer<TwoWayMessage<F::Req, F::Resp>>>::Error,
+    // >,
+    // std::io::Error: std::convert::From<
+    //     <F::Codec as tarpc::tokio_serde::Serializer<TwoWayMessage<F::Req, F::Resp>>>::Error,
+    // >,
 {
-    pub fn new(id: &str, service_factory: F) -> Self {
+    pub fn new(id: &str, service_factory: F, codec: Codec) -> Self {
         Self {
             bind_addr: get_socket_address(id, "rpc"),
             service_factory,
+            codec,
         }
     }
     pub fn spawn_server(&self) {
@@ -106,13 +108,21 @@ where
         let mut codec_builder = LengthDelimitedCodec::builder();
         let incoming = endpoint.incoming().expect("failed to open new socket");
         let service_factory = self.service_factory.clone();
+        let codec = self.codec.clone();
         tokio::spawn(async move {
             incoming
                 .filter_map(|r| future::ready(r.ok()))
                 .map(|stream| {
-                    let transport = build_transport(stream, service_factory.make_codec());
+                    let (server_chan, client_chan) = match codec {
+                        Codec::Json => spawn_twoway(build_transport(stream, Json::default())),
+                        Codec::Bincode => spawn_twoway(build_transport(stream, Bincode::default())),
+                        Codec::Cbor => spawn_twoway(build_transport(stream, Cbor::default())),
+                        Codec::MessagePack => {
+                            spawn_twoway(build_transport(stream, MessagePack::default()))
+                        }
+                    };
 
-                    let (server_chan, client_chan) = Self::spawn_twoway(transport);
+                    // let (server_chan, client_chan) = Self::spawn_twoway(transport);
                     let peer = service_factory.make_client(client_chan);
                     (BaseChannel::with_defaults(server_chan), peer)
                 })
@@ -128,8 +138,12 @@ where
             .await
             .expect("Failed to connect client.");
 
-        let transport = build_transport(conn, self.service_factory.make_codec());
-        let (server_chan, client_chan) = Self::spawn_twoway(transport);
+        let (server_chan, client_chan) = match self.codec {
+            Codec::Json => spawn_twoway(build_transport(conn, Json::default())),
+            Codec::Bincode => spawn_twoway(build_transport(conn, Bincode::default())),
+            Codec::Cbor => spawn_twoway(build_transport(conn, Cbor::default())),
+            Codec::MessagePack => spawn_twoway(build_transport(conn, MessagePack::default())),
+        };
         let peer = self.service_factory.make_client(client_chan);
         let peer_ = peer.clone();
         let service_factory = self.service_factory.clone();
@@ -141,63 +155,61 @@ where
         });
         peer
     }
-
-    fn spawn_twoway<Req1, Resp1, Req2, Resp2, T>(
-        transport: T,
-    ) -> (
-        UnboundedChannel<tarpc::ClientMessage<Req1>, tarpc::Response<Resp1>>,
-        UnboundedChannel<tarpc::Response<Resp2>, tarpc::ClientMessage<Req2>>,
-    )
-    where
-        T: Stream<Item = Result<TwoWayMessage<Req1, Resp2>, io::Error>>,
-        T: Sink<TwoWayMessage<Req2, Resp1>, Error = io::Error>,
-        T: Unpin + Send + 'static,
-        Req1: Send + 'static,
-        Resp1: Send + 'static,
-        Req2: Send + 'static,
-        Resp2: Send + 'static,
-    {
-        let (server, server_ret) = tarpc::transport::channel::unbounded();
-        let (client, client_ret) = tarpc::transport::channel::unbounded();
-        let (mut server_sink, server_stream) = server.split();
-        let (mut client_sink, client_stream) = client.split();
-        let (transport_sink, mut transport_stream) = transport.split();
-
-        let (abort_handle, abort_registration) = AbortHandle::new_pair();
-
-        // Task for inbound message handling
-        tokio::spawn(async move {
-            while let Some(msg) = transport_stream.next().await {
-                match msg.unwrap() {
-                    TwoWayMessage::Request(req) => server_sink.send(req).await.unwrap(),
-                    TwoWayMessage::Response(resp) => client_sink.send(resp).await.unwrap(),
-                }
-            }
-
-            abort_handle.abort();
-        });
-
-        let abortable_sink_channel = Abortable::new(
-            futures::stream::select(
-                server_stream.map_ok(TwoWayMessage::Response),
-                client_stream.map_ok(TwoWayMessage::Request),
-            )
-            .map_err(|e| e.to_string()),
-            abort_registration,
-        );
-
-        // Task for outbound message handling
-        tokio::spawn(
-            abortable_sink_channel
-                .forward(transport_sink.sink_map_err(|e| e.to_string()))
-                .inspect_ok(|_| println!("transport_sink done"))
-                .inspect_err(|e| println!("Error in outbound multiplexing: {}", e)),
-        );
-
-        (server_ret, client_ret)
-    }
 }
+fn spawn_twoway<Req1, Resp1, Req2, Resp2, T>(
+    transport: T,
+) -> (
+    UnboundedChannel<tarpc::ClientMessage<Req1>, tarpc::Response<Resp1>>,
+    UnboundedChannel<tarpc::Response<Resp2>, tarpc::ClientMessage<Req2>>,
+)
+where
+    T: Stream<Item = Result<TwoWayMessage<Req1, Resp2>, io::Error>>,
+    T: Sink<TwoWayMessage<Req2, Resp1>, Error = io::Error>,
+    T: Unpin + Send + 'static,
+    Req1: Send + 'static,
+    Resp1: Send + 'static,
+    Req2: Send + 'static,
+    Resp2: Send + 'static,
+{
+    let (server, server_ret) = tarpc::transport::channel::unbounded();
+    let (client, client_ret) = tarpc::transport::channel::unbounded();
+    let (mut server_sink, server_stream) = server.split();
+    let (mut client_sink, client_stream) = client.split();
+    let (transport_sink, mut transport_stream) = transport.split();
 
+    let (abort_handle, abort_registration) = AbortHandle::new_pair();
+
+    // Task for inbound message handling
+    tokio::spawn(async move {
+        while let Some(msg) = transport_stream.next().await {
+            match msg.unwrap() {
+                TwoWayMessage::Request(req) => server_sink.send(req).await.unwrap(),
+                TwoWayMessage::Response(resp) => client_sink.send(resp).await.unwrap(),
+            }
+        }
+
+        abort_handle.abort();
+    });
+
+    let abortable_sink_channel = Abortable::new(
+        futures::stream::select(
+            server_stream.map_ok(TwoWayMessage::Response),
+            client_stream.map_ok(TwoWayMessage::Request),
+        )
+        .map_err(|e| e.to_string()),
+        abort_registration,
+    );
+
+    // Task for outbound message handling
+    tokio::spawn(
+        abortable_sink_channel
+            .forward(transport_sink.sink_map_err(|e| e.to_string()))
+            .inspect_ok(|_| println!("transport_sink done"))
+            .inspect_err(|e| println!("Error in outbound multiplexing: {}", e)),
+    );
+
+    (server_ret, client_ret)
+}
 pub(crate) fn get_socket_address(id: &str, suffix: &str) -> String {
     #[cfg(unix)]
     let addr = format!("/tmp/{}_{}.sock", id, suffix);

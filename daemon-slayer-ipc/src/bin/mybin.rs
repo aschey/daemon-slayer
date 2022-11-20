@@ -39,8 +39,8 @@ impl daemon_slayer_ipc::ServiceFactory for PingFactory {
     type Req = PingRequest;
     type Resp = PingResponse;
 
-    type Codec =
-        Bincode<TwoWayMessage<Self::Req, Self::Resp>, TwoWayMessage<Self::Req, Self::Resp>>;
+    // type Codec =
+    //     Bincode<TwoWayMessage<Self::Req, Self::Resp>, TwoWayMessage<Self::Req, Self::Resp>>;
 
     fn make_service(&self, client: Self::Client) -> Self::Service {
         PingServer {
@@ -55,9 +55,9 @@ impl daemon_slayer_ipc::ServiceFactory for PingFactory {
     ) -> Self::Client {
         PingClient::new(client::Config::default(), chan).spawn()
     }
-    fn make_codec(&self) -> Self::Codec {
-        Bincode::default()
-    }
+    // fn make_codec(&self) -> Self::Codec {
+    //     Bincode::default()
+    // }
 }
 
 #[tarpc::server]
@@ -123,13 +123,14 @@ impl daemon_slayer_ipc::PubSubSubscriber for MySubscriber {
 
 #[tokio::main]
 async fn main() {
-    // let rpc = daemon_slayer_ipc::RpcService::new("supertest".to_owned(), PingFactory {});
-    // rpc.spawn_server();
-    // tokio::time::sleep(Duration::from_millis(100)).await;
-    // let client = rpc.get_client().await;
-    // client.ping(context::current()).await;
     let app_id = "supertest";
     let codec = Codec::Cbor;
+    let rpc = daemon_slayer_ipc::RpcService::new(app_id, PingFactory {}, codec.clone());
+    rpc.spawn_server();
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    let client = rpc.get_client().await;
+    client.ping(context::current()).await;
+
     PublisherServer::new(&app_id).start().await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
