@@ -1,7 +1,6 @@
 use bytes::{Bytes, BytesMut};
 use daemon_slayer_ipc::{
-    get_publisher, Codec, PublisherClient, PublisherServer, ServiceFactory, Subscriber,
-    SubscriberServer, TwoWayMessage,
+    get_publisher, Codec, PublisherClient, PublisherServer, Subscriber, SubscriberServer,
 };
 use futures::Future;
 use parity_tokio_ipc::Endpoint;
@@ -33,40 +32,34 @@ struct PingServer {
 #[derive(Clone)]
 struct PingFactory {}
 
-impl daemon_slayer_ipc::ServiceFactory for PingFactory {
+impl daemon_slayer_ipc::rpc::ServiceProvider for PingFactory {
     type Client = PingClient;
     type Service = ServePing<PingServer>;
     type Req = PingRequest;
     type Resp = PingResponse;
 
-    // type Codec =
-    //     Bincode<TwoWayMessage<Self::Req, Self::Resp>, TwoWayMessage<Self::Req, Self::Resp>>;
-
-    fn make_service(&self, client: Self::Client) -> Self::Service {
+    fn get_service(&self, client: Self::Client) -> Self::Service {
         PingServer {
             peer: client,
             count: Arc::new(Mutex::new(0)),
         }
         .serve()
     }
-    fn make_client(
+    fn get_client(
         &self,
         chan: UnboundedChannel<Response<Self::Resp>, ClientMessage<Self::Req>>,
     ) -> Self::Client {
         PingClient::new(client::Config::default(), chan).spawn()
     }
-    // fn make_codec(&self) -> Self::Codec {
-    //     Bincode::default()
-    // }
 }
 
 #[tarpc::server]
 impl Ping for PingServer {
     async fn hello(self, _: tarpc::context::Context, name: String) -> String {
-        return format!("Hello {name}");
+        format!("Hello {name}")
     }
 
-    async fn ping(mut self, _: context::Context) {
+    async fn ping(self, _: context::Context) {
         println!("ping {}", self.count.lock().await);
         tokio::time::sleep(Duration::from_millis(500)).await;
         let mut count = self.count.lock().await;
@@ -74,9 +67,9 @@ impl Ping for PingServer {
         *count = self.peer.pong(context::current(), *count).await.unwrap();
     }
 
-    async fn pong(mut self, _: context::Context, count: u64) -> u64 {
+    async fn pong(self, _: context::Context, count: u64) -> u64 {
         println!("pong {}", count);
-        return count + 1;
+        count + 1
     }
 }
 
@@ -108,24 +101,11 @@ impl daemon_slayer_ipc::PubSubSubscriber for MySubscriber {
     }
 }
 
-// #[derive(Clone)]
-// struct MyCodec {}
-
-// impl daemon_slayer_ipc::CodecFactory for MyCodec {
-//     type Encode = String;
-//     type Decode = String;
-//     type Codec = Bincode<Self::Encode, Self::Decode>;
-
-//     fn make_codec(&self) -> Self::Codec {
-//         Bincode::default()
-//     }
-// }
-
 #[tokio::main]
 async fn main() {
     let app_id = "supertest";
     let codec = Codec::Cbor;
-    let rpc = daemon_slayer_ipc::RpcService::new(app_id, PingFactory {}, codec.clone());
+    let rpc = daemon_slayer_ipc::rpc::RpcService::new(app_id, PingFactory {}, codec.clone());
     rpc.spawn_server();
     tokio::time::sleep(Duration::from_millis(100)).await;
     let client = rpc.get_client().await;
