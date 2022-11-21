@@ -1,7 +1,7 @@
 use bytes::{Bytes, BytesMut};
-use daemon_slayer_ipc::{
-    get_publisher, Codec, PublisherClient, PublisherServer, Subscriber, SubscriberServer,
-};
+
+use daemon_slayer_ipc::pubsub::{get_publisher, PublisherServer, SubscriberServer};
+use daemon_slayer_ipc::Codec;
 use futures::Future;
 use parity_tokio_ipc::Endpoint;
 use serde::{Deserialize, Serialize};
@@ -89,7 +89,7 @@ enum MyMessage {
 struct MySubscriber {}
 
 #[async_trait::async_trait]
-impl daemon_slayer_ipc::PubSubSubscriber for MySubscriber {
+impl daemon_slayer_ipc::pubsub::Subscriber for MySubscriber {
     type Topic = MyTopic;
     type Message = MyMessage;
 
@@ -111,7 +111,7 @@ async fn main() {
     let client = rpc.get_client().await;
     client.ping(context::current()).await;
 
-    PublisherServer::new(&app_id).start().await;
+    PublisherServer::new(&app_id, codec.clone()).start().await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     let _subscriber0 = SubscriberServer::connect(&app_id, MySubscriber {}, codec.clone()).await;

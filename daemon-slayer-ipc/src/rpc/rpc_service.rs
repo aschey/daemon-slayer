@@ -1,9 +1,8 @@
 use futures::{future, StreamExt};
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use tarpc::server::{BaseChannel, Channel, Serve};
-use tokio_serde::formats::{Bincode, Cbor, Json, MessagePack};
 
-use crate::{build_transport, get_socket_address, two_way::spawn_twoway, Codec};
+use crate::{build_transport, get_socket_address, two_way::spawn_twoway, Codec, CodecWrapper};
 
 use super::ServiceProvider;
 
@@ -38,14 +37,8 @@ where
             incoming
                 .filter_map(|r| future::ready(r.ok()))
                 .map(|stream| {
-                    let (server_chan, client_chan) = match codec {
-                        Codec::Json => spawn_twoway(build_transport(stream, Json::default())),
-                        Codec::Bincode => spawn_twoway(build_transport(stream, Bincode::default())),
-                        Codec::Cbor => spawn_twoway(build_transport(stream, Cbor::default())),
-                        Codec::MessagePack => {
-                            spawn_twoway(build_transport(stream, MessagePack::default()))
-                        }
-                    };
+                    let (server_chan, client_chan) =
+                        spawn_twoway(build_transport(stream, CodecWrapper::new(codec.clone())));
 
                     let peer = service_provider.get_client(client_chan);
                     (BaseChannel::with_defaults(server_chan), peer)
@@ -62,12 +55,9 @@ where
             .await
             .expect("Failed to connect client.");
 
-        let (server_chan, client_chan) = match self.codec {
-            Codec::Json => spawn_twoway(build_transport(conn, Json::default())),
-            Codec::Bincode => spawn_twoway(build_transport(conn, Bincode::default())),
-            Codec::Cbor => spawn_twoway(build_transport(conn, Cbor::default())),
-            Codec::MessagePack => spawn_twoway(build_transport(conn, MessagePack::default())),
-        };
+        let (server_chan, client_chan) =
+            spawn_twoway(build_transport(conn, CodecWrapper::new(self.codec.clone())));
+
         let peer = self.service_provider.get_client(client_chan);
         let peer_ = peer.clone();
         let service_factory = self.service_provider.clone();
