@@ -6,7 +6,6 @@ use super::{SignalHandlerBuilder, SignalHandlerClient};
 
 pub struct SignalHandler {
     signal_tx: tokio::sync::broadcast::Sender<Signal>,
-    handle: tokio::task::JoinHandle<()>,
 }
 
 static SENDER: OnceCell<tokio::sync::broadcast::Sender<Signal>> = OnceCell::new();
@@ -22,42 +21,37 @@ impl daemon_slayer_core::server::BackgroundService for SignalHandler {
     type Builder = SignalHandlerBuilder;
     type Client = SignalHandlerClient;
 
-    async fn run_service(_: Self::Builder, subsys: SubsystemHandle) -> Self {
+    async fn build(_: Self::Builder) -> Self {
         let signal_tx = SENDER.get().map(|tx| tx.to_owned()).unwrap_or_else(|| {
             let (tx, _) = tokio::sync::broadcast::channel(32);
             tx
         });
-        let signal_tx_ = signal_tx.clone();
 
-        let handle = tokio::spawn(async move {
-            let mut ctrl_c_stream = tokio::signal::windows::ctrl_c().unwrap();
-            let mut ctrl_break_stream = tokio::signal::windows::ctrl_break().unwrap();
-            let mut ctrl_shutdown_stream = tokio::signal::windows::ctrl_shutdown().unwrap();
-            let mut ctrl_logoff_stream = tokio::signal::windows::ctrl_logoff().unwrap();
-            let mut ctrl_close_stream = tokio::signal::windows::ctrl_close().unwrap();
+        Self { signal_tx }
+    }
 
-            loop {
-                tokio::select! {
-                    _ = ctrl_c_stream.recv() => { signal_tx_.send(Signal::SIGINT).ok() }
-                    _ = ctrl_break_stream.recv() => { signal_tx_.send(Signal::SIGINT).ok() }
-                    _ = ctrl_shutdown_stream.recv() => { signal_tx_.send(Signal::SIGINT).ok() }
-                    _ = ctrl_logoff_stream.recv() => { signal_tx_.send(Signal::SIGINT).ok() }
-                    _ = ctrl_close_stream.recv() => { signal_tx_.send(Signal::SIGINT).ok() }
-                    _ = subsys.on_shutdown_requested() => { return; }
-                };
-                subsys.request_global_shutdown();
-            }
-        });
+    async fn run(self, subsys: SubsystemHandle) {
+        let mut ctrl_c_stream = tokio::signal::windows::ctrl_c().unwrap();
+        let mut ctrl_break_stream = tokio::signal::windows::ctrl_break().unwrap();
+        let mut ctrl_shutdown_stream = tokio::signal::windows::ctrl_shutdown().unwrap();
+        let mut ctrl_logoff_stream = tokio::signal::windows::ctrl_logoff().unwrap();
+        let mut ctrl_close_stream = tokio::signal::windows::ctrl_close().unwrap();
 
-        Self { signal_tx, handle }
+        loop {
+            tokio::select! {
+                _ = ctrl_c_stream.recv() => { self.signal_tx.send(Signal::SIGINT).ok() }
+                _ = ctrl_break_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
+                _ = ctrl_shutdown_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
+                _ = ctrl_logoff_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
+                _ = ctrl_close_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
+                _ = subsys.on_shutdown_requested() => { return; }
+            };
+            subsys.request_global_shutdown();
+        }
     }
 
     fn get_client(&mut self) -> Self::Client {
         SignalHandlerClient {}
-    }
-
-    async fn stop(self) {
-        self.handle.await.unwrap();
     }
 }
 

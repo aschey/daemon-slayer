@@ -3,13 +3,14 @@ use std::{pin::Pin, time::Duration};
 use daemon_slayer_core::server::SubsystemHandle;
 use futures::Future;
 use tap::TapFallible;
+use tokio::task::JoinHandle;
 use tracing::warn;
 
 // use crate::Signal;
 
 pub struct ServiceContext {
     subsys: SubsystemHandle,
-    handles: Vec<Pin<Box<dyn Future<Output = ()> + Send>>>,
+    handles: Vec<(JoinHandle<()>, Duration)>,
 }
 
 impl ServiceContext {
@@ -28,12 +29,16 @@ impl ServiceContext {
         &mut self,
         builder: S::Builder,
     ) -> (S::Client, S::EventStoreImpl) {
-        let mut service = S::run_service(builder, self.subsys.clone()).await;
+        let mut service = S::build(builder).await;
         let client = service.get_client();
         let event_store = service.get_event_store();
-        self.handles.push(Box::pin(async move {
-            service.stop().await;
-        }));
+        let subsys = self.subsys.clone();
+        self.handles.push((
+            tokio::spawn(async move {
+                service.run(subsys).await;
+            }),
+            S::shutdown_timeout(),
+        ));
         (client, event_store)
     }
 
@@ -41,20 +46,23 @@ impl ServiceContext {
         &mut self,
         builder: S::Builder,
     ) -> S::Client {
-        let mut service = S::run_service(builder, self.subsys.clone()).await;
+        let mut service = S::build(builder).await;
         let client = service.get_client();
-
-        self.handles.push(Box::pin(async move {
-            service.stop().await;
-        }));
+        let subsys = self.subsys.clone();
+        self.handles.push((
+            tokio::spawn(async move {
+                service.run(subsys).await;
+            }),
+            S::shutdown_timeout(),
+        ));
         client
     }
 
     pub(crate) async fn stop(self) {
         self.subsys.request_global_shutdown();
-        for handle in self.handles {
-            match tokio::time::timeout(Duration::from_secs(10), handle).await {
-                Ok(()) => tracing::info!("Worker shutdown successfully"),
+        for (handle, timeout) in self.handles {
+            match tokio::time::timeout(timeout, handle).await {
+                Ok(_) => tracing::info!("Worker shutdown successfully"),
                 Err(_) => tracing::warn!("Worker failed to shut down"),
             }
         }

@@ -36,16 +36,16 @@ impl daemon_slayer_core::server::BackgroundService for TaskQueue {
     type Builder = TaskQueueBuilder;
     type Client = TaskQueueClient;
 
-    async fn run_service(builder: Self::Builder, subsys: SubsystemHandle) -> Self {
+    async fn build(builder: Self::Builder) -> Self {
         Self::from_builder(builder).await
+    }
+
+    async fn run(self, subsys: SubsystemHandle) {
+        self.run(subsys).await;
     }
 
     fn get_client(&mut self) -> Self::Client {
         self.client()
-    }
-
-    async fn stop(mut self) {
-        self.stop().await;
     }
 }
 

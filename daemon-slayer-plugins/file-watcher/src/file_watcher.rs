@@ -16,7 +16,8 @@ use super::file_watcher_client::FileWatcherClient;
 pub struct FileWatcher {
     file_tx: tokio::sync::broadcast::Sender<Vec<PathBuf>>,
     command_tx: tokio::sync::mpsc::Sender<FileWatcherCommand>,
-    handle: tokio::task::JoinHandle<()>,
+    command_rx: tokio::sync::mpsc::Receiver<FileWatcherCommand>,
+    debouncer: Debouncer<RecommendedWatcher>,
 }
 
 #[async_trait::async_trait]
@@ -25,9 +26,10 @@ impl daemon_slayer_core::server::BackgroundService for FileWatcher {
 
     type Client = FileWatcherClient;
 
-    async fn run_service(builder: Self::Builder, subsys: SubsystemHandle) -> Self {
+    async fn build(builder: Self::Builder) -> Self {
         let (file_tx, _) = tokio::sync::broadcast::channel(32);
         let file_tx_ = file_tx.clone();
+
         let mut debouncer = notify_debouncer_mini::new_debouncer(
             std::time::Duration::from_secs(builder.debounce_seconds),
             None,
@@ -52,34 +54,33 @@ impl daemon_slayer_core::server::BackgroundService for FileWatcher {
                 }
             }
         }
-        let (command_tx, mut command_rx) = tokio::sync::mpsc::channel(32);
-        let handle = tokio::spawn(async move {
-            while let Ok(Some(command)) = command_rx.recv().cancel_on_shutdown(&subsys).await {
-                match command {
-                    FileWatcherCommand::Watch(path, recursive_mode) => {
-                        debouncer.watcher().watch(&path, recursive_mode).unwrap()
-                    }
-                    FileWatcherCommand::Unwatch(path) => {
-                        debouncer.watcher().unwatch(&path).unwrap()
-                    }
-                }
-            }
-            debouncer.stop();
-        });
-
+        let (command_tx, command_rx) = tokio::sync::mpsc::channel(32);
         Self {
             file_tx,
             command_tx,
-            handle,
+            command_rx,
+            debouncer,
         }
+    }
+
+    async fn run(mut self, subsys: SubsystemHandle) {
+        while let Ok(Some(command)) = self.command_rx.recv().cancel_on_shutdown(&subsys).await {
+            match command {
+                FileWatcherCommand::Watch(path, recursive_mode) => self
+                    .debouncer
+                    .watcher()
+                    .watch(&path, recursive_mode)
+                    .unwrap(),
+                FileWatcherCommand::Unwatch(path) => {
+                    self.debouncer.watcher().unwatch(&path).unwrap()
+                }
+            }
+        }
+        self.debouncer.stop();
     }
 
     fn get_client(&mut self) -> Self::Client {
         FileWatcherClient::new(self.command_tx.clone())
-    }
-
-    async fn stop(self) {
-        self.handle.await.unwrap();
     }
 }
 

@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+#[derive(Clone)]
 pub struct FileWatcherBuilder {
     pub(crate) debounce_seconds: u64,
     pub(crate) paths: Vec<PathBuf>,

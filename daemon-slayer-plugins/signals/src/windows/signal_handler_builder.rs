@@ -1,6 +1,6 @@
 use crate::SignalHandlerBuilderTrait;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct SignalHandlerBuilder {}
 
 impl SignalHandlerBuilderTrait for SignalHandlerBuilder {

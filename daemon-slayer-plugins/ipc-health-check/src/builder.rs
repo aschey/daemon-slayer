@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct Builder {
     pub(crate) sock_path: String,
 }

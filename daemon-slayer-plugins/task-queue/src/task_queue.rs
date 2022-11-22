@@ -9,6 +9,7 @@ use aide_de_camp::{
 };
 pub use aide_de_camp_sqlite::sqlx::sqlite::SqliteConnectOptions;
 use aide_de_camp_sqlite::{sqlx::SqlitePool, SqliteQueue, MIGRATOR};
+use daemon_slayer_core::server::SubsystemHandle;
 use tracing::info;
 
 #[derive(Clone)]
@@ -76,8 +77,7 @@ impl TaskQueueClient {
 pub struct TaskQueue {
     queue: SqliteQueue,
     event_store: EventStore<JobEvent>,
-    stop_tx: tokio::sync::mpsc::Sender<()>,
-    handle: tokio::task::JoinHandle<()>,
+    runner: JobRunner<SqliteQueue>,
 }
 
 impl TaskQueue {
@@ -87,11 +87,6 @@ impl TaskQueue {
 
     pub async fn builder() -> TaskQueueBuilder {
         TaskQueueBuilder::default()
-    }
-
-    pub async fn stop(self) {
-        self.stop_tx.send(()).await.unwrap();
-        self.handle.await.unwrap();
     }
 
     pub fn client(&self) -> TaskQueueClient {
@@ -108,31 +103,27 @@ impl TaskQueue {
         MIGRATOR.run(&pool).await.unwrap();
         let queue = SqliteQueue::with_pool(pool);
 
-        let mut runner = JobRunner::new(queue.clone(), builder.router, builder.concurrency);
+        let runner = JobRunner::new(queue.clone(), builder.router, builder.concurrency);
 
         let event_store = runner.event_store();
-        let (stop_tx, mut stop_rx) = tokio::sync::mpsc::channel(32);
-
-        let handle = tokio::spawn(async move {
-            info!("Running job server");
-            runner
-                .run_with_shutdown(
-                    Duration::seconds(1),
-                    Box::pin(async move {
-                        stop_rx.recv().await;
-                    }),
-                    ShutdownOptions::default(),
-                )
-                .await
-                .unwrap();
-        });
 
         Self {
             queue,
             event_store,
-            stop_tx,
-            handle,
+            runner,
         }
+    }
+
+    pub async fn run(mut self, subsys: SubsystemHandle) {
+        info!("Running job server");
+        self.runner
+            .run_with_shutdown(
+                Duration::seconds(1),
+                Box::pin(async move { subsys.on_shutdown_requested().await }),
+                ShutdownOptions::default(),
+            )
+            .await
+            .unwrap();
     }
 
     pub fn event_store(&self) -> EventStore<JobEvent> {
