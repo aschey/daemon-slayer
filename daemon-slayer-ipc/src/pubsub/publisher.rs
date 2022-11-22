@@ -1,17 +1,25 @@
-use std::{fmt::Display, marker::PhantomData, pin::Pin};
+use std::{
+    fmt::{Debug, Display},
+    marker::PhantomData,
+    pin::Pin,
+    str::FromStr,
+};
 
 use parity_tokio_ipc::Endpoint;
 use tarpc::{client, context};
 use tokio_serde::Serializer;
 
-use crate::{build_transport, get_socket_address, Codec, CodecWrapper};
+use crate::{
+    build_transport, get_socket_address, ipc_client_stream::IpcClientStream, Codec, CodecWrapper,
+};
 
-use super::PublisherServiceClient;
+use super::service::PublisherServiceClient;
 
 pub struct Publisher<T, M>
 where
     M: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone + Send + 'static,
-    T: Display,
+    T: FromStr + Display + Clone + Send + 'static,
+    <T as FromStr>::Err: Debug,
 {
     client: PublisherServiceClient,
     message_phantom: PhantomData<M>,
@@ -22,7 +30,8 @@ where
 impl<T, M> Publisher<T, M>
 where
     M: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone + Send + Unpin + 'static,
-    T: Display,
+    T: FromStr + Display + Clone + Send + 'static,
+    <T as FromStr>::Err: Debug,
 {
     pub(crate) fn from_client(client: PublisherServiceClient, codec: Codec) -> Self {
         Self {
@@ -44,13 +53,14 @@ where
     }
 }
 
-pub async fn get_publisher<T, M>(app_id: &str, codec: Codec) -> Publisher<T, M>
+pub(crate) async fn get_publisher<T, M>(app_id: &str, codec: Codec) -> Publisher<T, M>
 where
-    T: Display,
+    T: FromStr + Display + Clone + Send + 'static,
+    <T as FromStr>::Err: Debug,
     M: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone + Send + Unpin + 'static,
 {
     let bind_addr = get_socket_address(app_id, "publisher");
-    let endpoint = Endpoint::connect(bind_addr).await.unwrap();
+    let endpoint = IpcClientStream::new(bind_addr);
     let transport = build_transport(endpoint, CodecWrapper::new(codec.clone()));
     let client = PublisherServiceClient::new(client::Config::default(), transport).spawn();
     Publisher::from_client(client, codec)

@@ -2,7 +2,10 @@ use futures::{future, StreamExt};
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use tarpc::server::{BaseChannel, Channel, Serve};
 
-use crate::{build_transport, get_socket_address, two_way::spawn_twoway, Codec, CodecWrapper};
+use crate::{
+    build_transport, get_socket_address, ipc_client_stream::IpcClientStream, two_way::spawn_twoway,
+    Codec, CodecWrapper,
+};
 
 use super::ServiceProvider;
 
@@ -51,9 +54,7 @@ where
     }
 
     pub async fn get_client(&self) -> P::Client {
-        let conn = Endpoint::connect(self.bind_addr.clone())
-            .await
-            .expect("Failed to connect client.");
+        let conn = IpcClientStream::new(self.bind_addr.clone());
 
         let (server_chan, client_chan) =
             spawn_twoway(build_transport(conn, CodecWrapper::new(self.codec.clone())));
