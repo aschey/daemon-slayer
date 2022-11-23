@@ -101,7 +101,7 @@ impl Handler for ServiceHandler {
     }
 
     fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_test_service_async"
+        "daemon_slayer_test_service"
     }
 
     // fn get_watch_paths(&self) -> Vec<PathBuf> {

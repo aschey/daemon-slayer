@@ -4,7 +4,7 @@ use std::{fs::File, io::Write, thread, time::Duration};
 
 #[test]
 fn test_async_combined() {
-    test_combined("daemon_slayer_test_service_async", "async_tester", 3002);
+    test_combined("daemon_slayer_test_service", "test_app", 3002);
 }
 
 fn test_combined(service_name: &str, bin_name: &str, port: i32) {
