@@ -47,13 +47,11 @@ where
 {
     type TopicsFut = future::Ready<Vec<String>>;
     fn topics(self, _: Context) -> Self::TopicsFut {
-        println!("topics handler {:?}", self.topics);
         future::ready(self.topics)
     }
 
     type ReceiveFut = Pin<Box<dyn Future<Output = ()> + Send>>;
     fn receive(self, _: Context, topic: String, message: Bytes) -> Self::ReceiveFut {
-        println!("received message");
         let mut_message = BytesMut::from(message.deref());
         let value = Pin::new(&mut CodecWrapper::<M, M>::new(self.codec))
             .deserialize(&mut_message)

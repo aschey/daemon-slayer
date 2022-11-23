@@ -1,11 +1,12 @@
 use daemon_slayer::client::{Manager, ServiceManager};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::ErrorHandler;
-use daemon_slayer::ipc::rpc::RpcService;
+use daemon_slayer::ipc::rpc::{self, RpcService};
+use daemon_slayer::ipc::Codec;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::signals::{Signal, SignalHandler};
-use ipc::get_rpc_service;
+use ipc::{get_rpc_service, Message, Topic};
 use std::env::args;
 use std::error::Error;
 use std::net::SocketAddr;
@@ -16,7 +17,7 @@ use std::time::{Duration, Instant};
 use tarpc::context;
 
 use daemon_slayer::cli::Cli;
-
+use daemon_slayer::ipc::pubsub::{SubscriberClient, SubscriberServer};
 use daemon_slayer::ipc_health_check;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::BackgroundService;
@@ -35,7 +36,9 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let logger_builder = LoggerBuilder::new("daemon_slayer_ipc_worker2").with_ipc_logger(true);
+    let logger_builder = LoggerBuilder::new("daemon_slayer_ipc_worker2")
+        .with_ipc_logger(true)
+        .with_env_filter_directive("tarpc=warn".parse().unwrap());
 
     let logging_provider = LoggingCliProvider::new(logger_builder);
 
@@ -57,6 +60,7 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 #[derive(daemon_slayer::server::Service)]
 pub struct ServiceHandler {
     signal_store: BroadcastEventStore<Signal>,
+    subscriber: SubscriberClient<Topic, Message>,
 }
 
 #[async_trait::async_trait]
@@ -65,8 +69,17 @@ impl Handler for ServiceHandler {
         let (_, signal_store) = context
             .add_event_service::<SignalHandler>(SignalHandler::all())
             .await;
+        let subscriber = context
+            .add_service(SubscriberServer::<Topic, Message>::new(
+                "daemon_slayer_ipc",
+                Codec::Bincode,
+            ))
+            .await;
 
-        Self { signal_store }
+        Self {
+            signal_store,
+            subscriber,
+        }
     }
 
     fn get_service_name<'a>() -> &'a str {
@@ -79,17 +92,23 @@ impl Handler for ServiceHandler {
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         info!("running service");
         on_started();
+        let mut topic1 = self.subscriber.subscribe([Topic::Topic1]).await;
+        let mut topic2 = self.subscriber.subscribe([Topic::Topic2]).await;
         let mut signal_rx = self.signal_store.subscribe_events();
         let mut rpc_service = get_rpc_service();
         let rpc_client = rpc_service.get_client().await;
         loop {
-            match tokio::time::timeout(Duration::from_secs(1), signal_rx.next()).await {
-                Ok(_) => {
+            tokio::select! {
+                _ = signal_rx.next() => {
                     info!("stopping service");
                     return Ok(());
-                }
-                Err(_) => {
+                },
+                msg = topic1.recv() => {
+                    info!("Got topic1 message: {msg:?}");
                     rpc_client.ping(context::current()).await.unwrap();
+                }
+                msg = topic2.recv() => {
+                    info!("Got topic2 message: {msg:?}");
                 }
             }
         }

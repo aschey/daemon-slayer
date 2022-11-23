@@ -7,6 +7,25 @@ use tarpc::{client, transport::channel::UnboundedChannel, ClientMessage, Respons
 use tokio::sync::Mutex;
 use tracing::info;
 
+#[derive(
+    Debug,
+    Clone,
+    strum_macros::EnumString,
+    strum_macros::Display,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum Topic {
+    Topic1,
+    Topic2,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum Message {
+    Message1,
+    Message2,
+}
+
 #[tarpc::service]
 pub trait Ping {
     async fn ping();

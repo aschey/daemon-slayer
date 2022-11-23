@@ -1,13 +1,13 @@
 use daemon_slayer::client::{Manager, ServiceManager};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::ErrorHandler;
-use daemon_slayer::ipc::pubsub::PublisherServer;
+use daemon_slayer::ipc::pubsub::{Publisher, PublisherServer};
 use daemon_slayer::ipc::rpc::RpcService;
 use daemon_slayer::ipc::Codec;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::signals::{Signal, SignalHandler};
-use ipc::{get_rpc_service, PingProvider};
+use ipc::{get_rpc_service, Message, PingProvider, Topic};
 use std::env::args;
 use std::error::Error;
 use std::net::SocketAddr;
@@ -35,7 +35,9 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let logger_builder = LoggerBuilder::new("daemon_slayer_ipc_worker1").with_ipc_logger(true);
+    let logger_builder = LoggerBuilder::new("daemon_slayer_ipc_worker1")
+        .with_ipc_logger(true)
+        .with_env_filter_directive("tarpc=warn".parse().unwrap());
 
     let logging_provider = LoggingCliProvider::new(logger_builder);
 
@@ -57,6 +59,7 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 #[derive(daemon_slayer::server::Service)]
 pub struct ServiceHandler {
     signal_store: BroadcastEventStore<Signal>,
+    publisher: Publisher<Topic, Message>,
 }
 
 #[async_trait::async_trait]
@@ -64,8 +67,17 @@ impl Handler for ServiceHandler {
     async fn new(context: &mut ServiceContext) -> Self {
         let (_, signal_store) = context.add_event_service(SignalHandler::all()).await;
         context.add_service(get_rpc_service()).await;
+        let publisher = context
+            .add_service(PublisherServer::<Topic, Message>::new(
+                "daemon_slayer_ipc",
+                Codec::Bincode,
+            ))
+            .await;
 
-        Self { signal_store }
+        Self {
+            signal_store,
+            publisher,
+        }
     }
 
     fn get_service_name<'a>() -> &'a str {
@@ -86,7 +98,12 @@ impl Handler for ServiceHandler {
                     return Ok(());
                 }
                 Err(_) => {
-                    info!("Current time: {:?}", Instant::now());
+                    self.publisher
+                        .publish(Topic::Topic1, Message::Message1)
+                        .await;
+                    self.publisher
+                        .publish(Topic::Topic2, Message::Message2)
+                        .await;
                 }
             }
         }

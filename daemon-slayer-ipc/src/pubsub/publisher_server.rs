@@ -43,7 +43,7 @@ where
     <T as FromStr>::Err: Debug + Send,
     M: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone + Debug + Send + Unpin + 'static,
 {
-    pub(crate) fn new(id: &str, codec: Codec) -> Self {
+    pub fn new(id: &str, codec: Codec) -> Self {
         Self {
             app_id: id.to_owned(),
             clients: Default::default(),
@@ -144,7 +144,6 @@ where
     M: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone + Debug + Send + Unpin + 'static,
 {
     async fn publish(self, _: context::Context, topic: String, message: Bytes) {
-        println!("received message to publish.");
         let mut subscribers = match self.subscriptions.read().unwrap().get(&topic) {
             None => return,
             Some(subscriptions) => subscriptions.clone(),

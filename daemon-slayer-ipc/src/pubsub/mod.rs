@@ -19,5 +19,4 @@ use tokio::sync::mpsc;
 use crate::Codec;
 use std::fmt::Debug;
 
-use self::subscriber_server::SubscriberServer;
 mod service;
