@@ -6,8 +6,6 @@ use tap::TapFallible;
 use tokio::task::JoinHandle;
 use tracing::warn;
 
-// use crate::Signal;
-
 pub struct ServiceContext {
     subsys: SubsystemHandle,
     handles: Vec<(JoinHandle<()>, Duration)>,
@@ -27,10 +25,9 @@ impl ServiceContext {
 
     pub async fn add_event_service<S: daemon_slayer_core::server::EventService + 'static>(
         &mut self,
-        builder: S::Builder,
+        mut service: S,
     ) -> (S::Client, S::EventStoreImpl) {
-        let mut service = S::build(builder).await;
-        let client = service.get_client();
+        let client = service.get_client().await;
         let event_store = service.get_event_store();
         let subsys = self.subsys.clone();
         self.handles.push((
@@ -44,10 +41,9 @@ impl ServiceContext {
 
     pub async fn add_service<S: daemon_slayer_core::server::BackgroundService + 'static>(
         &mut self,
-        builder: S::Builder,
+        mut service: S,
     ) -> S::Client {
-        let mut service = S::build(builder).await;
-        let client = service.get_client();
+        let client = service.get_client().await;
         let subsys = self.subsys.clone();
         self.handles.push((
             tokio::spawn(async move {

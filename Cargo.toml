@@ -62,6 +62,7 @@ error-handler = ["daemon-slayer-error-handler"]
 grpc-health-check = ["health-check", "daemon-slayer-health-check/grpc-health-check"]
 health-check = ["daemon-slayer-health-check"]
 http-health-check = ["health-check", "daemon-slayer-health-check/http-health-check"]
+ipc = ["daemon-slayer-ipc"]
 ipc-health-check = ["health-check", "daemon-slayer-health-check/ipc-health-check"]
 logging = ["daemon-slayer-logging"]
 plugin-file-watcher = ["daemon-slayer-plugin-file-watcher"]
@@ -78,6 +79,7 @@ daemon-slayer-console = {path = "./daemon-slayer-console", optional = true}
 daemon-slayer-core = {path = "./daemon-slayer-core"}
 daemon-slayer-error-handler = {path = "./daemon-slayer-error-handler", optional = true}
 daemon-slayer-health-check = {path = "./daemon-slayer-health-check", optional = true}
+daemon-slayer-ipc = {path = "./daemon-slayer-ipc", optional = true}
 daemon-slayer-logging = {path = "./daemon-slayer-logging", optional = true}
 daemon-slayer-server = {path = "./daemon-slayer-server", optional = true}
 daemon-slayer-tray = {path = "./daemon-slayer-tray", optional = true}

@@ -1,10 +1,14 @@
 use crate::{build_transport, get_socket_address, Codec, CodecWrapper};
 use bytes::Bytes;
+use daemon_slayer_core::server::{BackgroundService, FutureExt, SubsystemHandle};
 use futures::{channel::oneshot, future, Future, StreamExt};
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use std::{
     collections::HashMap,
     error::Error,
+    fmt::{Debug, Display},
+    marker::PhantomData,
+    str::FromStr,
     sync::{Arc, Mutex, RwLock},
 };
 use tarpc::{
@@ -13,42 +17,39 @@ use tarpc::{
 };
 
 use super::{
+    get_publisher,
     service::{PublisherService, SubscriberServiceClient},
     subscription::Subscription,
+    Publisher,
 };
 
 #[derive(Clone, Debug)]
-pub struct PublisherServer {
+pub struct PublisherServer<T, M>
+where
+    T: FromStr + Display + Clone + Debug + Send + 'static,
+    <T as FromStr>::Err: Debug + Send,
+    M: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone + Debug + Send + Unpin + 'static,
+{
     app_id: String,
     clients: Arc<Mutex<HashMap<u32, Subscription>>>,
     subscriptions: Arc<RwLock<HashMap<String, HashMap<u32, SubscriberServiceClient>>>>,
     codec: Codec,
+    phantom: PhantomData<(T, M)>,
 }
 
-impl PublisherServer {
+impl<T, M> PublisherServer<T, M>
+where
+    T: FromStr + Display + Clone + Debug + Send + 'static,
+    <T as FromStr>::Err: Debug + Send,
+    M: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone + Debug + Send + Unpin + 'static,
+{
     pub(crate) fn new(id: &str, codec: Codec) -> Self {
         Self {
             app_id: id.to_owned(),
             clients: Default::default(),
             subscriptions: Default::default(),
             codec,
-        }
-    }
-
-    pub async fn run(self) {
-        let bind_addr = get_socket_address(&self.app_id, "publisher");
-        let mut endpoint = Endpoint::new(bind_addr);
-        endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
-
-        self.clone().start_subscription_manager().await;
-        let codec = self.codec.clone();
-
-        let incoming = endpoint.incoming().unwrap();
-        futures::pin_mut!(incoming);
-        while let Some(Ok(publisher)) = incoming.next().await {
-            BaseChannel::with_defaults(build_transport(publisher, CodecWrapper::new(codec.clone())))
-                .execute(self.clone().serve())
-                .await
+            phantom: Default::default(),
         }
     }
 
@@ -136,7 +137,12 @@ impl PublisherServer {
 }
 
 #[tarpc::server]
-impl PublisherService for PublisherServer {
+impl<T, M> PublisherService for PublisherServer<T, M>
+where
+    T: FromStr + Display + Clone + Debug + Send + 'static,
+    <T as FromStr>::Err: Debug + Send,
+    M: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone + Debug + Send + Unpin + 'static,
+{
     async fn publish(self, _: context::Context, topic: String, message: Bytes) {
         println!("received message to publish.");
         let mut subscribers = match self.subscriptions.read().unwrap().get(&topic) {
@@ -154,5 +160,38 @@ impl PublisherService for PublisherServer {
                 println!("Err {e:?}");
             }
         }
+    }
+}
+
+#[async_trait::async_trait]
+impl<T, M> BackgroundService for PublisherServer<T, M>
+where
+    T: FromStr + Display + Clone + Debug + Send + 'static,
+    <T as FromStr>::Err: Debug + Send,
+    M: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone + Send + Debug + Unpin + 'static,
+{
+    type Client = Publisher<T, M>;
+
+    async fn run(self, subsys: SubsystemHandle) {
+        let bind_addr = get_socket_address(&self.app_id, "publisher");
+        let mut endpoint = Endpoint::new(bind_addr);
+        endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
+
+        let new = self.clone();
+        new.start_subscription_manager().await;
+        let codec = self.codec.clone();
+
+        let incoming = endpoint.incoming().unwrap();
+        futures::pin_mut!(incoming);
+        while let Ok(Some(Ok(publisher))) = incoming.next().cancel_on_shutdown(&subsys).await {
+            let new = self.clone();
+            BaseChannel::with_defaults(build_transport(publisher, CodecWrapper::new(codec.clone())))
+                .execute(new.serve())
+                .await
+        }
+    }
+
+    async fn get_client(&mut self) -> Self::Client {
+        get_publisher::<T, M>(self.app_id.as_ref(), self.codec.clone()).await
     }
 }

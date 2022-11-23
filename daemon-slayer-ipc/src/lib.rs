@@ -24,6 +24,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::{Mutex, RwLock};
 use tokio_serde::formats::{Cbor, MessagePack};
 
+pub use tarpc;
 pub use tarpc::{transport::channel::UnboundedChannel, ClientMessage, Response};
 
 mod ipc_client_stream;

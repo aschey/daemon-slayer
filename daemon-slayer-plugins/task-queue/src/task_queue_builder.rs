@@ -61,7 +61,7 @@ impl TaskQueueBuilder {
         self
     }
 
-    pub async fn start(self) -> TaskQueue {
+    pub async fn build(self) -> TaskQueue {
         TaskQueue::from_builder(self).await
     }
 }

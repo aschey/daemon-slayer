@@ -21,9 +21,7 @@ use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::client::Level;
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::{BroadcastEventStore, EventStore, Handler, ServiceContext};
-use daemon_slayer::signals::{
-    Signal, SignalHandler, SignalHandlerBuilder, SignalHandlerBuilderTrait,
-};
+use daemon_slayer::signals::{Signal, SignalHandler, SignalHandlerTrait};
 use futures::{SinkExt, StreamExt};
 use serde_derive::Deserialize;
 use tracing::info;
@@ -76,15 +74,15 @@ struct Config {
 #[async_trait::async_trait]
 impl Handler for ServiceHandler {
     async fn new(context: &mut ServiceContext) -> Self {
-        let (_, signal_store) = context
-            .add_event_service::<SignalHandler>(SignalHandlerBuilder::all())
-            .await;
+        let (_, signal_store) = context.add_event_service(SignalHandler::all()).await;
 
         if let Ok(config_file) = std::env::var("CONFIG_FILE") {
             let abs_path = PathBuf::from(config_file);
             let (_, file_watcher_events) = context
-                .add_event_service::<FileWatcher>(
-                    FileWatcherBuilder::default().with_watch_path(abs_path),
+                .add_event_service(
+                    FileWatcherBuilder::default()
+                        .with_watch_path(abs_path)
+                        .build(),
                 )
                 .await;
             let mut event_store = file_watcher_events.subscribe_events();

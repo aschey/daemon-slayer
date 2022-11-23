@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use crate::FileWatcher;
+
 #[derive(Clone)]
 pub struct FileWatcherBuilder {
     pub(crate) debounce_seconds: u64,
@@ -29,5 +31,9 @@ impl FileWatcherBuilder {
     pub fn with_watch_paths(mut self, mut paths: Vec<PathBuf>) -> Self {
         self.paths.append(&mut paths);
         self
+    }
+
+    pub fn build(self) -> FileWatcher {
+        FileWatcher::from_builder(self)
     }
 }

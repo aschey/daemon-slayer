@@ -6,7 +6,7 @@ use daemon_slayer::client::{Manager, ServiceManager};
 use daemon_slayer::error_handler::{cli::ErrorHandlerCliProvider, ErrorHandler};
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::LogTarget;
-use daemon_slayer::signals::{Signal, SignalHandler, SignalHandlerBuilder};
+use daemon_slayer::signals::{Signal, SignalHandler};
 use std::env::args;
 use std::error::Error;
 use std::net::SocketAddr;
@@ -22,7 +22,7 @@ use daemon_slayer::server::{
     cli::ServerCliProvider, BroadcastEventStore, EventStore, FutureExt, Handler, Service,
     ServiceContext, SubsystemHandle,
 };
-use daemon_slayer::signals::SignalHandlerBuilderTrait;
+use daemon_slayer::signals::SignalHandlerTrait;
 use daemon_slayer::task_queue::{
     Decode, Encode, JobError, JobProcessor, TaskQueue, TaskQueueBuilder, TaskQueueClient, Xid,
 };
@@ -72,13 +72,18 @@ pub struct ServiceHandler {
 impl Handler for ServiceHandler {
     async fn new(context: &mut ServiceContext) -> Self {
         let subsys = context.get_subsystem_handle();
-        let (_, signal_store) = context
-            .add_event_service::<SignalHandler>(SignalHandlerBuilder::all())
+        context
+            .add_event_service::<SignalHandler>(SignalHandler::all())
             .await;
         let task_queue_client = context
-            .add_service::<TaskQueue>(TaskQueueBuilder::default().with_job_handler(MyJob {
-                subsys: subsys.clone(),
-            }))
+            .add_service(
+                TaskQueue::builder()
+                    .with_job_handler(MyJob {
+                        subsys: subsys.clone(),
+                    })
+                    .build()
+                    .await,
+            )
             .await;
         // let (file_watcher_client, file_watcher_events) = context
         //     .add_event_service::<FileWatcher>(

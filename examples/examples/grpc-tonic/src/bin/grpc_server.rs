@@ -12,9 +12,7 @@ use daemon_slayer::server::futures::StreamExt;
 use daemon_slayer::server::{
     cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Service, ServiceContext,
 };
-use daemon_slayer::signals::{
-    Signal, SignalHandler, SignalHandlerBuilder, SignalHandlerBuilderTrait,
-};
+use daemon_slayer::signals::{Signal, SignalHandler, SignalHandlerTrait};
 use tonic::{transport::Server, Request, Response, Status};
 
 use hello_world::greeter_server::{Greeter, GreeterServer};
@@ -77,9 +75,7 @@ pub struct ServiceHandler {
 #[tonic::async_trait]
 impl Handler for ServiceHandler {
     async fn new(context: &mut ServiceContext) -> Self {
-        let (_, signal_store) = context
-            .add_event_service::<SignalHandler>(SignalHandlerBuilder::all())
-            .await;
+        let (_, signal_store) = context.add_event_service(SignalHandler::all()).await;
 
         Self { signal_store }
     }

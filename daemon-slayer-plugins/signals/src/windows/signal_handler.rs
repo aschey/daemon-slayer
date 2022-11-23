@@ -1,8 +1,8 @@
-use crate::Signal;
+use crate::{Signal, SignalHandlerTrait};
 use daemon_slayer_core::server::{BroadcastEventStore, SubsystemHandle};
 use once_cell::sync::OnceCell;
 
-use super::{SignalHandlerBuilder, SignalHandlerClient};
+use super::SignalHandlerClient;
 
 pub struct SignalHandler {
     signal_tx: tokio::sync::broadcast::Sender<Signal>,
@@ -16,12 +16,8 @@ impl SignalHandler {
     }
 }
 
-#[async_trait::async_trait]
-impl daemon_slayer_core::server::BackgroundService for SignalHandler {
-    type Builder = SignalHandlerBuilder;
-    type Client = SignalHandlerClient;
-
-    async fn build(_: Self::Builder) -> Self {
+impl Default for SignalHandler {
+    fn default() -> Self {
         let signal_tx = SENDER.get().map(|tx| tx.to_owned()).unwrap_or_else(|| {
             let (tx, _) = tokio::sync::broadcast::channel(32);
             tx
@@ -29,6 +25,17 @@ impl daemon_slayer_core::server::BackgroundService for SignalHandler {
 
         Self { signal_tx }
     }
+}
+
+impl SignalHandlerTrait for SignalHandler {
+    fn all() -> Self {
+        Self::default()
+    }
+}
+
+#[async_trait::async_trait]
+impl daemon_slayer_core::server::BackgroundService for SignalHandler {
+    type Client = SignalHandlerClient;
 
     async fn run(self, subsys: SubsystemHandle) {
         let mut ctrl_c_stream = tokio::signal::windows::ctrl_c().unwrap();
@@ -50,7 +57,7 @@ impl daemon_slayer_core::server::BackgroundService for SignalHandler {
         }
     }
 
-    fn get_client(&mut self) -> Self::Client {
+    async fn get_client(&mut self) -> Self::Client {
         SignalHandlerClient {}
     }
 }

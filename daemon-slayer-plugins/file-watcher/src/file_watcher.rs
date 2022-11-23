@@ -20,13 +20,12 @@ pub struct FileWatcher {
     debouncer: Debouncer<RecommendedWatcher>,
 }
 
-#[async_trait::async_trait]
-impl daemon_slayer_core::server::BackgroundService for FileWatcher {
-    type Builder = FileWatcherBuilder;
+impl FileWatcher {
+    pub fn builder() -> FileWatcherBuilder {
+        FileWatcherBuilder::default()
+    }
 
-    type Client = FileWatcherClient;
-
-    async fn build(builder: Self::Builder) -> Self {
+    pub(crate) fn from_builder(builder: FileWatcherBuilder) -> Self {
         let (file_tx, _) = tokio::sync::broadcast::channel(32);
         let file_tx_ = file_tx.clone();
 
@@ -62,6 +61,11 @@ impl daemon_slayer_core::server::BackgroundService for FileWatcher {
             debouncer,
         }
     }
+}
+
+#[async_trait::async_trait]
+impl daemon_slayer_core::server::BackgroundService for FileWatcher {
+    type Client = FileWatcherClient;
 
     async fn run(mut self, subsys: SubsystemHandle) {
         while let Ok(Some(command)) = self.command_rx.recv().cancel_on_shutdown(&subsys).await {
@@ -79,7 +83,7 @@ impl daemon_slayer_core::server::BackgroundService for FileWatcher {
         self.debouncer.stop();
     }
 
-    fn get_client(&mut self) -> Self::Client {
+    async fn get_client(&mut self) -> Self::Client {
         FileWatcherClient::new(self.command_tx.clone())
     }
 }

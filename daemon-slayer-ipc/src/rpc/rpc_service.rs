@@ -1,3 +1,4 @@
+use daemon_slayer_core::server::{BackgroundService, FutureExt, SubsystemHandle};
 use futures::{future, StreamExt};
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use tarpc::server::{BaseChannel, Channel, Serve};
@@ -29,31 +30,41 @@ where
             codec,
         }
     }
-    pub fn spawn_server(&self) {
+}
+
+#[async_trait::async_trait]
+impl<P> BackgroundService for RpcService<P>
+where
+    P: ServiceProvider + Send,
+    <<P as ServiceProvider>::Service as Serve<<P as ServiceProvider>::Req>>::Fut: Send,
+{
+    type Client = P::Client;
+
+    async fn run(mut self, subsys: SubsystemHandle) {
         let mut endpoint = Endpoint::new(self.bind_addr.clone());
         endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
 
         let incoming = endpoint.incoming().expect("failed to open new socket");
         let service_provider = self.service_provider.clone();
         let codec = self.codec.clone();
-        tokio::spawn(async move {
-            incoming
-                .filter_map(|r| future::ready(r.ok()))
-                .map(|stream| {
-                    let (server_chan, client_chan) =
-                        spawn_twoway(build_transport(stream, CodecWrapper::new(codec.clone())));
+        incoming
+            .filter_map(|r| future::ready(r.ok()))
+            .map(|stream| {
+                let (server_chan, client_chan) =
+                    spawn_twoway(build_transport(stream, CodecWrapper::new(codec.clone())));
 
-                    let peer = service_provider.get_client(client_chan);
-                    (BaseChannel::with_defaults(server_chan), peer)
-                })
-                .map(|(base_chan, peer)| base_chan.execute(service_provider.get_service(peer)))
-                .buffer_unordered(10)
-                .for_each(|_| async {})
-                .await;
-        });
+                let peer = service_provider.get_client(client_chan);
+                (BaseChannel::with_defaults(server_chan), peer)
+            })
+            .map(|(base_chan, peer)| base_chan.execute(service_provider.get_service(peer)))
+            .buffer_unordered(10)
+            .for_each(|_| async {})
+            .cancel_on_shutdown(&subsys)
+            .await
+            .ok();
     }
 
-    pub async fn get_client(&self) -> P::Client {
+    async fn get_client(&mut self) -> Self::Client {
         let conn = IpcClientStream::new(self.bind_addr.clone());
 
         let (server_chan, client_chan) =

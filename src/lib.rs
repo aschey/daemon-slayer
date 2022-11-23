@@ -26,9 +26,15 @@ pub mod error_handler {
 pub mod health_check {
     pub use daemon_slayer_health_check::*;
 }
+
 #[cfg(feature = "tray")]
 pub mod tray {
     pub use daemon_slayer_tray::*;
+}
+
+#[cfg(feature = "ipc")]
+pub mod ipc {
+    pub use daemon_slayer_ipc::*;
 }
 
 #[cfg(feature = "plugin-task-queue")]

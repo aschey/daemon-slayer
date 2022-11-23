@@ -41,6 +41,7 @@ where
             codec,
         }
     }
+
     pub async fn publish(&mut self, topic: T, message: M) {
         let value = Pin::new(&mut CodecWrapper::<M, M>::new(self.codec.clone()))
             .serialize(&message)

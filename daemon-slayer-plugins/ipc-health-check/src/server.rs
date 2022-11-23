@@ -10,21 +10,25 @@ use tokio::{
 };
 
 pub struct Server {
-    builder: Builder,
+    pub(crate) sock_path: String,
+}
+
+impl Server {
+    pub fn new(app_name: String) -> Self {
+        #[cfg(unix)]
+        let sock_path = format!("/tmp/{app_name}_health.sock");
+        #[cfg(windows)]
+        let sock_path = format!("\\\\.\\pipe\\{app_name}_health");
+        Self { sock_path }
+    }
 }
 
 #[async_trait::async_trait]
 impl daemon_slayer_core::server::BackgroundService for Server {
-    type Builder = Builder;
-
     type Client = Client;
 
-    async fn build(builder: Self::Builder) -> Self {
-        Self { builder }
-    }
-
     async fn run(self, subsys: SubsystemHandle) {
-        let mut endpoint = Endpoint::new(self.builder.sock_path);
+        let mut endpoint = Endpoint::new(self.sock_path);
         endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
 
         let incoming = endpoint.incoming().unwrap();
@@ -46,7 +50,7 @@ impl daemon_slayer_core::server::BackgroundService for Server {
         }
     }
 
-    fn get_client(&mut self) -> Self::Client {
+    async fn get_client(&mut self) -> Self::Client {
         Client {}
     }
 }

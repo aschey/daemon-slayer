@@ -33,18 +33,13 @@ impl EventStore for JobEventStore {
 
 #[async_trait::async_trait]
 impl daemon_slayer_core::server::BackgroundService for TaskQueue {
-    type Builder = TaskQueueBuilder;
     type Client = TaskQueueClient;
-
-    async fn build(builder: Self::Builder) -> Self {
-        Self::from_builder(builder).await
-    }
 
     async fn run(self, subsys: SubsystemHandle) {
         self.run(subsys).await;
     }
 
-    fn get_client(&mut self) -> Self::Client {
+    async fn get_client(&mut self) -> Self::Client {
         self.client()
     }
 }

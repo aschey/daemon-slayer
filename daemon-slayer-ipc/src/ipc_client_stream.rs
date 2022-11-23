@@ -30,7 +30,6 @@ impl IpcClientStream {
                     let mut c = connection_.lock().unwrap();
                     *c = Some(connection);
                     if let Some(w) = waker {
-                        println!("waking1");
                         w.wake();
                         return;
                     } else {
