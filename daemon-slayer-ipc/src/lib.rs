@@ -113,10 +113,16 @@ where
 }
 
 pub(crate) fn get_socket_address(id: &str, suffix: &str) -> String {
+    let suffix_full = if suffix.is_empty() {
+        "".to_owned()
+    } else {
+        format!("_{suffix}")
+    };
+
     #[cfg(unix)]
-    let addr = format!("/tmp/{}_{}.sock", id, suffix);
+    let addr = format!("/tmp/{}{}.sock", id, suffix_full);
     #[cfg(windows)]
-    let addr = format!("\\\\.\\pipe\\{}_{}", id, suffix);
+    let addr = format!("\\\\.\\pipe\\{}{}", id, suffix_full);
     addr
 }
 

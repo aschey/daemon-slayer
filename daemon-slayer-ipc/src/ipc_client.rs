@@ -26,7 +26,7 @@ where
     Res: Serialize + for<'de> Deserialize<'de> + Unpin + Send,
 {
     pub fn new(app_id: impl AsRef<str>, codec: Codec) -> Self {
-        let client = IpcClientStream::new(get_socket_address(app_id.as_ref(), "ipc"));
+        let client = IpcClientStream::new(get_socket_address(app_id.as_ref(), ""));
         let transport = build_transport(client, CodecWrapper::<Res, Req>::new(codec));
         Self { transport }
     }

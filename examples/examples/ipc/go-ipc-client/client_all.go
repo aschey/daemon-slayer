@@ -52,7 +52,15 @@ func intToBytes(mLen int) []byte {
 
 }
 
-func (cc *Client[Req, Res]) Read() (Res, error) {
+func (cc *Client[Req, Res]) Send(request Req) (Res, error) {
+	if err := cc.write(request); err != nil {
+		var res Res
+		return res, err
+	}
+	return cc.read()
+}
+
+func (cc *Client[Req, Res]) read() (Res, error) {
 	bLen := make([]byte, 4)
 	var res Res
 	if _, err := cc.conn.Read(bLen); err != nil {
@@ -74,8 +82,7 @@ func (cc *Client[Req, Res]) Read() (Res, error) {
 	return res, err
 }
 
-func (cc *Client[Req, Res]) Write(message Req) error {
-
+func (cc *Client[Req, Res]) write(message Req) error {
 	data, err := json.Marshal(message)
 	if err != nil {
 		return err

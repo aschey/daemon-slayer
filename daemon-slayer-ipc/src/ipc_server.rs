@@ -30,7 +30,7 @@ where
 {
     pub fn new(app_id: impl Into<String>, codec: Codec, handler: H) -> Self {
         let app_id = app_id.into();
-        let endpoint = Endpoint::new(get_socket_address(&app_id, "ipc"));
+        let endpoint = Endpoint::new(get_socket_address(&app_id, ""));
         Self {
             app_id,
             endpoint,

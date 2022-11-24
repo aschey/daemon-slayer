@@ -14,18 +14,13 @@ type ipcResponse struct {
 }
 
 func main() {
-	cc, err := StartClient[ipcRequest, ipcResponse]("daemon_slayer_ipc_ipc")
+	cc, err := StartClient[ipcRequest, ipcResponse]("daemon_slayer_ipc")
 	if err != nil {
 		return
 	}
 
 	for {
-		err = cc.Write(ipcRequest{Name: "bob"})
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		msg, err := cc.Read()
+		msg, err := cc.Send(ipcRequest{Name: "bob"})
 		if err != nil {
 			log.Println(err)
 			return
