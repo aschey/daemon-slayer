@@ -77,7 +77,7 @@ impl Handler for ServiceHandler {
     }
 
     fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_ipc_worker1"
+        "daemon_slayer_ipc_server"
     }
 
     async fn run_service<F: FnOnce() + Send>(
