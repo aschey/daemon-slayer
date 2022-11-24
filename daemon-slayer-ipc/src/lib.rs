@@ -27,7 +27,15 @@ use tokio_serde::formats::{Cbor, MessagePack};
 pub use tarpc;
 pub use tarpc::{transport::channel::UnboundedChannel, ClientMessage, Response};
 
+mod ipc_client;
+pub use ipc_client::*;
+
+mod ipc_request_handler;
+pub use ipc_request_handler::*;
+
 mod ipc_client_stream;
+mod ipc_server;
+pub use ipc_server::*;
 pub mod pubsub;
 pub mod rpc;
 mod two_way;

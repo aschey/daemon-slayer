@@ -3,11 +3,11 @@ use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::ErrorHandler;
 use daemon_slayer::ipc::pubsub::{Publisher, PublisherServer};
 use daemon_slayer::ipc::rpc::RpcService;
-use daemon_slayer::ipc::{Codec, IpcServer};
+use daemon_slayer::ipc::Codec;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::signals::{Signal, SignalHandler};
-use ipc::{IpcRequest, IpcResponse, RequestHandler};
+use ipc::{get_rpc_service, Message, PingProvider, Topic};
 use std::env::args;
 use std::error::Error;
 use std::net::SocketAddr;
@@ -59,21 +59,25 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 #[derive(daemon_slayer::server::Service)]
 pub struct ServiceHandler {
     signal_store: BroadcastEventStore<Signal>,
+    publisher: Publisher<Topic, Message>,
 }
 
 #[async_trait::async_trait]
 impl Handler for ServiceHandler {
     async fn new(context: &mut ServiceContext) -> Self {
         let (_, signal_store) = context.add_event_service(SignalHandler::all()).await;
-        context
-            .add_service(IpcServer::new(
+        context.add_service(get_rpc_service()).await;
+        let publisher = context
+            .add_service(PublisherServer::<Topic, Message>::new(
                 "daemon_slayer_ipc",
-                Codec::Json,
-                RequestHandler {},
+                Codec::Bincode,
             ))
             .await;
 
-        Self { signal_store }
+        Self {
+            signal_store,
+            publisher,
+        }
     }
 
     fn get_service_name<'a>() -> &'a str {
@@ -93,7 +97,14 @@ impl Handler for ServiceHandler {
                     info!("stopping service");
                     return Ok(());
                 }
-                Err(_) => tokio::time::sleep(Duration::from_secs(1)).await,
+                Err(_) => {
+                    self.publisher
+                        .publish(Topic::Topic1, Message::Message1)
+                        .await;
+                    self.publisher
+                        .publish(Topic::Topic2, Message::Message2)
+                        .await;
+                }
             }
         }
     }

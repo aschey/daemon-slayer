@@ -1,0 +1,20 @@
+[package]
+edition = "2021"
+name = "rpc"
+version = "0.1.0"
+
+[workspace]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.66"
+async-trait = "0.1.58"
+daemon-slayer = {path = "../../..", features = ["server-base", "client-base", "all-plugins", "ipc"]}
+futures = "0.3.25"
+serde = "1.0.147"
+strum = "0.24.1"
+strum_macros = "0.24.3"
+tarpc = {version = "0.31.0", features = ["tokio1", "serde-transport"]}
+tokio = {version = "1.21.2", features = ["macros", "rt-multi-thread"]}
+tracing = "0.1.37"
