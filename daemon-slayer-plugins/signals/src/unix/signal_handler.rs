@@ -48,17 +48,15 @@ impl daemon_slayer_core::server::BackgroundService for SignalHandler {
     async fn run(mut self, subsys: SubsystemHandle) {
         let signals_handle = self.signals.handle();
 
-        let (signal_tx, _) = tokio::sync::broadcast::channel(32);
-        let signal_tx_ = signal_tx.clone();
-
         let mut signals = self.signals.fuse();
         while let Some(signal) = signals.next().await {
             let signal_name = signal_hook::low_level::signal_name(signal).unwrap_or("unknown");
             let signal: Signal = signal_name.into();
-            signal_tx_.send(signal.clone()).ok();
+            self.signal_tx.send(signal.clone()).ok();
             if let Signal::SIGTERM | Signal::SIGQUIT | Signal::SIGINT = signal {
                 subsys.request_global_shutdown();
                 signals_handle.close();
+                return;
             }
         }
     }
