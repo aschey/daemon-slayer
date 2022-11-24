@@ -1,4 +1,4 @@
-use crate::{signal_handler_client::SignalHandlerClientTrait, Signal};
+use crate::{Signal, SignalHandlerClientTrait};
 
 pub struct SignalHandlerClient {
     signals_handle: signal_hook_tokio::Handle,
