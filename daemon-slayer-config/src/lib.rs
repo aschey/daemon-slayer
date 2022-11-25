@@ -28,6 +28,14 @@ impl ConfigFileType {
             ConfigFileType::Json5 => ".json5",
         }
     }
+
+    fn to_format_language(&self) -> &str {
+        match &self {
+            ConfigFileType::Toml => "toml",
+            ConfigFileType::Yaml => "yaml",
+            ConfigFileType::Json5 => "javascript",
+        }
+    }
 }
 
 pub struct AppConfig<T: Config> {
@@ -86,6 +94,7 @@ impl<T: Config> AppConfig<T> {
             .header(true)
             .paging_mode(PagingMode::QuitIfOneScreen)
             .line_numbers(true)
+            .language(self.config_file_type.to_format_language())
             .print()
             .unwrap();
     }
