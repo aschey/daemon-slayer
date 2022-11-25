@@ -7,6 +7,7 @@ use crate::{Manager, ServiceManager};
 
 pub struct ClientCliProvider {
     commands: HashMap<Action, CommandType>,
+    config: CommandType,
     manager: ServiceManager,
 }
 
@@ -15,6 +16,13 @@ impl ClientCliProvider {
         Self {
             commands: Default::default(),
             manager,
+            config: CommandType::Arg {
+                id: "env_var".to_owned(),
+                short: Some('e'),
+                long: Some("env".to_owned()),
+                help_text: Some("set env var".to_string()),
+                hide: false,
+            },
         }
     }
 
@@ -43,7 +51,7 @@ impl daemon_slayer_core::cli::CommandProvider for ClientCliProvider {
     }
 
     fn get_commands(&self) -> Vec<&CommandType> {
-        vec![]
+        vec![&self.config]
     }
 
     async fn handle_input(

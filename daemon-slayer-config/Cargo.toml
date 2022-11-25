@@ -1,0 +1,15 @@
+[package]
+edition = "2021"
+name = "daemon-slayer-config"
+version = "0.1.0"
+
+[dependencies]
+async-trait = "0.1"
+bat = {git = "https://github.com/cstyles/bat", rev = "bfa5d27fd6e14a3123afa39ccb8ae813842aecc6", default-features = false, features = ["regex-onig", "paging"]}
+confique = ">= 0.2.2"
+daemon-slayer-core = {path = "../daemon-slayer-core"}
+directories = "4"
+which = "4"
+
+[features]
+cli = ["daemon-slayer-core/cli"]

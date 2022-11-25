@@ -1,3 +1,7 @@
+pub mod core {
+    pub use daemon_slayer_core::*;
+}
+
 #[cfg(feature = "client")]
 pub mod client {
     pub use daemon_slayer_client::*;
@@ -35,6 +39,11 @@ pub mod tray {
 #[cfg(feature = "ipc")]
 pub mod ipc {
     pub use daemon_slayer_ipc::*;
+}
+
+#[cfg(feature = "config")]
+pub mod config {
+    pub use daemon_slayer_config::*;
 }
 
 #[cfg(feature = "plugin-task-queue")]

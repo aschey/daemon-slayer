@@ -15,7 +15,7 @@ pub struct ErrorHandlerCliProvider {
 #[async_trait::async_trait]
 impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
     fn get_action_type(&self) -> ActionType {
-        ActionType::Server
+        ActionType::Unknown
     }
 
     fn get_commands(&self) -> Vec<&CommandType> {

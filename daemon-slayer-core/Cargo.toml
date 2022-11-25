@@ -15,5 +15,6 @@ tokio-stream = {version = "0.1", features = ["sync"], optional = true}
 
 [features]
 cli = ["clap", "strum", "strum_macros"]
+config = []
 health-check = []
 server = ["tokio-stream", "futures", "tokio-graceful-shutdown"]

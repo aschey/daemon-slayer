@@ -33,7 +33,7 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let logger_builder = LoggerBuilder::new("daemon_slayer_async_server").with_ipc_logger(true);
+    let logger_builder = LoggerBuilder::new("daemon_slayer_server").with_ipc_logger(true);
 
     let logging_provider = LoggingCliProvider::new(logger_builder);
 
@@ -65,7 +65,7 @@ impl Handler for ServiceHandler {
             .await;
         context
             .add_service(ipc_health_check::Server::new(
-                "daemon_slayer_async_server".to_owned(),
+                "daemon_slayer_server".to_owned(),
             ))
             .await;
 
@@ -73,7 +73,7 @@ impl Handler for ServiceHandler {
     }
 
     fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_async_server"
+        "daemon_slayer_server"
     }
 
     async fn run_service<F: FnOnce() + Send>(

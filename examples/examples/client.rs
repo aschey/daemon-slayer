@@ -25,17 +25,11 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::main]
 pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let logger_builder = LoggerBuilder::new("daemon_slayer_async_server");
+    let logger_builder = LoggerBuilder::new("daemon_slayer_server");
     let logging_provider = LoggingCliProvider::new(logger_builder);
-    let manager = ServiceManager::builder("daemon_slayer_async_server")
+    let manager = ServiceManager::builder("daemon_slayer_server")
         .with_description("test service")
-        .with_program(
-            current_exe()
-                .unwrap()
-                .parent()
-                .unwrap()
-                .join("async_server"),
-        )
+        .with_program(current_exe().unwrap().parent().unwrap().join("server"))
         .with_service_level(if cfg!(windows) {
             Level::System
         } else {
@@ -48,7 +42,7 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         .with_args(["run"])
         .build()?;
 
-    let health_check = IpcHealthCheck::new("daemon_slayer_async_server");
+    let health_check = IpcHealthCheck::new("daemon_slayer_server");
 
     let mut console = Console::new(manager.clone());
     console.add_health_check(Box::new(health_check.clone()));

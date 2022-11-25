@@ -39,6 +39,7 @@ impl Builder {
                 name: Action::Install.to_string(),
                 help_text: "Install the service using the system's service manager".to_owned(),
                 hide: false,
+                children: None,
             },
         );
         self.commands.insert(
@@ -47,6 +48,7 @@ impl Builder {
                 name: Action::Uninstall.to_string(),
                 help_text: "Uninstall the service from the system's service manager".to_owned(),
                 hide: false,
+                children: None,
             },
         );
         self.commands.insert(
@@ -55,6 +57,7 @@ impl Builder {
                 name: Action::Start.to_string(),
                 help_text: "Start the service".to_owned(),
                 hide: false,
+                children: None,
             },
         );
         self.commands.insert(
@@ -63,6 +66,7 @@ impl Builder {
                 name: Action::Info.to_string(),
                 help_text: "Get the service's current status".into(),
                 hide: false,
+                children: None,
             },
         );
         self.commands.insert(
@@ -71,6 +75,7 @@ impl Builder {
                 name: Action::Pid.to_string(),
                 help_text: "Get the service's current PID".to_owned(),
                 hide: false,
+                children: None,
             },
         );
         self.commands.insert(
@@ -79,6 +84,7 @@ impl Builder {
                 name: Action::Stop.to_string(),
                 help_text: "Stop the service".to_owned(),
                 hide: false,
+                children: None,
             },
         );
 
@@ -88,6 +94,7 @@ impl Builder {
                 name: Action::Restart.to_string(),
                 help_text: "Restart the service".to_owned(),
                 hide: false,
+                children: None,
             },
         );
 
@@ -97,6 +104,7 @@ impl Builder {
                 name: Action::Enable.to_string(),
                 help_text: "Enable autostart".to_owned(),
                 hide: false,
+                children: None,
             },
         );
 
@@ -106,6 +114,7 @@ impl Builder {
                 name: Action::Disable.to_string(),
                 help_text: "Disable autostart".to_owned(),
                 hide: false,
+                children: None,
             },
         );
 
@@ -119,6 +128,7 @@ impl Builder {
                 name: "run".to_owned(),
                 help_text: "".to_owned(),
                 hide: true,
+                children: None,
             },
         );
 

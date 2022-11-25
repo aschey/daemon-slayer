@@ -1,14 +1,20 @@
+use crate::platform::ServiceManager;
+use crate::Level;
 use crate::Manager;
 use crate::Result;
+use confique::Config;
+use daemon_slayer_core::config::Configurable;
 use std::env::consts::EXE_EXTENSION;
 use std::env::current_exe;
 use std::path::PathBuf;
 
-use crate::platform::ServiceManager;
-use crate::Level;
-
 use super::SystemdConfig;
 use super::WindowsConfig;
+
+#[derive(Debug, Config)]
+pub struct UserConfig {
+    env_vars: Vec<(String, String)>,
+}
 
 #[derive(Clone)]
 pub struct Builder {
@@ -26,6 +32,15 @@ pub struct Builder {
     pub(crate) systemd_config: SystemdConfig,
     #[cfg_attr(not(windows), allow(unused))]
     pub(crate) windows_config: WindowsConfig,
+}
+
+impl Configurable for Builder {
+    type UserConfig = UserConfig;
+
+    fn with_user_config(mut self, config: Self::UserConfig) -> Self {
+        self.env_vars = config.env_vars;
+        self
+    }
 }
 
 impl Builder {

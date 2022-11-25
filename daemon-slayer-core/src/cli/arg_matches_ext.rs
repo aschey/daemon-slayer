@@ -24,6 +24,7 @@ impl ArgMatchesExt for clap::ArgMatches {
                 name,
                 help_text: _,
                 hide: _,
+                children: _,
             } => self.subcommand().map(|r| r.0) == Some(name),
             CommandType::Default => !self.args_present() && self.subcommand().is_none(),
         }
@@ -58,7 +59,17 @@ impl CommandExt for clap::Command {
                 name,
                 help_text,
                 hide,
-            } => self.subcommand(clap::Command::new(name).about(help_text).hide(*hide)),
+                children,
+            } => {
+                let mut sub = clap::Command::new(name).about(help_text).hide(*hide);
+
+                if let Some(children) = children {
+                    for child in children.iter() {
+                        sub = sub.add_command_handler(child);
+                    }
+                }
+                self.subcommand(sub)
+            }
             CommandType::Default => self.arg_required_else_help(false),
         }
     }

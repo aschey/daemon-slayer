@@ -14,6 +14,7 @@ members = [
   "daemon-slayer-console",
   "daemon-slayer-tray",
   "daemon-slayer-ipc",
+  "daemon-slayer-config",
   "daemon-slayer-health-check",
   "daemon-slayer-error-handler",
   "daemon-slayer-gui/src-tauri",
@@ -55,8 +56,10 @@ cli = [
   "daemon-slayer-console/cli",
   "daemon-slayer-health-check/cli",
   "daemon-slayer-error-handler/cli",
+  "daemon-slayer-config/cli",
 ]
 client = ["daemon-slayer-client"]
+config = ["daemon-slayer-config", "daemon-slayer-client/config"]
 console = ["daemon-slayer-console"]
 error-handler = ["daemon-slayer-error-handler"]
 grpc-health-check = ["health-check", "daemon-slayer-health-check/grpc-health-check"]
@@ -75,6 +78,7 @@ tray = ["daemon-slayer-tray", "client"]
 [dependencies]
 daemon-slayer-cli = {path = "./daemon-slayer-cli", optional = true}
 daemon-slayer-client = {path = "./daemon-slayer-client", optional = true}
+daemon-slayer-config = {path = "./daemon-slayer-config", optional = true}
 daemon-slayer-console = {path = "./daemon-slayer-console", optional = true}
 daemon-slayer-core = {path = "./daemon-slayer-core"}
 daemon-slayer-error-handler = {path = "./daemon-slayer-error-handler", optional = true}

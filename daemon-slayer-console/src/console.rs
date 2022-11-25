@@ -185,8 +185,8 @@ impl<'a> Console<'a> {
                                     _ => {}
                                 }
                             }
+                            Err(e) => return Ok(()),
                             _ => {}
-                            Err(e) => return Ok(())
                         }
                     }
                 },

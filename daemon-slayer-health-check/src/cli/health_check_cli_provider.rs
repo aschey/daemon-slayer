@@ -13,6 +13,7 @@ impl<H: daemon_slayer_core::health_check::HealthCheck + Send> HealthCheckCliProv
                 name: "health".to_string(),
                 help_text: "Check service health".to_string(),
                 hide: false,
+                children: None,
             },
         }
     }

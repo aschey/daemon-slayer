@@ -19,6 +19,7 @@ impl<'a> ConsoleCliProvider<'a> {
                 name: "console".to_owned(),
                 help_text: "view service console".to_owned(),
                 hide: false,
+                children: None,
             },
         }
     }
@@ -30,7 +31,7 @@ impl<'a> ConsoleCliProvider<'a> {
 #[async_trait::async_trait]
 impl<'a> daemon_slayer_core::cli::CommandProvider for ConsoleCliProvider<'a> {
     fn get_action_type(&self) -> ActionType {
-        ActionType::Server
+        ActionType::Client
     }
 
     fn get_commands(&self) -> Vec<&CommandType> {
