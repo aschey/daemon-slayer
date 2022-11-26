@@ -71,11 +71,16 @@ impl<T: Config> AppConfig<T> {
 
     pub fn edit(&self) {
         if cfg!(unix) {
-            let editor = match env::var("EDITOR") {
+            let editor = match env::var("VISUAL").or_else(|_| env::var("EDITOR")) {
                 Ok(editor) => editor,
-                Err(_) => match which::which("nano") {
-                    Ok(_) => "nano".to_owned(),
-                    Err(_) => "".to_owned(),
+                Err(_) => match which::which("vim")
+                    .or_else(|_| which::which("emacs"))
+                    .or_else(|_| which::which("nano"))
+                    .or_else(|_| which::which("pico"))
+                    .or_else(|_| which::which("vi"))
+                {
+                    Ok(path) => path.file_name().unwrap().to_string_lossy().to_string(),
+                    Err(_) => "".to_string(),
                 },
             };
             Command::new(editor)

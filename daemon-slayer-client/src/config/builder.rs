@@ -2,7 +2,7 @@ use crate::platform::ServiceManager;
 use crate::Level;
 use crate::Manager;
 use crate::Result;
-use confique::Config;
+#[cfg(feature = "config")]
 use daemon_slayer_core::config::Configurable;
 use std::env::consts::EXE_EXTENSION;
 use std::env::current_exe;
@@ -11,7 +11,8 @@ use std::path::PathBuf;
 use super::SystemdConfig;
 use super::WindowsConfig;
 
-#[derive(Debug, Config)]
+#[cfg(feature = "config")]
+#[derive(Debug, confique::Config)]
 pub struct UserConfig {
     env_vars: Vec<(String, String)>,
 }
@@ -34,6 +35,7 @@ pub struct Builder {
     pub(crate) windows_config: WindowsConfig,
 }
 
+#[cfg(feature = "config")]
 impl Configurable for Builder {
     type UserConfig = UserConfig;
 
