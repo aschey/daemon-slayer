@@ -70,26 +70,7 @@ impl<T: Config> AppConfig<T> {
     }
 
     pub fn edit(&self) {
-        if cfg!(unix) {
-            let editor = match env::var("VISUAL").or_else(|_| env::var("EDITOR")) {
-                Ok(editor) => editor,
-                Err(_) => match which::which("vim")
-                    .or_else(|_| which::which("emacs"))
-                    .or_else(|_| which::which("nano"))
-                    .or_else(|_| which::which("pico"))
-                    .or_else(|_| which::which("vi"))
-                {
-                    Ok(path) => path.file_name().unwrap().to_string_lossy().to_string(),
-                    Err(_) => "".to_string(),
-                },
-            };
-            Command::new(editor)
-                .arg(self.path())
-                .spawn()
-                .unwrap()
-                .wait()
-                .unwrap();
-        }
+        edit::edit_file(&self.config_path).unwrap();
     }
 
     pub fn pretty_print(&self) {
