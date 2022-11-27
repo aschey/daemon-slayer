@@ -6,7 +6,8 @@ use daemon_slayer::client::{Manager, ServiceManager};
 use daemon_slayer::error_handler::{cli::ErrorHandlerCliProvider, ErrorHandler};
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::LogTarget;
-use daemon_slayer::signals::{Signal, SignalHandler};
+use daemon_slayer::server::SignalHandler;
+use daemon_slayer::signals::SignalListener;
 use std::env::args;
 use std::error::Error;
 use std::net::SocketAddr;
@@ -22,9 +23,9 @@ use daemon_slayer::server::{
     cli::ServerCliProvider, BroadcastEventStore, EventStore, FutureExt, Handler, Service,
     ServiceContext, SubsystemHandle,
 };
-use daemon_slayer::signals::SignalHandlerTrait;
 use daemon_slayer::task_queue::{
-    Decode, Encode, JobError, JobProcessor, TaskQueue, TaskQueueBuilder, TaskQueueClient, Xid,
+    CancellationToken, Decode, Encode, JobError, JobProcessor, TaskQueue, TaskQueueBuilder,
+    TaskQueueClient, Xid,
 };
 use futures::{SinkExt, StreamExt};
 use tower_http::trace::TraceLayer;
@@ -73,14 +74,12 @@ impl Handler for ServiceHandler {
     async fn new(context: &mut ServiceContext) -> Self {
         let subsys = context.get_subsystem_handle();
         context
-            .add_event_service::<SignalHandler>(SignalHandler::all())
+            .add_event_service::<SignalListener>(SignalListener::all())
             .await;
         let task_queue_client = context
             .add_service(
                 TaskQueue::builder()
-                    .with_job_handler(MyJob {
-                        subsys: subsys.clone(),
-                    })
+                    .with_job_handler(MyJob {})
                     .build()
                     .await,
             )
@@ -151,24 +150,38 @@ async fn health() -> &'static str {
     "Healthy"
 }
 
-struct MyJob {
-    subsys: SubsystemHandle,
-}
+struct MyJob {}
 
 #[async_trait::async_trait]
 impl JobProcessor for MyJob {
     type Payload = ();
     type Error = anyhow::Error;
 
-    async fn handle(&self, jid: Xid, payload: Self::Payload) -> Result<(), Self::Error> {
+    async fn handle(
+        &self,
+        jid: Xid,
+        payload: Self::Payload,
+        cancellation_token: CancellationToken,
+    ) -> Result<(), Self::Error> {
+        // for _ in 0..10 {
+        //     if let Err(e) = tokio::time::sleep(Duration::from_secs(1))
+        //         .cancel_on_shutdown(&self.subsys)
+        //         .await
+        //     {
+        //         warn!("job cancelled")
+        //     }
+        //     info!("Did a thing");
+        // }
         for _ in 0..10 {
-            if let Err(e) = tokio::time::sleep(Duration::from_secs(1))
-                .cancel_on_shutdown(&self.subsys)
-                .await
-            {
-                warn!("job cancelled")
+            tokio::select! {
+                _ = tokio::time::sleep(Duration::from_secs(1)) => {
+                    info!("Did a thing");
+                }
+                _ = cancellation_token.cancelled() => {
+                    warn!("job cancelled");
+                    return Ok(());
+                }
             }
-            info!("Did a thing");
         }
         Ok(())
     }

@@ -4,3 +4,5 @@ pub mod cli;
 pub mod health_check;
 #[cfg(feature = "server")]
 pub mod server;
+#[cfg(feature = "signal")]
+pub mod signal;

@@ -7,6 +7,7 @@ version = "0.1.0"
 async-trait = "0.1"
 clap = {version = "4", optional = true}
 futures = {version = "0.3", optional = true}
+once_cell = {version = "1", optional = true}
 strum = {version = "0.24", optional = true}
 strum_macros = {version = "0.24", optional = true}
 tokio = {version = "1", features = ["sync"]}
@@ -17,3 +18,4 @@ tokio-stream = {version = "0.1", features = ["sync"], optional = true}
 cli = ["clap", "strum", "strum_macros"]
 health-check = []
 server = ["tokio-stream", "futures", "tokio-graceful-shutdown"]
+signal = ["once_cell"]

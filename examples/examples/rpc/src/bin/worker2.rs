@@ -5,7 +5,7 @@ use daemon_slayer::ipc::rpc::{self, RpcService};
 use daemon_slayer::ipc::Codec;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
-use daemon_slayer::signals::{Signal, SignalHandler};
+use daemon_slayer::signals::{Signal, SignalListener};
 use ipc::{get_rpc_service, Message, Topic};
 use std::env::args;
 use std::error::Error;
@@ -24,7 +24,7 @@ use daemon_slayer::server::BackgroundService;
 use daemon_slayer::server::{
     cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Service, ServiceContext,
 };
-use daemon_slayer::signals::SignalHandlerTrait;
+use daemon_slayer::signals::SignalListenerTrait;
 use futures::{SinkExt, StreamExt};
 use tracing::metadata::LevelFilter;
 use tracing::{error, info, warn};

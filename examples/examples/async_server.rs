@@ -4,7 +4,8 @@ use daemon_slayer::error_handler::ErrorHandler;
 use daemon_slayer::health_check::IpcHealthCheck;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
-use daemon_slayer::signals::{Signal, SignalHandler};
+use daemon_slayer::server::{Signal, SignalHandler};
+use daemon_slayer::signals::SignalListener;
 use std::env::args;
 use std::error::Error;
 use std::net::SocketAddr;
@@ -20,7 +21,7 @@ use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{
     cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Service, ServiceContext,
 };
-use daemon_slayer::signals::SignalHandlerTrait;
+
 use futures::{SinkExt, StreamExt};
 use tower_http::trace::TraceLayer;
 use tracing::metadata::LevelFilter;
@@ -61,7 +62,7 @@ pub struct ServiceHandler {
 impl Handler for ServiceHandler {
     async fn new(context: &mut ServiceContext) -> Self {
         let (_, signal_store) = context
-            .add_event_service::<SignalHandler>(SignalHandler::all())
+            .add_event_service::<SignalListener>(SignalListener::all())
             .await;
         context
             .add_service(ipc_health_check::Server::new(
