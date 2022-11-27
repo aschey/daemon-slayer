@@ -1,3 +1,6 @@
+use std::error::Error;
+use std::time::Duration;
+
 use arc_swap::access::{DynAccess, Map};
 use arc_swap::ArcSwap;
 use confique::Config;
@@ -24,30 +27,9 @@ use daemon_slayer::server::{
     cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Service, ServiceContext,
 };
 use daemon_slayer::server::{Signal, SignalHandler};
-use daemon_slayer::signals::SignalHandlerTrait;
 use daemon_slayer::signals::SignalListener;
-use futures::{SinkExt, StreamExt};
-use std::env::args;
-use std::error::Error;
-use std::net::SocketAddr;
-use std::path::PathBuf;
-use std::process::Command;
-use std::rc::Rc;
-use std::sync::Arc;
-use std::time::{Duration, Instant};
-
-use daemon_slayer::cli::{ActionType, Cli};
-
-use daemon_slayer::ipc_health_check;
-use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
-use daemon_slayer::server::{
-    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Service, ServiceContext,
-};
-use daemon_slayer::signals::SignalHandlerTrait;
-use futures::{SinkExt, StreamExt};
-use tower_http::trace::TraceLayer;
-use tracing::metadata::LevelFilter;
-use tracing::{error, info, warn};
+use futures::StreamExt;
+use tracing::info;
 
 pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     daemon_slayer::logging::init_local_time();
