@@ -1,16 +1,16 @@
-use crate::{Signal, SignalHandlerClientTrait};
+use daemon_slayer_core::signal::{self, Signal};
 
-pub struct SignalHandlerClient {
+pub struct SignalListenerClient {
     signals_handle: signal_hook_tokio::Handle,
 }
 
-impl SignalHandlerClient {
+impl SignalListenerClient {
     pub(crate) fn new(signals_handle: signal_hook_tokio::Handle) -> Self {
         Self { signals_handle }
     }
 }
 
-impl SignalHandlerClientTrait for SignalHandlerClient {
+impl signal::Client for SignalHandlerClient {
     fn add_signal(&self, signal: Signal) {
         let signal_int = match signal {
             Signal::SIGTERM => signal_hook::consts::signal::SIGTERM,

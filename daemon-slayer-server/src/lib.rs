@@ -24,8 +24,12 @@ pub use futures;
 
 pub use tokio;
 
-pub use daemon_slayer_core::server::{
-    BackgroundService, BroadcastEventStore, EventService, EventStore, FutureExt, SubsystemHandle,
+pub use daemon_slayer_core::{
+    server::{
+        BackgroundService, BroadcastEventStore, EventService, EventStore, FutureExt,
+        SubsystemHandle,
+    },
+    signal::{Client as SignalHandlerClient, Handler as SignalHandler, Signal},
 };
 
 pub use daemon_slayer_macros::*;

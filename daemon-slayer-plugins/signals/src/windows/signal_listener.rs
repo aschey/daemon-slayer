@@ -1,24 +1,17 @@
-use crate::{Signal, SignalHandlerTrait};
-use daemon_slayer_core::server::{BroadcastEventStore, SubsystemHandle};
-use once_cell::sync::OnceCell;
+use daemon_slayer_core::{
+    server::{BroadcastEventStore, SubsystemHandle},
+    signal::{self, Signal},
+};
 
-use super::SignalHandlerClient;
+use super::SignalListenerClient;
 
-pub struct SignalHandler {
+pub struct SignalListener {
     signal_tx: tokio::sync::broadcast::Sender<Signal>,
 }
 
-static SENDER: OnceCell<tokio::sync::broadcast::Sender<Signal>> = OnceCell::new();
-
-impl SignalHandler {
-    pub fn set_sender(tx: tokio::sync::broadcast::Sender<Signal>) {
-        SENDER.set(tx).unwrap();
-    }
-}
-
-impl Default for SignalHandler {
+impl Default for SignalListener {
     fn default() -> Self {
-        let signal_tx = SENDER.get().map(|tx| tx.to_owned()).unwrap_or_else(|| {
+        let signal_tx = signal::get_sender().unwrap_or_else(|| {
             let (tx, _) = tokio::sync::broadcast::channel(32);
             tx
         });
@@ -27,15 +20,15 @@ impl Default for SignalHandler {
     }
 }
 
-impl SignalHandlerTrait for SignalHandler {
+impl signal::Handler for SignalListener {
     fn all() -> Self {
         Self::default()
     }
 }
 
 #[async_trait::async_trait]
-impl daemon_slayer_core::server::BackgroundService for SignalHandler {
-    type Client = SignalHandlerClient;
+impl daemon_slayer_core::server::BackgroundService for SignalListener {
+    type Client = SignalListenerClient;
 
     async fn run(self, subsys: SubsystemHandle) {
         let mut ctrl_c_stream = tokio::signal::windows::ctrl_c().unwrap();
@@ -58,11 +51,11 @@ impl daemon_slayer_core::server::BackgroundService for SignalHandler {
     }
 
     async fn get_client(&mut self) -> Self::Client {
-        SignalHandlerClient {}
+        SignalListenerClient {}
     }
 }
 
-impl daemon_slayer_core::server::EventService for SignalHandler {
+impl daemon_slayer_core::server::EventService for SignalListener {
     type EventStoreImpl = BroadcastEventStore<Signal>;
     fn get_event_store(&mut self) -> Self::EventStoreImpl {
         BroadcastEventStore::new(self.signal_tx.clone())

@@ -1,5 +1,7 @@
-use daemon_slayer_core::server::{SubsystemHandle, Toplevel};
-use daemon_slayer_plugin_signals::{Signal, SignalHandler};
+use daemon_slayer_core::{
+    server::{SubsystemHandle, Toplevel},
+    signal::{self, Signal},
+};
 use std::{error::Error, time::Duration};
 use tracing::{error, info};
 
@@ -29,7 +31,7 @@ async fn run_subsys<T: crate::handler::Handler + Send + 'static>(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     set_env_vars::<T>();
     let (signal_tx, _) = tokio::sync::broadcast::channel(32);
-    SignalHandler::set_sender(signal_tx.clone());
+    signal::set_sender(signal_tx.clone());
 
     let mut context = ServiceContext::new(subsys);
     let handler = T::new(&mut context).await;

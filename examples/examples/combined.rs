@@ -23,8 +23,9 @@ use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 use daemon_slayer::server::{
     cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Service, ServiceContext,
 };
+use daemon_slayer::server::{Signal, SignalHandler};
 use daemon_slayer::signals::SignalHandlerTrait;
-use daemon_slayer::signals::{Signal, SignalHandler};
+use daemon_slayer::signals::SignalListener;
 use futures::{SinkExt, StreamExt};
 use std::env::args;
 use std::error::Error;
@@ -34,6 +35,16 @@ use std::process::Command;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+
+use daemon_slayer::cli::{ActionType, Cli};
+
+use daemon_slayer::ipc_health_check;
+use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
+use daemon_slayer::server::{
+    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, Service, ServiceContext,
+};
+use daemon_slayer::signals::SignalHandlerTrait;
+use futures::{SinkExt, StreamExt};
 use tower_http::trace::TraceLayer;
 use tracing::metadata::LevelFilter;
 use tracing::{error, info, warn};
@@ -120,7 +131,7 @@ pub struct ServiceHandler {
 #[async_trait::async_trait]
 impl Handler for ServiceHandler {
     async fn new(context: &mut ServiceContext) -> Self {
-        let (_, signal_store) = context.add_event_service(SignalHandler::all()).await;
+        let (_, signal_store) = context.add_event_service(SignalListener::all()).await;
         context
             .add_service(ipc_health_check::Server::new(
                 "daemon_slayer_combined".to_owned(),
