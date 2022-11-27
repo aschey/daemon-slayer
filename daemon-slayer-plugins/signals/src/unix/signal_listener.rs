@@ -41,8 +41,6 @@ impl signal::Handler for SignalListener {
             ..Self::default()
         }
     }
-
-    fn set_sender(tx: tokio::sync::broadcast::Sender<Signal>) {}
 }
 
 #[async_trait::async_trait]

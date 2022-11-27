@@ -10,7 +10,7 @@ impl SignalListenerClient {
     }
 }
 
-impl signal::Client for SignalHandlerClient {
+impl signal::Client for SignalListenerClient {
     fn add_signal(&self, signal: Signal) {
         let signal_int = match signal {
             Signal::SIGTERM => signal_hook::consts::signal::SIGTERM,
