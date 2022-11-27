@@ -160,7 +160,7 @@ impl LoggerBuilder {
         {
             use tracing_eventlog::EventLogRegistry;
             let log_source = tracing_eventlog::LogSource::application(self.name.clone());
-            log_source.deregister()?;
+            log_source.deregister().ok();
         }
         Ok(())
     }
