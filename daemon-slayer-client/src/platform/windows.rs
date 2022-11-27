@@ -222,12 +222,11 @@ impl ServiceManager {
     }
 
     fn add_environment_variables(&self) -> Result<()> {
-        if self.config.env_vars.is_empty() {
+        let env_vars = self.config.env_vars();
+        if env_vars.is_empty() {
             return Ok(());
         }
-        let vars = self
-            .config
-            .env_vars
+        let vars = env_vars
             .iter()
             .filter_map(|(key, value)| U16CString::from_os_str(format!("{key}={value}")).ok())
             .collect::<Vec<_>>();
@@ -257,6 +256,26 @@ impl Manager for ServiceManager {
 
     fn name(&self) -> &str {
         &self.config.name
+    }
+
+    fn reload_configuration(&self) -> Result<()> {
+        let current_state = self.info()?.state;
+        self.stop()?;
+        self.add_environment_variables()?;
+        if current_state == State::Started {
+            self.start()?;
+        }
+        Ok(())
+    }
+
+    fn on_configuration_changed(&self) -> Result<()> {
+        if let Some(config) = &self.config.user_config {
+            let current = config.load();
+            if current.env_vars != self.config.config_snapshot.env_vars {
+                self.reload_configuration()?;
+            }
+        }
+        Ok(())
     }
 
     fn install(&self) -> Result<()> {
