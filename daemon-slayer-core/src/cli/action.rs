@@ -18,6 +18,8 @@ pub enum Action {
     #[strum(props(Type = "client"))]
     Restart,
     #[strum(props(Type = "client"))]
+    Reload,
+    #[strum(props(Type = "client"))]
     Enable,
     #[strum(props(Type = "client"))]
     Disable,

@@ -1,20 +1,30 @@
+use super::SystemdConfig;
+use super::WindowsConfig;
 use crate::platform::ServiceManager;
 use crate::Level;
 use crate::Manager;
 use crate::Result;
+use arc_swap::access::DynAccess;
+use arc_swap::ArcSwap;
 #[cfg(feature = "config")]
 use daemon_slayer_core::config::Configurable;
 use std::env::consts::EXE_EXTENSION;
 use std::env::current_exe;
+use std::ops::Deref;
 use std::path::PathBuf;
-
-use super::SystemdConfig;
-use super::WindowsConfig;
+use std::sync::Arc;
 
 #[cfg(feature = "config")]
-#[derive(Debug, confique::Config)]
+#[derive(Debug, Clone, confique::Config, Default, serde::Deserialize, PartialEq, Eq)]
+pub struct EnvVar {
+    pub name: String,
+    pub value: String,
+}
+
+#[cfg(feature = "config")]
+#[derive(Debug, Clone, Default, confique::Config)]
 pub struct UserConfig {
-    env_vars: Vec<(String, String)>,
+    pub(crate) env_vars: Option<Vec<EnvVar>>,
 }
 
 #[derive(Clone)]
@@ -27,20 +37,30 @@ pub struct Builder {
     pub(crate) program: String,
     pub(crate) args: Vec<String>,
     pub(crate) service_level: Level,
-    pub(crate) env_vars: Vec<(String, String)>,
+    env_vars: Vec<(String, String)>,
     pub(crate) autostart: bool,
     #[cfg_attr(not(platform = "linux"), allow(unused))]
     pub(crate) systemd_config: SystemdConfig,
     #[cfg_attr(not(windows), allow(unused))]
     pub(crate) windows_config: WindowsConfig,
+    #[cfg(feature = "config")]
+    pub(crate) user_config: Option<Arc<Box<dyn DynAccess<UserConfig> + Send + Sync>>>,
+    #[cfg(feature = "config")]
+    pub(crate) config_snapshot: UserConfig,
 }
 
 #[cfg(feature = "config")]
 impl Configurable for Builder {
     type UserConfig = UserConfig;
 
-    fn with_user_config(mut self, config: Self::UserConfig) -> Self {
-        self.env_vars = config.env_vars;
+    fn with_user_config(
+        mut self,
+        config: Box<dyn DynAccess<Self::UserConfig> + Send + Sync>,
+    ) -> Self {
+        let c = config.load();
+        self.config_snapshot = c.clone();
+        self.user_config = Some(Arc::new(config));
+
         self
     }
 }
@@ -59,6 +79,10 @@ impl Builder {
             env_vars: vec![],
             systemd_config: SystemdConfig::default(),
             windows_config: WindowsConfig::default(),
+            #[cfg(feature = "config")]
+            user_config: Default::default(),
+            #[cfg(feature = "config")]
+            config_snapshot: Default::default(),
         }
     }
 
@@ -132,6 +156,21 @@ impl Builder {
 
     pub(crate) fn is_user(&self) -> bool {
         self.service_level == Level::User
+    }
+
+    pub(crate) fn env_vars(&self) -> Vec<(String, String)> {
+        let mut vars = self.env_vars.clone();
+        #[cfg(feature = "config")]
+        if let Some(config) = &self.user_config {
+            let c = config.load();
+            if let Some(v) = &c.env_vars {
+                for EnvVar { name, value } in v {
+                    vars.push((name.to_owned(), value.to_owned()));
+                }
+            }
+        }
+
+        vars
     }
 
     #[cfg(unix)]

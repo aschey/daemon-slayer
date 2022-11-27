@@ -5,10 +5,13 @@ use std::{
     marker::PhantomData,
     path::{Path, PathBuf},
     process::Command,
+    sync::Arc,
 };
 
+use arc_swap::{access::Map, ArcSwap};
 use bat::{Input, PagingMode, PrettyPrinter};
 use confique::{json5, toml, yaml, Config, FormatOptions};
+use daemon_slayer_client::ServiceManager;
 use daemon_slayer_core::App;
 use directories::ProjectDirs;
 #[cfg(feature = "cli")]
@@ -38,13 +41,14 @@ impl ConfigFileType {
     }
 }
 
-pub struct AppConfig<T: Config> {
+pub struct AppConfig<T: Config + Default + Send + Sync> {
     config_file_type: ConfigFileType,
     phantom: PhantomData<T>,
     config_path: PathBuf,
+    config: Arc<ArcSwap<T>>,
 }
 
-impl<T: Config> AppConfig<T> {
+impl<T: Config + Default + Send + Sync> AppConfig<T> {
     pub fn new(app: App, config_file_type: ConfigFileType) -> Self {
         let dirs = ProjectDirs::from(&app.qualifier, &app.organization, &app.application).unwrap();
         let config_path = dirs
@@ -54,6 +58,7 @@ impl<T: Config> AppConfig<T> {
             config_file_type,
             config_path,
             phantom: Default::default(),
+            config: Arc::new(ArcSwap::new(Arc::new(T::default()))),
         }
     }
 
@@ -71,6 +76,7 @@ impl<T: Config> AppConfig<T> {
 
     pub fn edit(&self) {
         edit::edit_file(&self.config_path).unwrap();
+        self.read_config();
     }
 
     pub fn pretty_print(&self) {
@@ -100,7 +106,9 @@ impl<T: Config> AppConfig<T> {
         file.write_all(self.config_template().as_bytes()).unwrap();
     }
 
-    pub fn read_config(&self) -> T {
-        T::builder().env().file(&self.config_path).load().unwrap()
+    pub fn read_config(&self) -> Arc<ArcSwap<T>> {
+        let val = T::builder().env().file(&self.config_path).load().unwrap();
+        self.config.store(Arc::new(val));
+        self.config.clone()
     }
 }

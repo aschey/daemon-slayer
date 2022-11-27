@@ -54,6 +54,26 @@ impl Manager for ServiceManager {
         })
     }
 
+    fn on_configuration_changed(&self) -> Result<()> {
+        if let Some(config) = &self.config.user_config {
+            let current = config.load();
+            if current.env_vars != self.config.config_snapshot.env_vars {
+                self.reload_configuration()?;
+            }
+        }
+        Ok(())
+    }
+
+    fn reload_configuration(&self) -> Result<()> {
+        let current_state = self.info()?.state;
+        self.stop()?;
+        self.install()?;
+        if current_state == State::Started {
+            self.start()?;
+        }
+        Ok(())
+    }
+
     fn install(&self) -> Result<()> {
         let mut unit_config = UnitConfiguration::builder().description(&self.config.description);
         for after in &self.config.systemd_config.after {
@@ -65,7 +85,8 @@ impl Manager for ServiceManager {
             .ty(ServiceType::Notify)
             .notify_access(NotifyAccess::Main);
 
-        for (key, value) in &self.config.env_vars {
+        let vars = self.config.env_vars();
+        for (key, value) in &vars {
             service_config = service_config.env(key, value);
         }
 

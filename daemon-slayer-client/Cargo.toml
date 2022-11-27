@@ -4,6 +4,7 @@ name = "daemon-slayer-client"
 version = "0.1.0"
 
 [dependencies]
+arc-swap = {version = "1.5.1"}
 async-trait = "0.1"
 confique = {version = ">= 0.2.2", optional = true}
 daemon-slayer-core = {path = "../daemon-slayer-core"}

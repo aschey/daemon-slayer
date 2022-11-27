@@ -1,3 +1,5 @@
+use arc_swap::access::{DynAccess, Map};
+use arc_swap::ArcSwap;
 use confique::Config;
 use daemon_slayer::cli::{ActionType, Cli};
 use daemon_slayer::client::cli::ClientCliProvider;
@@ -9,6 +11,7 @@ use daemon_slayer::client::{
 use daemon_slayer::config::{AppConfig, ConfigFileType};
 use daemon_slayer::console::cli::ConsoleCliProvider;
 use daemon_slayer::console::Console;
+use daemon_slayer::core::config::Configurable;
 use daemon_slayer::core::App;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::health_check::cli::HealthCheckCliProvider;
@@ -40,7 +43,7 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     run_async()
 }
 
-#[derive(Debug, confique::Config)]
+#[derive(Debug, confique::Config, Default)]
 struct MyConfig {
     #[config(nested)]
     client_config: UserConfig,
@@ -58,8 +61,9 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         },
         ConfigFileType::Toml,
     );
-    app_config.create_config_template();
 
+    app_config.create_config_template();
+    let config = app_config.read_config();
     let manager = ServiceManager::builder("daemon_slayer_combined")
         .with_description("test service")
         .with_args(["run"])
@@ -72,7 +76,9 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
             Trustee::CurrentUser,
             ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
         ))
-        //.with_user_config(conf.client_config)
+        .with_user_config(Box::new(Map::new(config.clone(), |conf: &MyConfig| {
+            &conf.client_config
+        })))
         .build()?;
 
     let logger_builder = LoggerBuilder::new("daemon_slayer_combined").with_ipc_logger(true);
@@ -93,6 +99,7 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         .with_provider(ErrorHandlerCliProvider::default())
         .with_provider(daemon_slayer::config::cli::ConfigCliProvider::new(
             app_config,
+            manager.clone(),
         ))
         .initialize();
 
@@ -116,7 +123,7 @@ impl Handler for ServiceHandler {
         let (_, signal_store) = context.add_event_service(SignalHandler::all()).await;
         context
             .add_service(ipc_health_check::Server::new(
-                "daemon_slayer_async_combined".to_owned(),
+                "daemon_slayer_combined".to_owned(),
             ))
             .await;
 
@@ -124,7 +131,7 @@ impl Handler for ServiceHandler {
     }
 
     fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_async_combined"
+        "daemon_slayer_combined"
     }
 
     async fn run_service<F: FnOnce() + Send>(
@@ -141,7 +148,7 @@ impl Handler for ServiceHandler {
                     return Ok(());
                 }
                 Err(_) => {
-                    info!("Current time: {:?}", Instant::now());
+                    info!("var {:?}", std::env::var("test"));
                 }
             }
         }

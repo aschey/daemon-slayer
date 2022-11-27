@@ -99,6 +99,16 @@ impl Builder {
         );
 
         self.commands.insert(
+            Action::Reload,
+            CommandType::Subcommand {
+                name: Action::Reload.to_string(),
+                help_text: "Reload the service configuration".to_owned(),
+                hide: false,
+                children: None,
+            },
+        );
+
+        self.commands.insert(
             Action::Enable,
             CommandType::Subcommand {
                 name: Action::Enable.to_string(),

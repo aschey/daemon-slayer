@@ -1,20 +1,23 @@
 use std::process::Command;
 
 use confique::Config;
+use daemon_slayer_client::{Manager, ServiceManager};
 use daemon_slayer_core::cli::{
     ActionType, ArgMatchesExt, CommandExt, CommandProvider, CommandType, InputState,
 };
 
 use crate::AppConfig;
 
-pub struct ConfigCliProvider<T: Config + Send> {
+pub struct ConfigCliProvider<T: Config + Default + Send + Sync> {
     config_command: CommandType,
     config: AppConfig<T>,
+    manager: ServiceManager,
 }
 
-impl<T: Config + Send> ConfigCliProvider<T> {
-    pub fn new(config: AppConfig<T>) -> Self {
+impl<T: Config + Default + Send + Sync> ConfigCliProvider<T> {
+    pub fn new(config: AppConfig<T>, manager: ServiceManager) -> Self {
         Self {
+            manager,
             config,
             config_command: CommandType::Subcommand {
                 name: "config".to_owned(),
@@ -50,10 +53,11 @@ impl<T: Config + Send> ConfigCliProvider<T> {
         }
     }
 }
+
 #[async_trait::async_trait]
-impl<T: Config + Send> CommandProvider for ConfigCliProvider<T> {
+impl<T: Config + Default + Send + Sync> CommandProvider for ConfigCliProvider<T> {
     fn get_action_type(&self) -> ActionType {
-        ActionType::Unknown
+        ActionType::Client
     }
 
     fn get_commands(&self) -> Vec<&CommandType> {
@@ -88,6 +92,7 @@ impl<T: Config + Send> CommandProvider for ConfigCliProvider<T> {
                                 }
                                 "edit" => {
                                     self.config.edit();
+                                    self.manager.on_configuration_changed().unwrap();
                                 }
                                 "view" => {
                                     self.config.pretty_print();
