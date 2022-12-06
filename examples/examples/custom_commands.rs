@@ -56,8 +56,7 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let health_check = IpcHealthCheck::new("daemon_slayer_custom_command");
 
-    let mut console = Console::new(manager.clone());
-    console.add_health_check(Box::new(health_check.clone()));
+    let console = Console::new(manager.clone()).with_health_check(Box::new(health_check.clone()));
 
     let base_command = clap::Command::default()
         .subcommand(clap::Command::new("custom").about("custom subcommand"))

@@ -44,8 +44,7 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let health_check = IpcHealthCheck::new("daemon_slayer_server");
 
-    let mut console = Console::new(manager.clone());
-    console.add_health_check(Box::new(health_check.clone()));
+    let console = Console::new(manager.clone()).with_health_check(Box::new(health_check.clone()));
     let cli = Cli::builder()
         .with_default_client_commands()
         .with_provider(ClientCliProvider::new(manager.clone()))

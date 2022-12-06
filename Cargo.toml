@@ -59,7 +59,7 @@ cli = [
   "daemon-slayer-config/cli",
 ]
 client = ["daemon-slayer-client"]
-config = ["daemon-slayer-config", "daemon-slayer-client/config"]
+config = ["daemon-slayer-config", "daemon-slayer-client/config", "daemon-slayer-console/config"]
 console = ["daemon-slayer-console"]
 error-handler = ["daemon-slayer-error-handler"]
 grpc-health-check = ["health-check", "daemon-slayer-health-check/grpc-health-check"]

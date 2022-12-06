@@ -12,6 +12,7 @@ daemon-slayer-client = {path = "../daemon-slayer-client"}
 daemon-slayer-core = {path = "../daemon-slayer-core"}
 directories = "4"
 edit = "0.1"
+notify = "5"
 which = "4"
 
 [features]

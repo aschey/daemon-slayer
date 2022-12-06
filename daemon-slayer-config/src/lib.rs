@@ -14,6 +14,7 @@ use confique::{json5, toml, yaml, Config, FormatOptions};
 use daemon_slayer_client::ServiceManager;
 use daemon_slayer_core::App;
 use directories::ProjectDirs;
+use notify::{recommended_watcher, INotifyWatcher, RecursiveMode, Watcher};
 #[cfg(feature = "cli")]
 pub mod cli;
 
@@ -41,11 +42,12 @@ impl ConfigFileType {
     }
 }
 
-pub struct AppConfig<T: Config + Default + Send + Sync> {
+pub struct AppConfig<T: Config + Default + Send + Sync + 'static> {
     config_file_type: ConfigFileType,
     phantom: PhantomData<T>,
     config_path: PathBuf,
     config: Arc<ArcSwap<T>>,
+    _watcher: INotifyWatcher,
 }
 
 impl<T: Config + Default + Send + Sync> AppConfig<T> {
@@ -54,11 +56,28 @@ impl<T: Config + Default + Send + Sync> AppConfig<T> {
         let config_path = dirs
             .config_dir()
             .join(format!("config{}", config_file_type.to_extension()));
+
+        let config = Arc::new(ArcSwap::new(Arc::new(T::default())));
+        let config_ = config.clone();
+        let config_path_ = config_path.clone();
+        let mut watcher = recommended_watcher(move |res| match res {
+            Ok(_) => {
+                let val = T::builder().env().file(&config_path_).load().unwrap();
+                config_.store(Arc::new(val));
+            }
+            Err(e) => println!("watch error: {:?}", e),
+        })
+        .unwrap();
+        watcher
+            .watch(&config_path, RecursiveMode::NonRecursive)
+            .unwrap();
+
         Self {
             config_file_type,
             config_path,
             phantom: Default::default(),
-            config: Arc::new(ArcSwap::new(Arc::new(T::default()))),
+            config,
+            _watcher: watcher,
         }
     }
 

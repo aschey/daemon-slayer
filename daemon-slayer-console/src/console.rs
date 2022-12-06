@@ -6,13 +6,19 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use daemon_slayer_client::{Info, Manager, ServiceManager, State};
-use daemon_slayer_core::health_check::HealthCheck;
+use daemon_slayer_core::{
+    config::{arc_swap::access::DynAccess, Configurable},
+    health_check::HealthCheck,
+};
 use futures::{select, FutureExt, Stream, StreamExt};
 use std::{
     error::Error,
     io::{self, Stdout},
     pin::Pin,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     time::{Duration, Instant},
 };
 use tokio::io::{split, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
@@ -26,6 +32,15 @@ use tui::{
     Frame, Terminal,
 };
 
+#[cfg(feature = "config")]
+#[derive(Debug, Clone, confique::Config, Default, serde::Deserialize, PartialEq, Eq)]
+pub struct UserConfig {
+    #[config(default = true)]
+    pub enable_health_check: bool,
+    #[config(default = 1)]
+    pub health_check_interval_seconds: u64,
+}
+
 pub struct Console<'a> {
     manager: ServiceManager,
     info: Info,
@@ -34,6 +49,20 @@ pub struct Console<'a> {
     is_healthy: Option<bool>,
     health_check: Option<Box<dyn HealthCheck + Send + 'static>>,
     has_health_check: bool,
+    #[cfg(feature = "config")]
+    user_config: Option<Arc<Box<dyn DynAccess<UserConfig> + Send + Sync>>>,
+}
+
+impl<'a> Configurable for Console<'a> {
+    type UserConfig = UserConfig;
+
+    fn with_user_config(
+        mut self,
+        config: Box<dyn DynAccess<Self::UserConfig> + Send + Sync>,
+    ) -> Self {
+        self.user_config = Some(Arc::new(config));
+        self
+    }
 }
 
 impl<'a> Console<'a> {
@@ -48,12 +77,17 @@ impl<'a> Console<'a> {
             is_healthy: None,
             health_check: None,
             has_health_check: false,
+            user_config: Default::default(),
         }
     }
 
-    pub fn add_health_check(&mut self, health_check: Box<dyn HealthCheck + Send + 'static>) {
+    pub fn with_health_check(
+        mut self,
+        health_check: Box<dyn HealthCheck + Send + 'static>,
+    ) -> Self {
         self.health_check = Some(health_check);
         self.has_health_check = true;
+        self
     }
 
     pub async fn run(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -85,6 +119,7 @@ impl<'a> Console<'a> {
 
     fn health_checker(
         mut health_checker: Box<dyn HealthCheck + Send + 'static>,
+        user_config: Option<Arc<Box<dyn DynAccess<UserConfig> + Send + Sync>>>,
         tx: tokio::sync::mpsc::Sender<bool>,
     ) {
         tokio::spawn(async move {
@@ -104,7 +139,13 @@ impl<'a> Console<'a> {
                         }
                     }
                 }
-                tokio::time::sleep(Duration::from_secs(1)).await;
+                let sleep_time = match &user_config {
+                    Some(config) => {
+                        Duration::from_secs(config.load().health_check_interval_seconds)
+                    }
+                    None => Duration::from_secs(1),
+                };
+                tokio::time::sleep(sleep_time).await;
             }
         });
     }
@@ -114,10 +155,9 @@ impl<'a> Console<'a> {
         terminal: &mut Terminal<CrosstermBackend<Stdout>>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let (health_tx, mut health_rx) = tokio::sync::mpsc::channel(32);
-        let name = self.manager.name().to_owned();
 
         if let Some(health_check) = self.health_check.take() {
-            Self::health_checker(health_check, health_tx);
+            Self::health_checker(health_check, self.user_config.as_ref().cloned(), health_tx);
         }
 
         let mut event_reader = EventStream::new().fuse();
@@ -195,6 +235,13 @@ impl<'a> Console<'a> {
         }
     }
 
+    fn show_health_check(&self) -> bool {
+        match &self.user_config {
+            Some(config) => self.has_health_check && config.load().enable_health_check,
+            None => self.has_health_check,
+        }
+    }
+
     fn ui(&mut self, f: &mut Frame<CrosstermBackend<Stdout>>) {
         let size = f.size();
 
@@ -202,7 +249,8 @@ impl<'a> Console<'a> {
         let main_block = get_main_block();
         f.render_widget(main_block, size);
 
-        let num_labels = if self.has_health_check { 5 } else { 4 };
+        let show_health_check = self.show_health_check();
+        let num_labels = if show_health_check { 5 } else { 4 };
 
         let (top_left, top_right, bottom) = get_main_sections(size, num_labels);
 
@@ -257,7 +305,7 @@ impl<'a> Console<'a> {
         f.render_widget(autostart_value, label_area.1[index]);
         index += 1;
 
-        if self.has_health_check {
+        if show_health_check {
             f.render_widget(health_check_label, label_area.0[index]);
             f.render_widget(health_check_value, label_area.1[index]);
             index += 1;

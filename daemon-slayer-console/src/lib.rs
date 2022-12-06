@@ -1,4 +1,4 @@
 mod console;
-pub use console::Console;
+pub use console::*;
 
 pub mod cli;

@@ -6,14 +6,15 @@ use arc_swap::ArcSwap;
 use confique::Config;
 use daemon_slayer::cli::{ActionType, Cli};
 use daemon_slayer::client::cli::ClientCliProvider;
-use daemon_slayer::client::config::{ServiceAccess, UserConfig};
+use daemon_slayer::client::config::ServiceAccess;
 use daemon_slayer::client::{
+    self,
     config::{Trustee, WindowsConfig},
     Level, Manager, ServiceManager,
 };
-use daemon_slayer::config::{AppConfig, ConfigFileType};
+use daemon_slayer::config::{self, AppConfig, ConfigFileType};
 use daemon_slayer::console::cli::ConsoleCliProvider;
-use daemon_slayer::console::Console;
+use daemon_slayer::console::{self, Console};
 use daemon_slayer::core::config::Configurable;
 use daemon_slayer::core::App;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
@@ -39,7 +40,9 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 #[derive(Debug, confique::Config, Default)]
 struct MyConfig {
     #[config(nested)]
-    client_config: UserConfig,
+    client_config: client::config::UserConfig,
+    #[config(nested)]
+    console_config: console::UserConfig,
     #[config(default = "yes")]
     test: String,
 }
@@ -79,8 +82,12 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let health_check = IpcHealthCheck::new("daemon_slayer_combined");
 
-    let mut console = Console::new(manager.clone());
-    console.add_health_check(Box::new(health_check.clone()));
+    let console = Console::new(manager.clone())
+        .with_health_check(Box::new(health_check.clone()))
+        .with_user_config(Box::new(Map::new(config.clone(), |conf: &MyConfig| {
+            &conf.console_config
+        })));
+
     let cli = Cli::builder()
         .with_default_client_commands()
         .with_default_server_commands()

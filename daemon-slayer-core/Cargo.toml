@@ -4,7 +4,7 @@ name = "daemon-slayer-core"
 version = "0.1.0"
 
 [dependencies]
-arc-swap = {version = "1.5.1"}
+arc-swap = {version = "1.5", optional = true}
 async-trait = "0.1"
 clap = {version = "4", optional = true}
 futures = {version = "0.3", optional = true}
@@ -17,7 +17,7 @@ tokio-stream = {version = "0.1", features = ["sync"], optional = true}
 
 [features]
 cli = ["clap", "strum", "strum_macros"]
-config = []
+config = ["arc-swap"]
 health-check = []
 server = ["tokio-stream", "futures", "tokio-graceful-shutdown"]
 signal = ["once_cell"]
