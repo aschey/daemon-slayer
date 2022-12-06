@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use crate::service_context::ServiceContext;
+use daemon_slayer_core::server::ServiceContext;
 
 #[async_trait::async_trait]
 pub trait Handler {

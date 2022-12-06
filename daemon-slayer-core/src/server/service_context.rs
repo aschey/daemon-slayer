@@ -1,10 +1,12 @@
 use std::{pin::Pin, time::Duration};
 
-use daemon_slayer_core::server::SubsystemHandle;
 use futures::Future;
 use tap::TapFallible;
 use tokio::task::JoinHandle;
+use tokio_graceful_shutdown::SubsystemHandle;
 use tracing::warn;
+
+use super::{BackgroundService, EventService};
 
 pub struct ServiceContext {
     subsys: SubsystemHandle,
@@ -12,7 +14,7 @@ pub struct ServiceContext {
 }
 
 impl ServiceContext {
-    pub(crate) fn new(subsys: SubsystemHandle) -> Self {
+    pub fn new(subsys: SubsystemHandle) -> Self {
         Self {
             handles: vec![],
             subsys,
@@ -23,7 +25,7 @@ impl ServiceContext {
         self.subsys.clone()
     }
 
-    pub async fn add_event_service<S: daemon_slayer_core::server::EventService + 'static>(
+    pub async fn add_event_service<S: EventService + 'static>(
         &mut self,
         mut service: S,
     ) -> (S::Client, S::EventStoreImpl) {
@@ -39,7 +41,7 @@ impl ServiceContext {
         (client, event_store)
     }
 
-    pub async fn add_service<S: daemon_slayer_core::server::BackgroundService + 'static>(
+    pub async fn add_service<S: BackgroundService + 'static>(
         &mut self,
         mut service: S,
     ) -> S::Client {
@@ -54,7 +56,7 @@ impl ServiceContext {
         client
     }
 
-    pub(crate) async fn stop(self) {
+    pub async fn stop(self) {
         self.subsys.request_global_shutdown();
         for (handle, timeout) in self.handles {
             match tokio::time::timeout(timeout, handle).await {
@@ -64,5 +66,3 @@ impl ServiceContext {
         }
     }
 }
-
-pub struct ServiceContextSync {}

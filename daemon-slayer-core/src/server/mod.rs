@@ -10,5 +10,8 @@ pub use background_service::*;
 mod broadcast_event_store;
 pub use broadcast_event_store::*;
 
+mod service_context;
+pub use service_context::*;
+
 pub use futures::Stream;
 pub use tokio_graceful_shutdown::{FutureExt, SubsystemHandle, Toplevel};

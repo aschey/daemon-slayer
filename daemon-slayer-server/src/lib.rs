@@ -4,9 +4,6 @@ pub use handler::*;
 mod service;
 pub use service::*;
 
-mod service_context;
-pub use service_context::*;
-
 pub mod platform;
 
 #[cfg(feature = "cli")]
@@ -27,7 +24,7 @@ pub use tokio;
 pub use daemon_slayer_core::{
     server::{
         BackgroundService, BroadcastEventStore, EventService, EventStore, FutureExt,
-        SubsystemHandle,
+        ServiceContext, SubsystemHandle,
     },
     signal::{Client as SignalHandlerClient, Handler as SignalHandler, Signal},
 };

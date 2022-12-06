@@ -1,7 +1,7 @@
-use daemon_slayer_core::server::{SubsystemHandle, Toplevel};
+use daemon_slayer_core::server::{ServiceContext, SubsystemHandle, Toplevel};
 use std::time::Duration;
 
-use crate::{handler::Handler, service_context::ServiceContext};
+use crate::handler::Handler;
 
 pub async fn run_service_main<T: Handler + Send + 'static>(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

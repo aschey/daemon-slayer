@@ -14,7 +14,7 @@ use confique::{json5, toml, yaml, Config, FormatOptions};
 use daemon_slayer_client::ServiceManager;
 use daemon_slayer_core::App;
 use directories::ProjectDirs;
-use notify::{recommended_watcher, INotifyWatcher, RecursiveMode, Watcher};
+use notify::{recommended_watcher, RecommendedWatcher, RecursiveMode, Watcher};
 #[cfg(feature = "cli")]
 pub mod cli;
 
@@ -47,7 +47,7 @@ pub struct AppConfig<T: Config + Default + Send + Sync + 'static> {
     phantom: PhantomData<T>,
     config_path: PathBuf,
     config: Arc<ArcSwap<T>>,
-    _watcher: INotifyWatcher,
+    _watcher: RecommendedWatcher,
 }
 
 impl<T: Config + Default + Send + Sync> AppConfig<T> {
