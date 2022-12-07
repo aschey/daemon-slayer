@@ -9,7 +9,7 @@ pub use aide_de_camp::prelude::{CancellationToken, JobProcessor, ShutdownOptions
 pub use aide_de_camp::prelude::{Decode, Encode, JobError, RunnerRouter};
 pub use aide_de_camp::runner::job_event::JobEvent;
 pub use aide_de_camp_sqlite::sqlx::sqlite::SqliteConnectOptions;
-use daemon_slayer_core::server::{EventStore, Stream, SubsystemHandle};
+use daemon_slayer_core::server::{EventStore, ServiceContext, Stream, SubsystemHandle};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_stream::wrappers::BroadcastStream;
 
@@ -35,8 +35,8 @@ impl EventStore for JobEventStore {
 impl daemon_slayer_core::server::BackgroundService for TaskQueue {
     type Client = TaskQueueClient;
 
-    async fn run(self, subsys: SubsystemHandle) {
-        self.run(subsys).await;
+    async fn run(self, context: ServiceContext) {
+        self.run(context.get_subsystem_handle()).await;
     }
 
     async fn get_client(&mut self) -> Self::Client {

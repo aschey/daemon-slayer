@@ -1,4 +1,4 @@
-use daemon_slayer_core::server::{ServiceContext, SubsystemHandle, Toplevel};
+use daemon_slayer_core::server::{ServiceContext, ServiceManager, SubsystemHandle, Toplevel};
 use std::time::Duration;
 
 use crate::handler::Handler;
@@ -15,8 +15,8 @@ pub async fn run_service_main<T: Handler + Send + 'static>(
 async fn run_subsys<T: Handler + Send + 'static>(
     subsys: SubsystemHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut context = ServiceContext::new(subsys);
-    let handler = T::new(&mut context).await;
+    let manager = ServiceManager::new(subsys);
+    let handler = T::new(manager.get_context()).await;
 
     let result = handler
         .run_service(|| {

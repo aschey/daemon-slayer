@@ -72,7 +72,7 @@ plugin-file-watcher = ["daemon-slayer-plugin-file-watcher"]
 plugin-ipc-health-check = ["daemon-slayer-plugin-ipc-health-check"]
 plugin-signals = ["daemon-slayer-plugin-signals"]
 plugin-task-queue = ["daemon-slayer-plugin-task-queue"]
-server = ["daemon-slayer-server"]
+server = ["daemon-slayer-server", "daemon-slayer-config/server"]
 tray = ["daemon-slayer-tray", "client"]
 
 [dependencies]

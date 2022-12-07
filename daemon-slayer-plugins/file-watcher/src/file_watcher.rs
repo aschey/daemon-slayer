@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use daemon_slayer_core::server::{BroadcastEventStore, FutureExt, SubsystemHandle};
+use daemon_slayer_core::server::{BroadcastEventStore, FutureExt, ServiceContext, SubsystemHandle};
 use notify::RecommendedWatcher;
 use notify_debouncer_mini::Debouncer;
 use tracing::{error, info};
@@ -67,8 +67,13 @@ impl FileWatcher {
 impl daemon_slayer_core::server::BackgroundService for FileWatcher {
     type Client = FileWatcherClient;
 
-    async fn run(mut self, subsys: SubsystemHandle) {
-        while let Ok(Some(command)) = self.command_rx.recv().cancel_on_shutdown(&subsys).await {
+    async fn run(mut self, context: ServiceContext) {
+        while let Ok(Some(command)) = self
+            .command_rx
+            .recv()
+            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .await
+        {
             match command {
                 FileWatcherCommand::Watch(path, recursive_mode) => self
                     .debouncer

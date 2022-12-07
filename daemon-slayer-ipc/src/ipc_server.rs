@@ -1,7 +1,7 @@
 use std::{marker::PhantomData, mem, pin::Pin};
 
 use bytes::{Bytes, BytesMut};
-use daemon_slayer_core::server::{BackgroundService, FutureExt, SubsystemHandle};
+use daemon_slayer_core::server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle};
 use futures::{SinkExt, StreamExt};
 use parity_tokio_ipc::Endpoint;
 use serde::{Deserialize, Serialize};
@@ -47,11 +47,15 @@ where
 {
     type Client = IpcClient<H::Req, H::Res>;
 
-    async fn run(self, subsys: SubsystemHandle) {
+    async fn run(self, context: ServiceContext) {
         let incoming = self.endpoint.incoming().expect("failed to open new socket");
         futures::pin_mut!(incoming);
 
-        while let Ok(Some(Ok(stream))) = incoming.next().cancel_on_shutdown(&subsys).await {
+        while let Ok(Some(Ok(stream))) = incoming
+            .next()
+            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .await
+        {
             let mut transport = build_transport(
                 stream,
                 CodecWrapper::<H::Req, H::Res>::new(self.codec.clone()),

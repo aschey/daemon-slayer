@@ -75,7 +75,7 @@ struct Config {
 
 #[async_trait::async_trait]
 impl Handler for ServiceHandler {
-    async fn new(context: &mut ServiceContext) -> Self {
+    async fn new(mut context: ServiceContext) -> Self {
         let (_, signal_store) = context.add_event_service(SignalListener::all()).await;
 
         if let Ok(config_file) = std::env::var("CONFIG_FILE") {

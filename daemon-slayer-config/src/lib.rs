@@ -12,11 +12,13 @@ use arc_swap::{access::Map, ArcSwap};
 use bat::{Input, PagingMode, PrettyPrinter};
 use confique::{json5, toml, yaml, Config, FormatOptions};
 use daemon_slayer_client::ServiceManager;
-use daemon_slayer_core::App;
+use daemon_slayer_core::{server::BroadcastEventStore, App};
 use directories::ProjectDirs;
 use notify::{recommended_watcher, RecommendedWatcher, RecursiveMode, Watcher};
 #[cfg(feature = "cli")]
 pub mod cli;
+#[cfg(feature = "server")]
+pub mod server;
 
 pub enum ConfigFileType {
     Toml,
@@ -42,15 +44,15 @@ impl ConfigFileType {
     }
 }
 
-pub struct AppConfig<T: Config + Default + Send + Sync + 'static> {
+pub struct AppConfig<T: Config + Default + Send + Sync + Clone + 'static> {
     config_file_type: ConfigFileType,
     phantom: PhantomData<T>,
     config_path: PathBuf,
     config: Arc<ArcSwap<T>>,
-    _watcher: RecommendedWatcher,
+    file_tx: tokio::sync::broadcast::Sender<(Arc<T>, Arc<T>)>, //file_events: Option<BroadcastEventStore<PathBuf>>,
 }
 
-impl<T: Config + Default + Send + Sync> AppConfig<T> {
+impl<T: Config + Default + Send + Sync + Clone + 'static> AppConfig<T> {
     pub fn new(app: App, config_file_type: ConfigFileType) -> Self {
         let dirs = ProjectDirs::from(&app.qualifier, &app.organization, &app.application).unwrap();
         let config_path = dirs
@@ -58,26 +60,14 @@ impl<T: Config + Default + Send + Sync> AppConfig<T> {
             .join(format!("config{}", config_file_type.to_extension()));
 
         let config = Arc::new(ArcSwap::new(Arc::new(T::default())));
-        let config_ = config.clone();
-        let config_path_ = config_path.clone();
-        let mut watcher = recommended_watcher(move |res| match res {
-            Ok(_) => {
-                let val = T::builder().env().file(&config_path_).load().unwrap();
-                config_.store(Arc::new(val));
-            }
-            Err(e) => println!("watch error: {:?}", e),
-        })
-        .unwrap();
-        watcher
-            .watch(&config_path, RecursiveMode::NonRecursive)
-            .unwrap();
 
+        let (file_tx, _) = tokio::sync::broadcast::channel(32);
         Self {
             config_file_type,
             config_path,
             phantom: Default::default(),
+            file_tx,
             config,
-            _watcher: watcher,
         }
     }
 

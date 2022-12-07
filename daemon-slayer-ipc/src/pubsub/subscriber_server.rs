@@ -7,7 +7,7 @@ use std::{
 };
 
 use bytes::{Bytes, BytesMut};
-use daemon_slayer_core::server::{BackgroundService, FutureExt, SubsystemHandle};
+use daemon_slayer_core::server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle};
 use futures::{
     future::{self, Ready},
     Future, StreamExt,
@@ -65,13 +65,16 @@ where
 {
     type Client = SubscriberClient<T, M>;
 
-    async fn run(mut self, subsys: SubsystemHandle) {
+    async fn run(mut self, context: ServiceContext) {
         let mut subscriber_handles = vec![];
-        while let Ok(Some((topics, tx))) =
-            self.subscriber_rx.recv().cancel_on_shutdown(&subsys).await
+        while let Ok(Some((topics, tx))) = self
+            .subscriber_rx
+            .recv()
+            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .await
         {
             let subscriber = Subscriber::new(&self.app_id, tx, topics, self.codec.clone()).await;
-            let subsys = subsys.clone();
+            let subsys = context.get_subsystem_handle();
             subscriber_handles.push(tokio::spawn(async move {
                 subscriber.run(subsys).await;
             }));

@@ -1,5 +1,5 @@
 use daemon_slayer_core::{
-    server::{BroadcastEventStore, SubsystemHandle},
+    server::{BroadcastEventStore, ServiceContext, SubsystemHandle},
     signal::{self, Signal},
 };
 
@@ -30,7 +30,8 @@ impl signal::Handler for SignalListener {
 impl daemon_slayer_core::server::BackgroundService for SignalListener {
     type Client = SignalListenerClient;
 
-    async fn run(self, subsys: SubsystemHandle) {
+    async fn run(self, context: ServiceContext) {
+        let subsys = context.get_subsystem_handle();
         let mut ctrl_c_stream = tokio::signal::windows::ctrl_c().unwrap();
         let mut ctrl_break_stream = tokio::signal::windows::ctrl_break().unwrap();
         let mut ctrl_shutdown_stream = tokio::signal::windows::ctrl_shutdown().unwrap();

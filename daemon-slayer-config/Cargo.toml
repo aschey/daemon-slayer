@@ -4,16 +4,20 @@ name = "daemon-slayer-config"
 version = "0.1.0"
 
 [dependencies]
-arc-swap = {version = "1.5.1"}
+arc-swap = {version = "1"}
 async-trait = "0.1"
-bat = {version = "0.22.1", default-features = false, features = ["regex-onig", "paging"]}
+bat = {version = "0.22", default-features = false, features = ["regex-onig", "paging"]}
 confique = ">= 0.2.2"
 daemon-slayer-client = {path = "../daemon-slayer-client"}
 daemon-slayer-core = {path = "../daemon-slayer-core"}
+daemon-slayer-plugin-file-watcher = {path = "../daemon-slayer-plugins/file-watcher"}
 directories = "4"
 edit = "0.1"
+futures = "0.3"
 notify = "5"
+tokio = "1"
 which = "4"
 
 [features]
 cli = ["daemon-slayer-core/cli"]
+server = ["daemon-slayer-core/server"]

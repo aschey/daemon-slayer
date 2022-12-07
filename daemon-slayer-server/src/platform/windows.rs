@@ -1,5 +1,5 @@
 use daemon_slayer_core::{
-    server::{ServiceContext, SubsystemHandle, Toplevel},
+    server::{ServiceManager, SubsystemHandle, Toplevel},
     signal::{self, Signal},
 };
 use std::{error::Error, time::Duration};
@@ -31,8 +31,8 @@ async fn run_subsys<T: crate::handler::Handler + Send + 'static>(
     let (signal_tx, _) = tokio::sync::broadcast::channel(32);
     signal::set_sender(signal_tx.clone());
 
-    let mut context = ServiceContext::new(subsys);
-    let handler = T::new(&mut context).await;
+    let manager = ServiceManager::new(subsys);
+    let handler = T::new(manager.get_context().await).await;
 
     let windows_service_event_handler = move |control_event| -> crate::windows_service::service_control_handler::ServiceControlHandlerResult {
         match control_event {
@@ -90,7 +90,7 @@ async fn run_subsys<T: crate::handler::Handler + Send + 'static>(
         }
     };
 
-    context.stop().await;
+    manager.stop().await;
 
     {
         let handle = status_handle.lock().unwrap();
@@ -154,10 +154,10 @@ pub async fn get_direct_handler<T: crate::handler::Handler + Send + 'static>(
 async fn direct_subsys<T: crate::handler::Handler + Send + 'static>(
     subsys: SubsystemHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut context = ServiceContext::new(subsys);
-    let handler = T::new(&mut context).await;
+    let manager = ServiceManager::new(subsys);
+    let handler = T::new(manager.get_context().await).await;
 
     handler.run_service(|| {}).await?;
-    context.stop().await;
+    manager.stop().await;
     Ok(())
 }

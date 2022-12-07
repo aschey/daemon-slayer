@@ -1,5 +1,5 @@
 use daemon_slayer_core::{
-    server::{BroadcastEventStore, SubsystemHandle},
+    server::{BroadcastEventStore, ServiceContext, SubsystemHandle},
     signal::{self, Signal},
 };
 use futures::stream::StreamExt;
@@ -47,7 +47,7 @@ impl signal::Handler for SignalListener {
 impl daemon_slayer_core::server::BackgroundService for SignalListener {
     type Client = SignalListenerClient;
 
-    async fn run(mut self, subsys: SubsystemHandle) {
+    async fn run(mut self, context: ServiceContext) {
         let signals_handle = self.signals.handle();
 
         let mut signals = self.signals.fuse();
@@ -56,7 +56,7 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
             let signal: Signal = signal_name.into();
             self.signal_tx.send(signal.clone()).ok();
             if let Signal::SIGTERM | Signal::SIGQUIT | Signal::SIGINT = signal {
-                subsys.request_global_shutdown();
+                context.get_subsystem_handle().request_global_shutdown();
                 signals_handle.close();
                 return;
             }

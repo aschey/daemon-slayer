@@ -1,4 +1,4 @@
-use daemon_slayer_core::server::{BackgroundService, FutureExt, SubsystemHandle};
+use daemon_slayer_core::server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle};
 use futures::{future, StreamExt};
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use tarpc::server::{BaseChannel, Channel, Serve};
@@ -40,7 +40,7 @@ where
 {
     type Client = P::Client;
 
-    async fn run(mut self, subsys: SubsystemHandle) {
+    async fn run(mut self, context: ServiceContext) {
         let mut endpoint = Endpoint::new(self.bind_addr.clone());
         endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
 
@@ -59,7 +59,7 @@ where
             .map(|(base_chan, peer)| base_chan.execute(service_provider.get_service(peer)))
             .buffer_unordered(10)
             .for_each(|_| async {})
-            .cancel_on_shutdown(&subsys)
+            .cancel_on_shutdown(&context.get_subsystem_handle())
             .await
             .ok();
     }

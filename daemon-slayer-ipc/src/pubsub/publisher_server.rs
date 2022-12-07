@@ -1,6 +1,6 @@
 use crate::{build_transport, get_socket_address, Codec, CodecWrapper};
 use bytes::Bytes;
-use daemon_slayer_core::server::{BackgroundService, FutureExt, SubsystemHandle};
+use daemon_slayer_core::server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle};
 use futures::{channel::oneshot, future, Future, StreamExt};
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use std::{
@@ -171,7 +171,7 @@ where
 {
     type Client = Publisher<T, M>;
 
-    async fn run(self, subsys: SubsystemHandle) {
+    async fn run(self, context: ServiceContext) {
         let bind_addr = get_socket_address(&self.app_id, "publisher");
         let mut endpoint = Endpoint::new(bind_addr);
         endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
@@ -182,7 +182,11 @@ where
 
         let incoming = endpoint.incoming().unwrap();
         futures::pin_mut!(incoming);
-        while let Ok(Some(Ok(publisher))) = incoming.next().cancel_on_shutdown(&subsys).await {
+        while let Ok(Some(Ok(publisher))) = incoming
+            .next()
+            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .await
+        {
             let new = self.clone();
             BaseChannel::with_defaults(build_transport(publisher, CodecWrapper::new(codec.clone())))
                 .execute(new.serve())

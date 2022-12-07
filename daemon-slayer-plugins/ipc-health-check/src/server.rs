@@ -1,7 +1,7 @@
 use std::{error::Error, time::Duration};
 
 use crate::{builder::Builder, client::Client};
-use daemon_slayer_core::server::{FutureExt, SubsystemHandle};
+use daemon_slayer_core::server::{FutureExt, ServiceContext, SubsystemHandle};
 use futures::StreamExt;
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use tokio::{
@@ -27,7 +27,7 @@ impl Server {
 impl daemon_slayer_core::server::BackgroundService for Server {
     type Client = Client;
 
-    async fn run(self, subsys: SubsystemHandle) {
+    async fn run(self, context: ServiceContext) {
         let mut endpoint = Endpoint::new(self.sock_path);
         endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
 
@@ -35,7 +35,11 @@ impl daemon_slayer_core::server::BackgroundService for Server {
         futures::pin_mut!(incoming);
         let mut buf = [0u8; 256];
 
-        while let Ok(Some(result)) = incoming.next().cancel_on_shutdown(&subsys).await {
+        while let Ok(Some(result)) = incoming
+            .next()
+            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .await
+        {
             match result {
                 Ok(stream) => {
                     let (mut reader, mut writer) = split(stream);

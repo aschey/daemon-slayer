@@ -37,7 +37,7 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     run_async()
 }
 
-#[derive(Debug, confique::Config, Default)]
+#[derive(Debug, confique::Config, Default, Clone)]
 struct MyConfig {
     #[config(nested)]
     client_config: client::config::UserConfig,
@@ -119,7 +119,7 @@ pub struct ServiceHandler {
 
 #[async_trait::async_trait]
 impl Handler for ServiceHandler {
-    async fn new(context: &mut ServiceContext) -> Self {
+    async fn new(mut context: ServiceContext) -> Self {
         let (_, signal_store) = context.add_event_service(SignalListener::all()).await;
         context
             .add_service(ipc_health_check::Server::new(

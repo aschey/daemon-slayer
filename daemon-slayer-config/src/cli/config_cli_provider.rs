@@ -8,13 +8,13 @@ use daemon_slayer_core::cli::{
 
 use crate::AppConfig;
 
-pub struct ConfigCliProvider<T: Config + Default + Send + Sync + 'static> {
+pub struct ConfigCliProvider<T: Config + Default + Send + Sync + Clone + 'static> {
     config_command: CommandType,
     config: AppConfig<T>,
     manager: ServiceManager,
 }
 
-impl<T: Config + Default + Send + Sync> ConfigCliProvider<T> {
+impl<T: Config + Default + Send + Sync + Clone + 'static> ConfigCliProvider<T> {
     pub fn new(config: AppConfig<T>, manager: ServiceManager) -> Self {
         Self {
             manager,
@@ -55,7 +55,7 @@ impl<T: Config + Default + Send + Sync> ConfigCliProvider<T> {
 }
 
 #[async_trait::async_trait]
-impl<T: Config + Default + Send + Sync> CommandProvider for ConfigCliProvider<T> {
+impl<T: Config + Default + Send + Sync + Clone + 'static> CommandProvider for ConfigCliProvider<T> {
     fn get_action_type(&self) -> ActionType {
         ActionType::Client
     }

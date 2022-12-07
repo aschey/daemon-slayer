@@ -1,0 +1,57 @@
+use std::{path::PathBuf, sync::Arc};
+
+use crate::{AppConfig, Config};
+use daemon_slayer_core::server::{
+    BackgroundService, BroadcastEventStore, EventService, EventStore, FutureExt, ServiceContext,
+    SubsystemHandle,
+};
+use daemon_slayer_plugin_file_watcher::FileWatcher;
+use futures::stream::StreamExt;
+
+pub struct ConfigClient {}
+
+#[async_trait::async_trait]
+impl<T> BackgroundService for AppConfig<T>
+where
+    T: Config + Default + Send + Sync + Clone + 'static,
+{
+    type Client = ConfigClient;
+
+    async fn run(mut self, mut context: ServiceContext) {
+        let (_, event_store) = context
+            .add_event_service(
+                FileWatcher::builder()
+                    .with_watch_path(self.config_path.clone())
+                    .build(),
+            )
+            .await;
+
+        let mut event_stream = event_store.subscribe_events();
+
+        while let Ok(Some(_)) = event_stream
+            .next()
+            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .await
+        {
+            let current = self.config.load_full();
+            self.read_config();
+            let new = self.config.load_full();
+            self.file_tx.send((current, new)).ok();
+        }
+    }
+
+    async fn get_client(&mut self) -> Self::Client {
+        ConfigClient {}
+    }
+}
+
+impl<T> EventService for AppConfig<T>
+where
+    T: Config + Default + Send + Sync + Clone + 'static,
+{
+    type EventStoreImpl = BroadcastEventStore<(Arc<T>, Arc<T>)>;
+
+    fn get_event_store(&mut self) -> Self::EventStoreImpl {
+        BroadcastEventStore::new(self.file_tx.clone())
+    }
+}
