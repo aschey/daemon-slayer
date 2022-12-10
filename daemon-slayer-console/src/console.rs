@@ -6,11 +6,17 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use daemon_slayer_client::{Info, Manager, ServiceManager, State};
+use daemon_slayer_config::AppConfig;
 use daemon_slayer_core::{
-    config::{arc_swap::access::DynAccess, Configurable},
+    config::{arc_swap::access::DynAccess, Accessor, CachedConfig, Configurable, Mergeable},
     health_check::HealthCheck,
+    server::{
+        tokio_stream::wrappers::errors::BroadcastStreamRecvError, BackgroundService,
+        BroadcastEventStore, EventService, EventStore, IntoSubsystem, ServiceContext,
+        SubsystemHandle, Toplevel,
+    },
 };
-use futures::{select, FutureExt, Stream, StreamExt};
+use futures::{select, Future, FutureExt, Stream, StreamExt};
 use std::{
     error::Error,
     io::{self, Stdout},
@@ -32,40 +38,97 @@ use tui::{
     Frame, Terminal,
 };
 
-#[cfg(feature = "config")]
-#[derive(Debug, Clone, confique::Config, Default, serde::Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "config", derive(confique::Config, serde::Deserialize))]
 pub struct UserConfig {
-    #[config(default = true)]
+    #[cfg_attr(feature = "config", config(default = true))]
     pub enable_health_check: bool,
-    #[config(default = 1)]
+    #[cfg_attr(feature = "config", config(default = 1))]
     pub health_check_interval_seconds: u64,
 }
 
-pub struct Console<'a> {
-    manager: ServiceManager,
-    info: Info,
-    logs: LogView<'a>,
-    button_index: usize,
-    is_healthy: Option<bool>,
-    health_check: Option<Box<dyn HealthCheck + Send + 'static>>,
-    has_health_check: bool,
-    #[cfg(feature = "config")]
-    user_config: Option<Arc<Box<dyn DynAccess<UserConfig> + Send + Sync>>>,
+impl Mergeable for UserConfig {
+    fn merge(user_config: Option<&Self>, app_config: &Self) -> Self {
+        user_config.unwrap_or(app_config).to_owned()
+    }
 }
 
-impl<'a> Configurable for Console<'a> {
+struct HealthChecker {
+    user_config: CachedConfig<UserConfig>,
+    health_check: Box<dyn HealthCheck + Send + 'static>,
+    tx: tokio::sync::mpsc::Sender<bool>,
+}
+
+impl HealthChecker {
+    fn new(
+        user_config: CachedConfig<UserConfig>,
+        health_check: Box<dyn HealthCheck + Send + 'static>,
+        tx: tokio::sync::mpsc::Sender<bool>,
+    ) -> Self {
+        Self {
+            user_config,
+            health_check,
+            tx,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl BackgroundService for HealthChecker {
+    type Client = ();
+
+    async fn run(mut self, _context: ServiceContext) {
+        let mut is_healthy: Option<bool> = None;
+        loop {
+            match self.health_check.invoke().await {
+                Ok(()) => {
+                    if is_healthy != Some(true) {
+                        is_healthy = Some(true);
+                        let _ = self.tx.send(true).await;
+                    }
+                }
+                Err(e) => {
+                    if is_healthy != Some(false) {
+                        is_healthy = Some(false);
+                        let _ = self.tx.send(false).await;
+                    }
+                }
+            }
+            let sleep_time =
+                Duration::from_secs(self.user_config.load().health_check_interval_seconds);
+            tokio::time::sleep(sleep_time).await;
+        }
+    }
+
+    async fn get_client(&mut self) -> Self::Client {}
+}
+
+pub struct Console {
+    manager: ServiceManager,
+    info: Info,
+    logs: LogView<'static>,
+    button_index: usize,
+    is_healthy: Option<bool>,
+    health_check: Option<Box<dyn HealthCheck + Send + Sync + 'static>>,
+    has_health_check: bool,
+    user_config: CachedConfig<UserConfig>,
+    event_fn:
+        Option<Box<dyn FnMut(ServiceContext) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send>>,
+}
+
+impl Configurable for Console {
     type UserConfig = UserConfig;
 
     fn with_user_config(
         mut self,
-        config: Box<dyn DynAccess<Self::UserConfig> + Send + Sync>,
+        config_accessor: impl Accessor<Self::UserConfig> + Send + Sync + 'static,
     ) -> Self {
-        self.user_config = Some(Arc::new(config));
+        self.user_config = config_accessor.access();
         self
     }
 }
 
-impl<'a> Console<'a> {
+impl Console {
     pub fn new(manager: ServiceManager) -> Self {
         let info = manager.info().unwrap();
         let name = manager.name().to_owned();
@@ -78,19 +141,43 @@ impl<'a> Console<'a> {
             health_check: None,
             has_health_check: false,
             user_config: Default::default(),
+            event_fn: None,
         }
+    }
+
+    pub fn with_config<S>(mut self, service: S) -> Self
+    where
+        S: BackgroundService + Accessor<UserConfig> + Clone + Unpin + 'static,
+    {
+        self.user_config = service.access();
+        self.event_fn = Some(Box::new(move |mut context: ServiceContext| {
+            let service = service.clone();
+            Box::pin(async move {
+                context.add_service(service).await;
+            })
+        }));
+
+        self
     }
 
     pub fn with_health_check(
         mut self,
-        health_check: Box<dyn HealthCheck + Send + 'static>,
+        health_check: Box<dyn HealthCheck + Send + Sync + 'static>,
     ) -> Self {
         self.health_check = Some(health_check);
         self.has_health_check = true;
         self
     }
 
-    pub async fn run(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub async fn run(self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        Toplevel::new()
+            .start("console", |subsys| self.run_subsys(subsys))
+            .handle_shutdown_requests(Duration::from_secs(1))
+            .await?;
+        Ok(())
+    }
+
+    async fn run_subsys(self, subsys: SubsystemHandle) -> Result<(), Box<dyn Error + Send + Sync>> {
         // setup terminal
         enable_raw_mode()?;
         let mut stdout = io::stdout();
@@ -99,7 +186,7 @@ impl<'a> Console<'a> {
         let mut terminal = Terminal::new(backend)?;
 
         // create app and run it
-        let res = self.run_app(&mut terminal).await;
+        let res = self.run_app(&mut terminal, subsys).await;
 
         // restore terminal
         disable_raw_mode()?;
@@ -117,47 +204,24 @@ impl<'a> Console<'a> {
         Ok(())
     }
 
-    fn health_checker(
-        mut health_checker: Box<dyn HealthCheck + Send + 'static>,
-        user_config: Option<Arc<Box<dyn DynAccess<UserConfig> + Send + Sync>>>,
-        tx: tokio::sync::mpsc::Sender<bool>,
-    ) {
-        tokio::spawn(async move {
-            let mut is_healthy: Option<bool> = None;
-            loop {
-                match health_checker.invoke().await {
-                    Ok(()) => {
-                        if is_healthy != Some(true) {
-                            is_healthy = Some(true);
-                            let _ = tx.send(true).await;
-                        }
-                    }
-                    Err(e) => {
-                        if is_healthy != Some(false) {
-                            is_healthy = Some(false);
-                            let _ = tx.send(false).await;
-                        }
-                    }
-                }
-                let sleep_time = match &user_config {
-                    Some(config) => {
-                        Duration::from_secs(config.load().health_check_interval_seconds)
-                    }
-                    None => Duration::from_secs(1),
-                };
-                tokio::time::sleep(sleep_time).await;
-            }
-        });
-    }
-
     async fn run_app(
-        &mut self,
+        mut self,
         terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+        subsys: SubsystemHandle,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let manager = daemon_slayer_core::server::ServiceManager::new(subsys.clone());
+        let context = manager.get_context().await;
+        if let Some(mut event_fn) = self.event_fn.take() {
+            event_fn(context).await;
+        }
+
         let (health_tx, mut health_rx) = tokio::sync::mpsc::channel(32);
 
         if let Some(health_check) = self.health_check.take() {
-            Self::health_checker(health_check, self.user_config.as_ref().cloned(), health_tx);
+            let health_checker =
+                HealthChecker::new(self.user_config.clone(), health_check, health_tx);
+            let mut context = manager.get_context().await;
+            context.add_service(health_checker).await;
         }
 
         let mut event_reader = EventStream::new().fuse();
@@ -184,7 +248,10 @@ impl<'a> Console<'a> {
                             Ok(Event::Key(key)) => {
                                 match (key.modifiers, key.code) {
                                     (_, KeyCode::Char('q') | KeyCode::Esc) |
-                                        (KeyModifiers::CONTROL, KeyCode::Char('c')) => return Ok(()),
+                                        (KeyModifiers::CONTROL, KeyCode::Char('c')) => {
+                                            subsys.request_shutdown();
+                                            return Ok(());
+                                        },
                                     (_, KeyCode::Down) =>  self.logs.next(),
                                     (_, KeyCode::Up) =>  self.logs.previous(),
                                     (_, KeyCode::Left) => {
@@ -235,13 +302,6 @@ impl<'a> Console<'a> {
         }
     }
 
-    fn show_health_check(&self) -> bool {
-        match &self.user_config {
-            Some(config) => self.has_health_check && config.load().enable_health_check,
-            None => self.has_health_check,
-        }
-    }
-
     fn ui(&mut self, f: &mut Frame<CrosstermBackend<Stdout>>) {
         let size = f.size();
 
@@ -249,7 +309,7 @@ impl<'a> Console<'a> {
         let main_block = get_main_block();
         f.render_widget(main_block, size);
 
-        let show_health_check = self.show_health_check();
+        let show_health_check = self.user_config.load().enable_health_check;
         let num_labels = if show_health_check { 5 } else { 4 };
 
         let (top_left, top_right, bottom) = get_main_sections(size, num_labels);

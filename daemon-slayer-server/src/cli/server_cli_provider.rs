@@ -1,18 +1,40 @@
 use crate::Service;
 use daemon_slayer_core::cli::{
-    clap, Action, ActionType, ArgMatchesExt, CommandExt, CommandType, InputState,
+    clap, Action, ActionType, ArgMatchesExt, CommandConfig, CommandExt, CommandType, InputState,
 };
 use std::{collections::HashMap, hash::Hash, marker::PhantomData};
 
 pub struct ServerCliProvider<S: Service + Send + Sync> {
-    commands: HashMap<Action, CommandType>,
+    commands: HashMap<Action, CommandConfig>,
     _phantom: PhantomData<S>,
 }
 
 impl<S: Service + Send + Sync> Default for ServerCliProvider<S> {
     fn default() -> Self {
+        let mut commands = HashMap::new();
+        commands.insert(
+            Action::Run,
+            CommandConfig {
+                action_type: ActionType::Server,
+                action: Some(Action::Run),
+                command_type: CommandType::Subcommand {
+                    name: "run".to_owned(),
+                    help_text: "".to_owned(),
+                    hide: true,
+                    children: None,
+                },
+            },
+        );
+        commands.insert(
+            Action::Direct,
+            CommandConfig {
+                action_type: ActionType::Server,
+                command_type: CommandType::Default,
+                action: Some(Action::Direct),
+            },
+        );
         Self {
-            commands: Default::default(),
+            commands,
             _phantom: Default::default(),
         }
     }
@@ -24,29 +46,25 @@ impl<S: Service + Send + Sync> daemon_slayer_core::cli::CommandProvider for Serv
         ActionType::Server
     }
 
-    fn set_base_commands(&mut self, commands: HashMap<Action, CommandType>) {
-        self.commands = commands;
+    fn get_commands(&self) -> Vec<&CommandConfig> {
+        self.commands.values().collect()
     }
 
-    fn get_commands(&self) -> Vec<&CommandType> {
-        vec![]
-    }
-
-    async fn handle_input(mut self: Box<Self>, matches: &clap::ArgMatches) -> InputState {
-        for (name, command_type) in &self.commands {
-            if name.action_type() == ActionType::Server && matches.matches(command_type) {
-                match name {
-                    Action::Direct => {
-                        S::run_service_direct().await.unwrap();
-                    }
-                    Action::Run => {
-                        S::run_service_main().await.unwrap();
-                    }
-                    _ => {}
-                }
-                return InputState::Handled;
+    async fn handle_input(
+        mut self: Box<Self>,
+        _matches: &clap::ArgMatches,
+        matched_command: &Option<CommandConfig>,
+    ) -> InputState {
+        match matched_command.as_ref().map(|c| &c.action) {
+            Some(Some(Action::Direct)) => {
+                S::run_service_direct().await.unwrap();
+                InputState::Handled
             }
+            Some(Some(Action::Run)) => {
+                S::run_service_main().await.unwrap();
+                InputState::Handled
+            }
+            _ => InputState::Unhandled,
         }
-        InputState::Unhandled
     }
 }

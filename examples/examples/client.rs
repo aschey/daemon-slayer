@@ -46,7 +46,6 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let console = Console::new(manager.clone()).with_health_check(Box::new(health_check.clone()));
     let cli = Cli::builder()
-        .with_default_client_commands()
         .with_provider(ClientCliProvider::new(manager.clone()))
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(HealthCheckCliProvider::new(health_check))

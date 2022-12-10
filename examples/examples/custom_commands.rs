@@ -69,8 +69,6 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let cli = Cli::builder()
         .with_base_command(base_command)
-        .with_default_server_commands()
-        .with_default_client_commands()
         .with_provider(ClientCliProvider::new(manager.clone()))
         .with_provider(ServerCliProvider::<ServiceHandler>::default())
         .with_provider(ConsoleCliProvider::new(console))
@@ -99,7 +97,7 @@ pub struct ServiceHandler {
 
 #[async_trait::async_trait]
 impl Handler for ServiceHandler {
-    async fn new(context: &mut ServiceContext) -> Self {
+    async fn new(mut context: ServiceContext) -> Self {
         let (_, signal_store) = context.add_event_service(SignalListener::all()).await;
         context
             .add_service(ipc_health_check::Server::new(

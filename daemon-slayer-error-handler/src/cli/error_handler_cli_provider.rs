@@ -1,6 +1,6 @@
 use color_eyre::config::Theme;
 use daemon_slayer_core::cli::{
-    clap, Action, ActionType, ArgMatchesExt, CommandExt, CommandType, InputState,
+    clap, Action, ActionType, ArgMatchesExt, CommandConfig, CommandExt, CommandType, InputState,
 };
 use std::{collections::HashMap, hash::Hash, marker::PhantomData, rc::Rc};
 use tracing::Subscriber;
@@ -8,9 +8,7 @@ use tracing::Subscriber;
 use crate::ErrorHandler;
 
 #[derive(Default)]
-pub struct ErrorHandlerCliProvider {
-    commands: HashMap<Action, CommandType>,
-}
+pub struct ErrorHandlerCliProvider {}
 
 #[async_trait::async_trait]
 impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
@@ -18,33 +16,32 @@ impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
         ActionType::Unknown
     }
 
-    fn get_commands(&self) -> Vec<&CommandType> {
+    fn get_commands(&self) -> Vec<&CommandConfig> {
         vec![]
     }
 
-    fn set_base_commands(&mut self, commands: HashMap<Action, CommandType>) {
-        self.commands = commands;
-    }
-
-    fn initialize(&mut self, matches: &clap::ArgMatches) {
-        for (name, command_type) in &self.commands {
-            if matches.matches(command_type) {
-                if name == &Action::Run {
-                    ErrorHandler::default()
-                        .with_theme(Theme::default())
-                        .with_write_to_stdout(false)
-                        .with_write_to_stderr(false)
-                        .with_log(true)
-                        .install()
-                        .unwrap();
-                }
+    fn initialize(&mut self, _matches: &clap::ArgMatches, matched_command: &Option<CommandConfig>) {
+        if let Some(Some(action)) = matched_command.as_ref().map(|c| &c.action) {
+            if action == &Action::Run {
+                ErrorHandler::default()
+                    .with_theme(Theme::default())
+                    .with_write_to_stdout(false)
+                    .with_write_to_stderr(false)
+                    .with_log(true)
+                    .install()
+                    .unwrap();
                 return;
             }
         }
+
         ErrorHandler::default().install().unwrap();
     }
 
-    async fn handle_input(mut self: Box<Self>, _: &clap::ArgMatches) -> InputState {
+    async fn handle_input(
+        mut self: Box<Self>,
+        _matches: &clap::ArgMatches,
+        _matched_command: &Option<CommandConfig>,
+    ) -> InputState {
         InputState::Unhandled
     }
 }

@@ -15,7 +15,8 @@ use daemon_slayer::client::{
 use daemon_slayer::config::{self, AppConfig, ConfigFileType};
 use daemon_slayer::console::cli::ConsoleCliProvider;
 use daemon_slayer::console::{self, Console};
-use daemon_slayer::core::config::Configurable;
+use daemon_slayer::core::config::{Accessor, Configurable};
+use daemon_slayer::core::server::Toplevel;
 use daemon_slayer::core::App;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::health_check::cli::HealthCheckCliProvider;
@@ -47,6 +48,18 @@ struct MyConfig {
     test: String,
 }
 
+impl AsRef<client::config::UserConfig> for MyConfig {
+    fn as_ref(&self) -> &client::config::UserConfig {
+        &self.client_config
+    }
+}
+
+impl AsRef<console::UserConfig> for MyConfig {
+    fn as_ref(&self) -> &console::UserConfig {
+        &self.console_config
+    }
+}
+
 #[tokio::main]
 pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
     let app_config = AppConfig::<MyConfig>::new(
@@ -72,25 +85,19 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
             Trustee::CurrentUser,
             ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
         ))
-        .with_user_config(Box::new(Map::new(config.clone(), |conf: &MyConfig| {
-            &conf.client_config
-        })))
+        .with_user_config(config.clone())
         .build()?;
 
-    let logger_builder = LoggerBuilder::new("daemon_slayer_combined").with_ipc_logger(true);
+    let logger_builder = LoggerBuilder::new("daemon_slayer_combined");
     let logging_provider = LoggingCliProvider::new(logger_builder);
 
     let health_check = IpcHealthCheck::new("daemon_slayer_combined");
 
     let console = Console::new(manager.clone())
         .with_health_check(Box::new(health_check.clone()))
-        .with_user_config(Box::new(Map::new(config.clone(), |conf: &MyConfig| {
-            &conf.console_config
-        })));
+        .with_config(app_config.clone());
 
     let cli = Cli::builder()
-        .with_default_client_commands()
-        .with_default_server_commands()
         .with_provider(ClientCliProvider::new(manager.clone()))
         .with_provider(ServerCliProvider::<ServiceHandler>::default())
         .with_provider(ConsoleCliProvider::new(console))
@@ -104,7 +111,6 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         .initialize();
 
     let (logger, _guard) = logging_provider.get_logger();
-
     logger.init();
 
     cli.handle_input().await;

@@ -42,13 +42,10 @@ pub async fn main() {
     }
 
     let manager = manager_builder.build().unwrap();
-    let logger_builder =
-        LoggerBuilder::new(ServiceHandler::get_service_name()).with_ipc_logger(true);
+    let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
     let logging_provider = LoggingCliProvider::new(logger_builder);
 
     let cli = Cli::builder()
-        .with_default_client_commands()
-        .with_default_server_commands()
         .with_provider(ClientCliProvider::new(manager))
         .with_provider(ServerCliProvider::<ServiceHandler>::default())
         .with_provider(ErrorHandlerCliProvider::default())

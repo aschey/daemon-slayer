@@ -268,12 +268,12 @@ impl Manager for ServiceManager {
         Ok(())
     }
 
-    fn on_configuration_changed(&self) -> Result<()> {
-        if let Some(config) = &self.config.user_config {
-            let current = config.load();
-            if current.env_vars != self.config.config_snapshot.env_vars {
-                self.reload_configuration()?;
-            }
+    fn on_configuration_changed(&mut self) -> Result<()> {
+        let snapshot = self.config.user_config.snapshot();
+        self.config.user_config.reload();
+        let current = self.config.user_config.load();
+        if current.env_vars != snapshot.env_vars {
+            self.reload_configuration()?;
         }
         Ok(())
     }

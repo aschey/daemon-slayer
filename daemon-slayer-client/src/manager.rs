@@ -14,7 +14,7 @@ pub trait Manager: Clone {
     fn description(&self) -> &str;
     fn args(&self) -> &Vec<String>;
     fn reload_configuration(&self) -> Result<()>;
-    fn on_configuration_changed(&self) -> Result<()>;
+    fn on_configuration_changed(&mut self) -> Result<()>;
     fn install(&self) -> Result<()>;
     fn uninstall(&self) -> Result<()>;
     fn start(&self) -> Result<()>;

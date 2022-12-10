@@ -12,7 +12,11 @@ use arc_swap::{access::Map, ArcSwap};
 use bat::{Input, PagingMode, PrettyPrinter};
 use confique::{json5, toml, yaml, Config, FormatOptions};
 use daemon_slayer_client::ServiceManager;
-use daemon_slayer_core::{server::BroadcastEventStore, App};
+use daemon_slayer_core::{
+    config::{Accessor, CachedConfig, Mergeable},
+    server::BroadcastEventStore,
+    App,
+};
 use directories::ProjectDirs;
 use notify::{recommended_watcher, RecommendedWatcher, RecursiveMode, Watcher};
 #[cfg(feature = "cli")]
@@ -20,6 +24,7 @@ pub mod cli;
 #[cfg(feature = "server")]
 pub mod server;
 
+#[derive(Clone)]
 pub enum ConfigFileType {
     Toml,
     Yaml,
@@ -44,6 +49,7 @@ impl ConfigFileType {
     }
 }
 
+#[derive(Clone)]
 pub struct AppConfig<T: Config + Default + Send + Sync + Clone + 'static> {
     config_file_type: ConfigFileType,
     phantom: PhantomData<T>,
@@ -119,5 +125,15 @@ impl<T: Config + Default + Send + Sync + Clone + 'static> AppConfig<T> {
         let val = T::builder().env().file(&self.config_path).load().unwrap();
         self.config.store(Arc::new(val));
         self.config.clone()
+    }
+}
+
+impl<T, E> Accessor<E> for AppConfig<T>
+where
+    T: AsRef<E> + Config + Default + Send + Sync + Clone,
+    E: Mergeable + Clone + Default + 'static,
+{
+    fn access(&self) -> CachedConfig<E> {
+        self.read_config().access()
     }
 }

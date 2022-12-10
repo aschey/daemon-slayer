@@ -4,27 +4,42 @@ use crate::platform::ServiceManager;
 use crate::Level;
 use crate::Manager;
 use crate::Result;
-use arc_swap::access::DynAccess;
+use arc_swap::access::{DynAccess, Map};
 use arc_swap::ArcSwap;
-#[cfg(feature = "config")]
+use daemon_slayer_core::config::Accessor;
+use daemon_slayer_core::config::CachedConfig;
 use daemon_slayer_core::config::Configurable;
+use daemon_slayer_core::config::Mergeable;
 use std::env::consts::EXE_EXTENSION;
 use std::env::current_exe;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-#[cfg(feature = "config")]
-#[derive(Debug, Clone, confique::Config, Default, serde::Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "config", derive(confique::Config, serde::Deserialize))]
 pub struct EnvVar {
     pub name: String,
     pub value: String,
 }
 
-#[cfg(feature = "config")]
-#[derive(Debug, Clone, Default, confique::Config)]
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "config", derive(confique::Config))]
 pub struct UserConfig {
-    pub(crate) env_vars: Option<Vec<EnvVar>>,
+    #[cfg_attr(feature="config",config(default=[]))]
+    pub(crate) env_vars: Vec<EnvVar>,
+}
+
+impl Mergeable for UserConfig {
+    fn merge(user_config: Option<&Self>, app_config: &Self) -> Self {
+        let mut vars = vec![];
+        if let Some(user_config) = user_config {
+            vars.extend_from_slice(&user_config.env_vars);
+        }
+
+        vars.extend_from_slice(&app_config.env_vars);
+        UserConfig { env_vars: vars }
+    }
 }
 
 #[derive(Clone)]
@@ -37,30 +52,22 @@ pub struct Builder {
     pub(crate) program: String,
     pub(crate) args: Vec<String>,
     pub(crate) service_level: Level,
-    env_vars: Vec<(String, String)>,
     pub(crate) autostart: bool,
     #[cfg_attr(not(platform = "linux"), allow(unused))]
     pub(crate) systemd_config: SystemdConfig,
     #[cfg_attr(not(windows), allow(unused))]
     pub(crate) windows_config: WindowsConfig,
-    #[cfg(feature = "config")]
-    pub(crate) user_config: Option<Arc<Box<dyn DynAccess<UserConfig> + Send + Sync>>>,
-    #[cfg(feature = "config")]
-    pub(crate) config_snapshot: UserConfig,
+    pub(crate) user_config: CachedConfig<UserConfig>,
 }
 
-#[cfg(feature = "config")]
 impl Configurable for Builder {
     type UserConfig = UserConfig;
 
     fn with_user_config(
         mut self,
-        config: Box<dyn DynAccess<Self::UserConfig> + Send + Sync>,
+        config: impl Accessor<Self::UserConfig> + Send + Sync + 'static,
     ) -> Self {
-        let c = config.load();
-        self.config_snapshot = c.clone();
-        self.user_config = Some(Arc::new(config));
-
+        self.user_config = config.access();
         self
     }
 }
@@ -76,13 +83,9 @@ impl Builder {
             program: current_exe().unwrap().to_string_lossy().to_string(),
             service_level: Level::System,
             autostart: false,
-            env_vars: vec![],
             systemd_config: SystemdConfig::default(),
             windows_config: WindowsConfig::default(),
-            #[cfg(feature = "config")]
             user_config: Default::default(),
-            #[cfg(feature = "config")]
-            config_snapshot: Default::default(),
         }
     }
 
@@ -128,7 +131,10 @@ impl Builder {
     }
 
     pub fn with_env_var(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.env_vars.push((key.into(), value.into()));
+        self.user_config.edit().env_vars.push(EnvVar {
+            name: key.into(),
+            value: value.into(),
+        });
         self
     }
 
@@ -159,18 +165,12 @@ impl Builder {
     }
 
     pub(crate) fn env_vars(&self) -> Vec<(String, String)> {
-        let mut vars = self.env_vars.clone();
-        #[cfg(feature = "config")]
-        if let Some(config) = &self.user_config {
-            let c = config.load();
-            if let Some(v) = &c.env_vars {
-                for EnvVar { name, value } in v {
-                    vars.push((name.to_owned(), value.to_owned()));
-                }
-            }
-        }
-
-        vars
+        self.user_config
+            .load()
+            .env_vars
+            .iter()
+            .map(|pair| (pair.name.to_owned(), pair.value.to_owned()))
+            .collect()
     }
 
     #[cfg(unix)]

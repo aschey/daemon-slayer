@@ -1,19 +1,25 @@
-use daemon_slayer_core::cli::{ActionType, ArgMatchesExt, CommandType, InputState};
+use daemon_slayer_core::cli::{
+    clap, ActionType, ArgMatchesExt, CommandConfig, CommandType, InputState,
+};
 
 pub struct HealthCheckCliProvider<H: daemon_slayer_core::health_check::HealthCheck + Send> {
     health_check: H,
-    command: CommandType,
+    command: CommandConfig,
 }
 
 impl<H: daemon_slayer_core::health_check::HealthCheck + Send> HealthCheckCliProvider<H> {
     pub fn new(health_check: H) -> Self {
         Self {
             health_check,
-            command: CommandType::Subcommand {
-                name: "health".to_string(),
-                help_text: "Check service health".to_string(),
-                hide: false,
-                children: None,
+            command: CommandConfig {
+                action: None,
+                action_type: ActionType::Client,
+                command_type: CommandType::Subcommand {
+                    name: "health".to_string(),
+                    help_text: "Check service health".to_string(),
+                    hide: false,
+                    children: None,
+                },
             },
         }
     }
@@ -25,25 +31,33 @@ impl<H: daemon_slayer_core::health_check::HealthCheck + Send>
 {
     async fn handle_input(
         mut self: Box<Self>,
-        matches: &daemon_slayer_core::cli::clap::ArgMatches,
+        _matches: &clap::ArgMatches,
+        matched_command: &Option<CommandConfig>,
     ) -> InputState {
-        if matches.matches(&self.command) {
-            match self.health_check.invoke().await {
-                Ok(()) => println!("Healthy"),
-                Err(e) => {
-                    println!("Unhealthy: {e:?}");
+        match matched_command.as_ref().map(|c| &c.command_type) {
+            Some(CommandType::Subcommand {
+                name,
+                help_text: _,
+                hide: _,
+                children: _,
+            }) if name == "health" => {
+                match self.health_check.invoke().await {
+                    Ok(()) => println!("Healthy"),
+                    Err(e) => {
+                        println!("Unhealthy: {e:?}");
+                    }
                 }
+                InputState::Handled
             }
-            return InputState::Handled;
+            _ => InputState::Unhandled,
         }
-        InputState::Unhandled
     }
 
     fn get_action_type(&self) -> daemon_slayer_core::cli::ActionType {
         ActionType::Client
     }
 
-    fn get_commands(&self) -> Vec<&daemon_slayer_core::cli::CommandType> {
+    fn get_commands(&self) -> Vec<&CommandConfig> {
         vec![&self.command]
     }
 }

@@ -5,16 +5,17 @@ version = "0.1.0"
 
 [dependencies]
 async-trait = {version = "0.1"}
-confique = ">= 0.2.2"
+confique = {version = ">= 0.2.2", optional = true}
 crossterm = {version = "0.25", features = ["event-stream"]}
 daemon-slayer-client = {path = "../daemon-slayer-client"}
-daemon-slayer-core = {path = "../daemon-slayer-core", features = ["server"], optional = true}
+daemon-slayer-config = {path = "../daemon-slayer-config"}
+daemon-slayer-core = {path = "../daemon-slayer-core", features = ["server", "config"], optional = true}
 futures = {version = "0.3"}
-serde = "1"
+serde = {version = "1", optional = true}
 tokio = {version = "1", features = ["rt-multi-thread", "macros"]}
 tracing-ipc-widget = {git = "https://github.com/aschey/tracing-ipc", rev = "936431c1ec358d8cf9099708599c65edf8753782"}
 tui = {version = "0.19"}
 
 [features]
 cli = ["daemon-slayer-core/cli"]
-config = ["daemon-slayer-core/config"]
+config = ["confique", "serde"]

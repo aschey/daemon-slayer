@@ -1,12 +1,15 @@
 use std::collections::HashMap;
 
-use daemon_slayer_core::cli::{Action, ActionType, CommandProvider, CommandType, InputState};
+use daemon_slayer_core::cli::{
+    Action, ActionType, ArgMatchesExt, CommandConfig, CommandProvider, CommandType, InputState,
+};
 
 use crate::Builder;
 
 pub struct Cli {
     providers: Vec<Box<dyn CommandProvider>>,
     matches: clap::ArgMatches,
+    matched_command: Option<CommandConfig>,
 }
 
 impl Cli {
@@ -18,10 +21,22 @@ impl Cli {
         mut providers: Vec<Box<dyn CommandProvider>>,
         matches: clap::ArgMatches,
     ) -> Self {
-        for provider in &mut providers {
-            provider.initialize(&matches);
+        let mut matched_command: Option<CommandConfig> = None;
+        for provider in &providers {
+            for cmd in provider.get_commands() {
+                if matches.matches(&cmd.command_type) {
+                    matched_command = Some(cmd.to_owned());
+                }
+            }
         }
-        Self { providers, matches }
+        for provider in &mut providers {
+            provider.initialize(&matches, &matched_command);
+        }
+        Self {
+            providers,
+            matches,
+            matched_command,
+        }
     }
 
     pub fn action_type(&self, matches: &clap::ArgMatches) -> ActionType {
@@ -40,7 +55,11 @@ impl Cli {
 
     pub async fn handle_input(self) -> (InputState, clap::ArgMatches) {
         for provider in self.providers {
-            if provider.handle_input(&self.matches).await == InputState::Handled {
+            if provider
+                .handle_input(&self.matches, &self.matched_command)
+                .await
+                == InputState::Handled
+            {
                 return (InputState::Handled, self.matches);
             }
         }

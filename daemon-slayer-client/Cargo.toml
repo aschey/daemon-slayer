@@ -7,10 +7,10 @@ version = "0.1.0"
 arc-swap = {version = "1.5.1"}
 async-trait = "0.1"
 confique = {version = ">= 0.2.2", optional = true}
-daemon-slayer-core = {path = "../daemon-slayer-core"}
+daemon-slayer-core = {path = "../daemon-slayer-core", features = ["config"]}
 enumflags2 = "0.7.5"
 eyre = "0.6"
-serde = {version = "1.0", features = ["derive"]}
+serde = {version = "1"}
 
 [target.'cfg(windows)'.dependencies]
 regex = "1"
@@ -29,4 +29,4 @@ regex = "1.6"
 
 [features]
 cli = ["daemon-slayer-core/cli"]
-config = ["confique", "daemon-slayer-core/config"]
+config = ["confique"]
