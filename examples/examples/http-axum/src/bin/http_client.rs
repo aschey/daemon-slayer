@@ -46,12 +46,10 @@ async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         .about("Send a request to the server");
     let health_check = HttpHealthCheck::new(HttpRequestType::Get, "http://127.0.0.1:3000/health")?;
 
-    let mut console = Console::new(manager.clone());
-    console.add_health_check(Box::new(health_check.clone()));
+    let console = Console::new(manager.clone()).with_health_check(Box::new(health_check.clone()));
     let logging_provider = LoggingCliProvider::new(LoggerBuilder::new("daemon_slayer_axum"));
     let cli = Cli::builder()
         .with_base_command(command)
-        .with_default_client_commands()
         .with_provider(ClientCliProvider::new(manager.clone()))
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(HealthCheckCliProvider::new(health_check))

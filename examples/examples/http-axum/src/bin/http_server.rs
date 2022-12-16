@@ -49,7 +49,6 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
     let logging_provider = LoggingCliProvider::new(logger_builder);
 
     let cli = Cli::builder()
-        .with_default_server_commands()
         .with_provider(ServerCliProvider::<ServiceHandler>::default())
         .with_provider(logging_provider.clone())
         .with_provider(ErrorHandlerCliProvider::default())
@@ -71,7 +70,7 @@ pub struct ServiceHandler {
 
 #[async_trait::async_trait]
 impl Handler for ServiceHandler {
-    async fn new(context: &mut ServiceContext) -> Self {
+    async fn new(mut context: ServiceContext) -> Self {
         let subsys = context.get_subsystem_handle();
         context
             .add_event_service::<SignalListener>(SignalListener::all())
@@ -163,26 +162,18 @@ impl JobProcessor for MyJob {
         payload: Self::Payload,
         cancellation_token: CancellationToken,
     ) -> Result<(), Self::Error> {
-        // for _ in 0..10 {
-        //     if let Err(e) = tokio::time::sleep(Duration::from_secs(1))
-        //         .cancel_on_shutdown(&self.subsys)
-        //         .await
-        //     {
-        //         warn!("job cancelled")
-        //     }
-        //     info!("Did a thing");
-        // }
         for _ in 0..10 {
             tokio::select! {
                 _ = tokio::time::sleep(Duration::from_secs(1)) => {
                     info!("Did a thing");
                 }
-                _ = cancellation_token.cancelled() => {
-                    warn!("job cancelled");
-                    return Ok(());
-                }
+                // _ = cancellation_token.cancelled() => {
+                //     warn!("job cancelled");
+                //     return Ok(());
+                // }
             }
         }
+        info!("Job completed");
         Ok(())
     }
 

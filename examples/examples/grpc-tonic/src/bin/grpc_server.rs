@@ -55,7 +55,6 @@ async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
     let logging_provider = LoggingCliProvider::new(logger_builder);
 
     let cli = Cli::builder()
-        .with_default_server_commands()
         .with_provider(ServerCliProvider::<ServiceHandler>::default())
         .with_provider(logging_provider.clone())
         .with_provider(ErrorHandlerCliProvider::default())
@@ -75,7 +74,7 @@ pub struct ServiceHandler {
 
 #[tonic::async_trait]
 impl Handler for ServiceHandler {
-    async fn new(context: &mut ServiceContext) -> Self {
+    async fn new(mut context: ServiceContext) -> Self {
         let (_, signal_store) = context.add_event_service(SignalListener::all()).await;
 
         Self { signal_store }

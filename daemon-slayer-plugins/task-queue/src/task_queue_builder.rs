@@ -1,8 +1,8 @@
 use aide_de_camp::prelude::JobProcessor;
 use aide_de_camp::prelude::{Decode, Encode, JobError, RunnerRouter};
-use aide_de_camp_sqlite::sqlx::sqlite::SqliteConnectOptions;
-use aide_de_camp_sqlite::sqlx::ConnectOptions;
 use log::LevelFilter;
+use sqlx::sqlite::SqliteConnectOptions;
+use sqlx::ConnectOptions;
 use std::path::Path;
 use std::str::FromStr;
 

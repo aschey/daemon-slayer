@@ -1,15 +1,11 @@
 use crate::TaskQueueBuilder;
 use aide_de_camp::core::DateTime;
 use aide_de_camp::prelude::{Decode, Encode, JobError, QueueError};
-use aide_de_camp::prelude::{JobProcessor, ShutdownOptions, Xid};
-use aide_de_camp::runner::job_event::JobEvent;
-use aide_de_camp::{
-    prelude::{Duration, JobRunner, Queue},
-    runner::event_store::EventStore,
-};
-pub use aide_de_camp_sqlite::sqlx::sqlite::SqliteConnectOptions;
-use aide_de_camp_sqlite::{sqlx::SqlitePool, SqliteQueue, MIGRATOR};
+use aide_de_camp::prelude::{Duration, JobRunner, Queue};
+use aide_de_camp::prelude::{JobProcessor, Xid};
+use aide_de_camp_sqlite::{SqliteQueue, MIGRATOR};
 use daemon_slayer_core::server::SubsystemHandle;
+use sqlx::SqlitePool;
 use tracing::info;
 
 #[derive(Clone)]
@@ -76,7 +72,6 @@ impl TaskQueueClient {
 
 pub struct TaskQueue {
     queue: SqliteQueue,
-    event_store: EventStore<JobEvent>,
     runner: JobRunner<SqliteQueue>,
 }
 
@@ -103,15 +98,14 @@ impl TaskQueue {
         MIGRATOR.run(&pool).await.unwrap();
         let queue = SqliteQueue::with_pool(pool);
 
-        let runner = JobRunner::new(queue.clone(), builder.router, builder.concurrency);
+        let runner = JobRunner::new(
+            queue.clone(),
+            builder.router,
+            builder.concurrency,
+            Default::default(),
+        );
 
-        let event_store = runner.event_store();
-
-        Self {
-            queue,
-            event_store,
-            runner,
-        }
+        Self { queue, runner }
     }
 
     pub async fn run(mut self, subsys: SubsystemHandle) {
@@ -120,13 +114,8 @@ impl TaskQueue {
             .run_with_shutdown(
                 Duration::seconds(1),
                 Box::pin(async move { subsys.on_shutdown_requested().await }),
-                ShutdownOptions::default(),
             )
             .await
             .unwrap();
-    }
-
-    pub fn event_store(&self) -> EventStore<JobEvent> {
-        self.event_store.clone()
     }
 }
