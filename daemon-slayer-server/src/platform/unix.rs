@@ -4,9 +4,10 @@ use std::time::Duration;
 use crate::handler::Handler;
 
 pub async fn run_service_main<T: Handler + Send + 'static>(
+    input_data: Option<T::InputData>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Toplevel::new()
-        .start("service_main", run_subsys::<T>)
+        .start("service_main", |subsys| run_subsys::<T>(subsys, input_data))
         .handle_shutdown_requests(Duration::from_millis(5000))
         .await?;
     Ok(())
@@ -14,9 +15,10 @@ pub async fn run_service_main<T: Handler + Send + 'static>(
 
 async fn run_subsys<T: Handler + Send + 'static>(
     subsys: SubsystemHandle,
+    input_data: Option<T::InputData>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let manager = ServiceManager::new(subsys);
-    let handler = T::new(manager.get_context()).await;
+    let handler = T::new(manager.get_context().await, input_data).await;
 
     let result = handler
         .run_service(|| {
@@ -28,6 +30,6 @@ async fn run_subsys<T: Handler + Send + 'static>(
     #[cfg(target_os = "linux")]
     sd_notify::notify(false, &[crate::sd_notify::NotifyState::Stopping]).unwrap();
 
-    context.stop().await;
+    manager.stop().await;
     result
 }

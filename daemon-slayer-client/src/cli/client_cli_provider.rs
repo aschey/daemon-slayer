@@ -1,10 +1,8 @@
+use crate::{Manager, ServiceManager};
 use daemon_slayer_core::cli::{
     clap, Action, ActionType, ArgMatchesExt, CommandConfig, CommandExt, CommandType, InputState,
 };
-use regex::internal::Input;
 use std::collections::HashMap;
-
-use crate::{Manager, ServiceManager};
 
 #[derive(Clone)]
 pub struct ClientCliProvider {
