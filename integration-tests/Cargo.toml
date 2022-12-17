@@ -7,7 +7,7 @@ version = "0.1.0"
 [dependencies]
 async-trait = "0.1.58"
 axum = "0.6.1"
-daemon-slayer = {path = "..", features = ["server-base", "client-base", "ipc-health-check", "all-plugins", "config"]}
+daemon-slayer = {path = "../crates/daemon-slayer", features = ["server-base", "client-base", "extras"]}
 futures = "0.3.25"
 reqwest = {version = "0.11.12", features = ["blocking"]}
 serde = "1.0.147"

@@ -10,7 +10,7 @@ bat = {version = "0.22", default-features = false, features = ["regex-onig", "pa
 confique = ">= 0.2.2"
 daemon-slayer-client = {path = "../daemon-slayer-client"}
 daemon-slayer-core = {path = "../daemon-slayer-core"}
-daemon-slayer-plugin-file-watcher = {path = "../daemon-slayer-plugins/file-watcher"}
+daemon-slayer-file-watcher = {path = "../daemon-slayer-file-watcher"}
 directories = "4"
 edit = "0.1"
 futures = "0.3"

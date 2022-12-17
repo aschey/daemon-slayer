@@ -1,12 +1,12 @@
 [package]
 edition = "2021"
-name = "daemon-slayer-plugin-file-watcher"
+name = "daemon-slayer-file-watcher"
 version = "0.1.0"
 
 [dependencies]
 async-trait = "0.1"
 bus = {version = "2", optional = true}
-daemon-slayer-core = {path = "../../daemon-slayer-core", features = ["server"]}
+daemon-slayer-core = {path = "../daemon-slayer-core", features = ["server"]}
 futures = {version = "0.3", optional = true}
 notify = {version = "5", default-features = false, features = ["fsevent-sys", "macos_fsevent"]}
 notify-debouncer-mini = {version = "0.2", default-features = false}

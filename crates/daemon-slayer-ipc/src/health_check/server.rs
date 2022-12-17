@@ -1,6 +1,5 @@
 use std::{error::Error, time::Duration};
 
-use crate::{builder::Builder, client::Client};
 use daemon_slayer_core::server::{FutureExt, ServiceContext, SubsystemHandle};
 use futures::StreamExt;
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
@@ -9,16 +8,17 @@ use tokio::{
     task::JoinHandle,
 };
 
+use crate::get_socket_address;
+
+use super::Client;
+
 pub struct Server {
     pub(crate) sock_path: String,
 }
 
 impl Server {
     pub fn new(app_name: String) -> Self {
-        #[cfg(unix)]
-        let sock_path = format!("/tmp/{app_name}_health.sock");
-        #[cfg(windows)]
-        let sock_path = format!("\\\\.\\pipe\\{app_name}_health");
+        let sock_path = get_socket_address(&app_name, "health");
         Self { sock_path }
     }
 }

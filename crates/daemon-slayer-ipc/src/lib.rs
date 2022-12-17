@@ -40,6 +40,8 @@ pub mod pubsub;
 pub mod rpc;
 mod two_way;
 
+pub mod health_check;
+
 #[derive(Clone, Debug)]
 pub enum Codec {
     Bincode,

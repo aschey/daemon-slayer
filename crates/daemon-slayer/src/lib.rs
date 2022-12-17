@@ -1,7 +1,6 @@
 pub mod core {
     pub use daemon_slayer_core::*;
 }
-
 #[cfg(feature = "client")]
 pub mod client {
     pub use daemon_slayer_client::*;
@@ -30,35 +29,31 @@ pub mod error_handler {
 pub mod health_check {
     pub use daemon_slayer_health_check::*;
 }
-
 #[cfg(feature = "tray")]
 pub mod tray {
     pub use daemon_slayer_tray::*;
 }
-
 #[cfg(feature = "ipc")]
 pub mod ipc {
     pub use daemon_slayer_ipc::*;
 }
-
 #[cfg(feature = "config")]
 pub mod config {
     pub use daemon_slayer_config::*;
 }
-
-#[cfg(feature = "plugin-task-queue")]
+#[cfg(feature = "task-queue")]
 pub mod task_queue {
-    pub use daemon_slayer_plugin_task_queue::*;
+    pub use daemon_slayer_task_queue::*;
 }
-#[cfg(feature = "plugin-signals")]
+#[cfg(feature = "signals")]
 pub mod signals {
-    pub use daemon_slayer_plugin_signals::*;
+    pub use daemon_slayer_signals::*;
 }
-#[cfg(feature = "plugin-file-watcher")]
+#[cfg(feature = "file-watcher")]
 pub mod file_watcher {
-    pub use daemon_slayer_plugin_file_watcher::*;
+    pub use daemon_slayer_file_watcher::*;
 }
-#[cfg(feature = "plugin-ipc-health-check")]
-pub mod ipc_health_check {
-    pub use daemon_slayer_plugin_ipc_health_check::*;
-}
+// #[cfg(feature = "plugin-ipc-health-check")]
+// pub mod ipc_health_check {
+//     pub use daemon_slayer_plugin_ipc_health_check::*;
+// }

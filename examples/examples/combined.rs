@@ -22,6 +22,7 @@ use daemon_slayer::core::App;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::health_check::cli::HealthCheckCliProvider;
 use daemon_slayer::health_check::IpcHealthCheck;
+use daemon_slayer::logging;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::server::LoggingUpdateService;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
@@ -31,7 +32,6 @@ use daemon_slayer::server::{
 };
 use daemon_slayer::server::{Signal, SignalHandler};
 use daemon_slayer::signals::SignalListener;
-use daemon_slayer::{ipc_health_check, logging};
 use futures::StreamExt;
 use tracing::info;
 
@@ -163,7 +163,7 @@ impl Handler for ServiceHandler {
         let input_data = input_data.unwrap();
         let (_, signal_store) = context.add_event_service(SignalListener::all()).await;
         context
-            .add_service(ipc_health_check::Server::new(
+            .add_service(daemon_slayer::ipc::health_check::Server::new(
                 "daemon_slayer_combined".to_owned(),
             ))
             .await;

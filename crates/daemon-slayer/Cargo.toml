@@ -1,0 +1,79 @@
+[package]
+edition = "2021"
+name = "daemon-slayer"
+version = "0.1.0"
+
+[features]
+client-base = [
+  "console",
+  "client",
+  "cli",
+  "config",
+  "error-handler",
+]
+extras = [
+  "file-watcher", # "plugin-ipc-health-check",
+  "task-queue",
+]
+server-base = [
+  "server",
+  "cli",
+  "daemon-slayer-logging/base",
+  "logging",
+  "config",
+  "error-handler",
+  "signals",
+]
+
+cli = [
+  "daemon-slayer-cli",
+  "daemon-slayer-logging/cli",
+  "daemon-slayer-server/cli",
+  "daemon-slayer-client/cli",
+  "daemon-slayer-console/cli",
+  "daemon-slayer-health-check/cli",
+  "daemon-slayer-error-handler/cli",
+  "daemon-slayer-config/cli",
+]
+client = ["daemon-slayer-client"]
+config = [
+  "daemon-slayer-config",
+  "daemon-slayer-client/config",
+  "daemon-slayer-console/config",
+  "daemon-slayer-logging/config",
+]
+console = ["daemon-slayer-console"]
+error-handler = ["daemon-slayer-error-handler"]
+file-watcher = ["daemon-slayer-file-watcher"]
+grpc-health-check = ["health-check", "daemon-slayer-health-check/grpc-health-check"]
+health-check = ["daemon-slayer-health-check"]
+http-health-check = ["health-check", "daemon-slayer-health-check/http-health-check"]
+ipc = ["daemon-slayer-ipc"]
+ipc-health-check = ["health-check", "daemon-slayer-health-check/ipc-health-check"]
+logging = ["daemon-slayer-logging"]
+# ipc-health-check = ["daemon-slayer-plugin-ipc-health-check"]
+server = [
+  "daemon-slayer-server",
+  "daemon-slayer-config/server",
+  "daemon-slayer-logging/server",
+]
+signals = ["daemon-slayer-signals"]
+task-queue = ["daemon-slayer-task-queue"]
+tray = ["daemon-slayer-tray", "client"]
+
+[dependencies]
+daemon-slayer-cli = {path = "../daemon-slayer-cli", optional = true}
+daemon-slayer-client = {path = "../daemon-slayer-client", optional = true}
+daemon-slayer-config = {path = "../daemon-slayer-config", optional = true}
+daemon-slayer-console = {path = "../daemon-slayer-console", optional = true}
+daemon-slayer-core = {path = "../daemon-slayer-core"}
+daemon-slayer-error-handler = {path = "../daemon-slayer-error-handler", optional = true}
+daemon-slayer-file-watcher = {path = "../daemon-slayer-file-watcher", optional = true}
+daemon-slayer-health-check = {path = "../daemon-slayer-health-check", optional = true}
+daemon-slayer-ipc = {path = "../daemon-slayer-ipc", optional = true}
+daemon-slayer-logging = {path = "../daemon-slayer-logging", optional = true}
+daemon-slayer-server = {path = "../daemon-slayer-server", optional = true}
+daemon-slayer-tray = {path = "../daemon-slayer-tray", optional = true}
+# daemon-slayer-plugin-ipc-health-check = {path = "./daemon-slayer-plugins/ipc-health-check", optional = true}
+daemon-slayer-signals = {path = "../daemon-slayer-signals", optional = true}
+daemon-slayer-task-queue = {path = "../daemon-slayer-task-queue", optional = true}

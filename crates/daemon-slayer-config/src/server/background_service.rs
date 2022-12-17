@@ -5,7 +5,7 @@ use daemon_slayer_core::server::{
     BackgroundService, BroadcastEventStore, EventService, EventStore, FutureExt, ServiceContext,
     SubsystemHandle,
 };
-use daemon_slayer_plugin_file_watcher::FileWatcher;
+use daemon_slayer_file_watcher::FileWatcher;
 use futures::stream::StreamExt;
 
 pub struct ConfigClient {}

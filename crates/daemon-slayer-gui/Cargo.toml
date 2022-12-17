@@ -1,0 +1,14 @@
+[package]
+authors = ["you"]
+description = "A Tauri App"
+edition = "2021"
+license = ""
+name = "daemon-slayer-gui-root"
+repository = ""
+version = "0.1.0"
+
+[dependencies]
+daemon-slayer-gui = {path = "./src-tauri"}
+
+[lib]
+path = "./lib.rs"

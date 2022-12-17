@@ -5,22 +5,21 @@ edition = "2021"
 license = ""
 name = "daemon-slayer-gui"
 repository = ""
-rust-version = "1.57"
-version = "0.0.0"
+version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = {version = "1.1", features = [] }
+tauri-build = {version = "1.1", features = []}
 
 [dependencies]
 daemon-slayer-client = {path = "../../daemon-slayer-client"}
-daemon-slayer-health-check = {path = "../../daemon-slayer-health-check", features = ["http-health-check"] }
-serde = {version = "1.0", features = ["derive"] }
+daemon-slayer-health-check = {path = "../../daemon-slayer-health-check", features = ["http-health-check"]}
+serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
-tauri = {version = "1.1", features = ["api-all", "system-tray"] }
-tauri-plugin-positioner = {git = "https://github.com/aschey/tauri-plugin-positioner", features = ["system-tray"] }
-tokio = {version = "1.21.2", features = ["time"] }
+tauri = {version = "1.1", features = ["api-all", "system-tray"]}
+tauri-plugin-positioner = {git = "https://github.com/aschey/tauri-plugin-positioner", features = ["system-tray"]}
+tokio = {version = "1.21.2", features = ["time"]}
 tracing-ipc = {git = "https://github.com/aschey/tracing-ipc", rev = "936431c1ec358d8cf9099708599c65edf8753782"}
 
 [features]
