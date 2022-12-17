@@ -65,6 +65,10 @@ where
 {
     type Client = SubscriberClient<T, M>;
 
+    fn name<'a>() -> &'a str {
+        "subscriber_server"
+    }
+
     async fn run(mut self, context: ServiceContext) {
         let mut subscriber_handles = vec![];
         while let Ok(Some((topics, tx))) = self

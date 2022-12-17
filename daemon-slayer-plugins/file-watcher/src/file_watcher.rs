@@ -67,6 +67,10 @@ impl FileWatcher {
 impl daemon_slayer_core::server::BackgroundService for FileWatcher {
     type Client = FileWatcherClient;
 
+    fn name<'a>() -> &'a str {
+        "file_watcher_service"
+    }
+
     async fn run(mut self, context: ServiceContext) {
         while let Ok(Some(command)) = self
             .command_rx

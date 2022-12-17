@@ -47,6 +47,10 @@ impl signal::Handler for SignalListener {
 impl daemon_slayer_core::server::BackgroundService for SignalListener {
     type Client = SignalListenerClient;
 
+    fn name<'a>() -> &'a str {
+        "signal_listener_service"
+    }
+
     async fn run(mut self, context: ServiceContext) {
         let signals_handle = self.signals.handle();
 

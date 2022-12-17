@@ -70,6 +70,10 @@ impl HealthChecker {
 impl BackgroundService for HealthChecker {
     type Client = ();
 
+    fn name<'a>() -> &'a str {
+        "health_check_service"
+    }
+
     async fn run(mut self, _context: ServiceContext) {
         let mut is_healthy: Option<bool> = None;
         loop {

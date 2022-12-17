@@ -16,6 +16,10 @@ use tokio_stream::wrappers::BroadcastStream;
 impl daemon_slayer_core::server::BackgroundService for TaskQueue {
     type Client = TaskQueueClient;
 
+    fn name<'a>() -> &'a str {
+        "task_queue_service"
+    }
+
     async fn run(self, context: ServiceContext) {
         self.run(context.get_subsystem_handle()).await;
     }

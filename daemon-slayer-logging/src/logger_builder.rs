@@ -12,7 +12,6 @@ use daemon_slayer_core::{
     server::BackgroundService,
 };
 use once_cell::sync::OnceCell;
-use serde::de::Visitor;
 use time::{
     format_description::well_known::{self, Rfc3339},
     UtcOffset,

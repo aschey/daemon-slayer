@@ -3,7 +3,8 @@ use std::{ops::Deref, sync::Arc};
 use daemon_slayer_core::{
     config::Accessor,
     server::{
-        tokio_stream::StreamExt, BackgroundService, BroadcastEventStore, EventStore, ServiceContext,
+        tokio_stream::StreamExt, BackgroundService, BroadcastEventStore, EventStore, FutureExt,
+        ServiceContext,
     },
 };
 
@@ -24,9 +25,17 @@ impl<T: AsRef<UserConfig> + Send + Sync + 'static> LoggingUpdateService<T> {
 impl<T: AsRef<UserConfig> + Send + Sync + 'static> BackgroundService for LoggingUpdateService<T> {
     type Client = ();
 
-    async fn run(mut self, _context: ServiceContext) {
+    fn name<'a>() -> &'a str {
+        "logging_update_service"
+    }
+
+    async fn run(mut self, context: ServiceContext) {
         let mut rx = self.file_events.subscribe_events();
-        while let Some(Ok((_, new))) = rx.next().await {
+        while let Ok(Some(Ok((_, new)))) = rx
+            .next()
+            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .await
+        {
             let log_level = new.deref().as_ref().log_level.to_level_filter();
 
             self.guard.update_log_level(log_level);

@@ -35,6 +35,10 @@ where
 {
     type Client = ConfigClient;
 
+    fn name<'a>() -> &'a str {
+        "config_service"
+    }
+
     async fn run(mut self, mut context: ServiceContext) {
         let (_, event_store) = context
             .add_event_service(

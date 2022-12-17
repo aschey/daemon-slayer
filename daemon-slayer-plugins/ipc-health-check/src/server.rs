@@ -27,6 +27,10 @@ impl Server {
 impl daemon_slayer_core::server::BackgroundService for Server {
     type Client = Client;
 
+    fn name<'a>() -> &'a str {
+        "ipc_health_check_service"
+    }
+
     async fn run(self, context: ServiceContext) {
         let mut endpoint = Endpoint::new(self.sock_path);
         endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());

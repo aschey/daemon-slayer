@@ -47,6 +47,10 @@ where
 {
     type Client = IpcClient<H::Req, H::Res>;
 
+    fn name<'a>() -> &'a str {
+        "ipc_server"
+    }
+
     async fn run(self, context: ServiceContext) {
         let incoming = self.endpoint.incoming().expect("failed to open new socket");
         futures::pin_mut!(incoming);

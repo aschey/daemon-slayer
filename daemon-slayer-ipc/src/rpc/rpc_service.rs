@@ -40,6 +40,10 @@ where
 {
     type Client = P::Client;
 
+    fn name<'a>() -> &'a str {
+        "rpc_service"
+    }
+
     async fn run(mut self, context: ServiceContext) {
         let mut endpoint = Endpoint::new(self.bind_addr.clone());
         endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());

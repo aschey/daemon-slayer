@@ -171,6 +171,10 @@ where
 {
     type Client = Publisher<T, M>;
 
+    fn name<'a>() -> &'a str {
+        "pubsub_server"
+    }
+
     async fn run(self, context: ServiceContext) {
         let bind_addr = get_socket_address(&self.app_id, "publisher");
         let mut endpoint = Endpoint::new(bind_addr);
