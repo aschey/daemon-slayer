@@ -55,7 +55,6 @@ pub struct AppConfig<T: Config + Default + Send + Sync + Clone + 'static> {
     phantom: PhantomData<T>,
     config_path: PathBuf,
     config: Arc<ArcSwap<T>>,
-    file_tx: tokio::sync::broadcast::Sender<(Arc<T>, Arc<T>)>, //file_events: Option<BroadcastEventStore<PathBuf>>,
 }
 
 impl<T: Config + Default + Send + Sync + Clone + 'static> AppConfig<T> {
@@ -67,12 +66,10 @@ impl<T: Config + Default + Send + Sync + Clone + 'static> AppConfig<T> {
 
         let config = Arc::new(ArcSwap::new(Arc::new(T::default())));
 
-        let (file_tx, _) = tokio::sync::broadcast::channel(32);
         Self {
             config_file_type,
             config_path,
             phantom: Default::default(),
-            file_tx,
             config,
         }
     }
@@ -119,6 +116,10 @@ impl<T: Config + Default + Send + Sync + Clone + 'static> AppConfig<T> {
         .unwrap();
         let mut file = File::create(&self.config_path).unwrap();
         file.write_all(self.config_template().as_bytes()).unwrap();
+    }
+
+    pub fn snapshot(&self) -> Arc<T> {
+        self.config.load_full()
     }
 
     pub fn read_config(&self) -> Arc<ArcSwap<T>> {

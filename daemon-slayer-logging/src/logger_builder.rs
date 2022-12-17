@@ -1,17 +1,28 @@
 use std::{
     collections::HashMap,
     error::Error,
+    fmt::{self, Display},
     io::{stderr, stdout},
+    ops::Deref,
+    str::FromStr,
 };
 
+use daemon_slayer_core::{
+    config::{Accessor, CachedConfig},
+    server::BackgroundService,
+};
 use once_cell::sync::OnceCell;
+use serde::de::Visitor;
 use time::{
     format_description::well_known::{self, Rfc3339},
     UtcOffset,
 };
 
 use super::{logger_guard::LoggerGuard, timezone::Timezone};
-use tracing::{metadata::LevelFilter, Subscriber};
+use tracing::{
+    metadata::{LevelFilter, ParseLevelError},
+    Level, Subscriber,
+};
 use tracing_appender::non_blocking::NonBlockingBuilder;
 
 use tracing_subscriber::{
@@ -19,6 +30,7 @@ use tracing_subscriber::{
     fmt::{time::OffsetTime, Layer},
     prelude::*,
     registry::LookupSpan,
+    reload::{self, Handle},
     util::SubscriberInitExt,
     EnvFilter, Layer as SubscriberLayer,
 };
@@ -41,6 +53,48 @@ pub enum LogTarget {
     Ipc,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct LogLevel(pub(crate) Level);
+
+impl LogLevel {
+    pub(crate) fn to_level_filter(&self) -> LevelFilter {
+        LevelFilter::from_level(self.0)
+    }
+}
+
+impl Default for LogLevel {
+    fn default() -> Self {
+        LogLevel(Level::INFO)
+    }
+}
+
+impl Deref for LogLevel {
+    type Target = Level;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[cfg(feature = "config")]
+impl<'de> serde::Deserialize<'de> for LogLevel {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let val = String::deserialize(deserializer)?;
+        let level = Level::from_str(&val).map_err(serde::de::Error::custom)?;
+        Ok(LogLevel(level))
+    }
+}
+
+#[derive(daemon_slayer_core::Mergeable, Debug, Clone, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "config", derive(confique::Config, serde::Deserialize))]
+pub struct UserConfig {
+    #[cfg_attr(feature = "config", config(default = "info"))]
+    pub(crate) log_level: LogLevel,
+}
+
 #[derive(Clone)]
 pub struct LoggerBuilder {
     name: String,
@@ -48,8 +102,7 @@ pub struct LoggerBuilder {
     file_rotation_period: tracing_appender::Rotation,
     timezone: Timezone,
     output_buffer_limit: usize,
-    default_log_level: tracing::Level,
-    level_filter: LevelFilter,
+    user_config: CachedConfig<UserConfig>,
     target_directives: HashMap<LogTarget, Vec<Directive>>,
     env_filter_directives: Vec<Directive>,
     log_to_stdout: bool,
@@ -67,8 +120,7 @@ impl LoggerBuilder {
             // The default number of buffered lines is quite large and uses a ton of memory
             // We aren't logging a ton of messages so setting this value somewhat low is fine in order to conserve memory
             output_buffer_limit: 256,
-            default_log_level: tracing::Level::INFO,
-            level_filter: LevelFilter::INFO,
+            user_config: Default::default(),
             log_to_stdout: false,
             log_to_stderr: true,
             enable_ipc_logger: false,
@@ -103,13 +155,11 @@ impl LoggerBuilder {
         self
     }
 
-    pub fn with_default_log_level(mut self, default_log_level: tracing::Level) -> Self {
-        self.default_log_level = default_log_level;
-        self
-    }
-
-    pub fn with_level_filter(mut self, level_filter: LevelFilter) -> Self {
-        self.level_filter = level_filter;
+    pub fn with_config<S>(mut self, service: S) -> Self
+    where
+        S: Accessor<UserConfig> + Clone + Unpin + 'static,
+    {
+        self.user_config = service.access();
         self
     }
 
@@ -134,14 +184,15 @@ impl LoggerBuilder {
 
     fn get_filter_for_target(&self, target: LogTarget) -> EnvFilter {
         if let Some(directives) = self.target_directives.get(&target) {
-            let mut env_filter =
-                EnvFilter::from_default_env().add_directive(self.default_log_level.into());
+            let mut env_filter = EnvFilter::from_default_env()
+                .add_directive(self.user_config.snapshot().log_level.0.into());
             for directive in directives {
                 env_filter = env_filter.add_directive(directive.clone());
             }
             env_filter
         } else {
-            EnvFilter::from_default_env().add_directive(self.level_filter.into())
+            EnvFilter::from_default_env()
+                .add_directive(self.user_config.snapshot().log_level.0.into())
         }
     }
 
@@ -183,15 +234,15 @@ impl LoggerBuilder {
             _ => OffsetTime::new(UtcOffset::UTC, well_known::Rfc3339),
         };
 
-        let mut env_filter =
-            EnvFilter::from_default_env().add_directive(self.default_log_level.into());
+        let mut env_filter = EnvFilter::from_default_env()
+            .add_directive(self.user_config.snapshot().log_level.0.into());
         for directive in &self.env_filter_directives {
             env_filter = env_filter.add_directive(directive.clone());
         }
 
         let collector = tracing_subscriber::registry().with(env_filter);
 
-        let mut guard = LoggerGuard::new();
+        let mut guard = LoggerGuard::default();
 
         #[cfg(feature = "file")]
         let proj_dirs = directories::ProjectDirs::from("", "", &self.name)
@@ -297,6 +348,14 @@ impl LoggerBuilder {
             tracing_eventlog::EventLogLayer::pretty(self.name.clone())?
                 .with_filter(self.get_filter_for_target(LogTarget::EventLog)),
         );
+
+        let (filter, reload_handle) =
+            reload::Layer::new(self.user_config.snapshot().log_level.0.into());
+        guard.set_reload_handle(Box::new(move |level_filter| {
+            reload_handle.modify(|l| *l = level_filter).unwrap();
+        }));
+
+        let collector = collector.with(filter);
 
         Ok((collector, guard))
     }

@@ -5,14 +5,6 @@ use arc_swap::{
     ArcSwap, ArcSwapAny,
 };
 
-pub trait Configurable {
-    type UserConfig: Mergeable + Clone + Default;
-    fn with_user_config(
-        self,
-        config: impl Accessor<Self::UserConfig> + Send + Sync + 'static,
-    ) -> Self;
-}
-
 pub trait Accessor<T: Mergeable + Clone + Default> {
     fn access(&self) -> CachedConfig<T>;
 }

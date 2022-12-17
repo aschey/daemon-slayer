@@ -1,9 +1,9 @@
+use super::SignalListenerClient;
 use daemon_slayer_core::{
     server::{BroadcastEventStore, ServiceContext, SubsystemHandle},
     signal::{self, Signal},
 };
-
-use super::SignalListenerClient;
+use tracing::info;
 
 pub struct SignalListener {
     signal_tx: tokio::sync::broadcast::Sender<Signal>,
@@ -45,8 +45,12 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
                 _ = ctrl_shutdown_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
                 _ = ctrl_logoff_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
                 _ = ctrl_close_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
-                _ = subsys.on_shutdown_requested() => { return; }
+                _ = subsys.on_shutdown_requested() => {
+                    info!("Shutdown requested. Stopping signal handler.");
+                    return;
+                }
             };
+            info!("Signal received. Requesting global shutdown.");
             subsys.request_global_shutdown();
         }
     }

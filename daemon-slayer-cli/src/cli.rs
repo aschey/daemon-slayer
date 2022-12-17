@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use daemon_slayer_core::cli::{
     Action, ActionType, ArgMatchesExt, CommandConfig, CommandProvider, CommandType, InputState,
 };
@@ -51,6 +49,12 @@ impl Cli {
 
     pub fn get_matches(&self) -> &clap::ArgMatches {
         &self.matches
+    }
+
+    pub fn get_provider<T: CommandProvider>(&mut self) -> Option<&mut T> {
+        self.providers
+            .iter_mut()
+            .find_map(|p| p.as_any_mut().downcast_mut::<T>())
     }
 
     pub async fn handle_input(self) -> (InputState, clap::ArgMatches) {

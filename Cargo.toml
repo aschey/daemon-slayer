@@ -59,7 +59,12 @@ cli = [
   "daemon-slayer-config/cli",
 ]
 client = ["daemon-slayer-client"]
-config = ["daemon-slayer-config", "daemon-slayer-client/config", "daemon-slayer-console/config"]
+config = [
+  "daemon-slayer-config",
+  "daemon-slayer-client/config",
+  "daemon-slayer-console/config",
+  "daemon-slayer-logging/config",
+]
 console = ["daemon-slayer-console"]
 error-handler = ["daemon-slayer-error-handler"]
 grpc-health-check = ["health-check", "daemon-slayer-health-check/grpc-health-check"]
@@ -72,7 +77,11 @@ plugin-file-watcher = ["daemon-slayer-plugin-file-watcher"]
 plugin-ipc-health-check = ["daemon-slayer-plugin-ipc-health-check"]
 plugin-signals = ["daemon-slayer-plugin-signals"]
 plugin-task-queue = ["daemon-slayer-plugin-task-queue"]
-server = ["daemon-slayer-server", "daemon-slayer-config/server"]
+server = [
+  "daemon-slayer-server",
+  "daemon-slayer-config/server",
+  "daemon-slayer-logging/server",
+]
 tray = ["daemon-slayer-tray", "client"]
 
 [dependencies]

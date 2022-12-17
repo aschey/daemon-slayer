@@ -6,10 +6,11 @@ use std::{collections::HashMap, hash::Hash, marker::PhantomData};
 
 pub struct ServerCliProvider<S: Service + Send + Sync> {
     commands: HashMap<Action, CommandConfig>,
+    input_data: Option<S::InputData>,
     _phantom: PhantomData<S>,
 }
 
-impl<S: Service + Send + Sync> Default for ServerCliProvider<S> {
+impl<S: Service + Send + Sync + 'static> Default for ServerCliProvider<S> {
     fn default() -> Self {
         let mut commands = HashMap::new();
         commands.insert(
@@ -35,13 +36,22 @@ impl<S: Service + Send + Sync> Default for ServerCliProvider<S> {
         );
         Self {
             commands,
+            input_data: Default::default(),
             _phantom: Default::default(),
         }
     }
 }
 
+impl<S: Service + Send + Sync + 'static> ServerCliProvider<S> {
+    pub fn set_input_data(&mut self, input_data: S::InputData) {
+        self.input_data = Some(input_data);
+    }
+}
+
 #[async_trait::async_trait]
-impl<S: Service + Send + Sync> daemon_slayer_core::cli::CommandProvider for ServerCliProvider<S> {
+impl<S: Service + Send + Sync + 'static> daemon_slayer_core::cli::CommandProvider
+    for ServerCliProvider<S>
+{
     fn get_action_type(&self) -> ActionType {
         ActionType::Server
     }
@@ -57,11 +67,11 @@ impl<S: Service + Send + Sync> daemon_slayer_core::cli::CommandProvider for Serv
     ) -> InputState {
         match matched_command.as_ref().map(|c| &c.action) {
             Some(Some(Action::Direct)) => {
-                S::run_service_direct().await.unwrap();
+                S::run_service_direct(self.input_data).await.unwrap();
                 InputState::Handled
             }
             Some(Some(Action::Run)) => {
-                S::run_service_main().await.unwrap();
+                S::run_service_main(self.input_data).await.unwrap();
                 InputState::Handled
             }
             _ => InputState::Unhandled,

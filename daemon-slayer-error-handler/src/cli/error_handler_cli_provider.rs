@@ -7,7 +7,7 @@ use tracing::Subscriber;
 
 use crate::ErrorHandler;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ErrorHandlerCliProvider {}
 
 #[async_trait::async_trait]

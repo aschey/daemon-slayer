@@ -1,8 +1,14 @@
 use std::error::Error;
 
-#[async_trait::async_trait]
-pub trait Service {
-    async fn run_service_main() -> Result<(), Box<dyn Error + Send + Sync>>;
+use crate::Handler;
 
-    async fn run_service_direct() -> Result<(), Box<dyn Error + Send + Sync>>;
+#[async_trait::async_trait]
+pub trait Service: Handler {
+    async fn run_service_main(
+        input_data: Option<Self::InputData>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>>;
+
+    async fn run_service_direct(
+        input_data: Option<Self::InputData>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>>;
 }

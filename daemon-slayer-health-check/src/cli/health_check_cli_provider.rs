@@ -2,12 +2,13 @@ use daemon_slayer_core::cli::{
     clap, ActionType, ArgMatchesExt, CommandConfig, CommandType, InputState,
 };
 
-pub struct HealthCheckCliProvider<H: daemon_slayer_core::health_check::HealthCheck + Send> {
+#[derive(Clone)]
+pub struct HealthCheckCliProvider<H: daemon_slayer_core::health_check::HealthCheck + Clone + Send> {
     health_check: H,
     command: CommandConfig,
 }
 
-impl<H: daemon_slayer_core::health_check::HealthCheck + Send> HealthCheckCliProvider<H> {
+impl<H: daemon_slayer_core::health_check::HealthCheck + Clone + Send> HealthCheckCliProvider<H> {
     pub fn new(health_check: H) -> Self {
         Self {
             health_check,
@@ -26,7 +27,7 @@ impl<H: daemon_slayer_core::health_check::HealthCheck + Send> HealthCheckCliProv
 }
 
 #[async_trait::async_trait]
-impl<H: daemon_slayer_core::health_check::HealthCheck + Send>
+impl<H: daemon_slayer_core::health_check::HealthCheck + Clone + Send + 'static>
     daemon_slayer_core::cli::CommandProvider for HealthCheckCliProvider<H>
 {
     async fn handle_input(

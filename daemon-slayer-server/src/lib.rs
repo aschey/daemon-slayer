@@ -16,9 +16,8 @@ pub use sd_notify;
 pub use windows_service;
 
 pub use async_trait;
-
 pub use futures;
-
+pub use once_cell;
 pub use tokio;
 
 pub use daemon_slayer_core::{
@@ -27,6 +26,7 @@ pub use daemon_slayer_core::{
         ServiceContext, SubsystemHandle,
     },
     signal::{Client as SignalHandlerClient, Handler as SignalHandler, Signal},
+    AsAny,
 };
 
 pub use daemon_slayer_macros::*;

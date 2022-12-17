@@ -6,9 +6,8 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use daemon_slayer_client::{Info, Manager, ServiceManager, State};
-use daemon_slayer_config::AppConfig;
 use daemon_slayer_core::{
-    config::{arc_swap::access::DynAccess, Accessor, CachedConfig, Configurable, Mergeable},
+    config::{arc_swap::access::DynAccess, Accessor, CachedConfig},
     health_check::HealthCheck,
     server::{
         tokio_stream::wrappers::errors::BroadcastStreamRecvError, BackgroundService,
@@ -38,19 +37,13 @@ use tui::{
     Frame, Terminal,
 };
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(daemon_slayer_core::Mergeable, Debug, Clone, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "config", derive(confique::Config, serde::Deserialize))]
 pub struct UserConfig {
     #[cfg_attr(feature = "config", config(default = true))]
     pub enable_health_check: bool,
     #[cfg_attr(feature = "config", config(default = 1))]
     pub health_check_interval_seconds: u64,
-}
-
-impl Mergeable for UserConfig {
-    fn merge(user_config: Option<&Self>, app_config: &Self) -> Self {
-        user_config.unwrap_or(app_config).to_owned()
-    }
 }
 
 struct HealthChecker {
@@ -116,18 +109,6 @@ pub struct Console {
         Option<Box<dyn FnMut(ServiceContext) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send>>,
 }
 
-impl Configurable for Console {
-    type UserConfig = UserConfig;
-
-    fn with_user_config(
-        mut self,
-        config_accessor: impl Accessor<Self::UserConfig> + Send + Sync + 'static,
-    ) -> Self {
-        self.user_config = config_accessor.access();
-        self
-    }
-}
-
 impl Console {
     pub fn new(manager: ServiceManager) -> Self {
         let info = manager.info().unwrap();
@@ -145,18 +126,25 @@ impl Console {
         }
     }
 
-    pub fn with_config<S>(mut self, service: S) -> Self
+    pub fn with_config<A>(mut self, service: A) -> Self
     where
-        S: BackgroundService + Accessor<UserConfig> + Clone + Unpin + 'static,
+        A: Accessor<UserConfig> + Clone + Unpin + 'static,
     {
         self.user_config = service.access();
-        self.event_fn = Some(Box::new(move |mut context: ServiceContext| {
-            let service = service.clone();
+        self
+    }
+
+    pub fn with_configure_services<F, Fut>(mut self, configure: F) -> Self
+    where
+        F: FnMut(ServiceContext) -> Fut + Clone + Send + 'static,
+        Fut: Future<Output = ()> + Send,
+    {
+        self.event_fn = Some(Box::new(move |context: ServiceContext| {
+            let mut configure = configure.clone();
             Box::pin(async move {
-                context.add_service(service).await;
+                configure(context).await;
             })
         }));
-
         self
     }
 

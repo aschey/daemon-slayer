@@ -1,4 +1,6 @@
-use std::collections::HashMap;
+use std::{any::Any, collections::HashMap};
+
+use crate::AsAny;
 
 use super::{Action, ActionType, ArgMatchesExt, CommandExt, CommandType, InputState};
 
@@ -10,7 +12,7 @@ pub struct CommandConfig {
 }
 
 #[async_trait::async_trait]
-pub trait CommandProvider: Send {
+pub trait CommandProvider: AsAny + Send + 'static {
     async fn handle_input(
         self: Box<Self>,
         matches: &clap::ArgMatches,

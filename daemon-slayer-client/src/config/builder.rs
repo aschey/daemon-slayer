@@ -8,7 +8,6 @@ use arc_swap::access::{DynAccess, Map};
 use arc_swap::ArcSwap;
 use daemon_slayer_core::config::Accessor;
 use daemon_slayer_core::config::CachedConfig;
-use daemon_slayer_core::config::Configurable;
 use daemon_slayer_core::config::Mergeable;
 use std::env::consts::EXE_EXTENSION;
 use std::env::current_exe;
@@ -58,18 +57,6 @@ pub struct Builder {
     #[cfg_attr(not(windows), allow(unused))]
     pub(crate) windows_config: WindowsConfig,
     pub(crate) user_config: CachedConfig<UserConfig>,
-}
-
-impl Configurable for Builder {
-    type UserConfig = UserConfig;
-
-    fn with_user_config(
-        mut self,
-        config: impl Accessor<Self::UserConfig> + Send + Sync + 'static,
-    ) -> Self {
-        self.user_config = config.access();
-        self
-    }
 }
 
 impl Builder {
@@ -150,6 +137,14 @@ impl Builder {
             windows_config,
             ..self
         }
+    }
+
+    pub fn with_user_config(
+        mut self,
+        config: impl Accessor<UserConfig> + Send + Sync + 'static,
+    ) -> Self {
+        self.user_config = config.access();
+        self
     }
 
     pub fn build(self) -> Result<ServiceManager> {

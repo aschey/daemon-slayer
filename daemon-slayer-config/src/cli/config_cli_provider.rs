@@ -9,6 +9,7 @@ use daemon_slayer_core::cli::{
 
 use crate::AppConfig;
 
+#[derive(Clone)]
 pub struct ConfigCliProvider<T: Config + Default + Send + Sync + Clone + 'static> {
     config_command: CommandConfig,
     config: AppConfig<T>,

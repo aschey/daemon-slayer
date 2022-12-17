@@ -10,8 +10,26 @@ use futures::stream::StreamExt;
 
 pub struct ConfigClient {}
 
+pub struct ConfigService<T>
+where
+    T: Config + Default + Send + Sync + Clone + 'static,
+{
+    config: AppConfig<T>,
+    file_tx: tokio::sync::broadcast::Sender<(Arc<T>, Arc<T>)>,
+}
+
+impl<T> ConfigService<T>
+where
+    T: Config + Default + Send + Sync + Clone + 'static,
+{
+    pub fn new(config: AppConfig<T>) -> Self {
+        let (file_tx, _) = tokio::sync::broadcast::channel(32);
+        Self { config, file_tx }
+    }
+}
+
 #[async_trait::async_trait]
-impl<T> BackgroundService for AppConfig<T>
+impl<T> BackgroundService for ConfigService<T>
 where
     T: Config + Default + Send + Sync + Clone + 'static,
 {
@@ -21,7 +39,7 @@ where
         let (_, event_store) = context
             .add_event_service(
                 FileWatcher::builder()
-                    .with_watch_path(self.config_path.clone())
+                    .with_watch_path(self.config.path())
                     .build(),
             )
             .await;
@@ -33,9 +51,9 @@ where
             .cancel_on_shutdown(&context.get_subsystem_handle())
             .await
         {
-            let current = self.config.load_full();
-            self.read_config();
-            let new = self.config.load_full();
+            let current = self.config.snapshot();
+            self.config.read_config();
+            let new = self.config.snapshot();
             self.file_tx.send((current, new)).ok();
         }
     }
@@ -45,7 +63,7 @@ where
     }
 }
 
-impl<T> EventService for AppConfig<T>
+impl<T> EventService for ConfigService<T>
 where
     T: Config + Default + Send + Sync + Clone + 'static,
 {

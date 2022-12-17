@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 use crate::{Manager, ServiceManager};
 
+#[derive(Clone)]
 pub struct ClientCliProvider {
     commands: HashMap<Action, CommandConfig>,
     manager: ServiceManager,

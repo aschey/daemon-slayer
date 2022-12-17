@@ -1,24 +1,26 @@
 use daemon_slayer_core::{
     server::{ServiceManager, SubsystemHandle, Toplevel},
     signal::{self, Signal},
+    AsAny,
 };
-use std::{error::Error, time::Duration};
+use std::{any::Any, error::Error, time::Duration};
 use tracing::{error, info};
 
 const USER_OWN_PROCESS_TEMPLATE: u32 = 0x50;
 const USER_SHARE_PROCESS_TEMPLATE: u32 = 0x60;
 
-pub fn get_service_main<T: crate::Handler + Send + 'static>() {
+pub fn get_service_main<T: crate::Handler + Send + 'static>(input_data: Option<T::InputData>) {
     let rt = tokio::runtime::Runtime::new().expect("Tokio runtime failed to initialize");
-    if let Err(e) = rt.block_on(get_service_main_impl::<T>()) {
+    if let Err(e) = rt.block_on(get_service_main_impl::<T>(input_data)) {
         error!("{e}");
     }
 }
 
 async fn get_service_main_impl<T: crate::handler::Handler + Send + 'static>(
+    input_data: Option<T::InputData>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Toplevel::new()
-        .start("service_main", run_subsys::<T>)
+        .start("service_main", |subsys| run_subsys::<T>(subsys, input_data))
         .handle_shutdown_requests(Duration::from_millis(5000))
         .await?;
     Ok(())
@@ -26,13 +28,14 @@ async fn get_service_main_impl<T: crate::handler::Handler + Send + 'static>(
 
 async fn run_subsys<T: crate::handler::Handler + Send + 'static>(
     subsys: SubsystemHandle,
+    input_data: Option<T::InputData>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     set_env_vars::<T>();
     let (signal_tx, _) = tokio::sync::broadcast::channel(32);
     signal::set_sender(signal_tx.clone());
 
     let manager = ServiceManager::new(subsys);
-    let handler = T::new(manager.get_context().await).await;
+    let handler = T::new(manager.get_context().await, input_data).await;
 
     let windows_service_event_handler = move |control_event| -> crate::windows_service::service_control_handler::ServiceControlHandlerResult {
         match control_event {
@@ -143,9 +146,12 @@ fn set_env_vars<T: crate::handler::Handler + Send>() {
 }
 
 pub async fn get_direct_handler<T: crate::handler::Handler + Send + 'static>(
+    input_data: Option<T::InputData>,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     Toplevel::new()
-        .start("service_main", direct_subsys::<T>)
+        .start("service_main", |subsys| {
+            direct_subsys::<T>(subsys, input_data)
+        })
         .handle_shutdown_requests(Duration::from_millis(5000))
         .await?;
     Ok(())
@@ -153,9 +159,10 @@ pub async fn get_direct_handler<T: crate::handler::Handler + Send + 'static>(
 
 async fn direct_subsys<T: crate::handler::Handler + Send + 'static>(
     subsys: SubsystemHandle,
+    input_data: Option<T::InputData>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let manager = ServiceManager::new(subsys);
-    let handler = T::new(manager.get_context().await).await;
+    let handler = T::new(manager.get_context().await, input_data).await;
 
     handler.run_service(|| {}).await?;
     manager.stop().await;

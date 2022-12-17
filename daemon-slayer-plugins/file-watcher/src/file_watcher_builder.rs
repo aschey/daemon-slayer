@@ -23,12 +23,13 @@ impl FileWatcherBuilder {
         self
     }
 
-    pub fn with_watch_path(mut self, path: PathBuf) -> Self {
-        self.paths.push(path);
+    pub fn with_watch_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.paths.push(path.into());
         self
     }
 
-    pub fn with_watch_paths(mut self, mut paths: Vec<PathBuf>) -> Self {
+    pub fn with_watch_paths(mut self, paths: Vec<impl Into<PathBuf>>) -> Self {
+        let mut paths = paths.into_iter().map(Into::into).collect();
         self.paths.append(&mut paths);
         self
     }
