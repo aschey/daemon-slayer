@@ -30,6 +30,10 @@ impl signal::Handler for SignalListener {
 impl daemon_slayer_core::server::BackgroundService for SignalListener {
     type Client = SignalListenerClient;
 
+    fn name<'a>() -> &'a str {
+        "signal_listener_service"
+    }
+
     async fn run(self, context: ServiceContext) {
         let subsys = context.get_subsystem_handle();
         let mut ctrl_c_stream = tokio::signal::windows::ctrl_c().unwrap();
