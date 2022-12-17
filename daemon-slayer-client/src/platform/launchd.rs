@@ -101,19 +101,42 @@ impl Manager for ServiceManager {
         Ok(Self { config: builder })
     }
 
+    fn on_configuration_changed(&mut self) -> Result<()> {
+        let snapshot = self.config.user_config.snapshot();
+        self.config.user_config.reload();
+        let current = self.config.user_config.load();
+        if current.env_vars != snapshot.env_vars {
+            self.reload_configuration()?;
+        }
+        Ok(())
+    }
+
+    fn reload_configuration(&self) -> Result<()> {
+        let current_state = self.info()?.state;
+        self.stop()?;
+        let path = self.get_plist_path()?;
+        self.run_launchctl(vec!["unload", &path.to_string_lossy()])?;
+        self.install()?;
+        if current_state == State::Started {
+            self.start()?;
+        }
+        Ok(())
+    }
+
     fn install(&self) -> Result<()> {
         let mut file = Launchd::new(&self.config.name, &self.config.program)
             .wrap_err("Error creating config")?
             .with_program_arguments(self.config.full_args_iter().map(|a| a.to_owned()).collect())
             .with_run_at_load(self.config.autostart);
 
-        for (key, value) in &self.config.env_vars {
-            file = file.with_environment_variable(key.to_string(), value.to_string());
+        let vars = self.config.env_vars();
+        for (key, value) in vars {
+            file = file.with_environment_variable(key, value);
         }
 
         let path = self.get_plist_path()?;
         file.to_writer_xml(std::fs::File::create(&path).wrap_err("Error creating config file")?)
-            .wrap_err("Error writing config file")?;
+            .wrap_err(format!("Error writing config file {path:?}"))?;
 
         self.run_launchctl(vec!["load", &path.to_string_lossy()])?;
 
@@ -124,7 +147,7 @@ impl Manager for ServiceManager {
         let path = self.get_plist_path()?;
         self.run_launchctl(vec!["unload", &path.to_string_lossy()])?;
         if path.exists() {
-            fs::remove_file(path).wrap_err("Error removing config file")?;
+            fs::remove_file(&path).wrap_err(format!("Error removing config file {path:?}"))?;
         }
 
         Ok(())

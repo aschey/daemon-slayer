@@ -109,7 +109,10 @@ impl Manager for ServiceManager {
         } else {
             create_unit_configuration_file(&self.service_file_name(), svc_unit_literal.as_bytes())
         }
-        .wrap_err("Error creating systemd config file")?;
+        .wrap_err(format!(
+            "Error creating systemd config file {:?}",
+            &self.service_file_name()
+        ))?;
 
         self.update_autostart()?;
 
@@ -122,7 +125,10 @@ impl Manager for ServiceManager {
         } else {
             delete_unit_configuration_file(&self.service_file_name())
         }
-        .wrap_err("Error removing systemd config file")?;
+        .wrap_err(format!(
+            "Error removing systemd config file {:?}",
+            &self.service_file_name()
+        ))?;
         Ok(())
     }
 
