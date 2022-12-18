@@ -1,7 +1,7 @@
 #[cfg(target_os = "macos")]
 mod launchd;
 #[cfg(target_os = "macos")]
-use launchd::*;
+use self::launchd::*;
 #[cfg(target_os = "linux")]
 mod systemd;
 #[cfg(target_os = "linux")]
