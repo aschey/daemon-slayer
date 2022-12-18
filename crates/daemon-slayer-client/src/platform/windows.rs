@@ -32,7 +32,7 @@ pub struct WindowsServiceManager {
 }
 
 impl WindowsServiceManager {
-    fn from_builder(builder: Builder) -> Result<Self> {
+   pub(crate) fn from_builder(builder: Builder) -> Result<Self> {
         Ok(Self { config: builder })
     }
 
@@ -241,7 +241,7 @@ impl WindowsServiceManager {
     }
 }
 
-impl Manager for ServiceManager {
+impl Manager for WindowsServiceManager {
     fn display_name(&self) -> &str {
         self.config.display_name()
     }

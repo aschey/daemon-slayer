@@ -29,7 +29,7 @@ pub struct LaunchdServiceManager {
 }
 
 impl LaunchdServiceManager {
-    fn from_builder(builder: Builder) -> Result<Self> {
+    pub(crate) fn from_builder(builder: Builder) -> Result<Self> {
         Ok(Self { config: builder })
     }
 
@@ -93,7 +93,7 @@ impl LaunchdServiceManager {
     }
 }
 
-impl Manager for ServiceManager {
+impl Manager for LaunchdServiceManager {
     fn on_configuration_changed(&mut self) -> Result<()> {
         let snapshot = self.config.user_config.snapshot();
         self.config.user_config.reload();
