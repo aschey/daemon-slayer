@@ -191,8 +191,8 @@ impl daemon_slayer_core::cli::CommandProvider for ClientCliProvider {
                     Some(Action::Stop) => self.manager.stop().unwrap(),
                     Some(Action::Restart) => self.manager.restart().unwrap(),
                     Some(Action::Reload) => self.manager.reload_configuration().unwrap(),
-                    Some(Action::Enable) => self.manager.set_autostart_enabled(true).unwrap(),
-                    Some(Action::Disable) => self.manager.set_autostart_enabled(false).unwrap(),
+                    Some(Action::Enable) => self.manager.enable_autostart().unwrap(),
+                    Some(Action::Disable) => self.manager.disable_autostart().unwrap(),
                     Some(Action::Pid) => {
                         let pid = self.manager.info().unwrap().pid;
                         println!("{pid:?}");

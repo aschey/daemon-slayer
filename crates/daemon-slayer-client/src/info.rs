@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use crate::State;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Info {

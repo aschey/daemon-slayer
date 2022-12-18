@@ -2,9 +2,7 @@ use std::{error::Error, result};
 
 mod platform;
 pub use platform::*;
-pub mod config;
-mod level;
-pub use level::Level;
+pub mod configuration;
 mod manager;
 pub use manager::*;
 mod state;

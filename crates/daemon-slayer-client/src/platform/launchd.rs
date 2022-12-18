@@ -1,16 +1,17 @@
+use eyre::Context;
+use launchd::Launchd;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use std::{
     fs,
     path::PathBuf,
     process::{Command, Stdio},
 };
 
-use daemon_slayer_core::Label;
-use eyre::Context;
-use launchd::Launchd;
-use once_cell::sync::Lazy;
-use regex::Regex;
-
-use crate::{config::Builder, Info, Level, Manager, Result, State};
+use crate::{
+    configuration::{Builder, Level},
+    Info, Manager, Result, State,
+};
 
 macro_rules! regex {
     ($name: ident, $re:literal $(,)?) => {
@@ -25,24 +26,26 @@ regex!(EXIT_CODE_RE, r"last exit code = (\w+)");
 
 #[derive(Clone)]
 pub struct LaunchdServiceManager {
-    config: Builder,
+    configuration: Builder,
 }
 
 impl LaunchdServiceManager {
     pub(crate) fn from_builder(builder: Builder) -> Result<Self> {
-        Ok(Self { config: builder })
+        Ok(Self {
+            configuration: builder,
+        })
     }
 
-    fn run_launchctl(&self, args: Vec<&str>) -> Result<String> {
-        self.run_cmd("launchctl", args)
+    fn run_launchctl(&self, arguments: Vec<&str>) -> Result<String> {
+        self.run_cmd("launchctl", arguments)
     }
 
-    fn run_cmd(&self, command: &str, args: Vec<&str>) -> Result<String> {
+    fn run_cmd(&self, command: &str, arguments: Vec<&str>) -> Result<String> {
         let output = Command::new(command)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .args(args)
+            .args(arguments)
             .output()
             .wrap_err("Error running command")?;
 
@@ -59,7 +62,7 @@ impl LaunchdServiceManager {
     }
 
     fn service_target(&self) -> Result<String> {
-        match self.config.service_level {
+        match self.configuration.service_level {
             Level::System => Ok(format!("system/{}", self.name())),
             Level::User => {
                 let id = self.run_cmd("id", vec!["-u"])?;
@@ -75,7 +78,7 @@ impl LaunchdServiceManager {
     }
 
     fn get_plist_path(&self) -> Result<PathBuf> {
-        let path = match self.config.service_level {
+        let path = match self.configuration.service_level {
             Level::System => PathBuf::from("/Library/LaunchDaemons"),
             Level::User => self.user_agent_dir()?,
         };
@@ -91,14 +94,38 @@ impl LaunchdServiceManager {
         let str_cap: &'a str = capture.as_str();
         Some(str_cap)
     }
+
+    fn update_autostart(&mut self) -> Result<()> {
+        let was_started = self.info()?.state == State::Started;
+        if was_started {
+            self.stop()?;
+        }
+
+        let mut config = Launchd::from_file(self.get_plist_path()?)?;
+        config = config.with_run_at_load(self.configuration.autostart);
+        let path = self.get_plist_path()?;
+        self.run_launchctl(vec!["unload", &path.to_string_lossy()])?;
+        config
+            .to_writer_xml(std::fs::File::create(&path).wrap_err("Error creating config file")?)
+            .wrap_err("Error writing config file")?;
+        self.run_launchctl(vec!["load", &path.to_string_lossy()])?;
+
+        if was_started {
+            self.start()?;
+        } else {
+            self.stop()?;
+        }
+
+        Ok(())
+    }
 }
 
 impl Manager for LaunchdServiceManager {
     fn on_configuration_changed(&mut self) -> Result<()> {
-        let snapshot = self.config.user_config.snapshot();
-        self.config.user_config.reload();
-        let current = self.config.user_config.load();
-        if current.env_vars != snapshot.env_vars {
+        let snapshot = self.configuration.user_configuration.snapshot();
+        self.configuration.user_configuration.reload();
+        let current = self.configuration.user_configuration.load();
+        if current.environment_variables != snapshot.environment_variables {
             self.reload_configuration()?;
         }
         Ok(())
@@ -117,12 +144,17 @@ impl Manager for LaunchdServiceManager {
     }
 
     fn install(&self) -> Result<()> {
-        let mut file = Launchd::new(&self.name(), &self.config.program)
+        let mut file = Launchd::new(self.name(), &self.configuration.program)
             .wrap_err("Error creating config")?
-            .with_program_arguments(self.config.full_args_iter().map(|a| a.to_owned()).collect())
-            .with_run_at_load(self.config.autostart);
+            .with_program_arguments(
+                self.configuration
+                    .full_arguments_iter()
+                    .map(|a| a.to_owned())
+                    .collect(),
+            )
+            .with_run_at_load(self.configuration.autostart);
 
-        let vars = self.config.env_vars();
+        let vars = self.configuration.environment_variables();
         for (key, value) in vars {
             file = file.with_environment_variable(key, value);
         }
@@ -156,32 +188,15 @@ impl Manager for LaunchdServiceManager {
         Ok(())
     }
 
-    fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
-        if enabled {
-            self.config.autostart = true;
-        } else {
-            self.config.autostart = false;
-        }
-        let was_started = self.info()?.state == State::Started;
-        if was_started {
-            self.stop()?;
-        }
+    fn enable_autostart(&mut self) -> Result<()> {
+        self.configuration.autostart = true;
+        self.update_autostart()?;
+        Ok(())
+    }
 
-        let mut config = Launchd::from_file(self.get_plist_path()?)?;
-        config = config.with_run_at_load(self.config.autostart);
-        let path = self.get_plist_path()?;
-        self.run_launchctl(vec!["unload", &path.to_string_lossy()])?;
-        config
-            .to_writer_xml(std::fs::File::create(&path).wrap_err("Error creating config file")?)
-            .wrap_err("Error writing config file")?;
-        self.run_launchctl(vec!["load", &path.to_string_lossy()])?;
-
-        if was_started {
-            self.start()?;
-        } else {
-            self.stop()?;
-        }
-
+    fn disable_autostart(&mut self) -> Result<()> {
+        self.configuration.autostart = true;
+        self.update_autostart()?;
         Ok(())
     }
 
@@ -227,18 +242,18 @@ impl Manager for LaunchdServiceManager {
     }
 
     fn display_name(&self) -> &str {
-        &self.config.display_name()
+        self.configuration.display_name()
     }
 
     fn name(&self) -> String {
-        self.config.label.qualified_name()
+        self.configuration.label.qualified_name()
     }
 
-    fn args(&self) -> &Vec<String> {
-        &self.config.args
+    fn arguments(&self) -> &Vec<String> {
+        &self.configuration.arguments
     }
 
     fn description(&self) -> &str {
-        &self.config.description
+        &self.configuration.description
     }
 }

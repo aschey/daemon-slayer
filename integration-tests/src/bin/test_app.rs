@@ -19,7 +19,7 @@ use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
-use daemon_slayer::client::Level;
+use daemon_slayer::client::configuration::Level;
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::{
     BroadcastEventStore, EventStore, Handler, ServiceContext, Signal, SignalHandler,
@@ -39,7 +39,7 @@ pub async fn main() {
         .with_args(["run"]);
 
     if let Ok(config_file) = std::env::var("CONFIG_FILE") {
-        manager_builder = manager_builder.with_env_var("CONFIG_FILE", config_file);
+        manager_builder = manager_builder.with_environment_variable("CONFIG_FILE", config_file);
     }
 
     let manager = manager_builder.build().unwrap();

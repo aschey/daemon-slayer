@@ -1,9 +1,9 @@
 #[derive(Default, Clone)]
-pub struct SystemdConfig {
+pub struct SystemdConfiguration {
     pub(crate) after: Vec<String>,
 }
 
-impl SystemdConfig {
+impl SystemdConfiguration {
     pub fn with_after_target(mut self, after: impl Into<String>) -> Self {
         self.after.push(after.into());
         self

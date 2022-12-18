@@ -1,7 +1,8 @@
 use std::sync::RwLock;
 use std::{env::args, os, sync::Arc, time::Duration};
 
-use daemon_slayer_client::{Info, Level, Manager, State as ServiceState};
+use daemon_slayer_client::configuration::Level;
+use daemon_slayer_client::{Info, Manager};
 use daemon_slayer_health_check::HealthCheck;
 use daemon_slayer_health_check::{HttpHealthCheck, HttpRequestType};
 use tauri::{
@@ -39,9 +40,9 @@ impl ManagerWrapper {
 
     fn toggle_enable_disable(&mut self) {
         if self.get_service_info().autostart == Some(true) {
-            self.manager.set_autostart_enabled(false).unwrap();
+            self.manager.enable_autostart().unwrap();
         } else {
-            self.manager.set_autostart_enabled(true).unwrap();
+            self.manager.disable_autostart().unwrap();
         }
     }
 

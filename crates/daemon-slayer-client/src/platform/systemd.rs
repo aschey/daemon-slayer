@@ -1,5 +1,4 @@
-use crate::{config::Builder, Info, Manager, Result, State};
-use daemon_slayer_core::Label;
+use crate::{configuration::Builder, Info, Manager, Result, State};
 use eyre::Context;
 use systemd_client::{
     create_unit_configuration_file, create_user_unit_configuration_file,
@@ -12,7 +11,7 @@ use systemd_client::{
 
 #[derive(Clone)]
 pub struct SystemdServiceManager {
-    config: Builder,
+    configuration: Builder,
     client: SystemdManagerProxyBlocking<'static>,
 }
 
@@ -25,7 +24,7 @@ impl SystemdServiceManager {
         }
         .wrap_err("Error creating systemd proxy")?;
         Ok(Self {
-            config: builder,
+            configuration: builder,
             client,
         })
     }
@@ -34,8 +33,14 @@ impl SystemdServiceManager {
         format!("{}.service", self.name())
     }
 
+    fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
+        self.configuration.autostart = enabled;
+        self.update_autostart()?;
+        Ok(())
+    }
+
     fn update_autostart(&self) -> Result<()> {
-        if self.config.autostart {
+        if self.configuration.autostart {
             self.client
                 .enable_unit_files(&[&self.service_file_name()], false, true)?;
         } else {
@@ -48,10 +53,10 @@ impl SystemdServiceManager {
 
 impl Manager for SystemdServiceManager {
     fn on_configuration_changed(&mut self) -> Result<()> {
-        let snapshot = self.config.user_config.snapshot();
-        self.config.user_config.reload();
-        let current = self.config.user_config.load();
-        if current.env_vars != snapshot.env_vars {
+        let snapshot = self.configuration.user_configuration.snapshot();
+        self.configuration.user_configuration.reload();
+        let current = self.configuration.user_configuration.load();
+        if current.environment_variables != snapshot.environment_variables {
             self.reload_configuration()?;
         }
         Ok(())
@@ -68,17 +73,23 @@ impl Manager for SystemdServiceManager {
     }
 
     fn install(&self) -> Result<()> {
-        let mut unit_config = UnitConfiguration::builder().description(&self.config.description);
-        for after in &self.config.systemd_config.after {
+        let mut unit_config =
+            UnitConfiguration::builder().description(&self.configuration.description);
+        for after in &self.configuration.systemd_configuration.after {
             unit_config = unit_config.after(after);
         }
 
         let mut service_config = ServiceConfiguration::builder()
-            .exec_start(self.config.full_args_iter().map(String::as_ref).collect())
+            .exec_start(
+                self.configuration
+                    .full_arguments_iter()
+                    .map(String::as_ref)
+                    .collect(),
+            )
             .ty(ServiceType::Notify)
             .notify_access(NotifyAccess::Main);
 
-        let vars = self.config.env_vars();
+        let vars = self.configuration.environment_variables();
         for (key, value) in &vars {
             service_config = service_config.env(key, value);
         }
@@ -87,14 +98,14 @@ impl Manager for SystemdServiceManager {
             .unit(unit_config)
             .service(service_config);
 
-        if self.config.is_user() {
+        if self.configuration.is_user() {
             svc_unit_builder = svc_unit_builder
                 .install(InstallConfiguration::builder().wanted_by("default.target"));
         }
 
         let svc_unit_literal = format!("{}", svc_unit_builder.build());
 
-        if self.config.is_user() {
+        if self.configuration.is_user() {
             create_user_unit_configuration_file(
                 &self.service_file_name(),
                 svc_unit_literal.as_bytes(),
@@ -113,7 +124,7 @@ impl Manager for SystemdServiceManager {
     }
 
     fn uninstall(&self) -> Result<()> {
-        if self.config.is_user() {
+        if self.configuration.is_user() {
             delete_user_unit_configuration_file(&self.service_file_name())
         } else {
             delete_unit_configuration_file(&self.service_file_name())
@@ -153,6 +164,16 @@ impl Manager for SystemdServiceManager {
         Ok(())
     }
 
+    fn enable_autostart(&mut self) -> Result<()> {
+        self.set_autostart_enabled(true)?;
+        Ok(())
+    }
+
+    fn disable_autostart(&mut self) -> Result<()> {
+        self.set_autostart_enabled(false)?;
+        Ok(())
+    }
+
     fn info(&self) -> Result<Info> {
         self.client
             .reload()
@@ -167,7 +188,7 @@ impl Manager for SystemdServiceManager {
             .load_unit(&self.service_file_name())
             .wrap_err("Error loading systemd unit")?;
 
-        let unit_client = if self.config.is_user() {
+        let unit_client = if self.configuration.is_user() {
             unit::build_blocking_user_proxy(svc_unit_path.clone())
         } else {
             unit::build_blocking_proxy(svc_unit_path.clone())
@@ -190,7 +211,7 @@ impl Manager for SystemdServiceManager {
             _ => State::Stopped,
         };
 
-        let service_client = if self.config.is_user() {
+        let service_client = if self.configuration.is_user() {
             service::build_blocking_user_proxy(svc_unit_path)
         } else {
             service::build_blocking_proxy(svc_unit_path)
@@ -229,25 +250,19 @@ impl Manager for SystemdServiceManager {
         })
     }
 
-    fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
-        self.config.autostart = enabled;
-        self.update_autostart()?;
-        Ok(())
-    }
-
     fn display_name(&self) -> &str {
-        self.config.display_name()
+        self.configuration.display_name()
     }
 
     fn name(&self) -> String {
-        self.config.label.application.clone()
+        self.configuration.label.application.clone()
     }
 
-    fn args(&self) -> &Vec<String> {
-        &self.config.args
+    fn arguments(&self) -> &Vec<String> {
+        &self.configuration.arguments
     }
 
     fn description(&self) -> &str {
-        &self.config.description
+        &self.configuration.description
     }
 }

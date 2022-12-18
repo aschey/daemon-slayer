@@ -13,7 +13,7 @@ use windows::*;
 
 use daemon_slayer_core::Label;
 
-use crate::{config::Builder, Manager};
+use crate::{configuration::Builder, Manager};
 
 pub fn builder(label: Label) -> Builder {
     Builder::new(label)

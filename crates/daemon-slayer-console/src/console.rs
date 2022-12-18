@@ -266,7 +266,11 @@ impl Console {
                                                 }
                                             },
                                             1 => {
-                                                    self.manager.set_autostart_enabled(!self.info.autostart.unwrap_or(false))?;
+                                                    if self.info.autostart.unwrap_or(false) {
+                                                        self.manager.disable_autostart()?;
+                                                    } else {
+                                                        self.manager.enable_autostart()?;
+                                                    }
                                                 }
                                             2 => {
                                                 if self.info.state == State::Stopped {
