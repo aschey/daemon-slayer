@@ -22,7 +22,7 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
                 if let Err(e) = __INPUT_DATA.set(Box::new(input_data)) {
                     panic!("set data failed");
                 }
-                #crate_name::windows_service::service_dispatcher::start(#ident::service_name(), func_service_main)?;
+                #crate_name::windows_service::service_dispatcher::start(#ident::label().application, func_service_main)?;
                 Ok(())
             }
 

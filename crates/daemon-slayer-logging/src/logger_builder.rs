@@ -200,7 +200,7 @@ impl LoggerBuilder {
         #[cfg(all(windows, feature = "windows-eventlog"))]
         {
             use tracing_eventlog::EventLogRegistry;
-            let log_source = tracing_eventlog::LogSource::application(self.name.clone());
+            let log_source = tracing_eventlog::LogSource::application(&self.label.application);
             log_source.register()?;
         }
         Ok(())
@@ -210,7 +210,7 @@ impl LoggerBuilder {
         #[cfg(all(windows, feature = "windows-eventlog"))]
         {
             use tracing_eventlog::EventLogRegistry;
-            let log_source = tracing_eventlog::LogSource::application(self.name.clone());
+            let log_source = tracing_eventlog::LogSource::application(&self.label.application);
             log_source.deregister().ok();
         }
         Ok(())
@@ -345,7 +345,7 @@ impl LoggerBuilder {
 
         #[cfg(all(windows, feature = "windows-eventlog"))]
         let collector = collector.with(
-            tracing_eventlog::EventLogLayer::pretty(self.name.clone())?
+            tracing_eventlog::EventLogLayer::pretty(self.label.application.clone())?
                 .with_filter(self.get_filter_for_target(LogTarget::EventLog)),
         );
 

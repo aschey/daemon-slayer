@@ -85,9 +85,9 @@ impl ServiceManager {
         let re_text = if service_type == ServiceType::USER_OWN_PROCESS {
             // User services have a random id appended to the end like this: some_service_name_18dcf87g
             // The id changes every login so we have to search for it
-            format!(r"^{}_[a-z\d]+$", self.config.name)
+            format!(r"^{}_[a-z\d]+$", self.name())
         } else {
-            format!("^{}$", self.config.name)
+            format!("^{}$", self.name())
         };
         let re = Regex::new(&re_text).unwrap();
         let manager = self.get_manager(mode)?;
@@ -103,7 +103,7 @@ impl ServiceManager {
 
     fn current_service_name(&self) -> Result<Option<String>> {
         let service = match &self.config.service_level {
-            Level::System => self.config.name.clone(),
+            Level::System => self.name(),
             Level::User => {
                 let user_service =
                     self.find_service(ServiceType::USER_OWN_PROCESS, ServiceAccessMode::Read)?;
@@ -154,7 +154,7 @@ impl ServiceManager {
     }
 
     fn open_base_service(&self, mode: ServiceAccessMode) -> Result<Service> {
-        self.open_service(&self.config.name, mode)
+        self.open_service(&self.name(), mode)
     }
 
     fn delete_service(&self, service: &str, service_type: ServiceType) -> Result<()> {
@@ -187,8 +187,8 @@ impl ServiceManager {
 
     fn get_service_info(&self) -> ServiceInfo {
         ServiceInfo {
-            name: self.name(),
-            display_name: self.display_name().to_owned(),
+            name: self.name().into(),
+            display_name: self.display_name().into(),
             service_type: match self.config.service_level {
                 Level::System => ServiceType::OWN_PROCESS,
                 Level::User => ServiceType::USER_OWN_PROCESS,
@@ -380,8 +380,8 @@ impl Manager for ServiceManager {
         let exe_path = parts.next().unwrap();
         let args = parts.collect::<Vec<_>>();
         let info = ServiceInfo {
-            name: (&self.config.name).into(),
-            display_name: self.display_name().to_owned(),
+            name: self.name().into(),
+            display_name: self.display_name().into(),
             service_type: config.service_type,
             start_type: config.start_type,
             error_control: config.error_control,
