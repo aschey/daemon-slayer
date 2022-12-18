@@ -1,17 +1,17 @@
-use crate::{Manager, ServiceManager};
+use crate::Manager;
 use daemon_slayer_core::cli::{
     clap, Action, ActionType, ArgMatchesExt, CommandConfig, CommandExt, CommandType, InputState,
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 #[derive(Clone)]
 pub struct ClientCliProvider {
     commands: HashMap<Action, CommandConfig>,
-    manager: ServiceManager,
+    manager: Box<dyn Manager>,
 }
 
 impl ClientCliProvider {
-    pub fn new(manager: ServiceManager) -> Self {
+    pub fn new(manager: Box<dyn Manager>) -> Self {
         let mut commands = HashMap::default();
         commands.insert(
             Action::Install,

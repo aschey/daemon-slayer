@@ -11,12 +11,25 @@ use systemd_client::{
 };
 
 #[derive(Clone)]
-pub struct ServiceManager {
+pub struct SystemdServiceManager {
     config: Builder,
     client: SystemdManagerProxyBlocking<'static>,
 }
 
-impl ServiceManager {
+impl SystemdServiceManager {
+    pub(crate) fn from_builder(builder: Builder) -> Result<Self> {
+        let client = if builder.is_user() {
+            manager::build_blocking_user_proxy()
+        } else {
+            manager::build_blocking_proxy()
+        }
+        .wrap_err("Error creating systemd proxy")?;
+        Ok(Self {
+            config: builder,
+            client,
+        })
+    }
+
     fn service_file_name(&self) -> String {
         format!("{}.service", self.name())
     }
@@ -33,28 +46,7 @@ impl ServiceManager {
     }
 }
 
-impl Manager for ServiceManager {
-    fn builder(label: Label) -> Builder {
-        Builder::new(label)
-    }
-
-    fn new(label: Label) -> Result<Self> {
-        Builder::new(label).build()
-    }
-
-    fn from_builder(builder: Builder) -> Result<Self> {
-        let client = if builder.is_user() {
-            manager::build_blocking_user_proxy()
-        } else {
-            manager::build_blocking_proxy()
-        }
-        .wrap_err("Error creating systemd proxy")?;
-        Ok(Self {
-            config: builder,
-            client,
-        })
-    }
-
+impl Manager for SystemdServiceManager {
     fn on_configuration_changed(&mut self) -> Result<()> {
         let snapshot = self.config.user_config.snapshot();
         self.config.user_config.reload();

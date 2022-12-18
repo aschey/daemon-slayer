@@ -10,7 +10,7 @@ use daemon_slayer::client::config::ServiceAccess;
 use daemon_slayer::client::{
     self,
     config::{Trustee, WindowsConfig},
-    Level, Manager, ServiceManager,
+    Level, Manager,
 };
 use daemon_slayer::config::server::ConfigService;
 use daemon_slayer::config::{self, AppConfig, ConfigFileType};
@@ -82,7 +82,7 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     app_config.create_config_template();
     let config = app_config.read_config();
-    let manager = ServiceManager::builder(ServiceHandler::label())
+    let manager = client::builder(ServiceHandler::label())
         .with_description("test service")
         .with_args(["run"])
         .with_service_level(if cfg!(windows) {

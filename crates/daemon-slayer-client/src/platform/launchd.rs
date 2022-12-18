@@ -24,11 +24,15 @@ regex!(AUTOSTART_RE, r"runatload = (\w+)");
 regex!(EXIT_CODE_RE, r"last exit code = (\w+)");
 
 #[derive(Clone)]
-pub struct ServiceManager {
+pub struct LaunchdServiceManager {
     config: Builder,
 }
 
-impl ServiceManager {
+impl LaunchdServiceManager {
+    fn from_builder(builder: Builder) -> Result<Self> {
+        Ok(Self { config: builder })
+    }
+
     fn run_launchctl(&self, args: Vec<&str>) -> Result<String> {
         self.run_cmd("launchctl", args)
     }
@@ -90,18 +94,6 @@ impl ServiceManager {
 }
 
 impl Manager for ServiceManager {
-    fn builder(label: Label) -> Builder {
-        Builder::new(label)
-    }
-
-    fn new(label: Label) -> Result<Self> {
-        Builder::new(label).build()
-    }
-
-    fn from_builder(builder: Builder) -> Result<Self> {
-        Ok(Self { config: builder })
-    }
-
     fn on_configuration_changed(&mut self) -> Result<()> {
         let snapshot = self.config.user_config.snapshot();
         self.config.user_config.reload();

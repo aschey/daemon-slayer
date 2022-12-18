@@ -14,8 +14,7 @@ use windows_service::{
         ServiceStartType, ServiceState, ServiceType,
     },
     service_manager::{
-        ListServiceType, ServiceActiveState, ServiceEntry, ServiceManager as WindowsServiceManager,
-        ServiceManagerAccess,
+        ListServiceType, ServiceActiveState, ServiceEntry, ServiceManager, ServiceManagerAccess,
     },
 };
 
@@ -28,11 +27,15 @@ enum ServiceAccessMode {
 }
 
 #[derive(Clone)]
-pub struct ServiceManager {
+pub struct WindowsServiceManager {
     config: Builder,
 }
 
-impl ServiceManager {
+impl WindowsServiceManager {
+    fn from_builder(builder: Builder) -> Result<Self> {
+        Ok(Self { config: builder })
+    }
+
     fn query_info(&self, service: &str, service_type: ServiceType) -> Result<Info> {
         if self
             .find_service(service_type, ServiceAccessMode::Read)?
@@ -173,8 +176,8 @@ impl ServiceManager {
         Ok(())
     }
 
-    fn get_manager(&self, mode: ServiceAccessMode) -> Result<WindowsServiceManager> {
-        let service_manager = WindowsServiceManager::local_computer(
+    fn get_manager(&self, mode: ServiceAccessMode) -> Result<ServiceManager> {
+        let service_manager = ServiceManager::local_computer(
             None::<&str>,
             match mode {
                 ServiceAccessMode::Write => ServiceManagerAccess::all(),
@@ -239,18 +242,6 @@ impl ServiceManager {
 }
 
 impl Manager for ServiceManager {
-    fn builder(label: Label) -> Builder {
-        Builder::new(label)
-    }
-
-    fn new(label: Label) -> Result<Self> {
-        Builder::new(label).build()
-    }
-
-    fn from_builder(builder: Builder) -> Result<Self> {
-        Ok(Self { config: builder })
-    }
-
     fn display_name(&self) -> &str {
         self.config.display_name()
     }

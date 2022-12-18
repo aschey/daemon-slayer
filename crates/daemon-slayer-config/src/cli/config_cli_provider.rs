@@ -1,7 +1,7 @@
 use std::process::Command;
 
 use confique::Config;
-use daemon_slayer_client::{Manager, ServiceManager};
+use daemon_slayer_client::Manager;
 use daemon_slayer_core::cli::{
     clap, ActionType, ArgMatchesExt, CommandConfig, CommandExt, CommandProvider, CommandType,
     InputState,
@@ -13,11 +13,11 @@ use crate::AppConfig;
 pub struct ConfigCliProvider<T: Config + Default + Send + Sync + Clone + 'static> {
     config_command: CommandConfig,
     config: AppConfig<T>,
-    manager: ServiceManager,
+    manager: Box<dyn Manager>,
 }
 
 impl<T: Config + Default + Send + Sync + Clone + 'static> ConfigCliProvider<T> {
-    pub fn new(config: AppConfig<T>, manager: ServiceManager) -> Self {
+    pub fn new(config: AppConfig<T>, manager: Box<dyn Manager>) -> Self {
         Self {
             manager,
             config,

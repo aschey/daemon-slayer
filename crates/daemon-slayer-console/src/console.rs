@@ -5,7 +5,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use daemon_slayer_client::{Info, Manager, ServiceManager, State};
+use daemon_slayer_client::{Info, Manager, State};
 use daemon_slayer_core::{
     config::{arc_swap::access::DynAccess, Accessor, CachedConfig},
     health_check::HealthCheck,
@@ -101,7 +101,7 @@ impl BackgroundService for HealthChecker {
 }
 
 pub struct Console {
-    manager: ServiceManager,
+    manager: Box<dyn Manager>,
     info: Info,
     logs: LogView<'static>,
     button_index: usize,
@@ -114,9 +114,9 @@ pub struct Console {
 }
 
 impl Console {
-    pub fn new(manager: ServiceManager) -> Self {
+    pub fn new(manager: Box<dyn Manager>) -> Self {
         let info = manager.info().unwrap();
-        let name = manager.name().to_owned();
+        let name = manager.name();
         Self {
             manager,
             info,

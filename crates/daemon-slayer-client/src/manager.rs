@@ -1,16 +1,11 @@
 use daemon_slayer_core::Label;
+use dyn_clonable::clonable;
 
 use crate::config::Builder;
 use crate::{Info, Result};
 
-pub trait Manager: Clone {
-    fn builder(label: Label) -> Builder;
-    fn new(name: Label) -> Result<Self>
-    where
-        Self: std::marker::Sized;
-    fn from_builder(builder: Builder) -> Result<Self>
-    where
-        Self: std::marker::Sized;
+#[clonable]
+pub trait Manager: Clone + Send + Sync + 'static {
     fn name(&self) -> String;
     fn display_name(&self) -> &str;
     fn description(&self) -> &str;

@@ -11,7 +11,6 @@ use std::{
 use arc_swap::{access::Map, ArcSwap};
 use bat::{Input, PagingMode, PrettyPrinter};
 use confique::{json5, toml, yaml, Config, FormatOptions};
-use daemon_slayer_client::ServiceManager;
 use daemon_slayer_core::{
     config::{Accessor, CachedConfig, Mergeable},
     server::BroadcastEventStore,

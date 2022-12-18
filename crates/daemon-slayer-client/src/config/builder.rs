@@ -1,6 +1,7 @@
 use super::SystemdConfig;
 use super::WindowsConfig;
-use crate::platform::ServiceManager;
+use crate::get_manager;
+use crate::platform;
 use crate::Level;
 use crate::Manager;
 use crate::Result;
@@ -147,8 +148,8 @@ impl Builder {
         self
     }
 
-    pub fn build(self) -> Result<ServiceManager> {
-        ServiceManager::from_builder(self)
+    pub fn build(self) -> Result<Box<dyn Manager>> {
+        get_manager(self)
     }
 
     pub(crate) fn args_iter(&self) -> impl Iterator<Item = &String> {

@@ -1,4 +1,4 @@
-use daemon_slayer_client::{Manager, ServiceManager};
+use daemon_slayer_client::Manager;
 use daemon_slayer_core::cli::{
     clap, ActionType, ArgMatchesExt, CommandConfig, CommandExt, CommandType, InputState,
 };

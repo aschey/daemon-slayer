@@ -1,7 +1,7 @@
-mod platform;
 use std::{error::Error, result};
 
-pub use platform::ServiceManager;
+mod platform;
+pub use platform::*;
 pub mod config;
 mod level;
 pub use level::Level;

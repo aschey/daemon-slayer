@@ -9,8 +9,8 @@ use axum::extract::Path;
 use axum::routing::get;
 use axum::Router;
 use daemon_slayer::cli::Cli;
+use daemon_slayer::client;
 use daemon_slayer::client::cli::ClientCliProvider;
-use daemon_slayer::client::{Manager, ServiceManager};
 
 use daemon_slayer::core::Label;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
@@ -34,7 +34,7 @@ use tracing::log::Log;
 
 #[tokio::main]
 pub async fn main() {
-    let mut manager_builder = ServiceManager::builder(ServiceHandler::label())
+    let mut manager_builder = client::builder(ServiceHandler::label())
         .with_description("test service")
         .with_args(["run"]);
 

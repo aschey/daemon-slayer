@@ -1,7 +1,7 @@
 use std::sync::RwLock;
 use std::{env::args, os, sync::Arc, time::Duration};
 
-use daemon_slayer_client::{Info, Level, Manager, ServiceManager, State as ServiceState};
+use daemon_slayer_client::{Info, Level, Manager, State as ServiceState};
 use daemon_slayer_health_check::HealthCheck;
 use daemon_slayer_health_check::{HttpHealthCheck, HttpRequestType};
 use tauri::{
@@ -13,7 +13,7 @@ use tracing_ipc::run_ipc_client;
 
 #[derive(Clone)]
 struct ManagerWrapper {
-    manager: ServiceManager,
+    manager: Box<dyn Manager>,
 }
 
 impl ManagerWrapper {
@@ -52,7 +52,7 @@ impl ManagerWrapper {
 
 fn main() {
     let manager = Arc::new(RwLock::new(ManagerWrapper {
-        manager: ServiceManager::builder(args().nth(1).unwrap().parse().unwrap())
+        manager: daemon_slayer_client::builder(args().nth(1).unwrap().parse().unwrap())
             .with_service_level(if cfg!(windows) {
                 Level::System
             } else {

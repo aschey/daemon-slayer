@@ -1,5 +1,6 @@
 use assert_cmd::Command;
-use daemon_slayer::client::{Manager, ServiceManager, State};
+use daemon_slayer::client;
+use daemon_slayer::client::{Manager, State};
 use std::{fs::File, io::Write, thread, time::Duration};
 
 #[test]
@@ -8,7 +9,7 @@ fn test_async_combined() {
 }
 
 fn test_combined(service_name: &str, bin_name: &str, port: i32) {
-    let manager = ServiceManager::builder(service_name.parse().unwrap())
+    let manager = client::config::Builder::new(service_name.parse().unwrap())
         .build()
         .unwrap();
     if manager.info().unwrap().state != State::NotInstalled {
