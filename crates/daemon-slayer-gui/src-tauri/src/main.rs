@@ -52,7 +52,7 @@ impl ManagerWrapper {
 
 fn main() {
     let manager = Arc::new(RwLock::new(ManagerWrapper {
-        manager: ServiceManager::builder(args().nth(1).unwrap())
+        manager: ServiceManager::builder(args().nth(1).unwrap().parse().unwrap())
             .with_service_level(if cfg!(windows) {
                 Level::System
             } else {

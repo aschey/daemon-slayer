@@ -4,6 +4,7 @@ use std::{
     process::{Command, Stdio},
 };
 
+use daemon_slayer_core::Label;
 use eyre::Context;
 use launchd::Launchd;
 use once_cell::sync::Lazy;
@@ -55,10 +56,10 @@ impl ServiceManager {
 
     fn service_target(&self) -> Result<String> {
         match self.config.service_level {
-            Level::System => Ok(format!("system/{}", self.config.name)),
+            Level::System => Ok(format!("system/{}", self.name())),
             Level::User => {
                 let id = self.run_cmd("id", vec!["-u"])?;
-                Ok(format!("gui/{id}/{}", self.config.name))
+                Ok(format!("gui/{id}/{}", self.name()))
             }
         }
     }
@@ -77,7 +78,7 @@ impl ServiceManager {
         if !path.exists() {
             std::fs::create_dir_all(&path).wrap_err("Error creating plist path")?;
         }
-        Ok(path.join(format!("{}.plist", self.config.name)))
+        Ok(path.join(format!("{}.plist", self.name())))
     }
 
     fn get_match_or_default<'a>(&self, re: &Regex, output: &'a str) -> Option<&'a str> {
@@ -89,12 +90,12 @@ impl ServiceManager {
 }
 
 impl Manager for ServiceManager {
-    fn builder(name: impl Into<String>) -> Builder {
-        Builder::new(name)
+    fn builder(label: Label) -> Builder {
+        Builder::new(label)
     }
 
-    fn new(name: impl Into<String>) -> Result<Self> {
-        Builder::new(name).build()
+    fn new(label: Label) -> Result<Self> {
+        Builder::new(label).build()
     }
 
     fn from_builder(builder: Builder) -> Result<Self> {
@@ -124,7 +125,7 @@ impl Manager for ServiceManager {
     }
 
     fn install(&self) -> Result<()> {
-        let mut file = Launchd::new(&self.config.name, &self.config.program)
+        let mut file = Launchd::new(&self.name(), &self.config.program)
             .wrap_err("Error creating config")?
             .with_program_arguments(self.config.full_args_iter().map(|a| a.to_owned()).collect())
             .with_run_at_load(self.config.autostart);
@@ -154,12 +155,12 @@ impl Manager for ServiceManager {
     }
 
     fn start(&self) -> Result<()> {
-        self.run_launchctl(vec!["start", &self.config.name])?;
+        self.run_launchctl(vec!["start", &self.name()])?;
         Ok(())
     }
 
     fn stop(&self) -> Result<()> {
-        self.run_launchctl(vec!["stop", &self.config.name])?;
+        self.run_launchctl(vec!["stop", &self.name()])?;
         Ok(())
     }
 
@@ -234,11 +235,11 @@ impl Manager for ServiceManager {
     }
 
     fn display_name(&self) -> &str {
-        &self.config.display_name
+        &self.config.display_name()
     }
 
-    fn name(&self) -> &str {
-        &self.config.name
+    fn name(&self) -> String {
+        self.config.label.qualified_name()
     }
 
     fn args(&self) -> &Vec<String> {

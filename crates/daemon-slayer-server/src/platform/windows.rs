@@ -57,7 +57,7 @@ async fn run_subsys<T: crate::handler::Handler + Send + 'static>(
     };
 
     let status_handle = match crate::windows_service::service_control_handler::register(
-        T::get_service_name(),
+        T::service_name(),
         windows_service_event_handler,
     ) {
         Ok(handle) => std::sync::Arc::new(std::sync::Mutex::new(handle)),
@@ -119,7 +119,7 @@ fn set_env_vars<T: crate::handler::Handler + Send>() {
         .open(
             format!(
                 "SYSTEM\\CurrentControlSet\\Services\\{}",
-                T::get_service_name()
+                T::label().application
             ),
             registry::Security::Read,
         )

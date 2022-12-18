@@ -18,7 +18,7 @@ use daemon_slayer::console::cli::ConsoleCliProvider;
 use daemon_slayer::console::{self, Console};
 use daemon_slayer::core::config::Accessor;
 use daemon_slayer::core::server::Toplevel;
-use daemon_slayer::core::App;
+use daemon_slayer::core::Label;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::health_check::cli::HealthCheckCliProvider;
 use daemon_slayer::health_check::IpcHealthCheck;
@@ -78,18 +78,11 @@ pub struct AppData {
 
 #[tokio::main]
 pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let app_config = AppConfig::<MyConfig>::new(
-        App {
-            application: "combined".to_owned(),
-            organization: "daemonslayer".to_owned(),
-            qualifier: "com".to_owned(),
-        },
-        ConfigFileType::Toml,
-    );
+    let app_config = AppConfig::<MyConfig>::new(ServiceHandler::label(), ConfigFileType::Toml);
 
     app_config.create_config_template();
     let config = app_config.read_config();
-    let manager = ServiceManager::builder("daemon_slayer_combined")
+    let manager = ServiceManager::builder(ServiceHandler::label())
         .with_description("test service")
         .with_args(["run"])
         .with_service_level(if cfg!(windows) {
@@ -105,9 +98,9 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         .build()?;
 
     let logger_builder =
-        LoggerBuilder::new("daemon_slayer_combined").with_config(app_config.clone());
+        LoggerBuilder::new(ServiceHandler::label()).with_config(app_config.clone());
 
-    let health_check = IpcHealthCheck::new("daemon_slayer_combined");
+    let health_check = IpcHealthCheck::new(ServiceHandler::label().application);
     let app_config_ = app_config.clone();
     let console = Console::new(manager.clone())
         .with_health_check(Box::new(health_check.clone()))
@@ -159,12 +152,16 @@ pub struct ServiceHandler {
 #[async_trait::async_trait]
 impl Handler for ServiceHandler {
     type InputData = AppData;
+    fn label() -> Label {
+        "com.example.daemonslayercombined".parse().unwrap()
+    }
+
     async fn new(mut context: ServiceContext, input_data: Option<Self::InputData>) -> Self {
         let input_data = input_data.unwrap();
         let (_, signal_store) = context.add_event_service(SignalListener::all()).await;
         context
             .add_service(daemon_slayer::ipc::health_check::Server::new(
-                "daemon_slayer_combined".to_owned(),
+                Self::label().application,
             ))
             .await;
         let (_, file_events) = context
@@ -178,10 +175,6 @@ impl Handler for ServiceHandler {
             .await;
 
         Self { signal_store }
-    }
-
-    fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_combined"
     }
 
     async fn run_service<F: FnOnce() + Send>(

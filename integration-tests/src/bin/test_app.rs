@@ -12,6 +12,7 @@ use daemon_slayer::cli::Cli;
 use daemon_slayer::client::cli::ClientCliProvider;
 use daemon_slayer::client::{Manager, ServiceManager};
 
+use daemon_slayer::core::Label;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::ErrorHandler;
 use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
@@ -33,7 +34,7 @@ use tracing::log::Log;
 
 #[tokio::main]
 pub async fn main() {
-    let mut manager_builder = ServiceManager::builder(ServiceHandler::get_service_name())
+    let mut manager_builder = ServiceManager::builder(ServiceHandler::label())
         .with_description("test service")
         .with_args(["run"]);
 
@@ -42,7 +43,7 @@ pub async fn main() {
     }
 
     let manager = manager_builder.build().unwrap();
-    let logger_builder = LoggerBuilder::new(ServiceHandler::get_service_name());
+    let logger_builder = LoggerBuilder::new(ServiceHandler::label());
     let logging_provider = LoggingCliProvider::new(logger_builder);
 
     let cli = Cli::builder()
@@ -101,8 +102,8 @@ impl Handler for ServiceHandler {
         Self { signal_store }
     }
 
-    fn get_service_name<'a>() -> &'a str {
-        "daemon_slayer_test_service"
+    fn label() -> Label {
+        "com.daemonslayer.daemonslayertest".parse().unwrap()
     }
 
     // fn get_watch_paths(&self) -> Vec<PathBuf> {

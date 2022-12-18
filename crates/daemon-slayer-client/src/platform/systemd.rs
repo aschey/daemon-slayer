@@ -1,4 +1,5 @@
 use crate::{config::Builder, Info, Manager, Result, State};
+use daemon_slayer_core::Label;
 use eyre::Context;
 use systemd_client::{
     create_unit_configuration_file, create_user_unit_configuration_file,
@@ -17,7 +18,7 @@ pub struct ServiceManager {
 
 impl ServiceManager {
     fn service_file_name(&self) -> String {
-        format!("{}.service", self.config.name)
+        format!("{}.service", self.name())
     }
 
     fn update_autostart(&self) -> Result<()> {
@@ -33,12 +34,12 @@ impl ServiceManager {
 }
 
 impl Manager for ServiceManager {
-    fn builder(name: impl Into<String>) -> Builder {
-        Builder::new(name)
+    fn builder(label: Label) -> Builder {
+        Builder::new(label)
     }
 
-    fn new(name: impl Into<String>) -> Result<Self> {
-        Builder::new(name).build()
+    fn new(label: Label) -> Result<Self> {
+        Builder::new(label).build()
     }
 
     fn from_builder(builder: Builder) -> Result<Self> {
@@ -243,11 +244,11 @@ impl Manager for ServiceManager {
     }
 
     fn display_name(&self) -> &str {
-        &self.config.display_name
+        self.config.display_name()
     }
 
-    fn name(&self) -> &str {
-        &self.config.name
+    fn name(&self) -> String {
+        self.config.label.application.clone()
     }
 
     fn args(&self) -> &Vec<String> {

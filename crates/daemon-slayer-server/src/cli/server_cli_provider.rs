@@ -67,11 +67,11 @@ impl<S: Service + Send + Sync + 'static> daemon_slayer_core::cli::CommandProvide
     ) -> InputState {
         match matched_command.as_ref().map(|c| &c.action) {
             Some(Some(Action::Direct)) => {
-                S::run_service_direct(self.input_data).await.unwrap();
+                S::run_directly(self.input_data).await.unwrap();
                 InputState::Handled
             }
             Some(Some(Action::Run)) => {
-                S::run_service_main(self.input_data).await.unwrap();
+                S::run_as_service(self.input_data).await.unwrap();
                 InputState::Handled
             }
             _ => InputState::Unhandled,

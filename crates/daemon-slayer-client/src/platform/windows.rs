@@ -2,6 +2,7 @@ use crate::{
     config::{Builder, Trustee},
     Info, Level, Manager, Result, State,
 };
+use daemon_slayer_core::Label;
 use eyre::Context;
 use regex::Regex;
 use registry::{Data, Hive, Security};
@@ -186,8 +187,8 @@ impl ServiceManager {
 
     fn get_service_info(&self) -> ServiceInfo {
         ServiceInfo {
-            name: (&self.config.name).into(),
-            display_name: (&self.config.display_name).into(),
+            name: self.name(),
+            display_name: self.display_name().to_owned(),
             service_type: match self.config.service_level {
                 Level::System => ServiceType::OWN_PROCESS,
                 Level::User => ServiceType::USER_OWN_PROCESS,
@@ -218,7 +219,7 @@ impl ServiceManager {
     }
 
     fn reg_basekey(&self) -> String {
-        format!(r"SYSTEM\CurrentControlSet\Services\{}", self.config.name)
+        format!(r"SYSTEM\CurrentControlSet\Services\{}", self.name())
     }
 
     fn add_environment_variables(&self) -> Result<()> {
@@ -238,12 +239,12 @@ impl ServiceManager {
 }
 
 impl Manager for ServiceManager {
-    fn builder(name: impl Into<String>) -> Builder {
-        Builder::new(name)
+    fn builder(label: Label) -> Builder {
+        Builder::new(label)
     }
 
-    fn new(name: impl Into<String>) -> Result<Self> {
-        Builder::new(name).build()
+    fn new(label: Label) -> Result<Self> {
+        Builder::new(label).build()
     }
 
     fn from_builder(builder: Builder) -> Result<Self> {
@@ -251,11 +252,11 @@ impl Manager for ServiceManager {
     }
 
     fn display_name(&self) -> &str {
-        &self.config.display_name
+        self.config.display_name()
     }
 
-    fn name(&self) -> &str {
-        &self.config.name
+    fn name(&self) -> String {
+        self.config.label.application.clone()
     }
 
     fn reload_configuration(&self) -> Result<()> {
@@ -329,7 +330,7 @@ impl Manager for ServiceManager {
             // Still attempt to delete the service template if the user service wasn't found
             // Could be that the user service wasn't created yet
         }
-        let name = self.config.name.clone();
+        let name = self.name();
         self.delete_service(&name, ServiceType::OWN_PROCESS)?;
 
         Ok(())
@@ -380,7 +381,7 @@ impl Manager for ServiceManager {
         let args = parts.collect::<Vec<_>>();
         let info = ServiceInfo {
             name: (&self.config.name).into(),
-            display_name: config.display_name,
+            display_name: self.display_name().to_owned(),
             service_type: config.service_type,
             start_type: config.start_type,
             error_control: config.error_control,

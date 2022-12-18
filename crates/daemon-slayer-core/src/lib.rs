@@ -10,10 +10,10 @@ pub mod signal;
 #[cfg(feature = "config")]
 pub mod config;
 
-mod app;
+mod label;
 use std::any::Any;
 
-pub use app::*;
+pub use label::*;
 
 #[cfg(feature = "daemon-slayer-macros")]
 pub use daemon_slayer_macros::*;

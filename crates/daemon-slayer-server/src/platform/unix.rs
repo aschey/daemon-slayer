@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use crate::handler::Handler;
 
-pub async fn run_service_main<T: Handler + Send + 'static>(
+pub async fn run_as_service<T: Handler + Send + 'static>(
     input_data: Option<T::InputData>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Toplevel::new()

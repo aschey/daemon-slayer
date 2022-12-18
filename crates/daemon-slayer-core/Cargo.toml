@@ -13,6 +13,7 @@ once_cell = {version = "1", optional = true}
 strum = {version = "0.24", optional = true}
 strum_macros = {version = "0.24", optional = true}
 tap = "1"
+thiserror = "1"
 tokio = {version = "1", features = ["sync"]}
 tokio-graceful-shutdown = {version = "0.11", optional = true}
 tokio-stream = {version = "0.1", features = ["sync"], optional = true}

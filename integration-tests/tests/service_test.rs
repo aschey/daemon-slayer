@@ -4,11 +4,13 @@ use std::{fs::File, io::Write, thread, time::Duration};
 
 #[test]
 fn test_async_combined() {
-    test_combined("daemon_slayer_test_service", "test_app", 3002);
+    test_combined("com.daemonslayer.daemonslayertest", "test_app", 3002);
 }
 
 fn test_combined(service_name: &str, bin_name: &str, port: i32) {
-    let manager = ServiceManager::builder(service_name).build().unwrap();
+    let manager = ServiceManager::builder(service_name.parse().unwrap())
+        .build()
+        .unwrap();
     if manager.info().unwrap().state != State::NotInstalled {
         manager.stop().unwrap();
         thread::sleep(Duration::from_millis(100));

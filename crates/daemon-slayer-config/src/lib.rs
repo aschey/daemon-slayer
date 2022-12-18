@@ -15,7 +15,7 @@ use daemon_slayer_client::ServiceManager;
 use daemon_slayer_core::{
     config::{Accessor, CachedConfig, Mergeable},
     server::BroadcastEventStore,
-    App,
+    Label,
 };
 use directories::ProjectDirs;
 use notify::{recommended_watcher, RecommendedWatcher, RecursiveMode, Watcher};
@@ -58,8 +58,13 @@ pub struct AppConfig<T: Config + Default + Send + Sync + Clone + 'static> {
 }
 
 impl<T: Config + Default + Send + Sync + Clone + 'static> AppConfig<T> {
-    pub fn new(app: App, config_file_type: ConfigFileType) -> Self {
-        let dirs = ProjectDirs::from(&app.qualifier, &app.organization, &app.application).unwrap();
+    pub fn new(identifier: Label, config_file_type: ConfigFileType) -> Self {
+        let dirs = ProjectDirs::from(
+            &identifier.qualifier,
+            &identifier.organization,
+            &identifier.application,
+        )
+        .unwrap();
         let config_path = dirs
             .config_dir()
             .join(format!("config{}", config_file_type.to_extension()));

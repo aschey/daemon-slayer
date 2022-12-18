@@ -9,6 +9,7 @@ use arc_swap::ArcSwap;
 use daemon_slayer_core::config::Accessor;
 use daemon_slayer_core::config::CachedConfig;
 use daemon_slayer_core::config::Mergeable;
+use daemon_slayer_core::Label;
 use std::env::consts::EXE_EXTENSION;
 use std::env::current_exe;
 use std::ops::Deref;
@@ -43,9 +44,9 @@ impl Mergeable for UserConfig {
 
 #[derive(Clone)]
 pub struct Builder {
-    pub(crate) name: String,
+    pub(crate) label: Label,
     #[cfg_attr(unix, allow(unused))]
-    pub(crate) display_name: String,
+    pub(crate) display_name: Option<String>,
     #[cfg_attr(unix, allow(unused))]
     pub(crate) description: String,
     pub(crate) program: String,
@@ -60,11 +61,10 @@ pub struct Builder {
 }
 
 impl Builder {
-    pub fn new(name: impl Into<String>) -> Self {
-        let name = name.into();
+    pub fn new(label: Label) -> Self {
         Self {
-            name: name.clone(),
-            display_name: name,
+            label,
+            display_name: None,
             description: "".to_owned(),
             args: vec![],
             program: current_exe().unwrap().to_string_lossy().to_string(),
@@ -78,7 +78,7 @@ impl Builder {
 
     pub fn with_display_name(self, display_name: impl Into<String>) -> Self {
         Self {
-            display_name: display_name.into(),
+            display_name: Some(display_name.into()),
             ..self
         }
     }
@@ -157,6 +157,12 @@ impl Builder {
 
     pub(crate) fn is_user(&self) -> bool {
         self.service_level == Level::User
+    }
+
+    pub(crate) fn display_name(&self) -> &str {
+        self.display_name
+            .as_deref()
+            .unwrap_or(self.label.application.as_str())
     }
 
     pub(crate) fn env_vars(&self) -> Vec<(String, String)> {

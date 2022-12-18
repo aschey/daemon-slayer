@@ -10,6 +10,7 @@ use std::{
 use daemon_slayer_core::{
     config::{Accessor, CachedConfig},
     server::BackgroundService,
+    Label,
 };
 use once_cell::sync::OnceCell;
 use time::{
@@ -96,7 +97,7 @@ pub struct UserConfig {
 
 #[derive(Clone)]
 pub struct LoggerBuilder {
-    name: String,
+    label: Label,
     #[cfg(feature = "file")]
     file_rotation_period: tracing_appender::Rotation,
     timezone: Timezone,
@@ -110,9 +111,9 @@ pub struct LoggerBuilder {
 }
 
 impl LoggerBuilder {
-    pub fn new(name: impl Into<String>) -> Self {
+    pub fn new(label: Label) -> Self {
         Self {
-            name: name.into(),
+            label,
             #[cfg(feature = "file")]
             file_rotation_period: tracing_appender::Rotation::HOURLY,
             timezone: Timezone::Local,
@@ -312,7 +313,7 @@ impl LoggerBuilder {
 
         #[cfg(feature = "ipc")]
         let (ipc_writer, ipc_guard) = if self.enable_ipc_logger {
-            tracing_ipc::Writer::new(&self.name)
+            tracing_ipc::Writer::new(&self.label.application)
         } else {
             tracing_ipc::Writer::disabled()
         };
@@ -338,7 +339,7 @@ impl LoggerBuilder {
 
         #[cfg(all(target_os = "macos", feature = "mac-oslog"))]
         let collector = collector.with(
-            tracing_oslog::OsLogger::new(self.name.clone(), "default")
+            tracing_oslog::OsLogger::new(self.label.qualified_name(), "default")
                 .with_filter(self.get_filter_for_target(LogTarget::OsLog)),
         );
 

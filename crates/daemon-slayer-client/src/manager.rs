@@ -1,15 +1,17 @@
+use daemon_slayer_core::Label;
+
 use crate::config::Builder;
 use crate::{Info, Result};
 
 pub trait Manager: Clone {
-    fn builder(name: impl Into<String>) -> Builder;
-    fn new(name: impl Into<String>) -> Result<Self>
+    fn builder(label: Label) -> Builder;
+    fn new(name: Label) -> Result<Self>
     where
         Self: std::marker::Sized;
     fn from_builder(builder: Builder) -> Result<Self>
     where
         Self: std::marker::Sized;
-    fn name(&self) -> &str;
+    fn name(&self) -> String;
     fn display_name(&self) -> &str;
     fn description(&self) -> &str;
     fn args(&self) -> &Vec<String>;
