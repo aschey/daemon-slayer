@@ -227,7 +227,7 @@ impl Manager for LaunchdServiceManager {
     }
 
     fn disable_autostart(&mut self) -> Result<(), io::Error> {
-        self.configuration.autostart = true;
+        self.configuration.autostart = false;
         self.update_autostart()?;
         Ok(())
     }
