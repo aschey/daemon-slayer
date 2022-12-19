@@ -1,5 +1,6 @@
-use crate::{Info, Result};
+use crate::Info;
 use dyn_clonable::clonable;
+use std::{io, result::Result};
 
 #[clonable]
 pub trait Manager: Clone + Send + Sync + 'static {
@@ -7,14 +8,14 @@ pub trait Manager: Clone + Send + Sync + 'static {
     fn display_name(&self) -> &str;
     fn description(&self) -> &str;
     fn arguments(&self) -> &Vec<String>;
-    fn reload_configuration(&self) -> Result<()>;
-    fn on_configuration_changed(&mut self) -> Result<()>;
-    fn install(&self) -> Result<()>;
-    fn uninstall(&self) -> Result<()>;
-    fn start(&self) -> Result<()>;
-    fn stop(&self) -> Result<()>;
-    fn restart(&self) -> Result<()>;
-    fn enable_autostart(&mut self) -> Result<()>;
-    fn disable_autostart(&mut self) -> Result<()>;
-    fn info(&self) -> Result<Info>;
+    fn reload_configuration(&self) -> Result<(), io::Error>;
+    fn on_configuration_changed(&mut self) -> Result<(), io::Error>;
+    fn install(&self) -> Result<(), io::Error>;
+    fn uninstall(&self) -> Result<(), io::Error>;
+    fn start(&self) -> Result<(), io::Error>;
+    fn stop(&self) -> Result<(), io::Error>;
+    fn restart(&self) -> Result<(), io::Error>;
+    fn enable_autostart(&mut self) -> Result<(), io::Error>;
+    fn disable_autostart(&mut self) -> Result<(), io::Error>;
+    fn info(&self) -> Result<Info, io::Error>;
 }

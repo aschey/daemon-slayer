@@ -1,16 +1,15 @@
-use eyre::Context;
+use crate::{
+    configuration::{Builder, Level},
+    Info, Manager, State,
+};
 use launchd::Launchd;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
-    fs,
-    path::PathBuf,
+    fs::{self, File},
+    io,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
-};
-
-use crate::{
-    configuration::{Builder, Level},
-    Info, Manager, Result, State,
 };
 
 macro_rules! regex {
@@ -30,24 +29,29 @@ pub struct LaunchdServiceManager {
 }
 
 impl LaunchdServiceManager {
-    pub(crate) fn from_builder(builder: Builder) -> Result<Self> {
+    pub(crate) fn from_builder(builder: Builder) -> Result<Self, io::Error> {
         Ok(Self {
             configuration: builder,
         })
     }
 
-    fn run_launchctl(&self, arguments: Vec<&str>) -> Result<String> {
+    fn run_launchctl(&self, arguments: Vec<&str>) -> Result<String, io::Error> {
         self.run_cmd("launchctl", arguments)
     }
 
-    fn run_cmd(&self, command: &str, arguments: Vec<&str>) -> Result<String> {
+    fn run_cmd(&self, command: &str, arguments: Vec<&str>) -> Result<String, io::Error> {
         let output = Command::new(command)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .args(arguments)
+            .args(&arguments)
             .output()
-            .wrap_err("Error running command")?;
+            .map_err(|e| {
+                io::Error::new(
+                    e.kind(),
+                    format!("Error running launchd command \"{command} {arguments:#?}\": {e:?}"),
+                )
+            })?;
 
         let out_bytes = if output.status.success() {
             output.stdout
@@ -55,13 +59,18 @@ impl LaunchdServiceManager {
             output.stderr
         };
         let out = String::from_utf8(out_bytes)
-            .wrap_err("Error reading output")?
+            .map_err(|e| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("Error decoding output from launchd command \"{command} {arguments:#?}\": {e:?}"),
+                )
+            })?
             .trim()
             .to_lowercase();
         Ok(out)
     }
 
-    fn service_target(&self) -> Result<String> {
+    fn service_target(&self) -> Result<String, io::Error> {
         match self.configuration.service_level {
             Level::System => Ok(format!("system/{}", self.name())),
             Level::User => {
@@ -71,19 +80,29 @@ impl LaunchdServiceManager {
         }
     }
 
-    fn user_agent_dir(&self) -> Result<PathBuf> {
-        let user_dirs = directories::UserDirs::new().ok_or("User dirs not found")?;
+    fn user_agent_dir(&self) -> Result<PathBuf, io::Error> {
+        let user_dirs = directories::UserDirs::new().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::NotFound,
+                "User directories could not be found",
+            )
+        })?;
         let home_dir = user_dirs.home_dir();
         Ok(home_dir.join("Library").join("LaunchAgents"))
     }
 
-    fn get_plist_path(&self) -> Result<PathBuf> {
+    fn get_plist_path(&self) -> Result<PathBuf, io::Error> {
         let path = match self.configuration.service_level {
             Level::System => PathBuf::from("/Library/LaunchDaemons"),
             Level::User => self.user_agent_dir()?,
         };
         if !path.exists() {
-            std::fs::create_dir_all(&path).wrap_err("Error creating plist path")?;
+            std::fs::create_dir_all(&path).map_err(|e| {
+                io::Error::new(
+                    e.kind(),
+                    format!("Error creating plist path {path:#?}: {e:?}"),
+                )
+            })?;
         }
         Ok(path.join(format!("{}.plist", self.name())))
     }
@@ -95,19 +114,24 @@ impl LaunchdServiceManager {
         Some(str_cap)
     }
 
-    fn update_autostart(&mut self) -> Result<()> {
+    fn update_autostart(&mut self) -> Result<(), io::Error> {
         let was_started = self.info()?.state == State::Started;
         if was_started {
             self.stop()?;
         }
+        let plist_path = self.get_plist_path()?;
+        let mut config =
+            Launchd::from_file(&plist_path).map_err(|e| from_launchd_error(plist_path, e))?;
 
-        let mut config = Launchd::from_file(self.get_plist_path()?)?;
         config = config.with_run_at_load(self.configuration.autostart);
         let path = self.get_plist_path()?;
         self.run_launchctl(vec!["unload", &path.to_string_lossy()])?;
+        let created_file = std::fs::File::create(&path).map_err(|e| {
+            io::Error::new(e.kind(), format!("Error creating plist path {path:#?}"))
+        })?;
         config
-            .to_writer_xml(std::fs::File::create(&path).wrap_err("Error creating config file")?)
-            .wrap_err("Error writing config file")?;
+            .to_writer_xml(created_file)
+            .map_err(|e| from_launchd_error(&path, e))?;
         self.run_launchctl(vec!["load", &path.to_string_lossy()])?;
 
         if was_started {
@@ -121,7 +145,7 @@ impl LaunchdServiceManager {
 }
 
 impl Manager for LaunchdServiceManager {
-    fn on_configuration_changed(&mut self) -> Result<()> {
+    fn on_configuration_changed(&mut self) -> Result<(), io::Error> {
         let snapshot = self.configuration.user_configuration.snapshot();
         self.configuration.user_configuration.reload();
         let current = self.configuration.user_configuration.load();
@@ -131,7 +155,7 @@ impl Manager for LaunchdServiceManager {
         Ok(())
     }
 
-    fn reload_configuration(&self) -> Result<()> {
+    fn reload_configuration(&self) -> Result<(), io::Error> {
         let current_state = self.info()?.state;
         self.stop()?;
         let path = self.get_plist_path()?;
@@ -143,9 +167,9 @@ impl Manager for LaunchdServiceManager {
         Ok(())
     }
 
-    fn install(&self) -> Result<()> {
+    fn install(&self) -> Result<(), io::Error> {
         let mut file = Launchd::new(self.name(), &self.configuration.program)
-            .wrap_err("Error creating config")?
+            .map_err(|e| from_launchd_error(&self.configuration.program, e))?
             .with_program_arguments(
                 self.configuration
                     .full_arguments_iter()
@@ -160,52 +184,60 @@ impl Manager for LaunchdServiceManager {
         }
 
         let path = self.get_plist_path()?;
-        file.to_writer_xml(std::fs::File::create(&path).wrap_err("Error creating config file")?)
-            .wrap_err(format!("Error writing config file {path:?}"))?;
+        let created_file = File::create(&path).map_err(|e| {
+            io::Error::new(
+                e.kind(),
+                format!("Error creating plist file {path:#?}: {e:?}"),
+            )
+        })?;
+        file.to_writer_xml(created_file)
+            .map_err(|e| from_launchd_error(&path, e))?;
 
         self.run_launchctl(vec!["load", &path.to_string_lossy()])?;
 
         Ok(())
     }
 
-    fn uninstall(&self) -> Result<()> {
+    fn uninstall(&self) -> Result<(), io::Error> {
         let path = self.get_plist_path()?;
         self.run_launchctl(vec!["unload", &path.to_string_lossy()])?;
         if path.exists() {
-            fs::remove_file(&path).wrap_err(format!("Error removing config file {path:?}"))?;
+            fs::remove_file(&path).map_err(|e| {
+                io::Error::new(e.kind(), format!("Error removing plist file {path:?}"))
+            })?;
         }
 
         Ok(())
     }
 
-    fn start(&self) -> Result<()> {
+    fn start(&self) -> Result<(), io::Error> {
         self.run_launchctl(vec!["start", &self.name()])?;
         Ok(())
     }
 
-    fn stop(&self) -> Result<()> {
+    fn stop(&self) -> Result<(), io::Error> {
         self.run_launchctl(vec!["stop", &self.name()])?;
         Ok(())
     }
 
-    fn enable_autostart(&mut self) -> Result<()> {
+    fn enable_autostart(&mut self) -> Result<(), io::Error> {
         self.configuration.autostart = true;
         self.update_autostart()?;
         Ok(())
     }
 
-    fn disable_autostart(&mut self) -> Result<()> {
+    fn disable_autostart(&mut self) -> Result<(), io::Error> {
         self.configuration.autostart = true;
         self.update_autostart()?;
         Ok(())
     }
 
-    fn restart(&self) -> Result<()> {
+    fn restart(&self) -> Result<(), io::Error> {
         self.run_launchctl(vec!["kickstart", "-k", &self.service_target()?])?;
         Ok(())
     }
 
-    fn info(&self) -> Result<Info> {
+    fn info(&self) -> Result<Info, io::Error> {
         let output = self.run_launchctl(vec!["print", &self.service_target()?])?;
         if output.contains("could not find service") {
             return Ok(Info {
@@ -255,5 +287,39 @@ impl Manager for LaunchdServiceManager {
 
     fn description(&self) -> &str {
         &self.configuration.description
+    }
+}
+
+fn from_launchd_error(path: impl AsRef<Path>, err: launchd::Error) -> io::Error {
+    let path = path.as_ref();
+    match err {
+        launchd::Error::PathConversion => io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("Error parsing path {path:#?}"),
+        ),
+        launchd::Error::Read(e) => match e.as_io() {
+            Some(io_err) => io::Error::new(
+                io_err.kind(),
+                format!("Error reading path {path:#?}: {io_err:?}: {e:?}"),
+            ),
+            None => io::Error::new(
+                io::ErrorKind::Other,
+                format!("Error reading path {path:#?}: {e:?}"),
+            ),
+        },
+        launchd::Error::Write(e) => match e.as_io() {
+            Some(io_err) => io::Error::new(
+                io_err.kind(),
+                format!("Error writing path {path:#?}: {io_err:?}: {e:?}"),
+            ),
+            None => io::Error::new(
+                io::ErrorKind::Other,
+                format!("Error writing path {path:#?}: {e:?}"),
+            ),
+        },
+        _ => io::Error::new(
+            io::ErrorKind::Other,
+            format!("Unknown plist error: {path:#?}"),
+        ),
     }
 }

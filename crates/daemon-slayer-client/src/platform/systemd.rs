@@ -1,5 +1,5 @@
-use crate::{configuration::Builder, Info, Manager, Result, State};
-use eyre::Context;
+use crate::{configuration::Builder, Info, Manager, State};
+use std::io;
 use systemd_client::{
     create_unit_configuration_file, create_user_unit_configuration_file,
     delete_unit_configuration_file, delete_user_unit_configuration_file,
@@ -16,13 +16,22 @@ pub struct SystemdServiceManager {
 }
 
 impl SystemdServiceManager {
-    pub(crate) fn from_builder(builder: Builder) -> Result<Self> {
+    pub(crate) fn from_builder(builder: Builder) -> std::result::Result<Self, io::Error> {
         let client = if builder.is_user() {
-            manager::build_blocking_user_proxy()
+            manager::build_blocking_user_proxy().map_err(|e| {
+                io::Error::new(
+                    io::ErrorKind::ConnectionRefused,
+                    format!("Error connecting to systemd user proxy: {e:?}"),
+                )
+            })
         } else {
-            manager::build_blocking_proxy()
-        }
-        .wrap_err("Error creating systemd proxy")?;
+            manager::build_blocking_proxy().map_err(|e| {
+                io::Error::new(
+                    io::ErrorKind::ConnectionRefused,
+                    format!("Error connecting to systemd proxy: {e:?}"),
+                )
+            })
+        }?;
         Ok(Self {
             configuration: builder,
             client,
@@ -33,26 +42,38 @@ impl SystemdServiceManager {
         format!("{}.service", self.name())
     }
 
-    fn set_autostart_enabled(&mut self, enabled: bool) -> Result<()> {
+    fn set_autostart_enabled(&mut self, enabled: bool) -> Result<(), io::Error> {
         self.configuration.autostart = enabled;
         self.update_autostart()?;
         Ok(())
     }
 
-    fn update_autostart(&self) -> Result<()> {
+    fn update_autostart(&self) -> Result<(), io::Error> {
         if self.configuration.autostart {
             self.client
-                .enable_unit_files(&[&self.service_file_name()], false, true)?;
+                .enable_unit_files(&[&self.service_file_name()], false, true)
+                .map_err(|e| {
+                    io_error(format!(
+                        "Error enabling systemd unit file {}: {e:?}",
+                        self.service_file_name()
+                    ))
+                })?;
         } else {
             self.client
-                .disable_unit_files(&[&self.service_file_name()], false)?;
+                .disable_unit_files(&[&self.service_file_name()], false)
+                .map_err(|e| {
+                    io_error(format!(
+                        "Error disabling systemd unit file {}: {e:?}",
+                        self.service_file_name()
+                    ))
+                })?;
         }
         Ok(())
     }
 }
 
 impl Manager for SystemdServiceManager {
-    fn on_configuration_changed(&mut self) -> Result<()> {
+    fn on_configuration_changed(&mut self) -> Result<(), io::Error> {
         let snapshot = self.configuration.user_configuration.snapshot();
         self.configuration.user_configuration.reload();
         let current = self.configuration.user_configuration.load();
@@ -62,7 +83,7 @@ impl Manager for SystemdServiceManager {
         Ok(())
     }
 
-    fn reload_configuration(&self) -> Result<()> {
+    fn reload_configuration(&self) -> Result<(), io::Error> {
         let current_state = self.info()?.state;
         self.stop()?;
         self.install()?;
@@ -72,7 +93,7 @@ impl Manager for SystemdServiceManager {
         Ok(())
     }
 
-    fn install(&self) -> Result<()> {
+    fn install(&self) -> Result<(), io::Error> {
         let mut unit_config =
             UnitConfiguration::builder().description(&self.configuration.description);
         for after in &self.configuration.systemd_configuration.after {
@@ -113,91 +134,120 @@ impl Manager for SystemdServiceManager {
         } else {
             create_unit_configuration_file(&self.service_file_name(), svc_unit_literal.as_bytes())
         }
-        .wrap_err(format!(
-            "Error creating systemd config file {:?}",
-            &self.service_file_name()
-        ))?;
+        .map_err(|e| {
+            io_error(format!(
+                "Error creating unit configuration file {}: {e:?}",
+                self.service_file_name()
+            ))
+        })?;
 
         self.update_autostart()?;
 
         Ok(())
     }
 
-    fn uninstall(&self) -> Result<()> {
+    fn uninstall(&self) -> Result<(), io::Error> {
         if self.configuration.is_user() {
             delete_user_unit_configuration_file(&self.service_file_name())
         } else {
             delete_unit_configuration_file(&self.service_file_name())
         }
-        .wrap_err(format!(
-            "Error removing systemd config file {:?}",
-            &self.service_file_name()
-        ))?;
+        .map_err(|e| {
+            io_error(format!(
+                "Error removing systemd config file {:?}: {e:?}",
+                &self.service_file_name()
+            ))
+        })?;
         Ok(())
     }
 
-    fn start(&self) -> Result<()> {
+    fn start(&self) -> Result<(), io::Error> {
         self.client
             .start_unit(&self.service_file_name(), "replace")
-            .wrap_err("Error starting systemd unit")?;
+            .map_err(|e| {
+                io_error(format!(
+                    "Error starting systemd unit {}: {e:?}",
+                    self.service_file_name()
+                ))
+            })?;
         Ok(())
     }
 
-    fn stop(&self) -> Result<()> {
+    fn stop(&self) -> Result<(), io::Error> {
         if self.info()?.state == State::Started {
             self.client
                 .stop_unit(&self.service_file_name(), "replace")
-                .wrap_err("Error stopping systemd unit")?;
+                .map_err(|e| {
+                    io_error(format!(
+                        "Error stopping systemd unit {}: {e:?}",
+                        self.service_file_name()
+                    ))
+                })?;
         }
 
         Ok(())
     }
 
-    fn restart(&self) -> Result<()> {
+    fn restart(&self) -> Result<(), io::Error> {
         if self.info()?.state == State::Started {
             self.client
                 .restart_unit(&self.service_file_name(), "replace")
-                .wrap_err("Error stopping systemd unit")?;
+                .map_err(|e| {
+                    io_error(format!(
+                        "Error restarting systemd unit {}: {e:?}",
+                        self.service_file_name()
+                    ))
+                })?;
         } else {
             self.start()?;
         }
         Ok(())
     }
 
-    fn enable_autostart(&mut self) -> Result<()> {
+    fn enable_autostart(&mut self) -> Result<(), io::Error> {
         self.set_autostart_enabled(true)?;
         Ok(())
     }
 
-    fn disable_autostart(&mut self) -> Result<()> {
+    fn disable_autostart(&mut self) -> Result<(), io::Error> {
         self.set_autostart_enabled(false)?;
         Ok(())
     }
 
-    fn info(&self) -> Result<Info> {
+    fn info(&self) -> Result<Info, io::Error> {
         self.client
             .reload()
-            .wrap_err("Error reloading systemd units")?;
+            .map_err(|e| io_error(format!("Error reloading systemd units: {e:?}")))?;
 
         self.client
             .reset_failed()
-            .wrap_err("Error reseting failed unit state")?;
+            .map_err(|e| io_error(format!("Error resetting failed unit state: {e:?}")))?;
 
         let svc_unit_path = self
             .client
             .load_unit(&self.service_file_name())
-            .wrap_err("Error loading systemd unit")?;
+            .map_err(|e| {
+                io_error(format!(
+                    "Error loading systemd unit {}: {e:?}",
+                    self.service_file_name()
+                ))
+            })?;
 
         let unit_client = if self.configuration.is_user() {
             unit::build_blocking_user_proxy(svc_unit_path.clone())
         } else {
             unit::build_blocking_proxy(svc_unit_path.clone())
         }
-        .wrap_err("Error creating unit client")?;
+        .map_err(|e| {
+            io_error(format!(
+                "Error creating unit client {}: {e:?}",
+                svc_unit_path.as_str()
+            ))
+        })?;
 
         let unit_props = unit_client
             .get_properties()
-            .wrap_err("Error getting unit properties")?;
+            .map_err(|e| io_error(format!("Error getting unit properties: {e:?}")))?;
 
         let state = match (
             unit_props.load_state,
@@ -216,11 +266,11 @@ impl Manager for SystemdServiceManager {
         } else {
             service::build_blocking_proxy(svc_unit_path)
         }
-        .wrap_err("Error creating service client")?;
+        .map_err(|e| io_error(format!("Error creating unit proxy: {e:?}")))?;
 
         let service_props = service_client
             .get_properties()
-            .wrap_err("Error getting service properties")?;
+            .map_err(|e| io_error(format!("Error getting service properties: {e:?}")))?;
 
         let autostart = match (&state, unit_props.unit_file_state) {
             (State::NotInstalled, _) => None,
@@ -265,4 +315,8 @@ impl Manager for SystemdServiceManager {
     fn description(&self) -> &str {
         &self.configuration.description
     }
+}
+
+fn io_error(message: String) -> io::Error {
+    io::Error::new(io::ErrorKind::Other, message)
 }

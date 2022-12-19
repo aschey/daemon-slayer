@@ -5,12 +5,12 @@ use super::Level;
 use super::UserConfiguration;
 use crate::get_manager;
 use crate::Manager;
-use crate::Result;
 use daemon_slayer_core::config::Accessor;
 use daemon_slayer_core::config::CachedConfig;
 use daemon_slayer_core::Label;
 use std::env::consts::EXE_EXTENSION;
 use std::env::current_exe;
+use std::io;
 use std::path::PathBuf;
 
 #[derive(Clone)]
@@ -125,7 +125,7 @@ impl Builder {
         self
     }
 
-    pub fn build(self) -> Result<Box<dyn Manager>> {
+    pub fn build(self) -> Result<Box<dyn Manager>, io::Error> {
         get_manager(self)
     }
 

@@ -1,8 +1,6 @@
 use crate::Manager;
-use daemon_slayer_core::cli::{
-    clap, Action, ActionType, ArgMatchesExt, CommandConfig, CommandExt, CommandType, InputState,
-};
-use std::{collections::HashMap, sync::Arc};
+use daemon_slayer_core::cli::{clap, Action, ActionType, CommandConfig, CommandType, InputState};
+use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct ClientCliProvider {

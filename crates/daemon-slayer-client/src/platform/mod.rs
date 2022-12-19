@@ -1,5 +1,7 @@
 #[cfg(target_os = "macos")]
 mod launchd;
+use std::io;
+
 #[cfg(target_os = "macos")]
 use self::launchd::*;
 #[cfg(target_os = "linux")]
@@ -19,7 +21,7 @@ pub fn builder(label: Label) -> Builder {
     Builder::new(label)
 }
 
-pub(crate) fn get_manager(builder: Builder) -> crate::Result<Box<dyn Manager>> {
+pub(crate) fn get_manager(builder: Builder) -> Result<Box<dyn Manager>, io::Error> {
     #[cfg(target_os = "linux")]
     return Ok(Box::new(SystemdServiceManager::from_builder(builder)?));
     #[cfg(windows)]
