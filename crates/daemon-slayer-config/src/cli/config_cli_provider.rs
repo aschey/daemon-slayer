@@ -1,10 +1,9 @@
-use std::process::Command;
+use std::error::Error;
 
 use confique::Config;
 use daemon_slayer_client::Manager;
 use daemon_slayer_core::cli::{
-    clap, ActionType, ArgMatchesExt, CommandConfig, CommandExt, CommandProvider, CommandType,
-    InputState,
+    clap, ActionType, ArgMatchesExt, CommandConfig, CommandProvider, CommandType, InputState,
 };
 
 use crate::AppConfig;
@@ -81,7 +80,7 @@ impl<T: Config + Default + Send + Sync + Clone + 'static> CommandProvider for Co
         mut self: Box<Self>,
         matches: &clap::ArgMatches,
         matched_command: &Option<CommandConfig>,
-    ) -> InputState {
+    ) -> Result<InputState, Box<dyn Error>> {
         match matched_command.as_ref().map(|c| &c.command_type) {
             Some(CommandType::Subcommand {
                 name,
@@ -109,21 +108,21 @@ impl<T: Config + Default + Send + Sync + Clone + 'static> CommandProvider for Co
                                 match name.as_str() {
                                     "path" => {
                                         println!("{}", self.config.path().to_string_lossy());
-                                        return InputState::Handled;
+                                        return Ok(InputState::Handled);
                                     }
                                     "edit" => {
                                         self.config.edit();
                                         self.manager.on_configuration_changed().unwrap();
-                                        return InputState::Handled;
+                                        return Ok(InputState::Handled);
                                     }
                                     "view" => {
                                         self.config.pretty_print();
-                                        return InputState::Handled;
+                                        return Ok(InputState::Handled);
                                     }
                                     "validate" => {
                                         // TODO: error checking
                                         self.config.read_config();
-                                        return InputState::Handled;
+                                        return Ok(InputState::Handled);
                                     }
                                     _ => {}
                                 }
@@ -135,6 +134,6 @@ impl<T: Config + Default + Send + Sync + Clone + 'static> CommandProvider for Co
             _ => {}
         }
 
-        InputState::Unhandled
+        Ok(InputState::Unhandled)
     }
 }

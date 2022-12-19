@@ -1,5 +1,8 @@
-use daemon_slayer_core::cli::{
-    clap, ActionType, ArgMatchesExt, CommandConfig, CommandType, InputState,
+use std::error::Error;
+
+use daemon_slayer_core::{
+    cli::{clap, ActionType, CommandConfig, CommandProvider, CommandType, InputState},
+    health_check::HealthCheck,
 };
 
 #[derive(Clone)]
@@ -27,14 +30,12 @@ impl<H: daemon_slayer_core::health_check::HealthCheck + Clone + Send> HealthChec
 }
 
 #[async_trait::async_trait]
-impl<H: daemon_slayer_core::health_check::HealthCheck + Clone + Send + 'static>
-    daemon_slayer_core::cli::CommandProvider for HealthCheckCliProvider<H>
-{
+impl<H: HealthCheck + Clone + Send + 'static> CommandProvider for HealthCheckCliProvider<H> {
     async fn handle_input(
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandConfig>,
-    ) -> InputState {
+    ) -> Result<InputState, Box<dyn Error>> {
         match matched_command.as_ref().map(|c| &c.command_type) {
             Some(CommandType::Subcommand {
                 name,
@@ -48,9 +49,9 @@ impl<H: daemon_slayer_core::health_check::HealthCheck + Clone + Send + 'static>
                         println!("Unhealthy: {e:?}");
                     }
                 }
-                InputState::Handled
+                Ok(InputState::Handled)
             }
-            _ => InputState::Unhandled,
+            _ => Ok(InputState::Unhandled),
         }
     }
 

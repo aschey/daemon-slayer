@@ -1,6 +1,6 @@
 use crate::Manager;
 use daemon_slayer_core::cli::{clap, Action, ActionType, CommandConfig, CommandType, InputState};
-use std::collections::HashMap;
+use std::{collections::HashMap, error::Error};
 
 #[derive(Clone)]
 pub struct ClientCliProvider {
@@ -175,32 +175,36 @@ impl daemon_slayer_core::cli::CommandProvider for ClientCliProvider {
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandConfig>,
-    ) -> daemon_slayer_core::cli::InputState {
+    ) -> Result<InputState, Box<dyn Error>> {
         if let Some(matched_command) = matched_command {
             if matched_command.action_type == ActionType::Client {
                 match matched_command.action {
-                    Some(Action::Install) => self.manager.install().unwrap(),
-                    Some(Action::Uninstall) => self.manager.uninstall().unwrap(),
+                    Some(Action::Install) => self.manager.install()?,
+                    Some(Action::Uninstall) => self.manager.uninstall()?,
                     Some(Action::Info) => {
-                        let info = self.manager.info().unwrap();
+                        let info = self.manager.info()?;
                         println!("{info:?}");
                     }
-                    Some(Action::Start) => self.manager.start().unwrap(),
-                    Some(Action::Stop) => self.manager.stop().unwrap(),
-                    Some(Action::Restart) => self.manager.restart().unwrap(),
-                    Some(Action::Reload) => self.manager.reload_configuration().unwrap(),
-                    Some(Action::Enable) => self.manager.enable_autostart().unwrap(),
-                    Some(Action::Disable) => self.manager.disable_autostart().unwrap(),
+                    Some(Action::Start) => self.manager.start()?,
+                    Some(Action::Stop) => self.manager.stop()?,
+                    Some(Action::Restart) => self.manager.restart()?,
+                    Some(Action::Reload) => self.manager.reload_configuration()?,
+                    Some(Action::Enable) => self.manager.enable_autostart()?,
+                    Some(Action::Disable) => self.manager.disable_autostart()?,
                     Some(Action::Pid) => {
-                        let pid = self.manager.info().unwrap().pid;
-                        println!("{pid:?}");
+                        let pid = self.manager.info()?.pid;
+                        println!(
+                            "{}",
+                            pid.map(|p| p.to_string())
+                                .unwrap_or_else(|| "Not running".to_owned())
+                        );
                     }
-                    _ => return InputState::Unhandled,
+                    _ => return Ok(InputState::Unhandled),
                 }
-                return InputState::Handled;
+                return Ok(InputState::Handled);
             }
         }
 
-        InputState::Unhandled
+        Ok(InputState::Unhandled)
     }
 }

@@ -1,9 +1,6 @@
 use color_eyre::config::Theme;
-use daemon_slayer_core::cli::{
-    clap, Action, ActionType, ArgMatchesExt, CommandConfig, CommandExt, CommandType, InputState,
-};
-use std::{collections::HashMap, hash::Hash, marker::PhantomData, rc::Rc};
-use tracing::Subscriber;
+use daemon_slayer_core::cli::{clap, Action, ActionType, CommandConfig, InputState};
+use std::error::Error;
 
 use crate::ErrorHandler;
 
@@ -41,7 +38,7 @@ impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         _matched_command: &Option<CommandConfig>,
-    ) -> InputState {
-        InputState::Unhandled
+    ) -> Result<InputState, Box<dyn Error>> {
+        Ok(InputState::Unhandled)
     }
 }

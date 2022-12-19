@@ -6,11 +6,11 @@ use arc_swap::ArcSwap;
 use confique::Config;
 use daemon_slayer::cli::{ActionType, Cli};
 use daemon_slayer::client::cli::ClientCliProvider;
-use daemon_slayer::client::config::ServiceAccess;
+use daemon_slayer::client::configuration::Level;
 use daemon_slayer::client::{
     self,
-    config::{Trustee, WindowsConfig},
-    Level, Manager,
+    configuration::windows::{ServiceAccess, Trustee, WindowsConfiguration},
+    Manager,
 };
 use daemon_slayer::config::server::ConfigService;
 use daemon_slayer::config::{self, AppConfig, ConfigFileType};
@@ -43,7 +43,7 @@ pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 #[derive(Debug, confique::Config, Default, Clone)]
 struct MyConfig {
     #[config(nested)]
-    client_config: client::config::UserConfig,
+    client_config: client::configuration::UserConfiguration,
     #[config(nested)]
     console_config: console::UserConfig,
     #[config(nested)]
@@ -52,8 +52,8 @@ struct MyConfig {
     test: String,
 }
 
-impl AsRef<client::config::UserConfig> for MyConfig {
-    fn as_ref(&self) -> &client::config::UserConfig {
+impl AsRef<client::configuration::UserConfiguration> for MyConfig {
+    fn as_ref(&self) -> &client::configuration::UserConfiguration {
         &self.client_config
     }
 }
@@ -90,11 +90,11 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
         } else {
             Level::User
         })
-        .with_windows_config(WindowsConfig::default().with_additional_access(
+        .with_windows_configuration(WindowsConfiguration::default().with_additional_access(
             Trustee::CurrentUser,
             ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
         ))
-        .with_user_config(config.clone())
+        .with_user_configuration(config.clone())
         .build()?;
 
     let logger_builder =
@@ -139,7 +139,7 @@ pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
             logger_guard: guard,
         });
 
-    cli.handle_input().await;
+    cli.handle_input().await.unwrap();
 
     Ok(())
 }

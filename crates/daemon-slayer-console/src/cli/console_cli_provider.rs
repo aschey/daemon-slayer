@@ -1,10 +1,6 @@
-use daemon_slayer_client::Manager;
-use daemon_slayer_core::cli::{
-    clap, ActionType, ArgMatchesExt, CommandConfig, CommandExt, CommandType, InputState,
-};
-use std::{collections::HashMap, hash::Hash, marker::PhantomData};
-
 use crate::Console;
+use daemon_slayer_core::cli::{clap, ActionType, CommandConfig, CommandType, InputState};
+use std::error::Error;
 
 pub struct ConsoleCliProvider {
     command: CommandConfig,
@@ -46,7 +42,7 @@ impl daemon_slayer_core::cli::CommandProvider for ConsoleCliProvider {
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandConfig>,
-    ) -> daemon_slayer_core::cli::InputState {
+    ) -> Result<InputState, Box<dyn Error>> {
         match matched_command.as_ref().map(|c| &c.command_type) {
             Some(CommandType::Subcommand {
                 name,
@@ -55,9 +51,9 @@ impl daemon_slayer_core::cli::CommandProvider for ConsoleCliProvider {
                 children: _,
             }) if name == "console" => {
                 self.console.run().await.unwrap();
-                InputState::Handled
+                Ok(InputState::Handled)
             }
-            _ => InputState::Unhandled,
+            _ => Ok(InputState::Unhandled),
         }
     }
 }

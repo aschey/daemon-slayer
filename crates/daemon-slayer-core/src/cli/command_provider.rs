@@ -1,8 +1,6 @@
-use std::{any::Any, collections::HashMap};
-
-use crate::AsAny;
-
 use super::{Action, ActionType, ArgMatchesExt, CommandExt, CommandType, InputState};
+use crate::AsAny;
+use std::error::Error;
 
 #[derive(Clone)]
 pub struct CommandConfig {
@@ -17,7 +15,7 @@ pub trait CommandProvider: AsAny + Send + 'static {
         self: Box<Self>,
         matches: &clap::ArgMatches,
         matched_command: &Option<CommandConfig>,
-    ) -> InputState;
+    ) -> Result<InputState, Box<dyn Error>>;
 
     fn get_action_type(&self) -> ActionType;
 

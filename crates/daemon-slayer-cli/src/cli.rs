@@ -1,6 +1,7 @@
 use daemon_slayer_core::cli::{
     Action, ActionType, ArgMatchesExt, CommandConfig, CommandProvider, CommandType, InputState,
 };
+use std::error::Error;
 
 use crate::Builder;
 
@@ -57,16 +58,16 @@ impl Cli {
             .find_map(|p| p.as_any_mut().downcast_mut::<T>())
     }
 
-    pub async fn handle_input(self) -> (InputState, clap::ArgMatches) {
+    pub async fn handle_input(self) -> Result<(InputState, clap::ArgMatches), Box<dyn Error>> {
         for provider in self.providers {
             if provider
                 .handle_input(&self.matches, &self.matched_command)
-                .await
+                .await?
                 == InputState::Handled
             {
-                return (InputState::Handled, self.matches);
+                return Ok((InputState::Handled, self.matches));
             }
         }
-        (InputState::Unhandled, self.matches)
+        Ok((InputState::Unhandled, self.matches))
     }
 }

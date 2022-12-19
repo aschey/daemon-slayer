@@ -1,14 +1,8 @@
 use crate::{LoggerBuilder, LoggerGuard};
-use daemon_slayer_core::cli::{
-    clap, Action, ActionType, ArgMatchesExt, CommandConfig, CommandExt, CommandType, InputState,
-};
+use daemon_slayer_core::cli::{clap, Action, ActionType, CommandConfig, InputState};
 use std::{
-    borrow::BorrowMut,
-    collections::HashMap,
-    hash::Hash,
-    marker::PhantomData,
-    rc::Rc,
-    sync::{Arc, Mutex, RwLock},
+    error::Error,
+    sync::{Arc, Mutex},
 };
 use tracing::Subscriber;
 use tracing_subscriber::{registry::LookupSpan, util::SubscriberInitExt};
@@ -82,7 +76,7 @@ impl daemon_slayer_core::cli::CommandProvider for LoggingCliProvider {
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         _matched_command: &Option<CommandConfig>,
-    ) -> InputState {
-        InputState::Unhandled
+    ) -> Result<InputState, Box<dyn Error>> {
+        Ok(InputState::Unhandled)
     }
 }

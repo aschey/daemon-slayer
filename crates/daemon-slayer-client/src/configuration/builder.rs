@@ -38,7 +38,10 @@ impl Builder {
             display_name: None,
             description: "".to_owned(),
             arguments: vec![],
-            program: current_exe().unwrap().to_string_lossy().to_string(),
+            program: current_exe()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string(),
             service_level: Level::System,
             autostart: false,
             systemd_configuration: Default::default(),

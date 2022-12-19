@@ -1,8 +1,6 @@
 use crate::Service;
-use daemon_slayer_core::cli::{
-    clap, Action, ActionType, ArgMatchesExt, CommandConfig, CommandExt, CommandType, InputState,
-};
-use std::{collections::HashMap, hash::Hash, marker::PhantomData};
+use daemon_slayer_core::cli::{clap, Action, ActionType, CommandConfig, CommandType, InputState};
+use std::{collections::HashMap, error::Error, marker::PhantomData};
 
 pub struct ServerCliProvider<S: Service + Send + Sync> {
     commands: HashMap<Action, CommandConfig>,
@@ -64,17 +62,17 @@ impl<S: Service + Send + Sync + 'static> daemon_slayer_core::cli::CommandProvide
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandConfig>,
-    ) -> InputState {
+    ) -> Result<InputState, Box<dyn Error>> {
         match matched_command.as_ref().map(|c| &c.action) {
             Some(Some(Action::Direct)) => {
                 S::run_directly(self.input_data).await.unwrap();
-                InputState::Handled
+                Ok(InputState::Handled)
             }
             Some(Some(Action::Run)) => {
                 S::run_as_service(self.input_data).await.unwrap();
-                InputState::Handled
+                Ok(InputState::Handled)
             }
-            _ => InputState::Unhandled,
+            _ => Ok(InputState::Unhandled),
         }
     }
 }
