@@ -21,7 +21,7 @@ async fn get_service_main_impl<T: crate::handler::Handler + Send + 'static>(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Toplevel::new()
         .start("service_main", |subsys| run_subsys::<T>(subsys, input_data))
-        .handle_shutdown_requests(Duration::from_millis(5000))
+        .handle_shutdown_requests(T::shutdown_timeout())
         .await?;
     Ok(())
 }
@@ -152,7 +152,7 @@ pub async fn get_direct_handler<T: crate::handler::Handler + Send + 'static>(
         .start("service_main", |subsys| {
             direct_subsys::<T>(subsys, input_data)
         })
-        .handle_shutdown_requests(Duration::from_millis(5000))
+        .handle_shutdown_requests(T::shutdown_timeout())
         .await?;
     Ok(())
 }

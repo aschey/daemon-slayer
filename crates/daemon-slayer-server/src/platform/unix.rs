@@ -1,5 +1,4 @@
-use daemon_slayer_core::server::{ServiceContext, ServiceManager, SubsystemHandle, Toplevel};
-use std::time::Duration;
+use daemon_slayer_core::server::{ServiceManager, SubsystemHandle, Toplevel};
 
 use crate::handler::Handler;
 
@@ -8,7 +7,7 @@ pub async fn run_as_service<T: Handler + Send + 'static>(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Toplevel::new()
         .start("service_main", |subsys| run_subsys::<T>(subsys, input_data))
-        .handle_shutdown_requests(Duration::from_millis(5000))
+        .handle_shutdown_requests(T::shutdown_timeout())
         .await?;
     Ok(())
 }
