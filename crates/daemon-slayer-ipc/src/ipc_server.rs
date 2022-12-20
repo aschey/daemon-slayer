@@ -1,7 +1,10 @@
 use std::{marker::PhantomData, mem, pin::Pin};
 
 use bytes::{Bytes, BytesMut};
-use daemon_slayer_core::server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle};
+use daemon_slayer_core::{
+    server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle},
+    BoxedError,
+};
 use futures::{SinkExt, StreamExt};
 use parity_tokio_ipc::Endpoint;
 use serde::{Deserialize, Serialize};
@@ -51,7 +54,7 @@ where
         "ipc_server"
     }
 
-    async fn run(self, context: ServiceContext) {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let incoming = self.endpoint.incoming().expect("failed to open new socket");
         futures::pin_mut!(incoming);
 
@@ -74,6 +77,7 @@ where
                 }
             });
         }
+        Ok(())
     }
 
     async fn get_client(&mut self) -> Self::Client {

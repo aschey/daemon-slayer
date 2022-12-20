@@ -1,9 +1,12 @@
 use std::{path::PathBuf, sync::Arc};
 
 use crate::{AppConfig, Config};
-use daemon_slayer_core::server::{
-    BackgroundService, BroadcastEventStore, EventService, EventStore, FutureExt, ServiceContext,
-    SubsystemHandle,
+use daemon_slayer_core::{
+    server::{
+        BackgroundService, BroadcastEventStore, EventService, EventStore, FutureExt,
+        ServiceContext, SubsystemHandle,
+    },
+    BoxedError,
 };
 use daemon_slayer_file_watcher::FileWatcher;
 use futures::stream::StreamExt;
@@ -39,7 +42,7 @@ where
         "config_service"
     }
 
-    async fn run(mut self, mut context: ServiceContext) {
+    async fn run(mut self, mut context: ServiceContext) -> Result<(), BoxedError> {
         let (_, event_store) = context
             .add_event_service(
                 FileWatcher::builder()
@@ -60,6 +63,8 @@ where
             let new = self.config.snapshot();
             self.file_tx.send((current, new)).ok();
         }
+
+        Ok(())
     }
 
     async fn get_client(&mut self) -> Self::Client {

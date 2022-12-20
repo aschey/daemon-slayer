@@ -6,6 +6,7 @@ use daemon_slayer_core::{
         tokio_stream::StreamExt, BackgroundService, BroadcastEventStore, EventStore, FutureExt,
         ServiceContext,
     },
+    BoxedError,
 };
 
 use crate::{LoggerGuard, UserConfig};
@@ -29,7 +30,7 @@ impl<T: AsRef<UserConfig> + Send + Sync + 'static> BackgroundService for Logging
         "logging_update_service"
     }
 
-    async fn run(mut self, context: ServiceContext) {
+    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
         let mut rx = self.file_events.subscribe_events();
         while let Ok(Some(Ok((_, new)))) = rx
             .next()
@@ -40,6 +41,7 @@ impl<T: AsRef<UserConfig> + Send + Sync + 'static> BackgroundService for Logging
 
             self.guard.update_log_level(log_level);
         }
+        Ok(())
     }
 
     async fn get_client(&mut self) -> Self::Client {}

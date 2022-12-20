@@ -1,7 +1,7 @@
-use std::time::Duration;
-use tokio_graceful_shutdown::SubsystemHandle;
+use crate::BoxedError;
 
 use super::ServiceContext;
+use std::time::Duration;
 
 #[async_trait::async_trait]
 pub trait BackgroundService: Send {
@@ -13,7 +13,7 @@ pub trait BackgroundService: Send {
 
     fn name<'a>() -> &'a str;
 
-    async fn run(mut self, context: ServiceContext);
+    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError>;
 
     async fn get_client(&mut self) -> Self::Client;
 }

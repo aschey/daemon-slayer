@@ -1,4 +1,7 @@
-use daemon_slayer_core::server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle};
+use daemon_slayer_core::{
+    server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle},
+    BoxedError,
+};
 use futures::{future, StreamExt};
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use tarpc::server::{BaseChannel, Channel, Serve};
@@ -44,7 +47,7 @@ where
         "rpc_service"
     }
 
-    async fn run(mut self, context: ServiceContext) {
+    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
         let mut endpoint = Endpoint::new(self.bind_addr.clone());
         endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
 
@@ -66,6 +69,7 @@ where
             .cancel_on_shutdown(&context.get_subsystem_handle())
             .await
             .ok();
+        Ok(())
     }
 
     async fn get_client(&mut self) -> Self::Client {

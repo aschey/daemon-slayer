@@ -1,6 +1,7 @@
 use daemon_slayer_core::{
-    server::{BroadcastEventStore, ServiceContext, SubsystemHandle},
+    server::{BroadcastEventStore, ServiceContext},
     signal::{self, Signal},
+    BoxedError,
 };
 use futures::stream::StreamExt;
 use signal_hook_tokio::SignalsInfo;
@@ -51,7 +52,7 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
         "signal_listener_service"
     }
 
-    async fn run(mut self, context: ServiceContext) {
+    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
         let signals_handle = self.signals.handle();
 
         let mut signals = self.signals.fuse();
@@ -62,9 +63,10 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
             if let Signal::SIGTERM | Signal::SIGQUIT | Signal::SIGINT = signal {
                 context.get_subsystem_handle().request_global_shutdown();
                 signals_handle.close();
-                return;
+                return Ok(());
             }
         }
+        Ok(())
     }
 
     async fn get_client(&mut self) -> Self::Client {

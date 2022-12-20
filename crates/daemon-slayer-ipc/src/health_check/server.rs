@@ -1,6 +1,9 @@
 use std::{error::Error, time::Duration};
 
-use daemon_slayer_core::server::{FutureExt, ServiceContext, SubsystemHandle};
+use daemon_slayer_core::{
+    server::{FutureExt, ServiceContext, SubsystemHandle},
+    BoxedError,
+};
 use futures::StreamExt;
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use tokio::{
@@ -31,7 +34,7 @@ impl daemon_slayer_core::server::BackgroundService for Server {
         "ipc_health_check_service"
     }
 
-    async fn run(self, context: ServiceContext) {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let mut endpoint = Endpoint::new(self.sock_path);
         endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
 
@@ -56,6 +59,7 @@ impl daemon_slayer_core::server::BackgroundService for Server {
                 }
             }
         }
+        Ok(())
     }
 
     async fn get_client(&mut self) -> Self::Client {

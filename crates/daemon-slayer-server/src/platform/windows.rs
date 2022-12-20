@@ -1,7 +1,7 @@
 use daemon_slayer_core::{
     server::{ServiceManager, SubsystemHandle, Toplevel},
     signal::{self, Signal},
-    AsAny,
+    AsAny, BoxedError,
 };
 use std::{any::Any, error::Error, time::Duration};
 use tracing::{error, info};
@@ -18,7 +18,7 @@ pub fn get_service_main<T: crate::Handler + Send + 'static>(input_data: Option<T
 
 async fn get_service_main_impl<T: crate::handler::Handler + Send + 'static>(
     input_data: Option<T::InputData>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<(), BoxedError> {
     Toplevel::new()
         .start("service_main", |subsys| run_subsys::<T>(subsys, input_data))
         .handle_shutdown_requests(T::shutdown_timeout())
@@ -29,7 +29,7 @@ async fn get_service_main_impl<T: crate::handler::Handler + Send + 'static>(
 async fn run_subsys<T: crate::handler::Handler + Send + 'static>(
     subsys: SubsystemHandle,
     input_data: Option<T::InputData>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<(), BoxedError> {
     set_env_vars::<T>();
     let (signal_tx, _) = tokio::sync::broadcast::channel(32);
     signal::set_sender(signal_tx.clone());
@@ -93,7 +93,7 @@ async fn run_subsys<T: crate::handler::Handler + Send + 'static>(
         }
     };
 
-    manager.stop().await;
+    let errors = manager.stop().await;
 
     {
         let handle = status_handle.lock().unwrap();
@@ -147,7 +147,7 @@ fn set_env_vars<T: crate::handler::Handler + Send>() {
 
 pub async fn get_direct_handler<T: crate::handler::Handler + Send + 'static>(
     input_data: Option<T::InputData>,
-) -> Result<(), Box<dyn Error + Send + Sync>> {
+) -> Result<(), BoxedError> {
     Toplevel::new()
         .start("service_main", |subsys| {
             direct_subsys::<T>(subsys, input_data)
@@ -160,11 +160,11 @@ pub async fn get_direct_handler<T: crate::handler::Handler + Send + 'static>(
 async fn direct_subsys<T: crate::handler::Handler + Send + 'static>(
     subsys: SubsystemHandle,
     input_data: Option<T::InputData>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<(), BoxedError> {
     let manager = ServiceManager::new(subsys);
     let handler = T::new(manager.get_context().await, input_data).await;
 
     handler.run_service(|| {}).await?;
-    manager.stop().await;
+    let errors = manager.stop().await;
     Ok(())
 }

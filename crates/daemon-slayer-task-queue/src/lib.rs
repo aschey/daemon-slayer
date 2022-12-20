@@ -1,6 +1,7 @@
 mod task_queue;
 use std::pin::Pin;
 
+use daemon_slayer_core::BoxedError;
 pub use task_queue::*;
 mod task_queue_builder;
 pub use task_queue_builder::*;
@@ -20,8 +21,9 @@ impl daemon_slayer_core::server::BackgroundService for TaskQueue {
         "task_queue_service"
     }
 
-    async fn run(self, context: ServiceContext) {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         self.run(context.get_subsystem_handle()).await;
+        Ok(())
     }
 
     async fn get_client(&mut self) -> Self::Client {

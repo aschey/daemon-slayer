@@ -11,7 +11,7 @@ pub mod signal;
 pub mod config;
 
 mod label;
-use std::any::Any;
+use std::{any::Any, error::Error};
 
 pub use label::*;
 
@@ -35,3 +35,5 @@ where
         self
     }
 }
+
+pub type BoxedError = Box<dyn Error + Send + Sync + 'static>;

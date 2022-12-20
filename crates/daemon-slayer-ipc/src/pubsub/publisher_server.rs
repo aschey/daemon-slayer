@@ -1,6 +1,9 @@
 use crate::{build_transport, get_socket_address, Codec, CodecWrapper};
 use bytes::Bytes;
-use daemon_slayer_core::server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle};
+use daemon_slayer_core::{
+    server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle},
+    BoxedError,
+};
 use futures::{channel::oneshot, future, Future, StreamExt};
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use std::{
@@ -175,7 +178,7 @@ where
         "pubsub_server"
     }
 
-    async fn run(self, context: ServiceContext) {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let bind_addr = get_socket_address(&self.app_id, "publisher");
         let mut endpoint = Endpoint::new(bind_addr);
         endpoint.set_security_attributes(SecurityAttributes::allow_everyone_create().unwrap());
@@ -196,6 +199,8 @@ where
                 .execute(new.serve())
                 .await
         }
+
+        Ok(())
     }
 
     async fn get_client(&mut self) -> Self::Client {

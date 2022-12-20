@@ -11,11 +11,12 @@ use daemon_slayer_core::{
     health_check::HealthCheck,
     server::{
         tokio_stream::wrappers::errors::BroadcastStreamRecvError, BackgroundService,
-        BroadcastEventStore, EventService, EventStore, IntoSubsystem, ServiceContext,
+        BroadcastEventStore, EventService, EventStore, FutureExt, IntoSubsystem, ServiceContext,
         SubsystemHandle, Toplevel,
     },
+    BoxedError,
 };
-use futures::{select, Future, FutureExt, Stream, StreamExt};
+use futures::{select, Future, Stream, StreamExt};
 use std::{
     error::Error,
     io::{self, Stdout},
@@ -74,10 +75,15 @@ impl BackgroundService for HealthChecker {
         "health_check_service"
     }
 
-    async fn run(mut self, _context: ServiceContext) {
+    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
         let mut is_healthy: Option<bool> = None;
-        loop {
-            match self.health_check.invoke().await {
+        while let Ok(res) = self
+            .health_check
+            .invoke()
+            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .await
+        {
+            match res {
                 Ok(()) => {
                     if is_healthy != Some(true) {
                         is_healthy = Some(true);
@@ -95,6 +101,8 @@ impl BackgroundService for HealthChecker {
                 Duration::from_secs(self.user_config.load().health_check_interval_seconds);
             tokio::time::sleep(sleep_time).await;
         }
+
+        Ok(())
     }
 
     async fn get_client(&mut self) -> Self::Client {}

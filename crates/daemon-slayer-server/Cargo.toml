@@ -10,6 +10,7 @@ daemon-slayer-macros = {path = "../daemon-slayer-macros", features = ["server"]}
 futures = {version = "0.3"}
 once_cell = "1"
 tap = "1"
+thiserror = "1"
 tracing = "0.1"
 
 [target.'cfg(windows)'.dependencies]

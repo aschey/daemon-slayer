@@ -7,7 +7,10 @@ use std::{
 };
 
 use bytes::{Bytes, BytesMut};
-use daemon_slayer_core::server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle};
+use daemon_slayer_core::{
+    server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle},
+    BoxedError,
+};
 use futures::{
     future::{self, Ready},
     Future, StreamExt,
@@ -69,7 +72,7 @@ where
         "subscriber_server"
     }
 
-    async fn run(mut self, context: ServiceContext) {
+    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
         let mut subscriber_handles = vec![];
         while let Ok(Some((topics, tx))) = self
             .subscriber_rx
@@ -83,6 +86,8 @@ where
                 subscriber.run(subsys).await;
             }));
         }
+
+        Ok(())
     }
 
     async fn get_client(&mut self) -> Self::Client {
