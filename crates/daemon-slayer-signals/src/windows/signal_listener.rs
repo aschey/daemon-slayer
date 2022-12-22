@@ -2,6 +2,7 @@ use super::SignalListenerClient;
 use daemon_slayer_core::{
     server::{BroadcastEventStore, ServiceContext},
     signal::{self, Signal},
+    BoxedError,
 };
 use tracing::info;
 
@@ -34,7 +35,7 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
         "signal_listener_service"
     }
 
-    async fn run(self, context: ServiceContext) {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let cancellation_token = context.cancellation_token();
         let mut ctrl_c_stream = tokio::signal::windows::ctrl_c().unwrap();
         let mut ctrl_break_stream = tokio::signal::windows::ctrl_break().unwrap();
@@ -51,7 +52,7 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
                 _ = ctrl_close_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
                 _ = cancellation_token.cancelled() => {
                     info!("Shutdown requested. Stopping signal handler.");
-                    return;
+                    return Ok(());
                 }
             };
             info!("Signal received. Requesting global shutdown.");

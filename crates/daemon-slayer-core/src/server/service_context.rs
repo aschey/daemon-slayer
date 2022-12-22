@@ -16,7 +16,7 @@ struct ServiceInfo {
 }
 
 #[derive(thiserror::Error, Debug)]
-#[error("")]
+#[error("Some background services failed to execute: {0:?}")]
 pub struct BackgroundServiceErrors(pub Vec<BackgroundServiceError>);
 
 #[derive(thiserror::Error, Debug)]

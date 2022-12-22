@@ -4,6 +4,9 @@ pub use handler::*;
 mod service;
 pub use service::*;
 
+mod service_error;
+pub use service_error::*;
+
 pub mod platform;
 
 #[cfg(feature = "cli")]
