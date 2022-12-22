@@ -12,7 +12,7 @@ use daemon_slayer::cli::Cli;
 use daemon_slayer::client;
 use daemon_slayer::client::cli::ClientCliProvider;
 
-use daemon_slayer::core::Label;
+use daemon_slayer::core::{BoxedError, Label};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::ErrorHandler;
 use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
@@ -74,6 +74,7 @@ struct Config {
 #[async_trait::async_trait]
 impl Handler for ServiceHandler {
     type InputData = ();
+    type Error = BoxedError;
 
     async fn new(mut context: ServiceContext, _input_data: Option<Self::InputData>) -> Self {
         let (_, signal_store) = context.add_event_service(SignalListener::all()).await;
@@ -144,10 +145,7 @@ impl Handler for ServiceHandler {
     //     })
     // }
 
-    async fn run_service<F: FnOnce() + Send>(
-        mut self,
-        on_started: F,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> Result<(), Self::Error> {
         info!("running service");
 
         let app = Router::new()

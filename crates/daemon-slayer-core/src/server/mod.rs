@@ -14,5 +14,4 @@ mod service_context;
 pub use service_context::*;
 
 pub use futures::Stream;
-pub use tokio_graceful_shutdown::{FutureExt, IntoSubsystem, SubsystemHandle, Toplevel};
 pub use tokio_stream;

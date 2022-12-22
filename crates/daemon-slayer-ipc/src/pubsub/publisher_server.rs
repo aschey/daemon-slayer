@@ -1,8 +1,8 @@
 use crate::{build_transport, get_socket_address, Codec, CodecWrapper};
 use bytes::Bytes;
 use daemon_slayer_core::{
-    server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle},
-    BoxedError,
+    server::{BackgroundService, ServiceContext},
+    BoxedError, FutureExt,
 };
 use futures::{channel::oneshot, future, Future, StreamExt};
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
@@ -191,7 +191,7 @@ where
         futures::pin_mut!(incoming);
         while let Ok(Some(Ok(publisher))) = incoming
             .next()
-            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .cancel_on_shutdown(&context.cancellation_token())
             .await
         {
             let new = self.clone();

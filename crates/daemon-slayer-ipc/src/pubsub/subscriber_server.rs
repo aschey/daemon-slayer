@@ -8,8 +8,8 @@ use std::{
 
 use bytes::{Bytes, BytesMut};
 use daemon_slayer_core::{
-    server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle},
-    BoxedError,
+    server::{BackgroundService, ServiceContext},
+    BoxedError, FutureExt,
 };
 use futures::{
     future::{self, Ready},
@@ -77,13 +77,13 @@ where
         while let Ok(Some((topics, tx))) = self
             .subscriber_rx
             .recv()
-            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .cancel_on_shutdown(&context.cancellation_token())
             .await
         {
             let subscriber = Subscriber::new(&self.app_id, tx, topics, self.codec.clone()).await;
-            let subsys = context.get_subsystem_handle();
+            let cancellation_token = context.cancellation_token();
             subscriber_handles.push(tokio::spawn(async move {
-                subscriber.run(subsys).await;
+                subscriber.run(cancellation_token).await;
             }));
         }
 

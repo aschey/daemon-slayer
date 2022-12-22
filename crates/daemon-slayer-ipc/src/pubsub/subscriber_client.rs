@@ -7,7 +7,7 @@ use std::{
 };
 
 use bytes::{Bytes, BytesMut};
-use daemon_slayer_core::server::{BackgroundService, FutureExt, SubsystemHandle};
+use daemon_slayer_core::{server::BackgroundService, FutureExt};
 use futures::{
     future::{self, Ready},
     Future, StreamExt,

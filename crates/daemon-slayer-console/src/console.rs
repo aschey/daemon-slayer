@@ -11,10 +11,9 @@ use daemon_slayer_core::{
     health_check::HealthCheck,
     server::{
         tokio_stream::wrappers::errors::BroadcastStreamRecvError, BackgroundService,
-        BroadcastEventStore, EventService, EventStore, FutureExt, IntoSubsystem, ServiceContext,
-        SubsystemHandle, Toplevel,
+        BroadcastEventStore, EventService, EventStore, ServiceContext, ServiceManager,
     },
-    BoxedError,
+    BoxedError, CancellationToken, FutureExt,
 };
 use futures::{select, Future, Stream, StreamExt};
 use std::{
@@ -80,7 +79,7 @@ impl BackgroundService for HealthChecker {
         while let Ok(res) = self
             .health_check
             .invoke()
-            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .cancel_on_shutdown(&context.cancellation_token())
             .await
         {
             match res {
@@ -170,14 +169,6 @@ impl Console {
     }
 
     pub async fn run(self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        Toplevel::new()
-            .start("console", |subsys| self.run_subsys(subsys))
-            .handle_shutdown_requests(Duration::from_secs(1))
-            .await?;
-        Ok(())
-    }
-
-    async fn run_subsys(self, subsys: SubsystemHandle) -> Result<(), Box<dyn Error + Send + Sync>> {
         // setup terminal
         enable_raw_mode()?;
         let mut stdout = io::stdout();
@@ -186,7 +177,7 @@ impl Console {
         let mut terminal = Terminal::new(backend)?;
 
         // create app and run it
-        let res = self.run_app(&mut terminal, subsys).await;
+        let res = self.run_app(&mut terminal, CancellationToken::new()).await;
 
         // restore terminal
         disable_raw_mode()?;
@@ -207,9 +198,9 @@ impl Console {
     async fn run_app(
         mut self,
         terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-        subsys: SubsystemHandle,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let manager = daemon_slayer_core::server::ServiceManager::new(subsys.clone());
+        cancellation_token: CancellationToken,
+    ) -> Result<(), BoxedError> {
+        let manager = ServiceManager::new(cancellation_token.child_token());
         let context = manager.get_context().await;
         if let Some(mut event_fn) = self.event_fn.take() {
             event_fn(context).await;
@@ -249,7 +240,7 @@ impl Console {
                                 match (key.modifiers, key.code) {
                                     (_, KeyCode::Char('q') | KeyCode::Esc) |
                                         (KeyModifiers::CONTROL, KeyCode::Char('c')) => {
-                                            subsys.request_shutdown();
+                                            cancellation_token.cancel();
                                             return Ok(());
                                         },
                                     (_, KeyCode::Down) =>  self.logs.next(),

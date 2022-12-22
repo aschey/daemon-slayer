@@ -1,17 +1,12 @@
 mod task_queue;
-use std::pin::Pin;
-
 use daemon_slayer_core::BoxedError;
 pub use task_queue::*;
 mod task_queue_builder;
-pub use task_queue_builder::*;
-
 pub use aide_de_camp::prelude::{CancellationToken, JobProcessor, RunnerOptions, Xid};
 pub use aide_de_camp::prelude::{Decode, Encode, JobError, RunnerRouter};
-use daemon_slayer_core::server::{EventStore, ServiceContext, Stream, SubsystemHandle};
+use daemon_slayer_core::server::{EventStore, ServiceContext, Stream};
 pub use sqlx::sqlite::SqliteConnectOptions;
-use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
-use tokio_stream::wrappers::BroadcastStream;
+pub use task_queue_builder::*;
 
 #[async_trait::async_trait]
 impl daemon_slayer_core::server::BackgroundService for TaskQueue {
@@ -22,7 +17,7 @@ impl daemon_slayer_core::server::BackgroundService for TaskQueue {
     }
 
     async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
-        self.run(context.get_subsystem_handle()).await;
+        self.run(context.cancellation_token()).await;
         Ok(())
     }
 

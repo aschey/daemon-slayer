@@ -3,10 +3,9 @@ use std::{ops::Deref, sync::Arc};
 use daemon_slayer_core::{
     config::Accessor,
     server::{
-        tokio_stream::StreamExt, BackgroundService, BroadcastEventStore, EventStore, FutureExt,
-        ServiceContext,
+        tokio_stream::StreamExt, BackgroundService, BroadcastEventStore, EventStore, ServiceContext,
     },
-    BoxedError,
+    BoxedError, FutureExt,
 };
 
 use crate::{LoggerGuard, UserConfig};
@@ -34,7 +33,7 @@ impl<T: AsRef<UserConfig> + Send + Sync + 'static> BackgroundService for Logging
         let mut rx = self.file_events.subscribe_events();
         while let Ok(Some(Ok((_, new)))) = rx
             .next()
-            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .cancel_on_shutdown(&context.cancellation_token())
             .await
         {
             let log_level = new.deref().as_ref().log_level.to_level_filter();

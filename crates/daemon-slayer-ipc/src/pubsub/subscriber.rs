@@ -6,7 +6,7 @@ use std::{
 };
 
 use bytes::{Bytes, BytesMut};
-use daemon_slayer_core::server::{FutureExt, SubsystemHandle};
+use daemon_slayer_core::{CancellationToken, FutureExt};
 use futures::{
     future::{self, Ready},
     Future, StreamExt,
@@ -92,7 +92,7 @@ where
         }
     }
 
-    pub async fn run(self, subsys: SubsystemHandle) {
+    pub async fn run(self, cancellation_token: CancellationToken) {
         let bind_addr = get_socket_address(&self.app_id, "subscriber");
         let publisher = IpcClientStream::new(bind_addr);
 
@@ -112,7 +112,8 @@ where
         };
         handler
             .execute(self.serve())
-            .cancel_on_shutdown(&subsys)
-            .await;
+            .cancel_on_shutdown(&cancellation_token)
+            .await
+            .ok();
     }
 }

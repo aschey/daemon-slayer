@@ -1,6 +1,6 @@
 use super::SignalListenerClient;
 use daemon_slayer_core::{
-    server::{BroadcastEventStore, ServiceContext, SubsystemHandle},
+    server::{BroadcastEventStore, ServiceContext},
     signal::{self, Signal},
 };
 use tracing::info;
@@ -35,7 +35,7 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
     }
 
     async fn run(self, context: ServiceContext) {
-        let subsys = context.get_subsystem_handle();
+        let cancellation_token = context.cancellation_token();
         let mut ctrl_c_stream = tokio::signal::windows::ctrl_c().unwrap();
         let mut ctrl_break_stream = tokio::signal::windows::ctrl_break().unwrap();
         let mut ctrl_shutdown_stream = tokio::signal::windows::ctrl_shutdown().unwrap();
@@ -49,13 +49,13 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
                 _ = ctrl_shutdown_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
                 _ = ctrl_logoff_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
                 _ = ctrl_close_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
-                _ = subsys.on_shutdown_requested() => {
+                _ = cancellation_token.cancelled() => {
                     info!("Shutdown requested. Stopping signal handler.");
                     return;
                 }
             };
             info!("Signal received. Requesting global shutdown.");
-            subsys.request_global_shutdown();
+            cancellation_token.cancel();
         }
     }
 

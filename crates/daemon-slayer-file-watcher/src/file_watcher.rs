@@ -5,8 +5,8 @@ use std::{
 };
 
 use daemon_slayer_core::{
-    server::{BroadcastEventStore, FutureExt, ServiceContext, SubsystemHandle},
-    BoxedError,
+    server::{BroadcastEventStore, ServiceContext},
+    BoxedError, FutureExt,
 };
 use notify::RecommendedWatcher;
 use notify_debouncer_mini::Debouncer;
@@ -78,7 +78,7 @@ impl daemon_slayer_core::server::BackgroundService for FileWatcher {
         while let Ok(Some(command)) = self
             .command_rx
             .recv()
-            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .cancel_on_shutdown(&context.cancellation_token())
             .await
         {
             match command {

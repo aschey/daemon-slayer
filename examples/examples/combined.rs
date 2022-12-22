@@ -17,8 +17,7 @@ use daemon_slayer::config::{self, AppConfig, ConfigFileType};
 use daemon_slayer::console::cli::ConsoleCliProvider;
 use daemon_slayer::console::{self, Console};
 use daemon_slayer::core::config::Accessor;
-use daemon_slayer::core::server::Toplevel;
-use daemon_slayer::core::Label;
+use daemon_slayer::core::{BoxedError, Label};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::health_check::cli::HealthCheckCliProvider;
 use daemon_slayer::health_check::IpcHealthCheck;
@@ -151,7 +150,9 @@ pub struct ServiceHandler {
 
 #[async_trait::async_trait]
 impl Handler for ServiceHandler {
+    type Error = BoxedError;
     type InputData = AppData;
+
     fn label() -> Label {
         "com.example.daemonslayercombined".parse().unwrap()
     }
@@ -177,10 +178,7 @@ impl Handler for ServiceHandler {
         Self { signal_store }
     }
 
-    async fn run_service<F: FnOnce() + Send>(
-        mut self,
-        on_started: F,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> Result<(), Self::Error> {
         info!("running service");
         on_started();
         let mut signal_rx = self.signal_store.subscribe_events();

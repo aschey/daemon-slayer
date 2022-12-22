@@ -1,9 +1,6 @@
 use std::{error::Error, time::Duration};
 
-use daemon_slayer_core::{
-    server::{FutureExt, ServiceContext, SubsystemHandle},
-    BoxedError,
-};
+use daemon_slayer_core::{server::ServiceContext, BoxedError, FutureExt};
 use futures::StreamExt;
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use tokio::{
@@ -44,7 +41,7 @@ impl daemon_slayer_core::server::BackgroundService for Server {
 
         while let Ok(Some(result)) = incoming
             .next()
-            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .cancel_on_shutdown(&context.cancellation_token())
             .await
         {
             match result {

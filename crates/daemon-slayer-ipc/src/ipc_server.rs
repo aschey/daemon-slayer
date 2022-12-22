@@ -2,8 +2,8 @@ use std::{marker::PhantomData, mem, pin::Pin};
 
 use bytes::{Bytes, BytesMut};
 use daemon_slayer_core::{
-    server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle},
-    BoxedError,
+    server::{BackgroundService, ServiceContext},
+    BoxedError, FutureExt,
 };
 use futures::{SinkExt, StreamExt};
 use parity_tokio_ipc::Endpoint;
@@ -60,7 +60,7 @@ where
 
         while let Ok(Some(Ok(stream))) = incoming
             .next()
-            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .cancel_on_shutdown(&context.cancellation_token())
             .await
         {
             let mut transport = build_transport(

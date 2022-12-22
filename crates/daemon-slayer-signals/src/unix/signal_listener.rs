@@ -61,7 +61,7 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
             let signal: Signal = signal_name.into();
             self.signal_tx.send(signal.clone()).ok();
             if let Signal::SIGTERM | Signal::SIGQUIT | Signal::SIGINT = signal {
-                context.get_subsystem_handle().request_global_shutdown();
+                context.cancellation_token().cancel();
                 signals_handle.close();
                 return Ok(());
             }

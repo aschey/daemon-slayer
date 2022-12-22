@@ -4,7 +4,7 @@ use tokio::{
     sync::RwLock,
     task::{JoinError, JoinHandle},
 };
-use tokio_graceful_shutdown::SubsystemHandle;
+use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
 use super::{BackgroundService, EventService};
@@ -14,6 +14,10 @@ struct ServiceInfo {
     timeout: Duration,
     handle: JoinHandle<Result<(), BoxedError>>,
 }
+
+#[derive(thiserror::Error, Debug)]
+#[error("")]
+pub struct BackgroundServiceErrors(pub Vec<BackgroundServiceError>);
 
 #[derive(thiserror::Error, Debug)]
 pub enum BackgroundServiceError {
@@ -26,20 +30,20 @@ pub enum BackgroundServiceError {
 }
 
 pub struct ServiceManager {
-    subsys: SubsystemHandle,
+    cancellation_token: CancellationToken,
     services: Arc<RwLock<Option<Vec<ServiceInfo>>>>,
 }
 
 impl ServiceManager {
-    pub fn new(subsys: SubsystemHandle) -> Self {
+    pub fn new(cancellation_token: CancellationToken) -> Self {
         Self {
             services: Arc::new(RwLock::new(Some(vec![]))),
-            subsys,
+            cancellation_token,
         }
     }
 
-    pub async fn stop(self) -> Vec<BackgroundServiceError> {
-        self.subsys.request_global_shutdown();
+    pub async fn stop(self) -> Result<(), BackgroundServiceErrors> {
+        self.cancellation_token.cancel();
         let mut errors = vec![];
         if let Some(services) = self.services.write().await.take() {
             for service in services {
@@ -59,12 +63,16 @@ impl ServiceManager {
                 }
             }
         }
-        errors
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(BackgroundServiceErrors(errors))
+        }
     }
 
     pub async fn get_context(&self) -> ServiceContext {
         ServiceContext {
-            subsys: self.subsys.clone(),
+            cancellation_token: self.cancellation_token.child_token(),
             services: self.services.clone(),
         }
     }
@@ -72,13 +80,13 @@ impl ServiceManager {
 
 #[derive(Clone)]
 pub struct ServiceContext {
-    subsys: SubsystemHandle,
+    cancellation_token: CancellationToken,
     services: Arc<RwLock<Option<Vec<ServiceInfo>>>>,
 }
 
 impl ServiceContext {
-    pub fn get_subsystem_handle(&self) -> SubsystemHandle {
-        self.subsys.clone()
+    pub fn cancellation_token(&self) -> CancellationToken {
+        self.cancellation_token.child_token()
     }
 
     pub async fn add_event_service<S: EventService + 'static>(
@@ -90,6 +98,7 @@ impl ServiceContext {
             let event_store = service.get_event_store();
             let context = self.clone();
             let handle = tokio::spawn(async move { service.run(context).await });
+
             services.push(ServiceInfo {
                 handle,
                 name: S::name().to_owned(),

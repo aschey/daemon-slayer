@@ -4,7 +4,7 @@ use aide_de_camp::prelude::{Decode, Encode, JobError, QueueError};
 use aide_de_camp::prelude::{Duration, JobRunner, Queue};
 use aide_de_camp::prelude::{JobProcessor, Xid};
 use aide_de_camp_sqlite::{SqliteQueue, MIGRATOR};
-use daemon_slayer_core::server::SubsystemHandle;
+use daemon_slayer_core::CancellationToken;
 use sqlx::SqlitePool;
 use tracing::info;
 
@@ -108,12 +108,12 @@ impl TaskQueue {
         Self { queue, runner }
     }
 
-    pub async fn run(mut self, subsys: SubsystemHandle) {
+    pub async fn run(mut self, cancellation_token: CancellationToken) {
         info!("Running job server");
         self.runner
             .run_with_shutdown(
                 Duration::seconds(1),
-                Box::pin(async move { subsys.on_shutdown_requested().await }),
+                Box::pin(async move { cancellation_token.cancelled().await }),
             )
             .await
             .unwrap();

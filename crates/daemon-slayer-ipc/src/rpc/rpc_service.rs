@@ -1,6 +1,6 @@
 use daemon_slayer_core::{
-    server::{BackgroundService, FutureExt, ServiceContext, SubsystemHandle},
-    BoxedError,
+    server::{BackgroundService, ServiceContext},
+    BoxedError, FutureExt,
 };
 use futures::{future, StreamExt};
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
@@ -66,7 +66,7 @@ where
             .map(|(base_chan, peer)| base_chan.execute(service_provider.get_service(peer)))
             .buffer_unordered(10)
             .for_each(|_| async {})
-            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .cancel_on_shutdown(&context.cancellation_token())
             .await
             .ok();
         Ok(())

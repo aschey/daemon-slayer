@@ -18,7 +18,7 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
 
         #[#crate_name::async_trait::async_trait]
         impl #crate_name::Service for #ident {
-            async fn run_as_service(input_data: Option<Self::InputData>) ->  Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            async fn run_as_service(input_data: Option<Self::InputData>) ->  Result<(), #crate_name::ServiceError<Self::Error>> {
                 if let Err(e) = __INPUT_DATA.set(Box::new(input_data)) {
                     panic!("set data failed");
                 }
@@ -26,7 +26,7 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
                 Ok(())
             }
 
-            async fn run_directly(input_data: Option<Self::InputData>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            async fn run_directly(input_data: Option<Self::InputData>) -> Result<(), #crate_name::ServiceError<Self::Error>> {
                 #crate_name::platform::get_direct_handler::<#ident>(input_data).await
             }
         }

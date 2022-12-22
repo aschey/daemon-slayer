@@ -1,15 +1,11 @@
-use std::{path::PathBuf, sync::Arc};
-
 use crate::{AppConfig, Config};
 use daemon_slayer_core::{
-    server::{
-        BackgroundService, BroadcastEventStore, EventService, EventStore, FutureExt,
-        ServiceContext, SubsystemHandle,
-    },
-    BoxedError,
+    server::{BackgroundService, BroadcastEventStore, EventService, EventStore, ServiceContext},
+    BoxedError, FutureExt,
 };
 use daemon_slayer_file_watcher::FileWatcher;
 use futures::stream::StreamExt;
+use std::sync::Arc;
 
 pub struct ConfigClient {}
 
@@ -55,7 +51,7 @@ where
 
         while let Ok(Some(_)) = event_stream
             .next()
-            .cancel_on_shutdown(&context.get_subsystem_handle())
+            .cancel_on_shutdown(&context.cancellation_token())
             .await
         {
             let current = self.config.snapshot();

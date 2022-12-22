@@ -1,5 +1,7 @@
 use crate::Service;
-use daemon_slayer_core::cli::{clap, Action, ActionType, CommandConfig, CommandType, InputState};
+use daemon_slayer_core::cli::{
+    clap, Action, ActionType, CommandConfig, CommandProvider, CommandType, InputState,
+};
 use std::{collections::HashMap, error::Error, marker::PhantomData};
 
 pub struct ServerCliProvider<S: Service + Send + Sync> {
@@ -47,9 +49,7 @@ impl<S: Service + Send + Sync + 'static> ServerCliProvider<S> {
 }
 
 #[async_trait::async_trait]
-impl<S: Service + Send + Sync + 'static> daemon_slayer_core::cli::CommandProvider
-    for ServerCliProvider<S>
-{
+impl<S: Service + Send + Sync + 'static> CommandProvider for ServerCliProvider<S> {
     fn get_action_type(&self) -> ActionType {
         ActionType::Server
     }
@@ -65,11 +65,11 @@ impl<S: Service + Send + Sync + 'static> daemon_slayer_core::cli::CommandProvide
     ) -> Result<InputState, Box<dyn Error>> {
         match matched_command.as_ref().map(|c| &c.action) {
             Some(Some(Action::Direct)) => {
-                S::run_directly(self.input_data).await.unwrap();
+                S::run_directly(self.input_data).await?;
                 Ok(InputState::Handled)
             }
             Some(Some(Action::Run)) => {
-                S::run_as_service(self.input_data).await.unwrap();
+                S::run_as_service(self.input_data).await?;
                 Ok(InputState::Handled)
             }
             _ => Ok(InputState::Unhandled),

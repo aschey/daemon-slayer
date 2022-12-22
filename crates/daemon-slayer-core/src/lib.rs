@@ -10,10 +10,12 @@ pub mod signal;
 #[cfg(feature = "config")]
 pub mod config;
 
+mod future_ext;
+pub use future_ext::*;
 mod label;
-use std::{any::Any, error::Error};
-
 pub use label::*;
+use std::{any::Any, error::Error};
+pub use tokio_util::sync::CancellationToken;
 
 #[cfg(feature = "daemon-slayer-macros")]
 pub use daemon_slayer_macros::*;
