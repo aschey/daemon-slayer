@@ -1,9 +1,8 @@
-use daemon_slayer_core::cli::{
-    Action, ActionType, ArgMatchesExt, CommandConfig, CommandProvider, CommandType, InputState,
-};
-use std::error::Error;
-
 use crate::Builder;
+use daemon_slayer_core::{
+    cli::{ActionType, ArgMatchesExt, CommandConfig, CommandProvider, InputState},
+    BoxedError,
+};
 
 pub struct Cli {
     providers: Vec<Box<dyn CommandProvider>>,
@@ -19,7 +18,7 @@ impl Cli {
     pub(crate) fn new(
         mut providers: Vec<Box<dyn CommandProvider>>,
         matches: clap::ArgMatches,
-    ) -> Self {
+    ) -> Result<Self, BoxedError> {
         let mut matched_command: Option<CommandConfig> = None;
         for provider in &providers {
             for cmd in provider.get_commands() {
@@ -29,13 +28,13 @@ impl Cli {
             }
         }
         for provider in &mut providers {
-            provider.initialize(&matches, &matched_command);
+            provider.initialize(&matches, &matched_command)?;
         }
-        Self {
+        Ok(Self {
             providers,
             matches,
             matched_command,
-        }
+        })
     }
 
     pub fn action_type(&self, matches: &clap::ArgMatches) -> ActionType {
@@ -58,7 +57,7 @@ impl Cli {
             .find_map(|p| p.as_any_mut().downcast_mut::<T>())
     }
 
-    pub async fn handle_input(self) -> Result<(InputState, clap::ArgMatches), Box<dyn Error>> {
+    pub async fn handle_input(self) -> Result<(InputState, clap::ArgMatches), BoxedError> {
         for provider in self.providers {
             if provider
                 .handle_input(&self.matches, &self.matched_command)

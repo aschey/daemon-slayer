@@ -51,12 +51,13 @@ pub async fn main() {
         .with_provider(ServerCliProvider::<ServiceHandler>::default())
         .with_provider(ErrorHandlerCliProvider::default())
         .with_provider(logging_provider.clone())
-        .initialize();
+        .initialize()
+        .unwrap();
 
     let (logger, _guard) = logging_provider.get_logger();
     logger.init();
 
-    cli.handle_input().await;
+    cli.handle_input().await.unwrap();
 }
 
 #[derive(daemon_slayer::server::Service)]

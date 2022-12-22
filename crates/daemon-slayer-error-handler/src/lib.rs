@@ -1,5 +1,5 @@
 pub use color_eyre::config::Theme;
-use std::error::Error;
+use daemon_slayer_core::BoxedError;
 use tracing::error;
 #[cfg(feature = "cli")]
 pub mod cli;
@@ -47,7 +47,7 @@ impl ErrorHandler {
         Self { log, ..self }
     }
 
-    pub fn install(self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn install(self) -> Result<(), BoxedError> {
         let (panic_hook, eyre_hook) = color_eyre::config::HookBuilder::default()
             .add_default_filters()
             .theme(self.theme)

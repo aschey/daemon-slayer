@@ -1,8 +1,7 @@
-use std::error::Error;
-
 use daemon_slayer_core::{
     cli::{clap, ActionType, CommandConfig, CommandProvider, CommandType, InputState},
     health_check::HealthCheck,
+    BoxedError,
 };
 
 #[derive(Clone)]
@@ -35,7 +34,7 @@ impl<H: HealthCheck + Clone + Send + 'static> CommandProvider for HealthCheckCli
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandConfig>,
-    ) -> Result<InputState, Box<dyn Error>> {
+    ) -> Result<InputState, BoxedError> {
         match matched_command.as_ref().map(|c| &c.command_type) {
             Some(CommandType::Subcommand {
                 name,

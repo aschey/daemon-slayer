@@ -2,8 +2,11 @@ use std::error::Error;
 
 use confique::Config;
 use daemon_slayer_client::Manager;
-use daemon_slayer_core::cli::{
-    clap, ActionType, ArgMatchesExt, CommandConfig, CommandProvider, CommandType, InputState,
+use daemon_slayer_core::{
+    cli::{
+        clap, ActionType, ArgMatchesExt, CommandConfig, CommandProvider, CommandType, InputState,
+    },
+    BoxedError,
 };
 
 use crate::AppConfig;
@@ -80,7 +83,7 @@ impl<T: Config + Default + Send + Sync + Clone + 'static> CommandProvider for Co
         mut self: Box<Self>,
         matches: &clap::ArgMatches,
         matched_command: &Option<CommandConfig>,
-    ) -> Result<InputState, Box<dyn Error>> {
+    ) -> Result<InputState, BoxedError> {
         match matched_command.as_ref().map(|c| &c.command_type) {
             Some(CommandType::Subcommand {
                 name,

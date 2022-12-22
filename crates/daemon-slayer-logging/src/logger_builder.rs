@@ -1,28 +1,21 @@
+use daemon_slayer_core::{
+    config::{Accessor, CachedConfig},
+    BoxedError, Label,
+};
+use once_cell::sync::OnceCell;
 use std::{
     collections::HashMap,
-    error::Error,
-    fmt::{self, Display},
     io::{stderr, stdout},
     ops::Deref,
     str::FromStr,
 };
-
-use daemon_slayer_core::{
-    config::{Accessor, CachedConfig},
-    server::BackgroundService,
-    Label,
-};
-use once_cell::sync::OnceCell;
 use time::{
     format_description::well_known::{self, Rfc3339},
     UtcOffset,
 };
 
 use super::{logger_guard::LoggerGuard, timezone::Timezone};
-use tracing::{
-    metadata::{LevelFilter, ParseLevelError},
-    Level, Subscriber,
-};
+use tracing::{metadata::LevelFilter, Level, Subscriber};
 use tracing_appender::non_blocking::NonBlockingBuilder;
 
 use tracing_subscriber::{
@@ -30,7 +23,7 @@ use tracing_subscriber::{
     fmt::{time::OffsetTime, Layer},
     prelude::*,
     registry::LookupSpan,
-    reload::{self, Handle},
+    reload,
     util::SubscriberInitExt,
     EnvFilter, Layer as SubscriberLayer,
 };
@@ -196,7 +189,7 @@ impl LoggerBuilder {
         }
     }
 
-    pub fn register(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn register(&self) -> Result<(), BoxedError> {
         #[cfg(all(windows, feature = "windows-eventlog"))]
         {
             use tracing_eventlog::EventLogRegistry;
@@ -206,7 +199,7 @@ impl LoggerBuilder {
         Ok(())
     }
 
-    pub fn deregister(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn deregister(&self) -> Result<(), BoxedError> {
         #[cfg(all(windows, feature = "windows-eventlog"))]
         {
             use tracing_eventlog::EventLogRegistry;
@@ -223,7 +216,7 @@ impl LoggerBuilder {
             impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
             LoggerGuard,
         ),
-        Box<dyn Error + Send + Sync>,
+        BoxedError,
     > {
         let offset = match (&self.timezone, LOCAL_TIME.get()) {
             (Timezone::Local, Some(Ok(offset))) => offset.to_owned(),

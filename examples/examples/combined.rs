@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::process::ExitCode;
 use std::time::Duration;
 
 use arc_swap::access::{DynAccess, Map};
@@ -32,11 +33,17 @@ use daemon_slayer::server::{
 use daemon_slayer::server::{Signal, SignalHandler};
 use daemon_slayer::signals::SignalListener;
 use futures::StreamExt;
-use tracing::info;
+use tracing::{error, info};
 
-pub fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+pub fn main() -> ExitCode {
     daemon_slayer::logging::init_local_time();
-    run_async()
+    match run_async() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            error!("{e:?}");
+            ExitCode::FAILURE
+        }
+    }
 }
 
 #[derive(Debug, confique::Config, Default, Clone)]
@@ -76,7 +83,7 @@ pub struct AppData {
 }
 
 #[tokio::main]
-pub async fn run_async() -> Result<(), Box<dyn Error + Send + Sync>> {
+pub async fn run_async() -> Result<(), BoxedError> {
     let app_config = AppConfig::<MyConfig>::new(ServiceHandler::label(), ConfigFileType::Toml);
 
     app_config.create_config_template();

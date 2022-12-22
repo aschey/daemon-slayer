@@ -1,14 +1,14 @@
-use daemon_slayer_core::server::BackgroundServiceErrors;
-use std::{error::Error, fmt};
+use daemon_slayer_core::{server::BackgroundServiceErrors, BoxedError};
+use std::fmt;
 
 #[derive(thiserror::Error, Debug)]
-pub enum ServiceError<E: fmt::Debug + Send + Sync> {
+pub enum ServiceError<E: fmt::Debug + Send + Sync + 'static> {
     #[error("Error executing service: {0:?}. Background service failures: {1:?}")]
     ExecutionFailure(E, Option<BackgroundServiceErrors>),
     #[error("{0:?}")]
     BackgroundServiceFailure(BackgroundServiceErrors),
     #[error("Service manager failed during initialization: {0}: {1:?}")]
-    InitializationFailure(String, #[source] Box<dyn Error>),
+    InitializationFailure(String, #[source] BoxedError),
 }
 
 impl<E: fmt::Debug + Send + Sync> ServiceError<E> {

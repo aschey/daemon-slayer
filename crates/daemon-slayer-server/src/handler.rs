@@ -4,7 +4,7 @@ use std::{fmt, time::Duration};
 #[async_trait::async_trait]
 pub trait Handler {
     type InputData: Clone + Send + Sync + 'static;
-    type Error: fmt::Debug + Send + Sync;
+    type Error: fmt::Debug + Send + Sync + 'static;
 
     async fn new(context: ServiceContext, input_data: Option<Self::InputData>) -> Self;
 

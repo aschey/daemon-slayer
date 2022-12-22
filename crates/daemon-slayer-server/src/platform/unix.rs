@@ -24,14 +24,5 @@ pub async fn run_as_service<T: Handler + Send + 'static>(
         .ok();
 
     let background_service_errors = manager.stop().await;
-    match (result, background_service_errors) {
-        (Ok(()), Ok(())) => Ok(()),
-        (Ok(()), Err(service_errors)) => {
-            Err(ServiceError::BackgroundServiceFailure(service_errors))
-        }
-        (Err(e), Ok(())) => Err(ServiceError::ExecutionFailure(e, None)),
-        (Err(e), Err(service_errors)) => {
-            Err(ServiceError::ExecutionFailure(e, Some(service_errors)))
-        }
-    }
+    ServiceError::from_service_result(result, background_service_errors)
 }

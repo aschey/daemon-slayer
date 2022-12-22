@@ -1,6 +1,4 @@
-use std::error::Error;
-
-use daemon_slayer_core::health_check::HealthCheck;
+use daemon_slayer_core::{health_check::HealthCheck, BoxedError};
 
 #[derive(Clone)]
 pub enum HttpRequestType {
@@ -18,7 +16,7 @@ impl HttpHealthCheck {
     pub fn new(
         request_type: HttpRequestType,
         url: impl reqwest::IntoUrl,
-    ) -> Result<Self, Box<dyn Error + Send + Sync>> {
+    ) -> Result<Self, BoxedError> {
         Ok(Self {
             request_type,
             url: url.into_url()?,
@@ -28,7 +26,7 @@ impl HttpHealthCheck {
 
 #[async_trait::async_trait]
 impl HealthCheck for HttpHealthCheck {
-    async fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn invoke(&mut self) -> Result<(), BoxedError> {
         let response = match &self.request_type {
             HttpRequestType::Get => reqwest::get(self.url.clone()).await?,
             HttpRequestType::Head => {

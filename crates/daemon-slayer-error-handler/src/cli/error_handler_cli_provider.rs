@@ -1,6 +1,8 @@
 use color_eyre::config::Theme;
-use daemon_slayer_core::cli::{clap, Action, ActionType, CommandConfig, InputState};
-use std::error::Error;
+use daemon_slayer_core::{
+    cli::{clap, Action, ActionType, CommandConfig, InputState},
+    BoxedError,
+};
 
 use crate::ErrorHandler;
 
@@ -17,7 +19,11 @@ impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
         vec![]
     }
 
-    fn initialize(&mut self, _matches: &clap::ArgMatches, matched_command: &Option<CommandConfig>) {
+    fn initialize(
+        &mut self,
+        _matches: &clap::ArgMatches,
+        matched_command: &Option<CommandConfig>,
+    ) -> Result<(), BoxedError> {
         if let Some(Some(action)) = matched_command.as_ref().map(|c| &c.action) {
             if action == &Action::Run {
                 ErrorHandler::default()
@@ -25,20 +31,20 @@ impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
                     .with_write_to_stdout(false)
                     .with_write_to_stderr(false)
                     .with_log(true)
-                    .install()
-                    .unwrap();
-                return;
+                    .install()?;
+                return Ok(());
             }
         }
 
-        ErrorHandler::default().install().unwrap();
+        ErrorHandler::default().install()?;
+        Ok(())
     }
 
     async fn handle_input(
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         _matched_command: &Option<CommandConfig>,
-    ) -> Result<InputState, Box<dyn Error>> {
+    ) -> Result<InputState, BoxedError> {
         Ok(InputState::Unhandled)
     }
 }

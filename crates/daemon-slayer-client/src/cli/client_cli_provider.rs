@@ -1,6 +1,9 @@
 use crate::Manager;
-use daemon_slayer_core::cli::{clap, Action, ActionType, CommandConfig, CommandType, InputState};
-use std::{collections::HashMap, error::Error};
+use daemon_slayer_core::{
+    cli::{clap, Action, ActionType, CommandConfig, CommandType, InputState},
+    BoxedError,
+};
+use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct ClientCliProvider {
@@ -175,7 +178,7 @@ impl daemon_slayer_core::cli::CommandProvider for ClientCliProvider {
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandConfig>,
-    ) -> Result<InputState, Box<dyn Error>> {
+    ) -> Result<InputState, BoxedError> {
         if let Some(matched_command) = matched_command {
             if matched_command.action_type == ActionType::Client {
                 match matched_command.action {

@@ -1,6 +1,5 @@
 use super::{Action, ActionType, ArgMatchesExt, CommandExt, CommandType, InputState};
-use crate::AsAny;
-use std::error::Error;
+use crate::{AsAny, BoxedError};
 
 #[derive(Clone)]
 pub struct CommandConfig {
@@ -11,21 +10,22 @@ pub struct CommandConfig {
 
 #[async_trait::async_trait]
 pub trait CommandProvider: AsAny + Send + 'static {
+    fn get_action_type(&self) -> ActionType;
+
+    fn get_commands(&self) -> Vec<&CommandConfig>;
+
     async fn handle_input(
         self: Box<Self>,
         matches: &clap::ArgMatches,
         matched_command: &Option<CommandConfig>,
-    ) -> Result<InputState, Box<dyn Error>>;
-
-    fn get_action_type(&self) -> ActionType;
-
-    fn get_commands(&self) -> Vec<&CommandConfig>;
+    ) -> Result<InputState, BoxedError>;
 
     fn initialize(
         &mut self,
         _matches: &clap::ArgMatches,
         _matched_command: &Option<CommandConfig>,
-    ) {
+    ) -> Result<(), BoxedError> {
+        Ok(())
     }
 
     fn update_command(&self, mut command: clap::Command) -> clap::Command {

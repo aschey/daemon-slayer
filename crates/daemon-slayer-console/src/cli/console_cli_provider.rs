@@ -1,5 +1,8 @@
 use crate::Console;
-use daemon_slayer_core::cli::{clap, ActionType, CommandConfig, CommandType, InputState};
+use daemon_slayer_core::{
+    cli::{clap, ActionType, CommandConfig, CommandType, InputState},
+    BoxedError,
+};
 use std::error::Error;
 
 pub struct ConsoleCliProvider {
@@ -42,7 +45,7 @@ impl daemon_slayer_core::cli::CommandProvider for ConsoleCliProvider {
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandConfig>,
-    ) -> Result<InputState, Box<dyn Error>> {
+    ) -> Result<InputState, BoxedError> {
         match matched_command.as_ref().map(|c| &c.command_type) {
             Some(CommandType::Subcommand {
                 name,

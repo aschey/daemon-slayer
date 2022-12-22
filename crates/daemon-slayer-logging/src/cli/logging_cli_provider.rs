@@ -1,9 +1,9 @@
 use crate::{LoggerBuilder, LoggerGuard};
-use daemon_slayer_core::cli::{clap, Action, ActionType, CommandConfig, InputState};
-use std::{
-    error::Error,
-    sync::{Arc, Mutex},
+use daemon_slayer_core::{
+    cli::{clap, Action, ActionType, CommandConfig, InputState},
+    BoxedError,
 };
+use std::sync::{Arc, Mutex};
 use tracing::Subscriber;
 use tracing_subscriber::{registry::LookupSpan, util::SubscriberInitExt};
 
@@ -45,7 +45,11 @@ impl daemon_slayer_core::cli::CommandProvider for LoggingCliProvider {
         vec![]
     }
 
-    fn initialize(&mut self, _matches: &clap::ArgMatches, matched_command: &Option<CommandConfig>) {
+    fn initialize(
+        &mut self,
+        _matches: &clap::ArgMatches,
+        matched_command: &Option<CommandConfig>,
+    ) -> Result<(), BoxedError> {
         let mut builder = self.builder.lock().unwrap();
         if let Some(current_builder) = builder.take() {
             match matched_command
@@ -54,9 +58,9 @@ impl daemon_slayer_core::cli::CommandProvider for LoggingCliProvider {
             {
                 Some((action, ActionType::Client)) => {
                     if action == &Some(Action::Install) {
-                        current_builder.register().unwrap();
+                        current_builder.register()?;
                     } else if action == &Some(Action::Uninstall) {
-                        current_builder.deregister().unwrap();
+                        current_builder.deregister()?;
                     }
                     *builder = Some(
                         current_builder
@@ -70,13 +74,14 @@ impl daemon_slayer_core::cli::CommandProvider for LoggingCliProvider {
                 _ => {}
             }
         }
+        Ok(())
     }
 
     async fn handle_input(
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         _matched_command: &Option<CommandConfig>,
-    ) -> Result<InputState, Box<dyn Error>> {
+    ) -> Result<InputState, BoxedError> {
         Ok(InputState::Unhandled)
     }
 }

@@ -1,6 +1,5 @@
+use daemon_slayer_core::{health_check::HealthCheck, BoxedError};
 use std::error::Error;
-
-use daemon_slayer_core::health_check::HealthCheck;
 
 #[derive(Clone)]
 pub struct GrpcHealthCheck {
@@ -8,10 +7,10 @@ pub struct GrpcHealthCheck {
 }
 
 impl GrpcHealthCheck {
-    pub fn new<D>(endpoint: D) -> Result<Self, Box<dyn Error + Send + Sync>>
+    pub fn new<D>(endpoint: D) -> Result<Self, BoxedError>
     where
         D: std::convert::TryInto<tonic::transport::Endpoint>,
-        D::Error: std::error::Error + Send + Sync + 'static,
+        D::Error: Error + Send + Sync + 'static,
     {
         Ok(Self {
             endpoint: endpoint.try_into()?,
@@ -21,7 +20,7 @@ impl GrpcHealthCheck {
 
 #[async_trait::async_trait]
 impl HealthCheck for GrpcHealthCheck {
-    async fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn invoke(&mut self) -> Result<(), BoxedError> {
         let mut client =
             tonic_health::proto::health_client::HealthClient::connect(self.endpoint.clone())
                 .await?;

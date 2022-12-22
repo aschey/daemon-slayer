@@ -1,6 +1,6 @@
-use std::error::Error;
+use crate::BoxedError;
 
 #[async_trait::async_trait]
 pub trait HealthCheck {
-    async fn invoke(&mut self) -> Result<(), Box<dyn Error + Send + Sync>>;
+    async fn invoke(&mut self) -> Result<(), BoxedError>;
 }

@@ -168,7 +168,7 @@ impl Console {
         self
     }
 
-    pub async fn run(self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub async fn run(self) -> Result<(), BoxedError> {
         // setup terminal
         enable_raw_mode()?;
         let mut stdout = io::stdout();

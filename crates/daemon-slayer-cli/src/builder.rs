@@ -1,10 +1,5 @@
-use std::collections::HashMap;
-
-use daemon_slayer_core::cli::{
-    Action, ActionType, CommandConfig, CommandExt, CommandProvider, CommandType,
-};
-
 use crate::Cli;
+use daemon_slayer_core::{cli::CommandProvider, BoxedError};
 
 pub struct Builder {
     pub(crate) base_command: clap::Command,
@@ -32,7 +27,7 @@ impl Builder {
         self
     }
 
-    pub fn initialize(mut self) -> Cli {
+    pub fn initialize(mut self) -> Result<Cli, BoxedError> {
         let mut command = self.base_command;
 
         for provider in &mut self.providers {
