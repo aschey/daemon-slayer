@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::process::ExitCode;
+use std::process::{self, ExitCode};
 use std::time::Duration;
 
 use arc_swap::access::{DynAccess, Map};
@@ -20,6 +20,8 @@ use daemon_slayer::console::{self, Console};
 use daemon_slayer::core::config::Accessor;
 use daemon_slayer::core::{BoxedError, Label};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
+use daemon_slayer::error_handler::color_eyre::{eyre, Report};
+use daemon_slayer::error_handler::ErrorSink;
 use daemon_slayer::health_check::cli::HealthCheckCliProvider;
 use daemon_slayer::health_check::IpcHealthCheck;
 use daemon_slayer::logging;
@@ -35,15 +37,9 @@ use daemon_slayer::signals::SignalListener;
 use futures::StreamExt;
 use tracing::{error, info};
 
-pub fn main() -> ExitCode {
+pub fn main() -> Result<(), ErrorSink> {
     daemon_slayer::logging::init_local_time();
-    match run_async() {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(e) => {
-            error!("{e:?}");
-            ExitCode::FAILURE
-        }
-    }
+    run_async().map_err(ErrorSink::from_error)
 }
 
 #[derive(Debug, confique::Config, Default, Clone)]
@@ -129,7 +125,7 @@ pub async fn run_async() -> Result<(), BoxedError> {
             app_config.clone(),
             manager,
         ))
-        .initialize();
+        .initialize()?;
 
     let (logger, guard) = cli
         .get_provider::<LoggingCliProvider>()
@@ -145,7 +141,7 @@ pub async fn run_async() -> Result<(), BoxedError> {
             logger_guard: guard,
         });
 
-    cli.handle_input().await.unwrap();
+    cli.handle_input().await?;
 
     Ok(())
 }

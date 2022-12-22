@@ -27,15 +27,17 @@ pub trait CommandProvider: AsAny + Send + 'static {
     ) -> Result<(), BoxedError> {
         Ok(())
     }
+}
 
-    fn update_command(&self, mut command: clap::Command) -> clap::Command {
+impl dyn CommandProvider {
+    pub fn update_command(&self, mut command: clap::Command) -> clap::Command {
         for command_config in self.get_commands() {
             command = command.add_command_handler(&command_config.command_type);
         }
         command
     }
 
-    fn action_type(&self, matches: &clap::ArgMatches) -> ActionType {
+    pub fn action_type(&self, matches: &clap::ArgMatches) -> ActionType {
         for command_config in self.get_commands() {
             if matches.matches(&command_config.command_type) {
                 return self.get_action_type();

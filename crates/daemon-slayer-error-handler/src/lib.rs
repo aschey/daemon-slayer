@@ -1,11 +1,21 @@
+use std::{
+    error::Error,
+    fmt::{format, Debug, Display},
+};
+
 pub use color_eyre::config::Theme;
+use color_eyre::Report;
 use daemon_slayer_core::BoxedError;
+use once_cell::sync::OnceCell;
 use tracing::error;
 #[cfg(feature = "cli")]
 pub mod cli;
 
 pub use color_eyre;
 
+static HANDLER: OnceCell<ErrorHandler> = OnceCell::new();
+
+#[derive(Clone)]
 pub struct ErrorHandler {
     theme: Theme,
     write_to_stdout: bool,
@@ -53,19 +63,58 @@ impl ErrorHandler {
             .theme(self.theme)
             .into_hooks();
 
+        HANDLER.set(self.clone()).unwrap_or_default();
+
         eyre_hook.install()?;
 
         std::panic::set_hook(Box::new(move |pi| {
-            if self.log {
-                error!("{}", panic_hook.panic_report(pi));
-            }
-            if self.write_to_stdout {
-                println!("{}", panic_hook.panic_report(pi));
-            }
-            if self.write_to_stderr {
-                eprintln!("{}", panic_hook.panic_report(pi));
-            }
+            self.write_output(panic_hook.panic_report(pi).to_string());
         }));
+        Ok(())
+    }
+
+    fn write_output(&self, output: impl Display) {
+        if self.log {
+            error!("{}", output);
+        }
+        if self.write_to_stdout {
+            println!("{}", output);
+        }
+        if self.write_to_stderr {
+            eprintln!("{}", output);
+        }
+    }
+}
+
+pub struct ErrorSink {
+    report: Report,
+}
+
+impl ErrorSink {
+    pub fn new(source: impl Into<color_eyre::Report>) -> Self {
+        Self {
+            report: source.into(),
+        }
+    }
+
+    pub fn from_error(source: Box<dyn Error + Send + Sync + 'static>) -> Self {
+        Self::new(color_eyre::eyre::eyre!(source))
+    }
+}
+
+impl<R> From<R> for ErrorSink
+where
+    R: Into<Report>,
+{
+    fn from(value: R) -> Self {
+        Self::new(value)
+    }
+}
+
+impl Debug for ErrorSink {
+    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let handler = HANDLER.get().cloned().unwrap_or_default();
+        handler.write_output(format!("{:?}", self.report));
         Ok(())
     }
 }
