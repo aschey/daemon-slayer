@@ -5,7 +5,7 @@ use daemon_slayer_core::config::Mergeable;
 #[cfg_attr(feature = "config", derive(confique::Config))]
 pub struct UserConfiguration {
     #[cfg_attr(feature="config",config(default=[]))]
-    pub(crate) environment_variables: Vec<EnvironmentVariable>,
+    pub environment_variables: Vec<EnvironmentVariable>,
 }
 
 impl Mergeable for UserConfiguration {

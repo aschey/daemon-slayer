@@ -50,45 +50,36 @@ impl Builder {
         }
     }
 
-    pub fn with_display_name(self, display_name: impl Into<String>) -> Self {
-        Self {
-            display_name: Some(display_name.into()),
-            ..self
-        }
+    pub fn with_display_name(mut self, display_name: impl Into<String>) -> Self {
+        self.display_name = Some(display_name.into());
+        self
     }
 
-    pub fn with_description(self, description: impl Into<String>) -> Self {
-        Self {
-            description: description.into(),
-            ..self
-        }
+    pub fn with_description(mut self, description: impl Into<String>) -> Self {
+        self.description = description.into();
+        self
     }
 
-    pub fn with_program(self, program: impl Into<PathBuf>) -> Self {
+    pub fn with_program(mut self, program: impl Into<PathBuf>) -> Self {
         let mut program = program.into();
         program.set_extension(EXE_EXTENSION);
-        Self {
-            program: program.to_string_lossy().to_string(),
-            ..self
-        }
+        self.program = program.to_string_lossy().to_string();
+        self
     }
 
-    pub fn with_args<T: Into<String>>(self, args: impl IntoIterator<Item = T>) -> Self {
-        Self {
-            arguments: args.into_iter().map(|a| a.into()).collect(),
-            ..self
-        }
+    pub fn with_args<T: Into<String>>(mut self, args: impl IntoIterator<Item = T>) -> Self {
+        self.arguments = args.into_iter().map(|a| a.into()).collect();
+        self
     }
 
-    pub fn with_service_level(self, service_level: Level) -> Self {
-        Self {
-            service_level,
-            ..self
-        }
+    pub fn with_service_level(mut self, service_level: Level) -> Self {
+        self.service_level = service_level;
+        self
     }
 
-    pub fn with_autostart(self, autostart: bool) -> Self {
-        Self { autostart, ..self }
+    pub fn with_autostart(mut self, autostart: bool) -> Self {
+        self.autostart = autostart;
+        self
     }
 
     pub fn with_environment_variable(
@@ -106,18 +97,20 @@ impl Builder {
         self
     }
 
-    pub fn with_systemd_configuration(self, systemd_configuration: SystemdConfiguration) -> Self {
-        Self {
-            systemd_configuration,
-            ..self
-        }
+    pub fn with_systemd_configuration(
+        mut self,
+        systemd_configuration: SystemdConfiguration,
+    ) -> Self {
+        self.systemd_configuration = systemd_configuration;
+        self
     }
 
-    pub fn with_windows_configuration(self, windows_configuration: WindowsConfiguration) -> Self {
-        Self {
-            windows_configuration,
-            ..self
-        }
+    pub fn with_windows_configuration(
+        mut self,
+        windows_configuration: WindowsConfiguration,
+    ) -> Self {
+        self.windows_configuration = windows_configuration;
+        self
     }
 
     pub fn with_user_configuration(

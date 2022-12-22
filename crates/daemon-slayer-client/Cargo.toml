@@ -17,6 +17,7 @@ serde = {version = "1"}
 regex = "1"
 registry = "1.2"
 utfx = "0.1"
+windows-args = "0.2"
 windows-service = {git = "https://github.com/aschey/windows-service-rs", rev = "32919aebe4c59f7855a8ebd72fe7d716db6a8f28"}
 
 [target.'cfg(target_os="linux")'.dependencies]

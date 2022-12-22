@@ -20,6 +20,15 @@ where
     }
 }
 
+impl<T> Accessor<T> for T
+where
+    T: Mergeable + Clone + Default + 'static,
+{
+    fn access(&self) -> CachedConfig<T> {
+        CachedConfig::nonreloadable(self.clone())
+    }
+}
+
 pub trait Mergeable {
     fn merge(user_config: Option<&Self>, app_config: &Self) -> Self;
 }
@@ -37,6 +46,14 @@ impl<T: Mergeable + Clone + Default> CachedConfig<T> {
             cache: Some(inner.load().clone()),
             inner: Some(Arc::new(inner)),
             explicit: T::default(),
+        }
+    }
+
+    fn nonreloadable(inner: T) -> Self {
+        Self {
+            cache: Some(inner.clone()),
+            inner: None,
+            explicit: inner,
         }
     }
 

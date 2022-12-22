@@ -262,19 +262,34 @@ impl WindowsServiceManager {
         } else {
             ServiceStartType::OnDemand
         };
-        let exe_string = configuration.executable_path.to_string_lossy().to_string();
-        let mut parts = exe_string.split(' ');
+        let full_path = configuration.executable_path.to_str().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "Service exe path contains invalid unicode: {:?}",
+                    configuration.executable_path
+                ),
+            )
+        })?;
 
-        let exe_path = parts.next().unwrap();
-        let arguments = parts.collect::<Vec<_>>();
+        // If the path contains spaces, it might be escaped
+        // Unescape the whole string here so we don't incorrectly parse the double-escaped text
+        let mut full_exe_path_parsed =
+            windows_args::Args::parse_cmd(&full_path.replace(r#"\""#, r#"""#))
+                .filter(|a| !a.is_empty());
+
+        let exe_path = full_exe_path_parsed.next().ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidData, "Service exe path is empty")
+        })?;
+
         let info = ServiceInfo {
             name: self.name().into(),
-            display_name: self.display_name().into(),
+            display_name: configuration.display_name,
             service_type: configuration.service_type,
             start_type: configuration.start_type,
             error_control: configuration.error_control,
             executable_path: exe_path.into(),
-            launch_arguments: arguments.iter().map(Into::into).collect(),
+            launch_arguments: full_exe_path_parsed.map(Into::into).collect(),
             dependencies: configuration.dependencies,
             account_name: configuration.account_name,
             account_password: None,
@@ -404,12 +419,12 @@ impl Manager for WindowsServiceManager {
                         }
                     }
                 }
-                let service_access_ = service_access.clone();
+
                 service
                     .grant_user_access(trustee, service_access)
                     .map_err(|e| {
                         io_error(format!(
-                            "Error granting user access: {service_access_:?}: {e:?}"
+                            "Error granting user access: {service_access:?}: {e:?}"
                         ))
                     })?;
             }
