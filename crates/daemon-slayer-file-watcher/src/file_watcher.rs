@@ -60,12 +60,18 @@ impl FileWatcher {
             debouncer,
         }
     }
+
+    pub fn get_client(&self) -> FileWatcherClient {
+        FileWatcherClient::new(self.command_tx.clone())
+    }
+
+    pub fn get_event_store(&self) -> BroadcastEventStore<Vec<PathBuf>> {
+        BroadcastEventStore::new(self.file_tx.clone())
+    }
 }
 
 #[async_trait::async_trait]
 impl daemon_slayer_core::server::BackgroundService for FileWatcher {
-    type Client = FileWatcherClient;
-
     fn name<'a>() -> &'a str {
         "file_watcher_service"
     }
@@ -90,17 +96,5 @@ impl daemon_slayer_core::server::BackgroundService for FileWatcher {
         }
         self.debouncer.stop();
         Ok(())
-    }
-
-    async fn get_client(&mut self) -> Self::Client {
-        FileWatcherClient::new(self.command_tx.clone())
-    }
-}
-
-impl daemon_slayer_core::server::EventService for FileWatcher {
-    type EventStoreImpl = BroadcastEventStore<Vec<PathBuf>>;
-
-    fn get_event_store(&mut self) -> Self::EventStoreImpl {
-        BroadcastEventStore::new(self.file_tx.clone())
     }
 }

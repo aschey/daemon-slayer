@@ -1,16 +1,11 @@
-use std::{error::Error, time::Duration};
+use std::time::Duration;
 
 use daemon_slayer_core::{server::ServiceContext, BoxedError, FutureExt};
 use futures::StreamExt;
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
-use tokio::{
-    io::{split, AsyncReadExt, AsyncWriteExt},
-    task::JoinHandle,
-};
+use tokio::io::{split, AsyncReadExt, AsyncWriteExt};
 
 use crate::get_socket_address;
-
-use super::Client;
 
 pub struct Server {
     pub(crate) sock_path: String,
@@ -25,8 +20,6 @@ impl Server {
 
 #[async_trait::async_trait]
 impl daemon_slayer_core::server::BackgroundService for Server {
-    type Client = Client;
-
     fn name<'a>() -> &'a str {
         "ipc_health_check_service"
     }
@@ -57,9 +50,5 @@ impl daemon_slayer_core::server::BackgroundService for Server {
             }
         }
         Ok(())
-    }
-
-    async fn get_client(&mut self) -> Self::Client {
-        Client {}
     }
 }

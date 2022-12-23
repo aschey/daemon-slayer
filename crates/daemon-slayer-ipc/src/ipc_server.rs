@@ -1,21 +1,12 @@
-use std::{marker::PhantomData, mem, pin::Pin};
-
-use bytes::{Bytes, BytesMut};
+use crate::{
+    build_transport, get_socket_address, Codec, CodecWrapper, IpcClient, IpcRequestHandler,
+};
 use daemon_slayer_core::{
     server::{BackgroundService, ServiceContext},
     BoxedError, FutureExt,
 };
 use futures::{SinkExt, StreamExt};
 use parity_tokio_ipc::Endpoint;
-use serde::{Deserialize, Serialize};
-use tarpc::serde_transport::Transport;
-use tokio::io::{split, AsyncReadExt, AsyncWriteExt};
-use tokio_serde::{Deserializer, Serializer};
-
-use crate::{
-    build_transport, get_socket_address, ipc_client_stream::IpcClientStream, Codec, CodecWrapper,
-    IpcClient, IpcRequestHandler,
-};
 
 pub struct IpcServer<H>
 where
@@ -41,6 +32,10 @@ where
             handler,
         }
     }
+
+    pub fn get_client(&self) -> IpcClient<H::Req, H::Res> {
+        IpcClient::new(&self.app_id, self.codec.clone())
+    }
 }
 
 #[async_trait::async_trait]
@@ -48,8 +43,6 @@ impl<H> BackgroundService for IpcServer<H>
 where
     H: IpcRequestHandler + 'static,
 {
-    type Client = IpcClient<H::Req, H::Res>;
-
     fn name<'a>() -> &'a str {
         "ipc_server"
     }
@@ -78,9 +71,5 @@ where
             });
         }
         Ok(())
-    }
-
-    async fn get_client(&mut self) -> Self::Client {
-        IpcClient::new(&self.app_id, self.codec.clone())
     }
 }

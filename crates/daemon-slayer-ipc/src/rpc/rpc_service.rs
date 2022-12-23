@@ -33,6 +33,24 @@ where
             codec,
         }
     }
+
+    pub fn get_client(&self) -> P::Client {
+        let conn = IpcClientStream::new(self.bind_addr.clone());
+
+        let (server_chan, client_chan) =
+            spawn_twoway(build_transport(conn, CodecWrapper::new(self.codec.clone())));
+
+        let peer = self.service_provider.get_client(client_chan);
+        let peer_ = peer.clone();
+        let service_factory = self.service_provider.clone();
+        tokio::spawn(async move {
+            let service = service_factory.get_service(peer_);
+            BaseChannel::with_defaults(server_chan)
+                .execute(service)
+                .await;
+        });
+        peer
+    }
 }
 
 #[async_trait::async_trait]
@@ -41,8 +59,6 @@ where
     P: ServiceProvider + Send,
     <<P as ServiceProvider>::Service as Serve<<P as ServiceProvider>::Req>>::Fut: Send,
 {
-    type Client = P::Client;
-
     fn name<'a>() -> &'a str {
         "rpc_service"
     }
@@ -70,23 +86,5 @@ where
             .await
             .ok();
         Ok(())
-    }
-
-    async fn get_client(&mut self) -> Self::Client {
-        let conn = IpcClientStream::new(self.bind_addr.clone());
-
-        let (server_chan, client_chan) =
-            spawn_twoway(build_transport(conn, CodecWrapper::new(self.codec.clone())));
-
-        let peer = self.service_provider.get_client(client_chan);
-        let peer_ = peer.clone();
-        let service_factory = self.service_provider.clone();
-        tokio::spawn(async move {
-            let service = service_factory.get_service(peer_);
-            BaseChannel::with_defaults(server_chan)
-                .execute(service)
-                .await;
-        });
-        peer
     }
 }

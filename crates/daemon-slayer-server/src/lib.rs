@@ -24,7 +24,7 @@ pub use once_cell;
 pub use tokio;
 
 pub use daemon_slayer_core::{
-    server::{BackgroundService, BroadcastEventStore, EventService, EventStore, ServiceContext},
+    server::{BackgroundService, BroadcastEventStore, EventStore, ServiceContext},
     signal::{Client as SignalHandlerClient, Handler as SignalHandler, Signal},
     AsAny,
 };

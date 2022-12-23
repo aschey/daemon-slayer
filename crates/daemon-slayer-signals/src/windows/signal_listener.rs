@@ -11,6 +11,16 @@ pub struct SignalListener {
     signal_tx: broadcast::Sender<Signal>,
 }
 
+impl SignalListener {
+    pub fn get_client(&self) -> SignalListenerClient {
+        SignalListenerClient {}
+    }
+
+    pub fn get_event_store(&self) -> BroadcastEventStore<Signal> {
+        BroadcastEventStore::new(self.signal_tx.clone())
+    }
+}
+
 impl Default for SignalListener {
     fn default() -> Self {
         let signal_tx = signal::get_sender().unwrap_or_else(|| {
@@ -30,8 +40,6 @@ impl signal::Handler for SignalListener {
 
 #[async_trait::async_trait]
 impl daemon_slayer_core::server::BackgroundService for SignalListener {
-    type Client = SignalListenerClient;
-
     fn name<'a>() -> &'a str {
         "signal_listener_service"
     }
@@ -59,16 +67,5 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
             info!("Signal received. Requesting global shutdown.");
             cancellation_token.cancel();
         }
-    }
-
-    async fn get_client(&mut self) -> Self::Client {
-        SignalListenerClient {}
-    }
-}
-
-impl daemon_slayer_core::server::EventService for SignalListener {
-    type EventStoreImpl = BroadcastEventStore<Signal>;
-    fn get_event_store(&mut self) -> Self::EventStoreImpl {
-        BroadcastEventStore::new(self.signal_tx.clone())
     }
 }

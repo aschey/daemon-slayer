@@ -1,7 +1,6 @@
 use std::{ops::Deref, sync::Arc};
 
 use daemon_slayer_core::{
-    config::Accessor,
     server::{
         tokio_stream::StreamExt, BackgroundService, BroadcastEventStore, EventStore, ServiceContext,
     },
@@ -23,8 +22,6 @@ impl<T: AsRef<UserConfig> + Send + Sync + 'static> LoggingUpdateService<T> {
 
 #[async_trait::async_trait]
 impl<T: AsRef<UserConfig> + Send + Sync + 'static> BackgroundService for LoggingUpdateService<T> {
-    type Client = ();
-
     fn name<'a>() -> &'a str {
         "logging_update_service"
     }
@@ -42,6 +39,4 @@ impl<T: AsRef<UserConfig> + Send + Sync + 'static> BackgroundService for Logging
         }
         Ok(())
     }
-
-    async fn get_client(&mut self) -> Self::Client {}
 }

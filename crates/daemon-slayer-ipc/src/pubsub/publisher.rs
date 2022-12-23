@@ -4,8 +4,6 @@ use std::{
     pin::Pin,
     str::FromStr,
 };
-
-use parity_tokio_ipc::Endpoint;
 use tarpc::{client, context};
 use tokio_serde::Serializer;
 
@@ -54,7 +52,7 @@ where
     }
 }
 
-pub(crate) async fn get_publisher<T, M>(app_id: &str, codec: Codec) -> Publisher<T, M>
+pub(crate) fn get_publisher<T, M>(app_id: &str, codec: Codec) -> Publisher<T, M>
 where
     T: FromStr + Display + Clone + Send + 'static,
     <T as FromStr>::Err: Debug,

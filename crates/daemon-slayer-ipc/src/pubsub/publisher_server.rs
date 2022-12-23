@@ -56,6 +56,10 @@ where
         }
     }
 
+    pub fn get_client(&self) -> Publisher<T, M> {
+        get_publisher::<T, M>(self.app_id.as_ref(), self.codec.clone())
+    }
+
     async fn start_subscription_manager(mut self) {
         let bind_addr = get_socket_address(&self.app_id, "subscriber");
         let mut endpoint = Endpoint::new(bind_addr);
@@ -172,8 +176,6 @@ where
     <T as FromStr>::Err: Debug + Send,
     M: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone + Send + Debug + Unpin + 'static,
 {
-    type Client = Publisher<T, M>;
-
     fn name<'a>() -> &'a str {
         "pubsub_server"
     }
@@ -201,9 +203,5 @@ where
         }
 
         Ok(())
-    }
-
-    async fn get_client(&mut self) -> Self::Client {
-        get_publisher::<T, M>(self.app_id.as_ref(), self.codec.clone()).await
     }
 }

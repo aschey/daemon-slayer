@@ -1,6 +1,3 @@
-mod event_service;
-pub use event_service::*;
-
 mod event_store;
 pub use event_store::*;
 

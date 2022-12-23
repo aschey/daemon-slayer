@@ -78,17 +78,17 @@ impl Handler for ServiceHandler {
     type Error = BoxedError;
 
     async fn new(mut context: ServiceContext, _input_data: Option<Self::InputData>) -> Self {
-        let (_, signal_store) = context.add_event_service(SignalListener::all()).await;
+        let signal_listener = SignalListener::all();
+        let signal_store = signal_listener.get_event_store();
+        context.add_service(signal_listener).await;
 
         if let Ok(config_file) = std::env::var("CONFIG_FILE") {
             let abs_path = PathBuf::from(config_file);
-            let (_, file_watcher_events) = context
-                .add_event_service(
-                    FileWatcherBuilder::default()
-                        .with_watch_path(abs_path)
-                        .build(),
-                )
-                .await;
+            let file_watcher = FileWatcherBuilder::default()
+                .with_watch_path(abs_path)
+                .build();
+            let file_watcher_events = file_watcher.get_event_store();
+            context.add_service(file_watcher).await;
             let mut event_store = file_watcher_events.subscribe_events();
             tokio::spawn(async move {
                 while let Some(Ok(files)) = event_store.next().await {

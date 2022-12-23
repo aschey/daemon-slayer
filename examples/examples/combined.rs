@@ -163,15 +163,17 @@ impl Handler for ServiceHandler {
 
     async fn new(mut context: ServiceContext, input_data: Option<Self::InputData>) -> Self {
         let input_data = input_data.unwrap();
-        let (_, signal_store) = context.add_event_service(SignalListener::all()).await;
+        let signal_listener = SignalListener::all();
+        let signal_store = signal_listener.get_event_store();
+        context.add_service(signal_listener).await;
         context
             .add_service(daemon_slayer::ipc::health_check::Server::new(
                 Self::label().application,
             ))
             .await;
-        let (_, file_events) = context
-            .add_event_service(ConfigService::new(input_data.config))
-            .await;
+        let config_service = ConfigService::new(input_data.config);
+        let file_events = config_service.get_event_store();
+        context.add_service(config_service).await;
         context
             .add_service(LoggingUpdateService::new(
                 input_data.logger_guard,

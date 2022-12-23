@@ -1,6 +1,6 @@
 use crate::{AppConfig, Configurable};
 use daemon_slayer_core::{
-    server::{BackgroundService, BroadcastEventStore, EventService, EventStore, ServiceContext},
+    server::{BackgroundService, BroadcastEventStore, EventStore, ServiceContext},
     BoxedError, FutureExt,
 };
 use daemon_slayer_file_watcher::FileWatcher;
@@ -9,8 +9,6 @@ use std::sync::Arc;
 use tap::TapFallible;
 use tokio::sync::broadcast;
 use tracing::error;
-
-pub struct ConfigClient {}
 
 pub struct ConfigService<T>
 where
@@ -28,6 +26,10 @@ where
         let (file_tx, _) = broadcast::channel(32);
         Self { config, file_tx }
     }
+
+    pub fn get_event_store(&self) -> BroadcastEventStore<(Arc<T>, Arc<T>)> {
+        BroadcastEventStore::new(self.file_tx.clone())
+    }
 }
 
 #[async_trait::async_trait]
@@ -35,20 +37,16 @@ impl<T> BackgroundService for ConfigService<T>
 where
     T: Configurable,
 {
-    type Client = ConfigClient;
-
     fn name<'a>() -> &'a str {
         "config_service"
     }
 
     async fn run(mut self, mut context: ServiceContext) -> Result<(), BoxedError> {
-        let (_, event_store) = context
-            .add_event_service(
-                FileWatcher::builder()
-                    .with_watch_path(self.config.full_path())
-                    .build(),
-            )
-            .await;
+        let file_watcher = FileWatcher::builder()
+            .with_watch_path(self.config.full_path())
+            .build();
+        let event_store = file_watcher.get_event_store();
+        context.add_service(file_watcher).await;
 
         let mut event_stream = event_store.subscribe_events();
 
@@ -65,20 +63,5 @@ where
         }
 
         Ok(())
-    }
-
-    async fn get_client(&mut self) -> Self::Client {
-        ConfigClient {}
-    }
-}
-
-impl<T> EventService for ConfigService<T>
-where
-    T: Configurable,
-{
-    type EventStoreImpl = BroadcastEventStore<(Arc<T>, Arc<T>)>;
-
-    fn get_event_store(&mut self) -> Self::EventStoreImpl {
-        BroadcastEventStore::new(self.file_tx.clone())
     }
 }

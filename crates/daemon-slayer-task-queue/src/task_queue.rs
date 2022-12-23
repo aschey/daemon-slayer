@@ -84,7 +84,7 @@ impl TaskQueue {
         TaskQueueBuilder::default()
     }
 
-    pub fn client(&self) -> TaskQueueClient {
+    pub fn get_client(&self) -> TaskQueueClient {
         TaskQueueClient {
             queue: self.queue.clone(),
         }

@@ -60,8 +60,6 @@ impl HealthChecker {
 
 #[async_trait::async_trait]
 impl BackgroundService for HealthChecker {
-    type Client = ();
-
     fn name<'a>() -> &'a str {
         "health_check_service"
     }
@@ -95,8 +93,6 @@ impl BackgroundService for HealthChecker {
 
         Ok(())
     }
-
-    async fn get_client(&mut self) -> Self::Client {}
 }
 
 pub struct Console {
@@ -193,7 +189,7 @@ impl Console {
         cancellation_token: CancellationToken,
     ) -> Result<(), BoxedError> {
         let manager = ServiceManager::new(cancellation_token.child_token());
-        let context = manager.get_context().await;
+        let context = manager.get_context();
         if let Some(mut event_fn) = self.event_fn.take() {
             event_fn(context).await;
         }
@@ -203,7 +199,7 @@ impl Console {
         if let Some(health_check) = self.health_check.take() {
             let health_checker =
                 HealthChecker::new(self.user_config.clone(), health_check, health_tx);
-            let mut context = manager.get_context().await;
+            let mut context = manager.get_context();
             context.add_service(health_checker).await;
         }
 

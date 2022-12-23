@@ -7,7 +7,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
-use super::{BackgroundService, EventService};
+use super::BackgroundService;
 
 struct ServiceInfo {
     name: String,
@@ -70,7 +70,7 @@ impl ServiceManager {
         }
     }
 
-    pub async fn get_context(&self) -> ServiceContext {
+    pub fn get_context(&self) -> ServiceContext {
         ServiceContext {
             cancellation_token: self.cancellation_token.child_token(),
             services: self.services.clone(),
@@ -89,33 +89,8 @@ impl ServiceContext {
         self.cancellation_token.child_token()
     }
 
-    pub async fn add_event_service<S: EventService + 'static>(
-        &mut self,
-        mut service: S,
-    ) -> (S::Client, S::EventStoreImpl) {
+    pub async fn add_service<S: BackgroundService + 'static>(&mut self, service: S) {
         if let Some(services) = &mut *self.services.write().await {
-            let client = service.get_client().await;
-            let event_store = service.get_event_store();
-            let context = self.clone();
-            let handle = tokio::spawn(async move { service.run(context).await });
-
-            services.push(ServiceInfo {
-                handle,
-                name: S::name().to_owned(),
-                timeout: S::shutdown_timeout(),
-            });
-            (client, event_store)
-        } else {
-            panic!();
-        }
-    }
-
-    pub async fn add_service<S: BackgroundService + 'static>(
-        &mut self,
-        mut service: S,
-    ) -> S::Client {
-        if let Some(services) = &mut *self.services.write().await {
-            let client = service.get_client().await;
             let context = self.clone();
             let handle = tokio::spawn(async move { service.run(context).await });
             services.push(ServiceInfo {
@@ -123,7 +98,6 @@ impl ServiceContext {
                 name: S::name().to_owned(),
                 timeout: S::shutdown_timeout(),
             });
-            client
         } else {
             panic!();
         }

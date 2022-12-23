@@ -15,6 +15,16 @@ pub struct SignalListener {
     signal_tx: broadcast::Sender<Signal>,
 }
 
+impl SignalListener {
+    fn get_client(&self) -> Self::Client {
+        SignalListenerClient::new(self.signals.handle())
+    }
+
+    fn get_event_store(&self) -> BroadcastEventStore<Signal> {
+        BroadcastEventStore::new(self.signal_tx.clone())
+    }
+}
+
 impl Default for SignalListener {
     fn default() -> Self {
         let default_signals: [c_int; 0] = [];
@@ -47,8 +57,6 @@ impl signal::Handler for SignalListener {
 
 #[async_trait::async_trait]
 impl daemon_slayer_core::server::BackgroundService for SignalListener {
-    type Client = SignalListenerClient;
-
     fn name<'a>() -> &'a str {
         "signal_listener_service"
     }
@@ -68,16 +76,5 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
             }
         }
         Ok(())
-    }
-
-    async fn get_client(&mut self) -> Self::Client {
-        SignalListenerClient::new(self.signals.handle())
-    }
-}
-
-impl daemon_slayer_core::server::EventService for SignalListener {
-    type EventStoreImpl = BroadcastEventStore<Signal>;
-    fn get_event_store(&mut self) -> Self::EventStoreImpl {
-        BroadcastEventStore::new(self.signal_tx.clone())
     }
 }
