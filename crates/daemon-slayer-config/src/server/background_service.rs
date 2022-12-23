@@ -1,4 +1,4 @@
-use crate::{AppConfig, Config};
+use crate::{AppConfig, Config, Configurable};
 use daemon_slayer_core::{
     server::{BackgroundService, BroadcastEventStore, EventService, EventStore, ServiceContext},
     BoxedError, FutureExt,
@@ -11,7 +11,7 @@ pub struct ConfigClient {}
 
 pub struct ConfigService<T>
 where
-    T: Config + Default + Send + Sync + Clone + 'static,
+    T: Configurable,
 {
     config: AppConfig<T>,
     file_tx: tokio::sync::broadcast::Sender<(Arc<T>, Arc<T>)>,
@@ -19,7 +19,7 @@ where
 
 impl<T> ConfigService<T>
 where
-    T: Config + Default + Send + Sync + Clone + 'static,
+    T: Configurable,
 {
     pub fn new(config: AppConfig<T>) -> Self {
         let (file_tx, _) = tokio::sync::broadcast::channel(32);
@@ -30,7 +30,7 @@ where
 #[async_trait::async_trait]
 impl<T> BackgroundService for ConfigService<T>
 where
-    T: Config + Default + Send + Sync + Clone + 'static,
+    T: Configurable,
 {
     type Client = ConfigClient;
 
@@ -70,7 +70,7 @@ where
 
 impl<T> EventService for ConfigService<T>
 where
-    T: Config + Default + Send + Sync + Clone + 'static,
+    T: Configurable,
 {
     type EventStoreImpl = BroadcastEventStore<(Arc<T>, Arc<T>)>;
 

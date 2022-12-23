@@ -12,7 +12,7 @@ assert_cmd = "2.0.6"
 async-trait = {version = "0.1.58"}
 axum = "0.5.17"
 confique = "0.2.2"
-daemon-slayer = {path = "../crates/daemon-slayer", features = ["server-base", "client-base", "config", "ipc", "http-health-check", "ipc-health-check", "extras"]}
+daemon-slayer = {path = "../crates/daemon-slayer", features = ["server-base", "client-base", "config", "config-pretty-print", "ipc", "http-health-check", "ipc-health-check", "extras"]}
 futures = {version = "0.3.25"}
 serde = {version = "1.0.147"}
 tokio = {version = "1.21.2", features = ["rt-multi-thread", "time", "macros"]}

@@ -7,7 +7,6 @@ use std::{
 };
 
 use arc_swap::ArcSwap;
-use bat::{PagingMode, PrettyPrinter};
 use confique::{json5, toml, yaml, Config};
 use daemon_slayer_core::{
     config::{Accessor, CachedConfig, Mergeable},
@@ -65,6 +64,7 @@ pub enum ConfigInitializationError {
     NoHomeDir,
 }
 
+#[cfg(feature = "pretty-print")]
 #[derive(thiserror::Error, Debug)]
 pub enum PrettyPrintError {
     #[error("Error opening {0:#?} for pretty printing: {1:?}")]
@@ -75,6 +75,7 @@ pub enum PrettyPrintError {
     Other(PathBuf, String),
 }
 
+#[cfg(feature = "pretty-print")]
 impl PrettyPrintError {
     fn from_bat_error(path: PathBuf, error: bat::error::Error) -> Self {
         match error {
@@ -155,18 +156,25 @@ impl<T: Configurable> AppConfig<T> {
         Ok(())
     }
 
+    #[cfg(feature = "pretty-print")]
     pub fn pretty_print(&self) -> Result<(), PrettyPrintError> {
         let full_path = self.full_path();
-        PrettyPrinter::new()
+        bat::PrettyPrinter::new()
             .input_file(&full_path)
             .grid(true)
             .header(true)
-            .paging_mode(PagingMode::QuitIfOneScreen)
+            .paging_mode(bat::PagingMode::QuitIfOneScreen)
             .line_numbers(true)
             .language(self.config_file_type.to_format_language())
             .print()
             .map_err(|e| PrettyPrintError::from_bat_error(full_path, e))?;
         Ok(())
+    }
+
+    pub fn contents(&self) -> Result<String, io::Error> {
+        let full_path = self.full_path();
+        std::fs::read_to_string(&full_path)
+            .map_err(|e| io_error(&format!("Error reading config file {full_path:#?}"), e))
     }
 
     pub fn ensure_config_file(&self) -> Result<(), io::Error> {

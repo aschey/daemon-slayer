@@ -53,6 +53,19 @@ impl<T: Configurable> ConfigCliProvider<T> {
                                 hide: false,
                             }]),
                         },
+                        #[cfg(feature = "pretty-print")]
+                        CommandType::Subcommand {
+                            name: "pretty".to_owned(),
+                            help_text: "pretty-print the config file contents".to_owned(),
+                            hide: false,
+                            children: Some(vec![CommandType::Arg {
+                                id: "no_color".to_owned(),
+                                short: None,
+                                long: Some("no-color".to_owned()),
+                                help_text: Some("disable colors".to_owned()),
+                                hide: false,
+                            }]),
+                        },
                         CommandType::Subcommand {
                             name: "validate".to_owned(),
                             help_text: "validate the config file".to_owned(),
@@ -116,6 +129,10 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
                                         return Ok(InputState::Handled);
                                     }
                                     "view" => {
+                                        println!("{}", self.config.contents()?);
+                                    }
+                                    #[cfg(feature = "pretty-print")]
+                                    "pretty" => {
                                         self.config.pretty_print()?;
                                         return Ok(InputState::Handled);
                                     }

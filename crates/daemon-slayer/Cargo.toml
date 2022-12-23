@@ -42,6 +42,7 @@ config = [
   "daemon-slayer-console/config",
   "daemon-slayer-logging/config",
 ]
+config-pretty-print = ["daemon-slayer-config/pretty-print"]
 console = ["daemon-slayer-console"]
 error-handler = ["daemon-slayer-error-handler"]
 file-watcher = ["daemon-slayer-file-watcher"]
