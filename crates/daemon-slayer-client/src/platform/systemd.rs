@@ -94,12 +94,12 @@ impl Manager for SystemdServiceManager {
     }
 
     fn install(&self) -> Result<(), io::Error> {
-        let mut unit_config = Unitconfig::builder().description(&self.config.description);
+        let mut unit_config = UnitConfiguration::builder().description(&self.config.description);
         for after in &self.config.systemd_config.after {
             unit_config = unit_config.after(after);
         }
 
-        let mut service_config = Serviceconfig::builder()
+        let mut service_config = ServiceConfiguration::builder()
             .exec_start(
                 self.config
                     .full_arguments_iter()
