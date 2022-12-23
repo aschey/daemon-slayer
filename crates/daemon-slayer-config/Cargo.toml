@@ -14,9 +14,9 @@ daemon-slayer-file-watcher = {path = "../daemon-slayer-file-watcher"}
 directories = "4"
 edit = "0.1"
 futures = "0.3"
-notify = "5"
+thiserror = "1"
 tokio = "1"
-which = "4"
+tracing = "0.1"
 
 [features]
 cli = ["daemon-slayer-core/cli"]

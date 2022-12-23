@@ -1,5 +1,5 @@
 use crate::{
-    configuration::{windows::Trustee, Builder, Level},
+    config::{windows::Trustee, Builder, Level},
     Info, Manager, State,
 };
 use regex::Regex;
@@ -27,14 +27,12 @@ enum ServiceAccessMode {
 
 #[derive(Clone)]
 pub struct WindowsServiceManager {
-    configuration: Builder,
+    config: Builder,
 }
 
 impl WindowsServiceManager {
     pub(crate) fn from_builder(builder: Builder) -> Result<Self, io::Error> {
-        Ok(Self {
-            configuration: builder,
-        })
+        Ok(Self { config: builder })
     }
 
     fn query_info(&self, service_name: &str, service_type: ServiceType) -> Result<Info, io::Error> {
@@ -68,7 +66,7 @@ impl WindowsServiceManager {
             ServiceExitCode::ServiceSpecific(code) => Some(code),
         };
 
-        let autostart_service = if self.configuration.is_user() {
+        let autostart_service = if self.config.is_user() {
             self.open_base_service(ServiceAccessMode::Read)?
         } else {
             service
@@ -112,7 +110,7 @@ impl WindowsServiceManager {
     }
 
     fn current_service_name(&self) -> Result<Option<String>, io::Error> {
-        let service = match &self.configuration.service_level {
+        let service = match &self.config.service_level {
             Level::System => self.name(),
             Level::User => {
                 let user_service =
@@ -179,9 +177,7 @@ impl WindowsServiceManager {
     ) -> Result<(), io::Error> {
         // For user-level services, the service won't show up in the service list so we have to
         // attempt to open it to see if it exists
-        if self.configuration.service_level == Level::User
-            && service_type == ServiceType::OWN_PROCESS
-        {
+        if self.config.service_level == Level::User && service_type == ServiceType::OWN_PROCESS {
             if let Ok(service) = self.open_service(service_name, ServiceAccessMode::Write) {
                 service.delete().map_err(|e| {
                     io_error(format!("Error deleting user service {service_name}: {e:?}"))
@@ -216,22 +212,18 @@ impl WindowsServiceManager {
         ServiceInfo {
             name: self.name().into(),
             display_name: self.display_name().into(),
-            service_type: match self.configuration.service_level {
+            service_type: match self.config.service_level {
                 Level::System => ServiceType::OWN_PROCESS,
                 Level::User => ServiceType::USER_OWN_PROCESS,
             },
-            start_type: if self.configuration.autostart {
+            start_type: if self.config.autostart {
                 ServiceStartType::AutoStart
             } else {
                 ServiceStartType::OnDemand
             },
             error_control: ServiceErrorControl::Normal,
-            executable_path: (&self.configuration.program).into(),
-            launch_arguments: self
-                .configuration
-                .arguments_iter()
-                .map(Into::into)
-                .collect(),
+            executable_path: (&self.config.program).into(),
+            launch_arguments: self.config.arguments_iter().map(Into::into).collect(),
             dependencies: vec![],
             account_name: None, // run as System
             account_password: None,
@@ -254,20 +246,20 @@ impl WindowsServiceManager {
 
     fn set_autostart_enabled(&mut self, enabled: bool) -> Result<(), io::Error> {
         let service = self.open_base_service(ServiceAccessMode::ChangeConfig)?;
-        let mut configuration = service
+        let mut config = service
             .query_config()
             .map_err(|e| io_error(format!("Error querying service config: {e:?}")))?;
-        configuration.start_type = if enabled {
+        config.start_type = if enabled {
             ServiceStartType::AutoStart
         } else {
             ServiceStartType::OnDemand
         };
-        let full_path = configuration.executable_path.to_str().ok_or_else(|| {
+        let full_path = config.executable_path.to_str().ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!(
                     "Service exe path contains invalid unicode: {:?}",
-                    configuration.executable_path
+                    config.executable_path
                 ),
             )
         })?;
@@ -284,14 +276,14 @@ impl WindowsServiceManager {
 
         let info = ServiceInfo {
             name: self.name().into(),
-            display_name: configuration.display_name,
-            service_type: configuration.service_type,
-            start_type: configuration.start_type,
-            error_control: configuration.error_control,
+            display_name: config.display_name,
+            service_type: config.service_type,
+            start_type: config.start_type,
+            error_control: config.error_control,
             executable_path: exe_path.into(),
             launch_arguments: full_exe_path_parsed.map(Into::into).collect(),
-            dependencies: configuration.dependencies,
-            account_name: configuration.account_name,
+            dependencies: config.dependencies,
+            account_name: config.account_name,
             account_password: None,
         };
         service
@@ -305,7 +297,7 @@ impl WindowsServiceManager {
     }
 
     fn add_environment_variables(&self) -> Result<(), io::Error> {
-        let env_vars = self.configuration.environment_variables();
+        let env_vars = self.config.environment_variables();
         if env_vars.is_empty() {
             return Ok(());
         }
@@ -334,14 +326,14 @@ impl WindowsServiceManager {
 
 impl Manager for WindowsServiceManager {
     fn display_name(&self) -> &str {
-        self.configuration.display_name()
+        self.config.display_name()
     }
 
     fn name(&self) -> String {
-        self.configuration.label.application.clone()
+        self.config.label.application.clone()
     }
 
-    fn reload_configuration(&self) -> Result<(), io::Error> {
+    fn reload_config(&self) -> Result<(), io::Error> {
         let current_state = self.info()?.state;
         self.stop()?;
         self.add_environment_variables()?;
@@ -351,12 +343,12 @@ impl Manager for WindowsServiceManager {
         Ok(())
     }
 
-    fn on_configuration_changed(&mut self) -> Result<(), io::Error> {
-        let snapshot = self.configuration.user_configuration.snapshot();
-        self.configuration.user_configuration.reload();
-        let current = self.configuration.user_configuration.load();
+    fn on_config_changed(&mut self) -> Result<(), io::Error> {
+        let snapshot = self.config.user_config.snapshot();
+        self.config.user_config.reload();
+        let current = self.config.user_config.load();
         if current.environment_variables != snapshot.environment_variables {
-            self.reload_configuration()?;
+            self.reload_config()?;
         }
         Ok(())
     }
@@ -378,17 +370,15 @@ impl Manager for WindowsServiceManager {
                 })?;
 
             service
-                .set_description(&self.configuration.description)
+                .set_description(&self.config.description)
                 .map_err(|e| {
                     io_error(format!(
                         "Error setting service description to \"{}\": {e:?}",
-                        self.configuration.description
+                        self.config.description
                     ))
                 })?;
 
-            if let Some((trustee, access)) =
-                &self.configuration.windows_configuration.additional_access
-            {
+            if let Some((trustee, access)) = &self.config.windows_config.additional_access {
                 let trustee = match trustee {
                     Trustee::CurrentUser => windows_service::service::Trustee::CurrentUser,
                     Trustee::Name(name) => windows_service::service::Trustee::Name(name.clone()),
@@ -397,24 +387,22 @@ impl Manager for WindowsServiceManager {
                 let mut service_access = ServiceAccess::empty();
                 for permission in access.iter() {
                     service_access |= match permission {
-                        crate::configuration::windows::ServiceAccess::QueryStatus => {
+                        crate::config::windows::ServiceAccess::QueryStatus => {
                             ServiceAccess::QUERY_STATUS
                         }
-                        crate::configuration::windows::ServiceAccess::Start => ServiceAccess::START,
-                        crate::configuration::windows::ServiceAccess::Stop => ServiceAccess::STOP,
-                        crate::configuration::windows::ServiceAccess::PauseContinue => {
+                        crate::config::windows::ServiceAccess::Start => ServiceAccess::START,
+                        crate::config::windows::ServiceAccess::Stop => ServiceAccess::STOP,
+                        crate::config::windows::ServiceAccess::PauseContinue => {
                             ServiceAccess::PAUSE_CONTINUE
                         }
-                        crate::configuration::windows::ServiceAccess::Interrogate => {
+                        crate::config::windows::ServiceAccess::Interrogate => {
                             ServiceAccess::INTERROGATE
                         }
-                        crate::configuration::windows::ServiceAccess::Delete => {
-                            ServiceAccess::DELETE
-                        }
-                        crate::configuration::windows::ServiceAccess::QueryConfig => {
+                        crate::config::windows::ServiceAccess::Delete => ServiceAccess::DELETE,
+                        crate::config::windows::ServiceAccess::QueryConfig => {
                             ServiceAccess::QUERY_CONFIG
                         }
-                        crate::configuration::windows::ServiceAccess::ChangeConfig => {
+                        crate::config::windows::ServiceAccess::ChangeConfig => {
                             ServiceAccess::CHANGE_CONFIG
                         }
                     }
@@ -434,7 +422,7 @@ impl Manager for WindowsServiceManager {
     }
 
     fn uninstall(&self) -> Result<(), io::Error> {
-        if self.configuration.is_user() {
+        if self.config.is_user() {
             if let Some(current_service_name) = self.current_service_name()? {
                 self.delete_service(&current_service_name, ServiceType::USER_OWN_PROCESS)?;
             };
@@ -502,7 +490,7 @@ impl Manager for WindowsServiceManager {
             }
         };
 
-        if self.configuration.is_user() {
+        if self.config.is_user() {
             self.query_info(&service, ServiceType::USER_OWN_PROCESS)
         } else {
             self.query_info(&service, ServiceType::OWN_PROCESS)
@@ -510,11 +498,11 @@ impl Manager for WindowsServiceManager {
     }
 
     fn arguments(&self) -> &Vec<String> {
-        &self.configuration.arguments
+        &self.config.arguments
     }
 
     fn description(&self) -> &str {
-        &self.configuration.description
+        &self.config.description
     }
 }
 

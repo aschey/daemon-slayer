@@ -1,6 +1,6 @@
 mod platform;
 pub use platform::*;
-pub mod configuration;
+pub mod config;
 mod manager;
 pub use manager::*;
 mod state;

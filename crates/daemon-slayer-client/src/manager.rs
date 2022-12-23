@@ -8,8 +8,8 @@ pub trait Manager: Clone + Send + Sync + 'static {
     fn display_name(&self) -> &str;
     fn description(&self) -> &str;
     fn arguments(&self) -> &Vec<String>;
-    fn reload_configuration(&self) -> Result<(), io::Error>;
-    fn on_configuration_changed(&mut self) -> Result<(), io::Error>;
+    fn reload_config(&self) -> Result<(), io::Error>;
+    fn on_config_changed(&mut self) -> Result<(), io::Error>;
     fn install(&self) -> Result<(), io::Error>;
     fn uninstall(&self) -> Result<(), io::Error>;
     fn start(&self) -> Result<(), io::Error>;

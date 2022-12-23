@@ -1,7 +1,7 @@
 use std::sync::RwLock;
 use std::{env::args, os, sync::Arc, time::Duration};
 
-use daemon_slayer_client::configuration::Level;
+use daemon_slayer_client::config::Level;
 use daemon_slayer_client::{Info, Manager};
 use daemon_slayer_health_check::HealthCheck;
 use daemon_slayer_health_check::{HttpHealthCheck, HttpRequestType};

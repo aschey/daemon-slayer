@@ -7,10 +7,10 @@ use arc_swap::ArcSwap;
 use confique::Config;
 use daemon_slayer::cli::{ActionType, Cli};
 use daemon_slayer::client::cli::ClientCliProvider;
-use daemon_slayer::client::configuration::Level;
+use daemon_slayer::client::config::Level;
 use daemon_slayer::client::{
     self,
-    configuration::windows::{ServiceAccess, Trustee, WindowsConfiguration},
+    config::windows::{ServiceAccess, Trustee, WindowsConfig},
     Manager,
 };
 use daemon_slayer::config::server::ConfigService;
@@ -45,7 +45,7 @@ pub fn main() -> Result<(), ErrorSink> {
 #[derive(Debug, confique::Config, Default, Clone)]
 struct MyConfig {
     #[config(nested)]
-    client_config: client::configuration::UserConfiguration,
+    client_config: client::config::UserConfig,
     #[config(nested)]
     console_config: console::UserConfig,
     #[config(nested)]
@@ -54,8 +54,8 @@ struct MyConfig {
     test: String,
 }
 
-impl AsRef<client::configuration::UserConfiguration> for MyConfig {
-    fn as_ref(&self) -> &client::configuration::UserConfiguration {
+impl AsRef<client::config::UserConfig> for MyConfig {
+    fn as_ref(&self) -> &client::config::UserConfig {
         &self.client_config
     }
 }
@@ -80,10 +80,11 @@ pub struct AppData {
 
 #[tokio::main]
 pub async fn run_async() -> Result<(), BoxedError> {
-    let app_config = AppConfig::<MyConfig>::new(ServiceHandler::label(), ConfigFileType::Toml);
+    let app_config =
+        AppConfig::<MyConfig>::from_config_dir(ServiceHandler::label(), ConfigFileType::Toml)?;
 
-    app_config.create_config_template();
-    let config = app_config.read_config();
+    app_config.ensure_config_file()?;
+    let config = app_config.read_config()?;
     let manager = client::builder(ServiceHandler::label())
         .with_description("test service")
         .with_args(["run"])
@@ -92,11 +93,11 @@ pub async fn run_async() -> Result<(), BoxedError> {
         } else {
             Level::User
         })
-        .with_windows_configuration(WindowsConfiguration::default().with_additional_access(
+        .with_windows_config(WindowsConfig::default().with_additional_access(
             Trustee::CurrentUser,
             ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
         ))
-        .with_user_configuration(config.clone())
+        .with_user_config(config.clone())
         .build()?;
 
     let logger_builder =

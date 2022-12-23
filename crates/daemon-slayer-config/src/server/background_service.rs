@@ -42,7 +42,7 @@ where
         let (_, event_store) = context
             .add_event_service(
                 FileWatcher::builder()
-                    .with_watch_path(self.config.path())
+                    .with_watch_path(self.config.full_path())
                     .build(),
             )
             .await;

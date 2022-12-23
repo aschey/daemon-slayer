@@ -9,7 +9,7 @@ fn test_async_combined() {
 }
 
 fn test_combined(service_name: &str, bin_name: &str, port: i32) {
-    let manager = client::configuration::Builder::new(service_name.parse().unwrap())
+    let manager = client::config::Builder::new(service_name.parse().unwrap())
         .build()
         .unwrap();
     if manager.info().unwrap().state != State::NotInstalled {

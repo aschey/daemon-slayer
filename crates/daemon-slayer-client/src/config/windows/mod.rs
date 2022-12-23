@@ -5,11 +5,11 @@ mod trustee;
 pub use trustee::*;
 
 #[derive(Default, Clone)]
-pub struct WindowsConfiguration {
+pub struct WindowsConfig {
     pub(crate) additional_access: Option<(Trustee, BitFlags<ServiceAccess>)>,
 }
 
-impl WindowsConfiguration {
+impl WindowsConfig {
     pub fn with_additional_access(
         mut self,
         trustee: Trustee,

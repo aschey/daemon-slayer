@@ -1,6 +1,3 @@
-use std::error::Error;
-
-use confique::Config;
 use daemon_slayer_client::Manager;
 use daemon_slayer_core::{
     cli::{
@@ -9,16 +6,16 @@ use daemon_slayer_core::{
     BoxedError,
 };
 
-use crate::AppConfig;
+use crate::{AppConfig, Configurable};
 
 #[derive(Clone)]
-pub struct ConfigCliProvider<T: Config + Default + Send + Sync + Clone + 'static> {
+pub struct ConfigCliProvider<T: Configurable> {
     config_command: CommandConfig,
     config: AppConfig<T>,
     manager: Box<dyn Manager>,
 }
 
-impl<T: Config + Default + Send + Sync + Clone + 'static> ConfigCliProvider<T> {
+impl<T: Configurable> ConfigCliProvider<T> {
     pub fn new(config: AppConfig<T>, manager: Box<dyn Manager>) -> Self {
         Self {
             manager,
@@ -70,7 +67,7 @@ impl<T: Config + Default + Send + Sync + Clone + 'static> ConfigCliProvider<T> {
 }
 
 #[async_trait::async_trait]
-impl<T: Config + Default + Send + Sync + Clone + 'static> CommandProvider for ConfigCliProvider<T> {
+impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
     fn get_action_type(&self) -> ActionType {
         ActionType::Client
     }
@@ -110,21 +107,21 @@ impl<T: Config + Default + Send + Sync + Clone + 'static> CommandProvider for Co
                             {
                                 match name.as_str() {
                                     "path" => {
-                                        println!("{}", self.config.path().to_string_lossy());
+                                        println!("{}", self.config.full_path().to_string_lossy());
                                         return Ok(InputState::Handled);
                                     }
                                     "edit" => {
-                                        self.config.edit();
-                                        self.manager.on_configuration_changed().unwrap();
+                                        self.config.edit()?;
+                                        self.manager.on_config_changed()?;
                                         return Ok(InputState::Handled);
                                     }
                                     "view" => {
-                                        self.config.pretty_print();
+                                        self.config.pretty_print()?;
                                         return Ok(InputState::Handled);
                                     }
                                     "validate" => {
                                         // TODO: error checking
-                                        self.config.read_config();
+                                        self.config.read_config()?;
                                         return Ok(InputState::Handled);
                                     }
                                     _ => {}

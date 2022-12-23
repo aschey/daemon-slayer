@@ -114,7 +114,7 @@ impl ClientCliProvider {
                 action_type: ActionType::Client,
                 command_type: CommandType::Subcommand {
                     name: Action::Reload.to_string(),
-                    help_text: "Reload the service configuration".to_owned(),
+                    help_text: "Reload the service config".to_owned(),
                     hide: false,
                     children: None,
                 },
@@ -191,7 +191,7 @@ impl daemon_slayer_core::cli::CommandProvider for ClientCliProvider {
                     Some(Action::Start) => self.manager.start()?,
                     Some(Action::Stop) => self.manager.stop()?,
                     Some(Action::Restart) => self.manager.restart()?,
-                    Some(Action::Reload) => self.manager.reload_configuration()?,
+                    Some(Action::Reload) => self.manager.reload_config()?,
                     Some(Action::Enable) => self.manager.enable_autostart()?,
                     Some(Action::Disable) => self.manager.disable_autostart()?,
                     Some(Action::Pid) => {

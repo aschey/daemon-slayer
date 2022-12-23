@@ -1,4 +1,4 @@
-use crate::{configuration::Builder, Info, Manager, State};
+use crate::{config::Builder, Info, Manager, State};
 use std::io;
 use systemd_client::{
     create_unit_configuration_file, create_user_unit_configuration_file,
@@ -11,7 +11,7 @@ use systemd_client::{
 
 #[derive(Clone)]
 pub struct SystemdServiceManager {
-    configuration: Builder,
+    config: Builder,
     client: SystemdManagerProxyBlocking<'static>,
 }
 
@@ -33,7 +33,7 @@ impl SystemdServiceManager {
             })
         }?;
         Ok(Self {
-            configuration: builder,
+            config: builder,
             client,
         })
     }
@@ -43,13 +43,13 @@ impl SystemdServiceManager {
     }
 
     fn set_autostart_enabled(&mut self, enabled: bool) -> Result<(), io::Error> {
-        self.configuration.autostart = enabled;
+        self.config.autostart = enabled;
         self.update_autostart()?;
         Ok(())
     }
 
     fn update_autostart(&self) -> Result<(), io::Error> {
-        if self.configuration.autostart {
+        if self.config.autostart {
             self.client
                 .enable_unit_files(&[&self.service_file_name()], false, true)
                 .map_err(|e| {
@@ -73,17 +73,17 @@ impl SystemdServiceManager {
 }
 
 impl Manager for SystemdServiceManager {
-    fn on_configuration_changed(&mut self) -> Result<(), io::Error> {
-        let snapshot = self.configuration.user_configuration.snapshot();
-        self.configuration.user_configuration.reload();
-        let current = self.configuration.user_configuration.load();
+    fn on_config_changed(&mut self) -> Result<(), io::Error> {
+        let snapshot = self.config.user_config.snapshot();
+        self.config.user_config.reload();
+        let current = self.config.user_config.load();
         if current.environment_variables != snapshot.environment_variables {
-            self.reload_configuration()?;
+            self.reload_config()?;
         }
         Ok(())
     }
 
-    fn reload_configuration(&self) -> Result<(), io::Error> {
+    fn reload_config(&self) -> Result<(), io::Error> {
         let current_state = self.info()?.state;
         self.stop()?;
         self.install()?;
@@ -94,15 +94,14 @@ impl Manager for SystemdServiceManager {
     }
 
     fn install(&self) -> Result<(), io::Error> {
-        let mut unit_config =
-            UnitConfiguration::builder().description(&self.configuration.description);
-        for after in &self.configuration.systemd_configuration.after {
+        let mut unit_config = Unitconfig::builder().description(&self.config.description);
+        for after in &self.config.systemd_config.after {
             unit_config = unit_config.after(after);
         }
 
-        let mut service_config = ServiceConfiguration::builder()
+        let mut service_config = Serviceconfig::builder()
             .exec_start(
-                self.configuration
+                self.config
                     .full_arguments_iter()
                     .map(String::as_ref)
                     .collect(),
@@ -110,7 +109,7 @@ impl Manager for SystemdServiceManager {
             .ty(ServiceType::Notify)
             .notify_access(NotifyAccess::Main);
 
-        let vars = self.configuration.environment_variables();
+        let vars = self.config.environment_variables();
         for (key, value) in &vars {
             service_config = service_config.env(key, value);
         }
@@ -119,14 +118,14 @@ impl Manager for SystemdServiceManager {
             .unit(unit_config)
             .service(service_config);
 
-        if self.configuration.is_user() {
+        if self.config.is_user() {
             svc_unit_builder = svc_unit_builder
                 .install(InstallConfiguration::builder().wanted_by("default.target"));
         }
 
         let svc_unit_literal = format!("{}", svc_unit_builder.build());
 
-        if self.configuration.is_user() {
+        if self.config.is_user() {
             create_user_unit_configuration_file(
                 &self.service_file_name(),
                 svc_unit_literal.as_bytes(),
@@ -136,7 +135,7 @@ impl Manager for SystemdServiceManager {
         }
         .map_err(|e| {
             io_error(format!(
-                "Error creating unit configuration file {}: {e:?}",
+                "Error creating unit config file {}: {e:?}",
                 self.service_file_name()
             ))
         })?;
@@ -147,7 +146,7 @@ impl Manager for SystemdServiceManager {
     }
 
     fn uninstall(&self) -> Result<(), io::Error> {
-        if self.configuration.is_user() {
+        if self.config.is_user() {
             delete_user_unit_configuration_file(&self.service_file_name())
         } else {
             delete_unit_configuration_file(&self.service_file_name())
@@ -233,7 +232,7 @@ impl Manager for SystemdServiceManager {
                 ))
             })?;
 
-        let unit_client = if self.configuration.is_user() {
+        let unit_client = if self.config.is_user() {
             unit::build_blocking_user_proxy(svc_unit_path.clone())
         } else {
             unit::build_blocking_proxy(svc_unit_path.clone())
@@ -261,7 +260,7 @@ impl Manager for SystemdServiceManager {
             _ => State::Stopped,
         };
 
-        let service_client = if self.configuration.is_user() {
+        let service_client = if self.config.is_user() {
             service::build_blocking_user_proxy(svc_unit_path)
         } else {
             service::build_blocking_proxy(svc_unit_path)
@@ -301,19 +300,19 @@ impl Manager for SystemdServiceManager {
     }
 
     fn display_name(&self) -> &str {
-        self.configuration.display_name()
+        self.config.display_name()
     }
 
     fn name(&self) -> String {
-        self.configuration.label.application.clone()
+        self.config.label.application.clone()
     }
 
     fn arguments(&self) -> &Vec<String> {
-        &self.configuration.arguments
+        &self.config.arguments
     }
 
     fn description(&self) -> &str {
-        &self.configuration.description
+        &self.config.description
     }
 }
 

@@ -1,8 +1,8 @@
-use super::systemd::SystemdConfiguration;
-use super::windows::WindowsConfiguration;
+use super::systemd::SystemdConfig;
+use super::windows::WindowsConfig;
 use super::EnvironmentVariable;
 use super::Level;
-use super::UserConfiguration;
+use super::UserConfig;
 use crate::get_manager;
 use crate::Manager;
 use daemon_slayer_core::config::Accessor;
@@ -25,10 +25,10 @@ pub struct Builder {
     pub(crate) service_level: Level,
     pub(crate) autostart: bool,
     #[cfg_attr(not(platform = "linux"), allow(unused))]
-    pub(crate) systemd_configuration: SystemdConfiguration,
+    pub(crate) systemd_config: SystemdConfig,
     #[cfg_attr(not(windows), allow(unused))]
-    pub(crate) windows_configuration: WindowsConfiguration,
-    pub(crate) user_configuration: CachedConfig<UserConfiguration>,
+    pub(crate) windows_config: WindowsConfig,
+    pub(crate) user_config: CachedConfig<UserConfig>,
 }
 
 impl Builder {
@@ -44,9 +44,9 @@ impl Builder {
                 .to_string(),
             service_level: Level::System,
             autostart: false,
-            systemd_configuration: Default::default(),
-            windows_configuration: Default::default(),
-            user_configuration: Default::default(),
+            systemd_config: Default::default(),
+            windows_config: Default::default(),
+            user_config: Default::default(),
         }
     }
 
@@ -87,7 +87,7 @@ impl Builder {
         key: impl Into<String>,
         value: impl Into<String>,
     ) -> Self {
-        self.user_configuration
+        self.user_config
             .edit()
             .environment_variables
             .push(EnvironmentVariable {
@@ -97,27 +97,21 @@ impl Builder {
         self
     }
 
-    pub fn with_systemd_configuration(
-        mut self,
-        systemd_configuration: SystemdConfiguration,
-    ) -> Self {
-        self.systemd_configuration = systemd_configuration;
+    pub fn with_systemd_config(mut self, systemd_config: SystemdConfig) -> Self {
+        self.systemd_config = systemd_config;
         self
     }
 
-    pub fn with_windows_configuration(
-        mut self,
-        windows_configuration: WindowsConfiguration,
-    ) -> Self {
-        self.windows_configuration = windows_configuration;
+    pub fn with_windows_config(mut self, windows_config: WindowsConfig) -> Self {
+        self.windows_config = windows_config;
         self
     }
 
-    pub fn with_user_configuration(
+    pub fn with_user_config(
         mut self,
-        config: impl Accessor<UserConfiguration> + Send + Sync + 'static,
+        config: impl Accessor<UserConfig> + Send + Sync + 'static,
     ) -> Self {
-        self.user_configuration = config.access();
+        self.user_config = config.access();
         self
     }
 
@@ -141,7 +135,7 @@ impl Builder {
     }
 
     pub(crate) fn environment_variables(&self) -> Vec<(String, String)> {
-        self.user_configuration
+        self.user_config
             .load()
             .environment_variables
             .iter()

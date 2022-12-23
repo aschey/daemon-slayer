@@ -19,7 +19,7 @@ use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
 
-use daemon_slayer::client::configuration::Level;
+use daemon_slayer::client::config::Level;
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::{
     BroadcastEventStore, EventStore, Handler, ServiceContext, Signal, SignalHandler,
