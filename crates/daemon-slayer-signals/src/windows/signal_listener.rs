@@ -4,16 +4,17 @@ use daemon_slayer_core::{
     signal::{self, Signal},
     BoxedError,
 };
+use tokio::sync::broadcast;
 use tracing::info;
 
 pub struct SignalListener {
-    signal_tx: tokio::sync::broadcast::Sender<Signal>,
+    signal_tx: broadcast::Sender<Signal>,
 }
 
 impl Default for SignalListener {
     fn default() -> Self {
         let signal_tx = signal::get_sender().unwrap_or_else(|| {
-            let (tx, _) = tokio::sync::broadcast::channel(32);
+            let (tx, _) = broadcast::channel(32);
             tx
         });
 

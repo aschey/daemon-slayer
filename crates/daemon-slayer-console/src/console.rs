@@ -7,33 +7,25 @@ use crossterm::{
 };
 use daemon_slayer_client::{Info, Manager, State};
 use daemon_slayer_core::{
-    config::{arc_swap::access::DynAccess, Accessor, CachedConfig},
+    config::{Accessor, CachedConfig},
     health_check::HealthCheck,
-    server::{
-        tokio_stream::wrappers::errors::BroadcastStreamRecvError, BackgroundService,
-        BroadcastEventStore, EventService, EventStore, ServiceContext, ServiceManager,
-    },
+    server::{BackgroundService, ServiceContext, ServiceManager},
     BoxedError, CancellationToken, FutureExt,
 };
-use futures::{select, Future, Stream, StreamExt};
+use futures::{Future, StreamExt};
 use std::{
-    error::Error,
     io::{self, Stdout},
     pin::Pin,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
     time::{Duration, Instant},
 };
-use tokio::io::{split, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio::sync::mpsc;
 use tracing_ipc_widget::LogView;
 use tui::{
-    backend::{Backend, CrosstermBackend},
-    layout::{Alignment, Constraint, Corner, Direction, Layout, Rect},
+    backend::CrosstermBackend,
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Span, Spans, Text},
-    widgets::{Block, BorderType, Borders, List, ListItem, ListState, Paragraph, Wrap},
+    text::{Span, Spans},
+    widgets::{Block, BorderType, Borders, Paragraph, Wrap},
     Frame, Terminal,
 };
 
@@ -49,14 +41,14 @@ pub struct UserConfig {
 struct HealthChecker {
     user_config: CachedConfig<UserConfig>,
     health_check: Box<dyn HealthCheck + Send + 'static>,
-    tx: tokio::sync::mpsc::Sender<bool>,
+    tx: mpsc::Sender<bool>,
 }
 
 impl HealthChecker {
     fn new(
         user_config: CachedConfig<UserConfig>,
         health_check: Box<dyn HealthCheck + Send + 'static>,
-        tx: tokio::sync::mpsc::Sender<bool>,
+        tx: mpsc::Sender<bool>,
     ) -> Self {
         Self {
             user_config,
@@ -206,7 +198,7 @@ impl Console {
             event_fn(context).await;
         }
 
-        let (health_tx, mut health_rx) = tokio::sync::mpsc::channel(32);
+        let (health_tx, mut health_rx) = mpsc::channel(32);
 
         if let Some(health_check) = self.health_check.take() {
             let health_checker =

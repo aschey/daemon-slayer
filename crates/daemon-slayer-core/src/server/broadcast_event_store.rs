@@ -1,17 +1,18 @@
 use std::pin::Pin;
 
 use futures::Stream;
+use tokio::sync::broadcast;
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 
 use crate::server::EventStore;
 
 #[derive(Clone)]
 pub struct BroadcastEventStore<T> {
-    tx: tokio::sync::broadcast::Sender<T>,
+    tx: broadcast::Sender<T>,
 }
 
 impl<T: Send> BroadcastEventStore<T> {
-    pub fn new(tx: tokio::sync::broadcast::Sender<T>) -> Self {
+    pub fn new(tx: broadcast::Sender<T>) -> Self {
         Self { tx }
     }
 }

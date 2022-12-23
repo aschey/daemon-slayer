@@ -1,4 +1,4 @@
-use crate::{AppConfig, Config, Configurable};
+use crate::{AppConfig, Configurable};
 use daemon_slayer_core::{
     server::{BackgroundService, BroadcastEventStore, EventService, EventStore, ServiceContext},
     BoxedError, FutureExt,
@@ -7,6 +7,7 @@ use daemon_slayer_file_watcher::FileWatcher;
 use futures::stream::StreamExt;
 use std::sync::Arc;
 use tap::TapFallible;
+use tokio::sync::broadcast;
 use tracing::error;
 
 pub struct ConfigClient {}
@@ -16,7 +17,7 @@ where
     T: Configurable,
 {
     config: AppConfig<T>,
-    file_tx: tokio::sync::broadcast::Sender<(Arc<T>, Arc<T>)>,
+    file_tx: broadcast::Sender<(Arc<T>, Arc<T>)>,
 }
 
 impl<T> ConfigService<T>
@@ -24,7 +25,7 @@ where
     T: Configurable,
 {
     pub fn new(config: AppConfig<T>) -> Self {
-        let (file_tx, _) = tokio::sync::broadcast::channel(32);
+        let (file_tx, _) = broadcast::channel(32);
         Self { config, file_tx }
     }
 }

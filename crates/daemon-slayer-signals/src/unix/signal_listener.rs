@@ -6,18 +6,19 @@ use daemon_slayer_core::{
 use futures::stream::StreamExt;
 use signal_hook_tokio::SignalsInfo;
 use std::ffi::c_int;
+use tokio::sync::broadcast;
 
 use super::SignalListenerClient;
 
 pub struct SignalListener {
     signals: SignalsInfo,
-    signal_tx: tokio::sync::broadcast::Sender<Signal>,
+    signal_tx: broadcast::Sender<Signal>,
 }
 
 impl Default for SignalListener {
     fn default() -> Self {
         let default_signals: [c_int; 0] = [];
-        let (signal_tx, _) = tokio::sync::broadcast::channel(32);
+        let (signal_tx, _) = broadcast::channel(32);
         Self {
             signal_tx,
             signals: signal_hook_tokio::Signals::new(default_signals).unwrap(),

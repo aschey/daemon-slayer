@@ -11,12 +11,11 @@ use futures::{
     future::{self, Ready},
     Future, StreamExt,
 };
-use parity_tokio_ipc::Endpoint;
 use tarpc::{
     context::Context,
     server::{BaseChannel, Channel},
 };
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::mpsc;
 use tokio_serde::Deserializer;
 
 use crate::{
@@ -36,7 +35,7 @@ where
     app_id: String,
     codec: Codec,
     topics: Vec<String>,
-    sender: tokio::sync::mpsc::Sender<(T, M)>,
+    sender: mpsc::Sender<(T, M)>,
 }
 
 impl<T, M> SubscriberService for Subscriber<T, M>
@@ -79,7 +78,7 @@ where
 {
     pub async fn new(
         app_id: impl Into<String>,
-        sender: tokio::sync::mpsc::Sender<(T, M)>,
+        sender: mpsc::Sender<(T, M)>,
         topics: Vec<T>,
         codec: Codec,
     ) -> Self {

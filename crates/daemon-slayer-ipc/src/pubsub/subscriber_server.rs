@@ -1,33 +1,16 @@
-use std::{
-    fmt::{Debug, Display},
-    marker::PhantomData,
-    ops::Deref,
-    pin::Pin,
-    str::FromStr,
-};
-
-use bytes::{Bytes, BytesMut};
 use daemon_slayer_core::{
     server::{BackgroundService, ServiceContext},
     BoxedError, FutureExt,
 };
-use futures::{
-    future::{self, Ready},
-    Future, StreamExt,
-};
-use parity_tokio_ipc::Endpoint;
-use tarpc::{
-    context::Context,
-    server::{BaseChannel, Channel},
-};
-use tokio::sync::{broadcast, mpsc};
-use tokio_serde::Deserializer;
 
-use crate::{
-    build_transport, get_socket_address, ipc_client_stream::IpcClientStream, Codec, CodecWrapper,
+use crate::Codec;
+use std::{
+    fmt::{Debug, Display},
+    str::FromStr,
 };
 
-use super::{service::SubscriberService, subscriber::Subscriber, SubscriberClient};
+use super::{subscriber::Subscriber, SubscriberClient};
+use tokio::sync::mpsc;
 
 #[derive(Debug)]
 pub struct SubscriberServer<T, M>
@@ -38,8 +21,8 @@ where
 {
     app_id: String,
     codec: Codec,
-    subscriber_tx: tokio::sync::mpsc::Sender<(Vec<T>, tokio::sync::mpsc::Sender<(T, M)>)>,
-    subscriber_rx: tokio::sync::mpsc::Receiver<(Vec<T>, tokio::sync::mpsc::Sender<(T, M)>)>,
+    subscriber_tx: mpsc::Sender<(Vec<T>, mpsc::Sender<(T, M)>)>,
+    subscriber_rx: mpsc::Receiver<(Vec<T>, mpsc::Sender<(T, M)>)>,
 }
 
 impl<T, M> SubscriberServer<T, M>
@@ -49,7 +32,7 @@ where
     M: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone + Send + Debug + Unpin + 'static,
 {
     pub fn new(app_id: impl Into<String>, codec: Codec) -> Self {
-        let (subscriber_tx, subscriber_rx) = tokio::sync::mpsc::channel(32);
+        let (subscriber_tx, subscriber_rx) = mpsc::channel(32);
         Self {
             app_id: app_id.into(),
             codec,

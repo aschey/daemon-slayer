@@ -1,20 +1,17 @@
-use std::{
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
+use std::path::PathBuf;
 
-use notify::{RecommendedWatcher, RecursiveMode};
-use notify_debouncer_mini::Debouncer;
+use notify::RecursiveMode;
+use tokio::sync::mpsc;
 
 use crate::file_watcher_command::FileWatcherCommand;
 
 #[derive(Clone)]
 pub struct FileWatcherClient {
-    command_tx: tokio::sync::mpsc::Sender<FileWatcherCommand>,
+    command_tx: mpsc::Sender<FileWatcherCommand>,
 }
 
 impl FileWatcherClient {
-    pub(crate) fn new(command_tx: tokio::sync::mpsc::Sender<FileWatcherCommand>) -> Self {
+    pub(crate) fn new(command_tx: mpsc::Sender<FileWatcherCommand>) -> Self {
         Self { command_tx }
     }
 

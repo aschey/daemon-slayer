@@ -1,15 +1,11 @@
-use std::{
-    error::Error,
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
-
 use daemon_slayer_core::{
     server::{BroadcastEventStore, ServiceContext},
     BoxedError, FutureExt,
 };
 use notify::RecommendedWatcher;
 use notify_debouncer_mini::Debouncer;
+use std::path::PathBuf;
+use tokio::sync::{broadcast, mpsc};
 use tracing::{error, info};
 
 use crate::{file_watcher_builder::FileWatcherBuilder, file_watcher_command::FileWatcherCommand};
@@ -17,9 +13,9 @@ use crate::{file_watcher_builder::FileWatcherBuilder, file_watcher_command::File
 use super::file_watcher_client::FileWatcherClient;
 
 pub struct FileWatcher {
-    file_tx: tokio::sync::broadcast::Sender<Vec<PathBuf>>,
-    command_tx: tokio::sync::mpsc::Sender<FileWatcherCommand>,
-    command_rx: tokio::sync::mpsc::Receiver<FileWatcherCommand>,
+    file_tx: broadcast::Sender<Vec<PathBuf>>,
+    command_tx: mpsc::Sender<FileWatcherCommand>,
+    command_rx: mpsc::Receiver<FileWatcherCommand>,
     debouncer: Debouncer<RecommendedWatcher>,
 }
 
@@ -29,7 +25,7 @@ impl FileWatcher {
     }
 
     pub(crate) fn from_builder(builder: FileWatcherBuilder) -> Self {
-        let (file_tx, _) = tokio::sync::broadcast::channel(32);
+        let (file_tx, _) = broadcast::channel(32);
         let file_tx_ = file_tx.clone();
 
         let mut debouncer = notify_debouncer_mini::new_debouncer(
@@ -56,7 +52,7 @@ impl FileWatcher {
                 }
             }
         }
-        let (command_tx, command_rx) = tokio::sync::mpsc::channel(32);
+        let (command_tx, command_rx) = mpsc::channel(32);
         Self {
             file_tx,
             command_tx,

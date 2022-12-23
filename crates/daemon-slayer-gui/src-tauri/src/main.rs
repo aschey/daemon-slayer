@@ -6,10 +6,11 @@ use daemon_slayer_client::{Info, Manager};
 use daemon_slayer_health_check::HealthCheck;
 use daemon_slayer_health_check::{HttpHealthCheck, HttpRequestType};
 use tauri::{
-    api, tauri_build_context, CustomMenuItem, Manager as TauriManager, RunEvent, State, SystemTray,
-    SystemTrayEvent, SystemTrayMenu, WindowBuilder, WindowEvent, WindowUrl,
+    CustomMenuItem, Manager as TauriManager, State, SystemTray, SystemTrayEvent, SystemTrayMenu,
+    WindowBuilder, WindowEvent, WindowUrl,
 };
-use tauri_plugin_positioner::{on_tray_event, Position, WindowExt};
+use tauri_plugin_positioner::on_tray_event;
+use tokio::sync::mpsc;
 use tracing_ipc::run_ipc_client;
 
 #[derive(Clone)]
@@ -101,7 +102,7 @@ fn main() {
                 .unwrap()
             });
 
-            let (log_tx, mut log_rx) = tokio::sync::mpsc::channel(32);
+            let (log_tx, mut log_rx) = mpsc::channel(32);
             tauri::async_runtime::spawn(async move {
                 run_ipc_client("daemon_slayer_axum", log_tx).await;
             });
