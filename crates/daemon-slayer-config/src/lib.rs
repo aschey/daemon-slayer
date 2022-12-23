@@ -95,8 +95,19 @@ pub enum ConfigEditError {
     IOFailure(PathBuf, io::Error),
 }
 
+#[cfg(feature = "pretty-print")]
+pub struct PrettyPrintOptions {
+    pub color: bool,
+}
+
+impl Default for PrettyPrintOptions {
+    fn default() -> Self {
+        Self { color: true }
+    }
+}
+
 #[derive(thiserror::Error, Debug)]
-#[error("Error loding config file {0:#?}: {1}")]
+#[error("Error loading config file {0:#?}: {1}")]
 pub struct ConfigLoadError(PathBuf, String);
 
 impl<T: Configurable> AppConfig<T> {
@@ -157,7 +168,7 @@ impl<T: Configurable> AppConfig<T> {
     }
 
     #[cfg(feature = "pretty-print")]
-    pub fn pretty_print(&self) -> Result<(), PrettyPrintError> {
+    pub fn pretty_print(&self, options: PrettyPrintOptions) -> Result<(), PrettyPrintError> {
         let full_path = self.full_path();
         bat::PrettyPrinter::new()
             .input_file(&full_path)
@@ -166,6 +177,7 @@ impl<T: Configurable> AppConfig<T> {
             .paging_mode(bat::PagingMode::QuitIfOneScreen)
             .line_numbers(true)
             .language(self.config_file_type.to_format_language())
+            .colored_output(options.color)
             .print()
             .map_err(|e| PrettyPrintError::from_bat_error(full_path, e))?;
         Ok(())

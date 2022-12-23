@@ -84,7 +84,7 @@ pub async fn run_async() -> Result<(), BoxedError> {
         AppConfig::<MyConfig>::from_config_dir(ServiceHandler::label(), ConfigFileType::Toml)?;
 
     app_config.ensure_config_file()?;
-    let config = app_config.read_config()?;
+    let config = app_config.read_config().unwrap_or_default();
     let manager = client::builder(ServiceHandler::label())
         .with_description("test service")
         .with_args(["run"])

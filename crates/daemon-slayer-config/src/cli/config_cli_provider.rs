@@ -1,3 +1,4 @@
+use crate::{AppConfig, ConfigLoadError, Configurable};
 use daemon_slayer_client::Manager;
 use daemon_slayer_core::{
     cli::{
@@ -5,8 +6,6 @@ use daemon_slayer_core::{
     },
     BoxedError,
 };
-
-use crate::{AppConfig, Configurable};
 
 #[derive(Clone)]
 pub struct ConfigCliProvider<T: Configurable> {
@@ -115,7 +114,7 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
                                 name,
                                 help_text: _,
                                 hide: _,
-                                children,
+                                children: _,
                             } = arg
                             {
                                 match name.as_str() {
@@ -133,12 +132,23 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
                                     }
                                     #[cfg(feature = "pretty-print")]
                                     "pretty" => {
-                                        self.config.pretty_print()?;
+                                        let (_, sub) = sub.subcommand().unwrap();
+                                        let no_color =
+                                            *sub.get_one::<bool>("no_color").unwrap_or(&false);
+                                        self.config.pretty_print(crate::PrettyPrintOptions {
+                                            color: !no_color,
+                                        })?;
+
                                         return Ok(InputState::Handled);
                                     }
                                     "validate" => {
-                                        // TODO: error checking
-                                        self.config.read_config()?;
+                                        match self.config.read_config() {
+                                            Ok(_) => println!("Valid"),
+                                            Err(ConfigLoadError(_, msg)) => {
+                                                println!("Invalid: {msg}")
+                                            }
+                                        }
+
                                         return Ok(InputState::Handled);
                                     }
                                     _ => {}
