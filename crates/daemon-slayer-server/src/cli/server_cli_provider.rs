@@ -26,7 +26,7 @@ impl<S: Service + Send + Sync + 'static> Default for ServerCliProvider<S> {
                     name: "run".to_owned(),
                     help_text: "".to_owned(),
                     hide: true,
-                    children: None,
+                    children: vec![],
                 },
             },
         );

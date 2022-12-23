@@ -23,7 +23,7 @@ impl ClientCliProvider {
                     name: Action::Install.to_string(),
                     help_text: "Install the service using the system's service manager".to_owned(),
                     hide: false,
-                    children: None,
+                    children: vec![],
                 },
             },
         );
@@ -36,7 +36,7 @@ impl ClientCliProvider {
                     name: Action::Uninstall.to_string(),
                     help_text: "Uninstall the service from the system's service manager".to_owned(),
                     hide: false,
-                    children: None,
+                    children: vec![],
                 },
             },
         );
@@ -49,7 +49,7 @@ impl ClientCliProvider {
                     name: Action::Start.to_string(),
                     help_text: "Start the service".to_owned(),
                     hide: false,
-                    children: None,
+                    children: vec![],
                 },
             },
         );
@@ -62,7 +62,7 @@ impl ClientCliProvider {
                     name: Action::Info.to_string(),
                     help_text: "Get the service's current status".into(),
                     hide: false,
-                    children: None,
+                    children: vec![],
                 },
             },
         );
@@ -75,7 +75,7 @@ impl ClientCliProvider {
                     name: Action::Pid.to_string(),
                     help_text: "Get the service's current PID".to_owned(),
                     hide: false,
-                    children: None,
+                    children: vec![],
                 },
             },
         );
@@ -88,7 +88,7 @@ impl ClientCliProvider {
                     name: Action::Stop.to_string(),
                     help_text: "Stop the service".to_owned(),
                     hide: false,
-                    children: None,
+                    children: vec![],
                 },
             },
         );
@@ -102,7 +102,7 @@ impl ClientCliProvider {
                     name: Action::Restart.to_string(),
                     help_text: "Restart the service".to_owned(),
                     hide: false,
-                    children: None,
+                    children: vec![],
                 },
             },
         );
@@ -116,7 +116,7 @@ impl ClientCliProvider {
                     name: Action::Reload.to_string(),
                     help_text: "Reload the service config".to_owned(),
                     hide: false,
-                    children: None,
+                    children: vec![],
                 },
             },
         );
@@ -130,7 +130,7 @@ impl ClientCliProvider {
                     name: Action::Enable.to_string(),
                     help_text: "Enable autostart".to_owned(),
                     hide: false,
-                    children: None,
+                    children: vec![],
                 },
             },
         );
@@ -144,7 +144,7 @@ impl ClientCliProvider {
                     name: Action::Disable.to_string(),
                     help_text: "Disable autostart".to_owned(),
                     hide: false,
-                    children: None,
+                    children: vec![],
                 },
             },
         );

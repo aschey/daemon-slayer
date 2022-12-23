@@ -61,10 +61,8 @@ impl CommandExt for clap::Command {
             } => {
                 let mut sub = clap::Command::new(name).about(help_text).hide(*hide);
 
-                if let Some(children) = children {
-                    for child in children.iter() {
-                        sub = sub.add_command_handler(child);
-                    }
+                for child in children.iter() {
+                    sub = sub.add_command_handler(child);
                 }
                 self.subcommand(sub)
             }

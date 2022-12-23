@@ -4,7 +4,7 @@ pub enum CommandType {
         name: String,
         help_text: String,
         hide: bool,
-        children: Option<Vec<CommandType>>,
+        children: Vec<CommandType>,
     },
     Arg {
         id: String,

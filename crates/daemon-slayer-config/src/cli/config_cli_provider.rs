@@ -27,52 +27,52 @@ impl<T: Configurable> ConfigCliProvider<T> {
                     name: "config".to_owned(),
                     help_text: "view and edit config".to_owned(),
                     hide: false,
-                    children: Some(vec![
+                    children: vec![
                         CommandType::Subcommand {
                             name: "path".to_owned(),
                             help_text: "show the config file path".to_owned(),
                             hide: false,
-                            children: None,
+                            children: vec![],
                         },
                         CommandType::Subcommand {
                             name: "edit".to_owned(),
                             help_text: "open the config file using the system text editor"
                                 .to_owned(),
                             hide: false,
-                            children: None,
+                            children: vec![],
                         },
                         CommandType::Subcommand {
                             name: "view".to_owned(),
                             help_text: "show the config file contents".to_owned(),
                             hide: false,
-                            children: Some(vec![CommandType::Arg {
+                            children: vec![CommandType::Arg {
                                 id: "no_color".to_owned(),
                                 short: None,
                                 long: Some("no-color".to_owned()),
                                 help_text: Some("disable colors".to_owned()),
                                 hide: false,
-                            }]),
+                            }],
                         },
                         #[cfg(feature = "pretty-print")]
                         CommandType::Subcommand {
                             name: "pretty".to_owned(),
                             help_text: "pretty-print the config file contents".to_owned(),
                             hide: false,
-                            children: Some(vec![CommandType::Arg {
+                            children: vec![CommandType::Arg {
                                 id: "no_color".to_owned(),
                                 short: None,
                                 long: Some("no-color".to_owned()),
                                 help_text: Some("disable colors".to_owned()),
                                 hide: false,
-                            }]),
+                            }],
                         },
                         CommandType::Subcommand {
                             name: "validate".to_owned(),
                             help_text: "validate the config file".to_owned(),
                             hide: false,
-                            children: None,
+                            children: vec![],
                         },
-                    ]),
+                    ],
                 },
             },
         }
@@ -100,7 +100,7 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
         {
             Some((CommandType::Subcommand { name, .. }, sub)) if name == "config" => {
                 if let CommandType::Subcommand { children, .. } = self.config_command.command_type {
-                    for arg in children.unwrap().iter() {
+                    for arg in children.iter() {
                         if let Some(sub) = sub.matches(arg) {
                             if let CommandType::Subcommand { name, .. } = arg {
                                 match name.as_str() {

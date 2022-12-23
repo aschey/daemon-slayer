@@ -20,7 +20,7 @@ impl ConsoleCliProvider {
                     name: "console".to_owned(),
                     help_text: "view service console".to_owned(),
                     hide: false,
-                    children: None,
+                    children: vec![],
                 },
             },
         }
