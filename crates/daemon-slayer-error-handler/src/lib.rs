@@ -1,11 +1,10 @@
 use std::{
     error::Error,
-    fmt::{format, Debug, Display},
+    fmt::{Debug, Display},
 };
 
 pub use color_eyre::config::Theme;
 use color_eyre::Report;
-use daemon_slayer_core::BoxedError;
 use once_cell::sync::OnceCell;
 use tracing::error;
 #[cfg(feature = "cli")]
@@ -14,6 +13,10 @@ pub mod cli;
 pub use color_eyre;
 
 static HANDLER: OnceCell<ErrorHandler> = OnceCell::new();
+
+#[derive(thiserror::Error, Debug)]
+#[error("Unable to install error handler: {0}")]
+pub struct HookInstallError(String);
 
 #[derive(Clone)]
 pub struct ErrorHandler {
@@ -57,15 +60,19 @@ impl ErrorHandler {
         Self { log, ..self }
     }
 
-    pub fn install(self) -> Result<(), BoxedError> {
+    pub fn install(self) -> Result<(), HookInstallError> {
         let (panic_hook, eyre_hook) = color_eyre::config::HookBuilder::default()
             .add_default_filters()
             .theme(self.theme)
             .into_hooks();
 
-        HANDLER.set(self.clone()).unwrap_or_default();
+        HANDLER
+            .set(self.clone())
+            .map_err(|_| HookInstallError("Handler was already set".to_owned()))?;
 
-        eyre_hook.install()?;
+        eyre_hook
+            .install()
+            .map_err(|e| HookInstallError(e.to_string()))?;
 
         std::panic::set_hook(Box::new(move |pi| {
             self.write_output(panic_hook.panic_report(pi).to_string());

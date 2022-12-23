@@ -1,9 +1,8 @@
-use std::{ops::Deref, sync::Arc};
-
 use arc_swap::{
-    access::{Access, DynAccess, DynGuard, Map},
-    ArcSwap, ArcSwapAny,
+    access::{DynAccess, Map},
+    ArcSwap,
 };
+use std::sync::Arc;
 
 pub trait Accessor<T: Mergeable + Clone + Default> {
     fn access(&self) -> CachedConfig<T>;

@@ -1,3 +1,4 @@
+// Largely taken from https://github.com/Finomnis/tokio-graceful-shutdown/blob/ec444f69e884d27a48bef7ad88abe91b9ab7a648/src/future_ext.rs
 use futures::Future;
 use pin_project_lite::pin_project;
 use std::{
