@@ -17,13 +17,13 @@ pub trait CommandProvider: AsAny + Send + 'static {
     async fn handle_input(
         self: Box<Self>,
         matches: &clap::ArgMatches,
-        matched_command: &Option<CommandConfig>,
+        matched_command: &Option<CommandMatch>,
     ) -> Result<InputState, BoxedError>;
 
     fn initialize(
         &mut self,
         _matches: &clap::ArgMatches,
-        _matched_command: &Option<CommandConfig>,
+        _matched_command: &Option<CommandMatch>,
     ) -> Result<(), BoxedError> {
         Ok(())
     }
@@ -39,11 +39,16 @@ impl dyn CommandProvider {
 
     pub fn action_type(&self, matches: &clap::ArgMatches) -> ActionType {
         for command_config in self.get_commands() {
-            if matches.matches(&command_config.command_type) {
+            if matches.matches(&command_config.command_type).is_some() {
                 return self.get_action_type();
             }
         }
 
         ActionType::Unknown
     }
+}
+
+pub struct CommandMatch {
+    pub matched_command: CommandConfig,
+    pub matches: clap::ArgMatches,
 }

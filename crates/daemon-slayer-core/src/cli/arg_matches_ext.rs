@@ -1,9 +1,11 @@
+use super::CommandType;
 use clap::parser::ValueSource;
 
-use super::CommandType;
-
-pub trait ArgMatchesExt {
-    fn matches(&self, command_type: &CommandType) -> bool;
+pub trait ArgMatchesExt
+where
+    Self: Sized,
+{
+    fn matches(&self, command_type: &CommandType) -> Option<Self>;
 }
 
 pub trait CommandExt {
@@ -11,22 +13,18 @@ pub trait CommandExt {
 }
 
 impl ArgMatchesExt for clap::ArgMatches {
-    fn matches(&self, command_type: &CommandType) -> bool {
-        match command_type {
-            CommandType::Arg {
-                id,
-                short: _,
-                long: _,
-                help_text: _,
-                hide: _,
-            } => self.value_source(id) == Some(ValueSource::CommandLine),
-            CommandType::Subcommand {
-                name,
-                help_text: _,
-                hide: _,
-                children: _,
-            } => self.subcommand().map(|r| r.0) == Some(name),
-            CommandType::Default => !self.args_present() && self.subcommand().is_none(),
+    fn matches(&self, command_type: &CommandType) -> Option<Self> {
+        match (command_type, self.subcommand()) {
+            (CommandType::Arg { id, .. }, _)
+                if self.value_source(id) == Some(ValueSource::CommandLine) =>
+            {
+                Some(self.clone())
+            }
+            (CommandType::Subcommand { name, .. }, Some((sub_name, sub))) if sub_name == name => {
+                Some(sub.clone())
+            }
+            (CommandType::Default, None) if !self.args_present() => Some(self.clone()),
+            _ => None,
         }
     }
 }

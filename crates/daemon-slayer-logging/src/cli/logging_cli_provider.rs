@@ -1,6 +1,6 @@
 use crate::{LoggerBuilder, LoggerGuard};
 use daemon_slayer_core::{
-    cli::{clap, Action, ActionType, CommandConfig, InputState},
+    cli::{clap, Action, ActionType, CommandConfig, CommandMatch, InputState},
     BoxedError,
 };
 use std::sync::{Arc, Mutex};
@@ -48,13 +48,13 @@ impl daemon_slayer_core::cli::CommandProvider for LoggingCliProvider {
     fn initialize(
         &mut self,
         _matches: &clap::ArgMatches,
-        matched_command: &Option<CommandConfig>,
+        matched_command: &Option<CommandMatch>,
     ) -> Result<(), BoxedError> {
         let mut builder = self.builder.lock().unwrap();
         if let Some(current_builder) = builder.take() {
             match matched_command
                 .as_ref()
-                .map(|c| (&c.action, &c.action_type))
+                .map(|c| (&c.matched_command.action, &c.matched_command.action_type))
             {
                 Some((action, ActionType::Client)) => {
                     if action == &Some(Action::Install) {
@@ -80,7 +80,7 @@ impl daemon_slayer_core::cli::CommandProvider for LoggingCliProvider {
     async fn handle_input(
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
-        _matched_command: &Option<CommandConfig>,
+        _matched_command: &Option<CommandMatch>,
     ) -> Result<InputState, BoxedError> {
         Ok(InputState::Unhandled)
     }

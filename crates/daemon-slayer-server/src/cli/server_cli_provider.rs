@@ -1,6 +1,9 @@
 use crate::Service;
 use daemon_slayer_core::{
-    cli::{clap, Action, ActionType, CommandConfig, CommandProvider, CommandType, InputState},
+    cli::{
+        clap, Action, ActionType, CommandConfig, CommandMatch, CommandProvider, CommandType,
+        InputState,
+    },
     BoxedError,
 };
 use std::{collections::HashMap, marker::PhantomData};
@@ -62,9 +65,9 @@ impl<S: Service + Send + Sync + 'static> CommandProvider for ServerCliProvider<S
     async fn handle_input(
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
-        matched_command: &Option<CommandConfig>,
+        matched_command: &Option<CommandMatch>,
     ) -> Result<InputState, BoxedError> {
-        match matched_command.as_ref().map(|c| &c.action) {
+        match matched_command.as_ref().map(|c| &c.matched_command.action) {
             Some(Some(Action::Direct)) => {
                 S::run_directly(self.input_data).await?;
                 Ok(InputState::Handled)

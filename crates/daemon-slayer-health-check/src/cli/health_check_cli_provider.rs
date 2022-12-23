@@ -1,5 +1,7 @@
 use daemon_slayer_core::{
-    cli::{clap, ActionType, CommandConfig, CommandProvider, CommandType, InputState},
+    cli::{
+        clap, ActionType, CommandConfig, CommandMatch, CommandProvider, CommandType, InputState,
+    },
     health_check::HealthCheck,
     BoxedError,
 };
@@ -33,15 +35,13 @@ impl<H: HealthCheck + Clone + Send + 'static> CommandProvider for HealthCheckCli
     async fn handle_input(
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
-        matched_command: &Option<CommandConfig>,
+        matched_command: &Option<CommandMatch>,
     ) -> Result<InputState, BoxedError> {
-        match matched_command.as_ref().map(|c| &c.command_type) {
-            Some(CommandType::Subcommand {
-                name,
-                help_text: _,
-                hide: _,
-                children: _,
-            }) if name == "health" => {
+        match matched_command
+            .as_ref()
+            .map(|c| &c.matched_command.command_type)
+        {
+            Some(CommandType::Subcommand { name, .. }) if name == "health" => {
                 match self.health_check.invoke().await {
                     Ok(()) => println!("Healthy"),
                     Err(e) => {

@@ -6,6 +6,8 @@ use daemon_slayer_core::{
 use daemon_slayer_file_watcher::FileWatcher;
 use futures::stream::StreamExt;
 use std::sync::Arc;
+use tap::TapFallible;
+use tracing::error;
 
 pub struct ConfigClient {}
 
@@ -55,9 +57,10 @@ where
             .await
         {
             let current = self.config.snapshot();
-            self.config.read_config();
-            let new = self.config.snapshot();
-            self.file_tx.send((current, new)).ok();
+            if self.config.read_config().tap_err(|e| error!("{e}")).is_ok() {
+                let new = self.config.snapshot();
+                self.file_tx.send((current, new)).ok();
+            }
         }
 
         Ok(())

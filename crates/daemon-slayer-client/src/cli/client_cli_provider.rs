@@ -1,6 +1,6 @@
 use crate::Manager;
 use daemon_slayer_core::{
-    cli::{clap, Action, ActionType, CommandConfig, CommandType, InputState},
+    cli::{clap, Action, ActionType, CommandConfig, CommandMatch, CommandType, InputState},
     BoxedError,
 };
 use std::collections::HashMap;
@@ -177,9 +177,12 @@ impl daemon_slayer_core::cli::CommandProvider for ClientCliProvider {
     async fn handle_input(
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
-        matched_command: &Option<CommandConfig>,
+        matched_command: &Option<CommandMatch>,
     ) -> Result<InputState, BoxedError> {
-        if let Some(matched_command) = matched_command {
+        if let Some(CommandMatch {
+            matched_command, ..
+        }) = matched_command
+        {
             if matched_command.action_type == ActionType::Client {
                 match matched_command.action {
                     Some(Action::Install) => self.manager.install()?,

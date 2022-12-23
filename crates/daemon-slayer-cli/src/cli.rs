@@ -1,13 +1,13 @@
 use crate::Builder;
 use daemon_slayer_core::{
-    cli::{ActionType, ArgMatchesExt, CommandConfig, CommandProvider, InputState},
+    cli::{ActionType, ArgMatchesExt, CommandMatch, CommandProvider, InputState},
     BoxedError,
 };
 
 pub struct Cli {
     providers: Vec<Box<dyn CommandProvider>>,
     matches: clap::ArgMatches,
-    matched_command: Option<CommandConfig>,
+    matched_command: Option<CommandMatch>,
 }
 
 impl Cli {
@@ -19,11 +19,14 @@ impl Cli {
         mut providers: Vec<Box<dyn CommandProvider>>,
         matches: clap::ArgMatches,
     ) -> Result<Self, BoxedError> {
-        let mut matched_command: Option<CommandConfig> = None;
+        let mut matched_command: Option<CommandMatch> = None;
         for provider in &providers {
             for cmd in provider.get_commands() {
-                if matches.matches(&cmd.command_type) {
-                    matched_command = Some(cmd.to_owned());
+                if let Some(matches) = matches.matches(&cmd.command_type) {
+                    matched_command = Some(CommandMatch {
+                        matched_command: cmd.to_owned(),
+                        matches,
+                    });
                 }
             }
         }

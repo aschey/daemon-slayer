@@ -2,7 +2,8 @@ use crate::{AppConfig, ConfigLoadError, Configurable};
 use daemon_slayer_client::Manager;
 use daemon_slayer_core::{
     cli::{
-        clap, ActionType, ArgMatchesExt, CommandConfig, CommandProvider, CommandType, InputState,
+        clap, ActionType, ArgMatchesExt, CommandConfig, CommandMatch, CommandProvider, CommandType,
+        InputState,
     },
     BoxedError,
 };
@@ -90,33 +91,18 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
 
     async fn handle_input(
         mut self: Box<Self>,
-        matches: &clap::ArgMatches,
-        matched_command: &Option<CommandConfig>,
+        _matches: &clap::ArgMatches,
+        matched_command: &Option<CommandMatch>,
     ) -> Result<InputState, BoxedError> {
-        match matched_command.as_ref().map(|c| &c.command_type) {
-            Some(CommandType::Subcommand {
-                name,
-                help_text: _,
-                hide: _,
-                children: _,
-            }) if name == "config" => {
-                let (_, sub) = matches.subcommand().unwrap();
-                if let CommandType::Subcommand {
-                    name: _,
-                    help_text: _,
-                    hide: _,
-                    children,
-                } = self.config_command.command_type
-                {
+        match matched_command
+            .as_ref()
+            .map(|c| (&c.matched_command.command_type, &c.matches))
+        {
+            Some((CommandType::Subcommand { name, .. }, sub)) if name == "config" => {
+                if let CommandType::Subcommand { children, .. } = self.config_command.command_type {
                     for arg in children.unwrap().iter() {
-                        if sub.matches(arg) {
-                            if let CommandType::Subcommand {
-                                name,
-                                help_text: _,
-                                hide: _,
-                                children: _,
-                            } = arg
-                            {
+                        if let Some(sub) = sub.matches(arg) {
+                            if let CommandType::Subcommand { name, .. } = arg {
                                 match name.as_str() {
                                     "path" => {
                                         println!("{}", self.config.full_path().to_string_lossy());
@@ -132,7 +118,6 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
                                     }
                                     #[cfg(feature = "pretty-print")]
                                     "pretty" => {
-                                        let (_, sub) = sub.subcommand().unwrap();
                                         let no_color =
                                             *sub.get_one::<bool>("no_color").unwrap_or(&false);
                                         self.config.pretty_print(crate::PrettyPrintOptions {
