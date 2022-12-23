@@ -17,6 +17,10 @@ use tracing::debug;
 use tracing::error;
 #[cfg(feature = "cli")]
 pub mod cli;
+#[cfg(feature = "pretty-print")]
+mod pretty_print;
+#[cfg(feature = "pretty-print")]
+pub use pretty_print::*;
 #[cfg(feature = "server")]
 pub mod server;
 
@@ -64,46 +68,12 @@ pub enum ConfigInitializationError {
     NoHomeDir,
 }
 
-#[cfg(feature = "pretty-print")]
-#[derive(thiserror::Error, Debug)]
-pub enum PrettyPrintError {
-    #[error("Error opening {0:#?} for pretty printing: {1:?}")]
-    IOFailure(PathBuf, io::Error),
-    #[error("Error opening {0:#?} for pretty printing: Syntax parsing error: {1}")]
-    SyntaxParsingFailure(PathBuf, String),
-    #[error("Error opening {0:#?} for pretty printing: {1}")]
-    Other(PathBuf, String),
-}
-
-#[cfg(feature = "pretty-print")]
-impl PrettyPrintError {
-    fn from_bat_error(path: PathBuf, error: bat::error::Error) -> Self {
-        match error {
-            bat::error::Error::Io(e) => Self::IOFailure(path, e),
-            bat::error::Error::UndetectedSyntax(e) => Self::SyntaxParsingFailure(path, e),
-            bat::error::Error::UnknownSyntax(e) => Self::SyntaxParsingFailure(path, e),
-            e => Self::Other(path, e.to_string()),
-        }
-    }
-}
-
 #[derive(thiserror::Error, Debug)]
 pub enum ConfigEditError {
     #[error("Error editing config file: {0}")]
     LoadFailure(ConfigLoadError),
     #[error("Error editing config file {0}: {1}")]
     IOFailure(PathBuf, io::Error),
-}
-
-#[cfg(feature = "pretty-print")]
-pub struct PrettyPrintOptions {
-    pub color: bool,
-}
-
-impl Default for PrettyPrintOptions {
-    fn default() -> Self {
-        Self { color: true }
-    }
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -164,22 +134,6 @@ impl<T: Configurable> AppConfig<T> {
         let full_path = self.full_path();
         edit::edit_file(&full_path).map_err(|e| ConfigEditError::IOFailure(full_path, e))?;
         self.read_config().map_err(ConfigEditError::LoadFailure)?;
-        Ok(())
-    }
-
-    #[cfg(feature = "pretty-print")]
-    pub fn pretty_print(&self, options: PrettyPrintOptions) -> Result<(), PrettyPrintError> {
-        let full_path = self.full_path();
-        bat::PrettyPrinter::new()
-            .input_file(&full_path)
-            .grid(true)
-            .header(true)
-            .paging_mode(bat::PagingMode::QuitIfOneScreen)
-            .line_numbers(true)
-            .language(self.config_file_type.to_format_language())
-            .colored_output(options.color)
-            .print()
-            .map_err(|e| PrettyPrintError::from_bat_error(full_path, e))?;
         Ok(())
     }
 
