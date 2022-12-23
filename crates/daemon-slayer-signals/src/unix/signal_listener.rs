@@ -16,7 +16,7 @@ pub struct SignalListener {
 }
 
 impl SignalListener {
-    fn get_client(&self) -> Self::Client {
+    fn get_client(&self) -> SignalListenerClient {
         SignalListenerClient::new(self.signals.handle())
     }
 

@@ -119,7 +119,7 @@ fn find_subcommand<T: Configurable>(
 
 fn handle_config_subcommand<T: Configurable>(
     name: Option<&str>,
-    sub: &ArgMatches,
+    #[cfg_attr(not(feature = "pretty-print"), allow(unused))] sub: &ArgMatches,
     config: &AppConfig<T>,
     manager: &mut Box<dyn Manager>,
 ) -> Result<InputState, BoxedError> {
