@@ -53,7 +53,7 @@ pub async fn main() {
         .initialize()
         .unwrap();
 
-    let (logger, _guard) = logging_provider.get_logger();
+    let (logger, _guard) = logging_provider.get_logger().unwrap();
     logger.init();
 
     cli.handle_input().await.unwrap();
