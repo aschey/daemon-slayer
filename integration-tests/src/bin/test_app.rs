@@ -17,7 +17,7 @@ use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::ErrorHandler;
 use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
 use daemon_slayer::logging::cli::LoggingCliProvider;
-use daemon_slayer::logging::{LoggerBuilder, LoggerGuard};
+use daemon_slayer::logging::LoggerBuilder;
 
 use daemon_slayer::client::config::Level;
 use daemon_slayer::server::cli::ServerCliProvider;

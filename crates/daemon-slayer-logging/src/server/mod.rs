@@ -1,4 +1,4 @@
-use crate::{LoggerGuard, UserConfig};
+use crate::{ReloadHandle, UserConfig};
 use daemon_slayer_core::{
     server::{
         tokio_stream::StreamExt, BackgroundService, BroadcastEventStore, EventStore, ServiceContext,
@@ -12,12 +12,18 @@ impl<T> LoggingConfig for T where T: AsRef<UserConfig> + Send + Sync + 'static {
 
 pub struct LoggingUpdateService<T: LoggingConfig> {
     file_events: BroadcastEventStore<(Arc<T>, Arc<T>)>,
-    guard: LoggerGuard,
+    reload_handle: ReloadHandle,
 }
 
 impl<T: LoggingConfig> LoggingUpdateService<T> {
-    pub fn new(guard: LoggerGuard, file_events: BroadcastEventStore<(Arc<T>, Arc<T>)>) -> Self {
-        Self { guard, file_events }
+    pub fn new(
+        reload_handle: ReloadHandle,
+        file_events: BroadcastEventStore<(Arc<T>, Arc<T>)>,
+    ) -> Self {
+        Self {
+            reload_handle,
+            file_events,
+        }
     }
 }
 
@@ -36,7 +42,7 @@ impl<T: LoggingConfig> BackgroundService for LoggingUpdateService<T> {
         {
             let log_level = new.deref().as_ref().log_level.to_level_filter();
 
-            self.guard.update_log_level(log_level);
+            self.reload_handle.update_log_level(log_level);
         }
         Ok(())
     }

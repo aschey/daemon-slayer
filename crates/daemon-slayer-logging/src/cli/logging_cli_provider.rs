@@ -1,4 +1,4 @@
-use crate::{LoggerBuilder, LoggerCreationError, LoggerGuard};
+use crate::{LoggerBuilder, LoggerCreationError, ReloadHandle};
 use daemon_slayer_core::{
     cli::{clap, Action, ActionType, CommandConfig, CommandMatch, InputState},
     BoxedError,
@@ -32,7 +32,7 @@ impl LoggingCliProvider {
     ) -> Result<
         (
             impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
-            LoggerGuard,
+            ReloadHandle,
         ),
         LoggerInitializationError,
     > {

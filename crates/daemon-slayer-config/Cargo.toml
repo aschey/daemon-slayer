@@ -8,7 +8,7 @@ arc-swap = {version = "1"}
 async-trait = "0.1"
 bat = {version = "0.22", default-features = false, features = ["regex-onig", "paging"], optional = true}
 confique = ">= 0.2.2"
-daemon-slayer-client = {path = "../daemon-slayer-client"}
+daemon-slayer-client = {path = "../daemon-slayer-client", optional = true}
 daemon-slayer-core = {path = "../daemon-slayer-core"}
 daemon-slayer-file-watcher = {path = "../daemon-slayer-file-watcher"}
 directories = "4"
@@ -21,5 +21,6 @@ tracing = "0.1"
 
 [features]
 cli = ["daemon-slayer-core/cli"]
+client = ["daemon-slayer-client"]
 pretty-print = ["bat"]
 server = ["daemon-slayer-core/server"]

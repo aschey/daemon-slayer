@@ -4,10 +4,11 @@ name = "daemon-slayer"
 version = "0.1.0"
 
 [features]
-client-base = [
+client-standard = [
   "console",
   "client",
   "cli",
+  "daemon-slayer-logging/system",
   "config",
   "error-handler",
 ]
@@ -15,10 +16,10 @@ extras = [
   "file-watcher", # "plugin-ipc-health-check",
   "task-queue",
 ]
-server-base = [
+server-standard = [
   "server",
   "cli",
-  "daemon-slayer-logging/base",
+  "daemon-slayer-logging/system",
   "logging",
   "config",
   "error-handler",
@@ -35,7 +36,7 @@ cli = [
   "daemon-slayer-error-handler?/cli",
   "daemon-slayer-config?/cli",
 ]
-client = ["daemon-slayer-client"]
+client = ["daemon-slayer-client", "daemon-slayer-config?/client"]
 config = [
   "daemon-slayer-config",
   "daemon-slayer-client?/config",

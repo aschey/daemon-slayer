@@ -1,3 +1,5 @@
+use super::{logger_guard::LoggerGuard, timezone::Timezone};
+use crate::ReloadHandle;
 use daemon_slayer_core::{
     config::{Accessor, CachedConfig},
     BoxedError, Label,
@@ -13,11 +15,8 @@ use time::{
     format_description::well_known::{self, Rfc3339},
     UtcOffset,
 };
-
-use super::{logger_guard::LoggerGuard, timezone::Timezone};
 use tracing::{metadata::LevelFilter, Level, Subscriber};
 use tracing_appender::non_blocking::NonBlockingBuilder;
-
 use tracing_subscriber::{
     filter::Directive,
     fmt::{time::OffsetTime, Layer},
@@ -28,11 +27,23 @@ use tracing_subscriber::{
     EnvFilter, Layer as SubscriberLayer,
 };
 
+static LOGGER_GUARD: OnceCell<Option<LoggerGuard>> = OnceCell::new();
+
 static LOCAL_TIME: OnceCell<Result<OffsetTime<Rfc3339>, time::error::IndeterminateOffset>> =
     OnceCell::new();
 
-pub fn init_local_time() {
-    LOCAL_TIME.get_or_init(OffsetTime::local_rfc_3339);
+#[must_use]
+pub struct GlobalLoggerGuard;
+
+impl Drop for GlobalLoggerGuard {
+    fn drop(&mut self) {
+        LOGGER_GUARD.get().take();
+    }
+}
+
+pub fn init() -> GlobalLoggerGuard {
+    LOCAL_TIME.set(OffsetTime::local_rfc_3339()).ok();
+    GlobalLoggerGuard
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -103,6 +114,7 @@ pub struct UserConfig {
 
 #[derive(Clone)]
 pub struct LoggerBuilder {
+    #[allow(unused)]
     label: Label,
     #[cfg(feature = "file")]
     file_rotation_period: tracing_appender::rolling::Rotation,
@@ -230,7 +242,7 @@ impl LoggerBuilder {
     ) -> Result<
         (
             impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
-            LoggerGuard,
+            ReloadHandle,
         ),
         LoggerCreationError,
     > {
@@ -367,12 +379,12 @@ impl LoggerBuilder {
 
         let (filter, reload_handle) =
             reload::Layer::new(self.user_config.snapshot().log_level.0.into());
-        guard.set_reload_handle(Box::new(move |level_filter| {
+        let reload_fn = Box::new(move |level_filter: LevelFilter| {
             reload_handle.modify(|l| *l = level_filter).ok();
-        }));
+        });
 
         let collector = collector.with(filter);
-
-        Ok((collector, guard))
+        LOGGER_GUARD.set(Some(guard)).ok();
+        Ok((collector, ReloadHandle::new(reload_fn)))
     }
 }

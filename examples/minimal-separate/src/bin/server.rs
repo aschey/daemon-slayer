@@ -46,9 +46,7 @@ impl Handler for ServiceHandler {
     type InputData = ();
 
     fn label() -> Label {
-        "com.example.daemonslayerminimalcombined"
-            .parse()
-            .expect("Should parse the label")
+        minimal_separate::label()
     }
 
     async fn new(
@@ -64,9 +62,10 @@ impl Handler for ServiceHandler {
 
     async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> Result<(), Self::Error> {
         println!("running service");
-        let start_time = Instant::now();
         on_started();
+
         let mut signal_rx = self.signal_store.subscribe_events();
+        let start_time = Instant::now();
         loop {
             match tokio::time::timeout(Duration::from_secs(1), signal_rx.next()).await {
                 Ok(_) => {

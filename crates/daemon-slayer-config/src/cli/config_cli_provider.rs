@@ -1,5 +1,4 @@
 use crate::{AppConfig, ConfigLoadError, Configurable};
-use daemon_slayer_client::Manager;
 use daemon_slayer_core::{
     cli::{
         clap::{self, ArgMatches},
@@ -13,13 +12,15 @@ use daemon_slayer_core::{
 pub struct ConfigCliProvider<T: Configurable> {
     config_command: CommandConfig,
     config: AppConfig<T>,
-    manager: Box<dyn Manager>,
+    #[cfg(feature = "client")]
+    manager: Option<Box<dyn daemon_slayer_client::Manager>>,
 }
 
 impl<T: Configurable> ConfigCliProvider<T> {
-    pub fn new(config: AppConfig<T>, manager: Box<dyn Manager>) -> Self {
+    pub fn new(config: AppConfig<T>) -> Self {
         Self {
-            manager,
+            #[cfg(feature = "client")]
+            manager: None,
             config,
             config_command: CommandConfig {
                 action_type: ActionType::Client,
@@ -69,6 +70,12 @@ impl<T: Configurable> ConfigCliProvider<T> {
             },
         }
     }
+
+    #[cfg(feature = "client")]
+    pub fn with_manager(mut self, manager: Box<dyn daemon_slayer_client::Manager>) -> Self {
+        self.manager = Some(manager);
+        self
+    }
 }
 
 #[async_trait::async_trait]
@@ -93,7 +100,15 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
             Some((CommandType::Subcommand { name, .. }, sub)) if name == "config" => {
                 if let CommandType::Subcommand { children, .. } = &self.config_command.command_type
                 {
-                    return find_subcommand(sub, children, &self.config, &mut self.manager);
+                    #[cfg_attr(not(feature = "client"), allow(unused))]
+                    let (state, name) = find_subcommand(sub, children, &self.config)?;
+                    #[cfg(feature = "client")]
+                    if name == Some("edit") {
+                        if let Some(manager) = &mut self.manager {
+                            manager.on_config_changed()?;
+                        }
+                    }
+                    return Ok(state);
                 }
             }
             _ => {}
@@ -103,25 +118,24 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
     }
 }
 
-fn find_subcommand<T: Configurable>(
+fn find_subcommand<'a, T: Configurable>(
     sub: &ArgMatches,
-    children: &[CommandType],
+    children: &'a [CommandType],
     config: &AppConfig<T>,
-    manager: &mut Box<dyn Manager>,
-) -> Result<InputState, BoxedError> {
+) -> Result<(InputState, Option<&'a str>), BoxedError> {
     for arg in children.iter() {
         if let (CommandType::Subcommand { name, .. }, Some(sub)) = (arg, sub.matches(arg)) {
-            return handle_config_subcommand(Some(&name.clone()), &sub, config, manager);
+            let input_state = handle_config_subcommand(Some(name.as_str()), &sub, config);
+            return input_state.map(|state| (state, Some(name.as_str())));
         }
     }
-    return handle_config_subcommand(None, sub, config, manager);
+    return handle_config_subcommand(None, sub, config).map(|state| (state, None));
 }
 
 fn handle_config_subcommand<T: Configurable>(
     name: Option<&str>,
     #[cfg_attr(not(feature = "pretty-print"), allow(unused))] sub: &ArgMatches,
     config: &AppConfig<T>,
-    manager: &mut Box<dyn Manager>,
 ) -> Result<InputState, BoxedError> {
     match name {
         Some("path") => {
@@ -130,7 +144,6 @@ fn handle_config_subcommand<T: Configurable>(
         }
         Some("edit") => {
             config.edit()?;
-            manager.on_config_changed()?;
             return Ok(InputState::Handled);
         }
         Some("validate") => {

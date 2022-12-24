@@ -98,7 +98,7 @@ impl Handler for ServiceHandler {
     type InputData = ();
 
     fn label() -> Label {
-        "com.example.daemonslayerminimalcombined"
+        "com.example.daemon_slayer_minimal_combined"
             .parse()
             .expect("Should parse the label")
     }

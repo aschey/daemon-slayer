@@ -4,7 +4,6 @@ name = "daemon-slayer-logging"
 version = "0.1.0"
 
 [features]
-base = ["ipc", "linux-journald", "mac-oslog", "windows-eventlog"]
 cli = ["daemon-slayer-core/cli"]
 config = ["confique", "serde"]
 file = ["directories"]
@@ -12,6 +11,7 @@ ipc = ["tracing-ipc"]
 linux-journald = ["tracing-journald"]
 mac-oslog = ["tracing-oslog"]
 server = []
+system = ["linux-journald", "mac-oslog", "windows-eventlog"]
 windows-eventlog = ["tracing-eventlog"]
 
 [dependencies]
