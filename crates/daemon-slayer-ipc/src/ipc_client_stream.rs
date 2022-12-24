@@ -1,16 +1,11 @@
+use parity_tokio_ipc::{Connection, Endpoint};
 use std::{
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Poll, Waker},
     time::Duration,
 };
-
-use futures::FutureExt;
-use parity_tokio_ipc::{Connection, Endpoint};
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    task::JoinHandle,
-};
+use tokio::io::{AsyncRead, AsyncWrite};
 
 pub(crate) struct IpcClientStream {
     waker: Arc<Mutex<Option<Waker>>>,

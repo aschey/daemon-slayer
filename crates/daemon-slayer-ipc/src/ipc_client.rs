@@ -1,16 +1,9 @@
-use std::{marker::PhantomData, mem, pin::Pin};
-
-use bytes::{Bytes, BytesMut};
-use futures::{SinkExt, StreamExt};
-use parity_tokio_ipc::Endpoint;
-use serde::{Deserialize, Serialize};
-use tarpc::serde_transport::Transport;
-use tokio::io::{split, AsyncReadExt, AsyncWriteExt};
-use tokio_serde::{Deserializer, Serializer};
-
 use crate::{
     build_transport, get_socket_address, ipc_client_stream::IpcClientStream, Codec, CodecWrapper,
 };
+use futures::{SinkExt, StreamExt};
+use serde::{Deserialize, Serialize};
+use tarpc::serde_transport::Transport;
 
 pub struct IpcClient<Req, Res>
 where

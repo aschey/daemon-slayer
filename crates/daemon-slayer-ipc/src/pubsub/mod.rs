@@ -14,9 +14,4 @@ pub use subscriber_client::*;
 
 mod subscriber;
 
-use tokio::sync::mpsc;
-
-use crate::Codec;
-use std::fmt::Debug;
-
 mod service;

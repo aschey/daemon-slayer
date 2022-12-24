@@ -16,7 +16,10 @@ pub struct TaskQueueBuilder {
 
 impl Default for TaskQueueBuilder {
     fn default() -> Self {
-        Self::from_base_sqlite_options(SqliteConnectOptions::from_str(":memory:").unwrap())
+        Self::from_base_sqlite_options(
+            SqliteConnectOptions::from_str(":memory:")
+                .expect("Should be able to parse memory connection string"),
+        )
     }
 }
 
