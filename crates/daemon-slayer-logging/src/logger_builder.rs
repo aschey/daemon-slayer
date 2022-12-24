@@ -40,6 +40,9 @@ pub enum LoggerCreationError {
     #[cfg(feature = "linux-journald")]
     #[error("Error creating journald logging layer: {0}")]
     JournaldFailure(io::Error),
+    #[cfg(feature = "windows-eventlog")]
+    #[error("Error creating event log layer: {0}")]
+    EventLogError(String),
     #[cfg(feature = "file")]
     #[error("Error creating file logging layer: Unable to locate a home directory")]
     NoHomeDir,
@@ -357,7 +360,8 @@ impl LoggerBuilder {
 
         #[cfg(all(windows, feature = "windows-eventlog"))]
         let collector = collector.with(
-            tracing_eventlog::EventLogLayer::pretty(self.label.application.clone())?
+            tracing_eventlog::EventLogLayer::pretty(self.label.application.clone())
+                .map_err(|e| LoggerCreationError::EventLogError(e.to_string()))?
                 .with_filter(self.get_filter_for_target(LogTarget::EventLog)),
         );
 
