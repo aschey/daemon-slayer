@@ -16,11 +16,11 @@ pub struct SignalListener {
 }
 
 impl SignalListener {
-    fn get_client(&self) -> SignalListenerClient {
+    pub fn get_client(&self) -> SignalListenerClient {
         SignalListenerClient::new(self.signals.handle())
     }
 
-    fn get_event_store(&self) -> BroadcastEventStore<Signal> {
+    pub fn get_event_store(&self) -> BroadcastEventStore<Signal> {
         BroadcastEventStore::new(self.signal_tx.clone())
     }
 }

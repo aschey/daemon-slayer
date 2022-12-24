@@ -30,7 +30,6 @@ use serde_derive::Deserialize;
 use tracing::info;
 
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
-use tracing::log::Log;
 
 #[tokio::main]
 pub async fn main() {
