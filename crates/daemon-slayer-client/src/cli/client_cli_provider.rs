@@ -189,7 +189,7 @@ impl daemon_slayer_core::cli::CommandProvider for ClientCliProvider {
                     Some(Action::Uninstall) => self.manager.uninstall()?,
                     Some(Action::Info) => {
                         let info = self.manager.info()?;
-                        println!("{info:?}");
+                        println!("{}", info.pretty_print());
                     }
                     Some(Action::Start) => self.manager.start()?,
                     Some(Action::Stop) => self.manager.stop()?,

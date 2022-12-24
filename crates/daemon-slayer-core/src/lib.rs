@@ -13,6 +13,7 @@ pub mod config;
 mod future_ext;
 pub use future_ext::*;
 mod label;
+pub use async_trait::async_trait;
 pub use label::*;
 use std::{any::Any, error::Error};
 pub use tokio_util::sync::CancellationToken;

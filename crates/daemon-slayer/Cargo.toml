@@ -27,20 +27,20 @@ server-base = [
 
 cli = [
   "daemon-slayer-cli",
-  "daemon-slayer-logging/cli",
-  "daemon-slayer-server/cli",
-  "daemon-slayer-client/cli",
-  "daemon-slayer-console/cli",
-  "daemon-slayer-health-check/cli",
-  "daemon-slayer-error-handler/cli",
-  "daemon-slayer-config/cli",
+  "daemon-slayer-logging?/cli",
+  "daemon-slayer-server?/cli",
+  "daemon-slayer-client?/cli",
+  "daemon-slayer-console?/cli",
+  "daemon-slayer-health-check?/cli",
+  "daemon-slayer-error-handler?/cli",
+  "daemon-slayer-config?/cli",
 ]
 client = ["daemon-slayer-client"]
 config = [
   "daemon-slayer-config",
-  "daemon-slayer-client/config",
-  "daemon-slayer-console/config",
-  "daemon-slayer-logging/config",
+  "daemon-slayer-client?/config",
+  "daemon-slayer-console?/config",
+  "daemon-slayer-logging?/config",
 ]
 config-pretty-print = ["daemon-slayer-config/pretty-print"]
 console = ["daemon-slayer-console"]
@@ -55,8 +55,8 @@ logging = ["daemon-slayer-logging"]
 # ipc-health-check = ["daemon-slayer-plugin-ipc-health-check"]
 server = [
   "daemon-slayer-server",
-  "daemon-slayer-config/server",
-  "daemon-slayer-logging/server",
+  "daemon-slayer-config?/server",
+  "daemon-slayer-logging?/server",
 ]
 signals = ["daemon-slayer-signals"]
 task-queue = ["daemon-slayer-task-queue"]

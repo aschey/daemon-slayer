@@ -20,8 +20,6 @@ pub use windows_service;
 
 pub use async_trait;
 pub use futures;
-pub use once_cell;
-pub use tokio;
 
 pub use daemon_slayer_core::{
     server::{BackgroundService, BroadcastEventStore, EventStore, ServiceContext},
