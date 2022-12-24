@@ -5,7 +5,7 @@ use daemon_slayer_core::{
 use once_cell::sync::OnceCell;
 use std::{
     collections::HashMap,
-    io::{stderr, stdout},
+    io::{self, stderr, stdout},
     ops::Deref,
     str::FromStr,
 };
@@ -33,6 +33,16 @@ static LOCAL_TIME: OnceCell<Result<OffsetTime<Rfc3339>, time::error::Indetermina
 
 pub fn init_local_time() {
     LOCAL_TIME.get_or_init(OffsetTime::local_rfc_3339);
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum LoggerCreationError {
+    #[cfg(feature = "linux-journald")]
+    #[error("Error creating journald logging layer: {0}")]
+    JournaldFailure(io::Error),
+    #[cfg(feature = "file")]
+    #[error("Error creating file logging layer: Unable to locate a home directory")]
+    NoHomeDir,
 }
 
 #[derive(Hash, Eq, PartialEq, Clone)]
@@ -92,7 +102,7 @@ pub struct UserConfig {
 pub struct LoggerBuilder {
     label: Label,
     #[cfg(feature = "file")]
-    file_rotation_period: tracing_appender::Rotation,
+    file_rotation_period: tracing_appender::rolling::Rotation,
     timezone: Timezone,
     output_buffer_limit: usize,
     user_config: CachedConfig<UserConfig>,
@@ -108,7 +118,7 @@ impl LoggerBuilder {
         Self {
             label,
             #[cfg(feature = "file")]
-            file_rotation_period: tracing_appender::Rotation::HOURLY,
+            file_rotation_period: tracing_appender::rolling::Rotation::HOURLY,
             timezone: Timezone::Local,
             // The default number of buffered lines is quite large and uses a ton of memory
             // We aren't logging a ton of messages so setting this value somewhat low is fine in order to conserve memory
@@ -123,7 +133,10 @@ impl LoggerBuilder {
     }
 
     #[cfg(feature = "file")]
-    pub fn with_file_rotation_period(mut self, rotation: tracing_appender::Rotation) -> Self {
+    pub fn with_file_rotation_period(
+        mut self,
+        rotation: tracing_appender::rolling::Rotation,
+    ) -> Self {
         self.file_rotation_period = rotation;
         self
     }
@@ -216,7 +229,7 @@ impl LoggerBuilder {
             impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
             LoggerGuard,
         ),
-        BoxedError,
+        LoggerCreationError,
     > {
         let offset = match (&self.timezone, LOCAL_TIME.get()) {
             (Timezone::Local, Some(Ok(offset))) => offset.to_owned(),
@@ -238,15 +251,19 @@ impl LoggerBuilder {
         let mut guard = LoggerGuard::default();
 
         #[cfg(feature = "file")]
-        let proj_dirs = directories::ProjectDirs::from("", "", &self.name)
-            .expect("Unable to find a valid home directory");
+        let proj_dirs = directories::ProjectDirs::from(
+            &self.label.qualifier,
+            &self.label.organization,
+            &self.label.application,
+        )
+        .ok_or(LoggerCreationError::NoHomeDir)?;
         #[cfg(feature = "file")]
         let log_dir = proj_dirs.cache_dir();
         #[cfg(feature = "file")]
         let file_appender = tracing_appender::rolling::RollingFileAppender::new(
-            self.file_rotation_period,
+            self.file_rotation_period.clone(),
             log_dir,
-            format!("{}.log", self.name),
+            format!("{}.log", self.label.application),
         );
         #[cfg(feature = "file")]
         let (non_blocking_file, file_guard) = NonBlockingBuilder::default()
@@ -262,7 +279,7 @@ impl LoggerBuilder {
                 .with_thread_names(true)
                 .with_ansi(false)
                 .with_writer(non_blocking_file)
-                .with_filter(self.level_filter)
+                .with_filter(self.get_filter_for_target(LogTarget::File))
         });
 
         let (non_blocking_stdout, stdout_guard) = NonBlockingBuilder::default()
@@ -327,7 +344,9 @@ impl LoggerBuilder {
 
         #[cfg(all(target_os = "linux", feature = "linux-journald"))]
         let collector = collector.with(
-            tracing_journald::layer()?.with_filter(self.get_filter_for_target(LogTarget::JournalD)),
+            tracing_journald::layer()
+                .map_err(LoggerCreationError::JournaldFailure)?
+                .with_filter(self.get_filter_for_target(LogTarget::JournalD)),
         );
 
         #[cfg(all(target_os = "macos", feature = "mac-oslog"))]
@@ -345,7 +364,7 @@ impl LoggerBuilder {
         let (filter, reload_handle) =
             reload::Layer::new(self.user_config.snapshot().log_level.0.into());
         guard.set_reload_handle(Box::new(move |level_filter| {
-            reload_handle.modify(|l| *l = level_filter).unwrap();
+            reload_handle.modify(|l| *l = level_filter).ok();
         }));
 
         let collector = collector.with(filter);

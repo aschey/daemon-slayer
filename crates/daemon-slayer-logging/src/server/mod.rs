@@ -1,27 +1,28 @@
-use std::{ops::Deref, sync::Arc};
-
+use crate::{LoggerGuard, UserConfig};
 use daemon_slayer_core::{
     server::{
         tokio_stream::StreamExt, BackgroundService, BroadcastEventStore, EventStore, ServiceContext,
     },
     BoxedError, FutureExt,
 };
+use std::{ops::Deref, sync::Arc};
 
-use crate::{LoggerGuard, UserConfig};
+pub trait LoggingConfig: AsRef<UserConfig> + Send + Sync + 'static {}
+impl<T> LoggingConfig for T where T: AsRef<UserConfig> + Send + Sync + 'static {}
 
-pub struct LoggingUpdateService<T: AsRef<UserConfig> + Send + Sync + 'static> {
+pub struct LoggingUpdateService<T: LoggingConfig> {
     file_events: BroadcastEventStore<(Arc<T>, Arc<T>)>,
     guard: LoggerGuard,
 }
 
-impl<T: AsRef<UserConfig> + Send + Sync + 'static> LoggingUpdateService<T> {
+impl<T: LoggingConfig> LoggingUpdateService<T> {
     pub fn new(guard: LoggerGuard, file_events: BroadcastEventStore<(Arc<T>, Arc<T>)>) -> Self {
         Self { guard, file_events }
     }
 }
 
 #[async_trait::async_trait]
-impl<T: AsRef<UserConfig> + Send + Sync + 'static> BackgroundService for LoggingUpdateService<T> {
+impl<T: LoggingConfig> BackgroundService for LoggingUpdateService<T> {
     fn name<'a>() -> &'a str {
         "logging_update_service"
     }

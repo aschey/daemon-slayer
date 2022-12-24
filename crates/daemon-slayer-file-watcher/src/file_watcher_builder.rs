@@ -1,6 +1,5 @@
-use std::path::PathBuf;
-
 use crate::FileWatcher;
+use std::path::PathBuf;
 
 #[derive(Clone)]
 pub struct FileWatcherBuilder {

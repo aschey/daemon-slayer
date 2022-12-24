@@ -1,16 +1,15 @@
+use super::file_watcher_client::FileWatcherClient;
+use crate::{file_watcher_builder::FileWatcherBuilder, file_watcher_command::FileWatcherCommand};
 use daemon_slayer_core::{
     server::{BroadcastEventStore, ServiceContext},
     BoxedError, FutureExt,
 };
 use notify::RecommendedWatcher;
-use notify_debouncer_mini::Debouncer;
-use std::path::PathBuf;
+use notify_debouncer_mini::{new_debouncer, DebouncedEvent, Debouncer};
+use std::{path::PathBuf, time::Duration};
+use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
-use tracing::{error, info};
-
-use crate::{file_watcher_builder::FileWatcherBuilder, file_watcher_command::FileWatcherCommand};
-
-use super::file_watcher_client::FileWatcherClient;
+use tracing::{error, info, warn};
 
 pub struct FileWatcher {
     file_tx: broadcast::Sender<Vec<PathBuf>>,
@@ -28,15 +27,17 @@ impl FileWatcher {
         let (file_tx, _) = broadcast::channel(32);
         let file_tx_ = file_tx.clone();
 
-        let mut debouncer = notify_debouncer_mini::new_debouncer(
-            std::time::Duration::from_secs(builder.debounce_seconds),
+        let mut debouncer = new_debouncer(
+            Duration::from_secs(builder.debounce_seconds),
             None,
-            move |events: Result<
-                Vec<notify_debouncer_mini::DebouncedEvent>,
-                Vec<notify::Error>,
-            >| {
-                let e = events.unwrap().into_iter().map(|e| e.path).collect();
-                file_tx_.send(e).unwrap();
+            move |events: Result<Vec<DebouncedEvent>, Vec<notify::Error>>| {
+                if let Ok(events) = events.tap_err(|e| error!("File watch error: {e:?}")) {
+                    let paths = events.into_iter().map(|e| e.path).collect();
+                    file_tx_
+                        .send(paths)
+                        .tap_err(|e| warn!("Error sending file paths: {e:?}"))
+                        .ok();
+                }
             },
         )
         .unwrap();
@@ -88,11 +89,15 @@ impl daemon_slayer_core::server::BackgroundService for FileWatcher {
                     .debouncer
                     .watcher()
                     .watch(&path, recursive_mode)
-                    .unwrap(),
-                FileWatcherCommand::Unwatch(path) => {
-                    self.debouncer.watcher().unwatch(&path).unwrap()
-                }
-            }
+                    .tap_err(|e| error!("Error watching path: {e:?}"))
+                    .ok(),
+                FileWatcherCommand::Unwatch(path) => self
+                    .debouncer
+                    .watcher()
+                    .unwatch(&path)
+                    .tap_err(|e| error!("Error watching path: {e:?}"))
+                    .ok(),
+            };
         }
         self.debouncer.stop();
         Ok(())

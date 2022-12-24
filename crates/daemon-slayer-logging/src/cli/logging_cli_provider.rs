@@ -1,4 +1,4 @@
-use crate::{LoggerBuilder, LoggerGuard};
+use crate::{LoggerBuilder, LoggerCreationError, LoggerGuard};
 use daemon_slayer_core::{
     cli::{clap, Action, ActionType, CommandConfig, CommandMatch, InputState},
     BoxedError,
@@ -6,6 +6,14 @@ use daemon_slayer_core::{
 use std::sync::{Arc, Mutex};
 use tracing::Subscriber;
 use tracing_subscriber::{registry::LookupSpan, util::SubscriberInitExt};
+
+#[derive(thiserror::Error, Debug)]
+pub enum LoggerInitializationError {
+    #[error("{0}")]
+    CreationFailure(#[source] LoggerCreationError),
+    #[error("The logger was already created")]
+    AlreadyCreated,
+}
 
 #[derive(Clone)]
 pub struct LoggingCliProvider {
@@ -21,17 +29,20 @@ impl LoggingCliProvider {
 
     pub fn get_logger(
         self,
-    ) -> (
-        impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
-        LoggerGuard,
-    ) {
+    ) -> Result<
+        (
+            impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
+            LoggerGuard,
+        ),
+        LoggerInitializationError,
+    > {
         self.builder
             .lock()
             .unwrap()
             .take()
-            .unwrap()
+            .ok_or(LoggerInitializationError::AlreadyCreated)?
             .build()
-            .unwrap()
+            .map_err(LoggerInitializationError::CreationFailure)
     }
 }
 

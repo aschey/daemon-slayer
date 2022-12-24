@@ -135,7 +135,7 @@ pub async fn run_async() -> Result<(), BoxedError> {
         .get_provider::<LoggingCliProvider>()
         .unwrap()
         .clone()
-        .get_logger();
+        .get_logger()?;
     logger.init();
 
     cli.get_provider::<ServerCliProvider<ServiceHandler>>()
