@@ -43,14 +43,6 @@ impl ConfigFileType {
             ConfigFileType::Json5 => ".json5",
         }
     }
-
-    fn to_format_language(&self) -> &str {
-        match &self {
-            ConfigFileType::Toml => "toml",
-            ConfigFileType::Yaml => "yaml",
-            ConfigFileType::Json5 => "javascript",
-        }
-    }
 }
 
 #[derive(Clone)]

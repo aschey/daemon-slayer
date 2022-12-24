@@ -1,6 +1,6 @@
 use std::{io, path::PathBuf};
 
-use crate::{AppConfig, Configurable};
+use crate::{AppConfig, ConfigFileType, Configurable};
 
 #[derive(thiserror::Error, Debug)]
 pub enum PrettyPrintError {
@@ -30,6 +30,16 @@ pub struct PrettyPrintOptions {
 impl Default for PrettyPrintOptions {
     fn default() -> Self {
         Self { color: true }
+    }
+}
+
+impl ConfigFileType {
+    fn to_format_language(&self) -> &str {
+        match &self {
+            ConfigFileType::Toml => "toml",
+            ConfigFileType::Yaml => "yaml",
+            ConfigFileType::Json5 => "javascript",
+        }
     }
 }
 
