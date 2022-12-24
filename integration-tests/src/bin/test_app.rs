@@ -77,10 +77,13 @@ impl Handler for ServiceHandler {
     type InputData = ();
     type Error = BoxedError;
 
-    async fn new(mut context: ServiceContext, _input_data: Option<Self::InputData>) -> Self {
+    async fn new(
+        mut context: ServiceContext,
+        _input_data: Option<Self::InputData>,
+    ) -> Result<Self, Self::Error> {
         let signal_listener = SignalListener::all();
         let signal_store = signal_listener.get_event_store();
-        context.add_service(signal_listener).await;
+        context.add_service(signal_listener).await.unwrap();
 
         if let Ok(config_file) = std::env::var("CONFIG_FILE") {
             let abs_path = PathBuf::from(config_file);
@@ -88,7 +91,7 @@ impl Handler for ServiceHandler {
                 .with_watch_path(abs_path)
                 .build();
             let file_watcher_events = file_watcher.get_event_store();
-            context.add_service(file_watcher).await;
+            context.add_service(file_watcher).await.unwrap();
             let mut event_store = file_watcher_events.subscribe_events();
             tokio::spawn(async move {
                 while let Some(Ok(files)) = event_store.next().await {
@@ -101,7 +104,7 @@ impl Handler for ServiceHandler {
             });
         }
 
-        Self { signal_store }
+        Ok(Self { signal_store })
     }
 
     fn label() -> Label {

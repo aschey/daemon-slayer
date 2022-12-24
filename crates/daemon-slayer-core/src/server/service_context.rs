@@ -29,6 +29,12 @@ pub enum BackgroundServiceError {
     ExecutionPanic(String, JoinError),
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum AddServiceError {
+    #[error("Unable to add the service because the service manager has already been stopped")]
+    ManagerStopped,
+}
+
 pub struct ServiceManager {
     cancellation_token: CancellationToken,
     services: Arc<RwLock<Option<Vec<ServiceInfo>>>>,
@@ -89,7 +95,10 @@ impl ServiceContext {
         self.cancellation_token.child_token()
     }
 
-    pub async fn add_service<S: BackgroundService + 'static>(&mut self, service: S) {
+    pub async fn add_service<S: BackgroundService + 'static>(
+        &mut self,
+        service: S,
+    ) -> Result<(), AddServiceError> {
         if let Some(services) = &mut *self.services.write().await {
             let context = self.clone();
             let handle = tokio::spawn(async move { service.run(context).await });
@@ -98,8 +107,9 @@ impl ServiceContext {
                 name: S::name().to_owned(),
                 timeout: S::shutdown_timeout(),
             });
+            Ok(())
         } else {
-            panic!();
+            Err(AddServiceError::ManagerStopped)
         }
     }
 }

@@ -111,7 +111,10 @@ pub async fn run_async() -> Result<(), BoxedError> {
         .with_configure_services(move |mut context| {
             let app_config = app_config_.clone();
             async move {
-                context.add_service(ConfigService::new(app_config)).await;
+                context
+                    .add_service(ConfigService::new(app_config))
+                    .await
+                    .unwrap();
             }
         });
 
@@ -161,27 +164,30 @@ impl Handler for ServiceHandler {
         "com.example.daemonslayercombined".parse().unwrap()
     }
 
-    async fn new(mut context: ServiceContext, input_data: Option<Self::InputData>) -> Self {
+    async fn new(
+        mut context: ServiceContext,
+        input_data: Option<Self::InputData>,
+    ) -> Result<Self, Self::Error> {
         let input_data = input_data.unwrap();
         let signal_listener = SignalListener::all();
         let signal_store = signal_listener.get_event_store();
-        context.add_service(signal_listener).await;
+        context.add_service(signal_listener).await?;
         context
             .add_service(daemon_slayer::ipc::health_check::Server::new(
                 Self::label().application,
             ))
-            .await;
+            .await?;
         let config_service = ConfigService::new(input_data.config);
         let file_events = config_service.get_event_store();
-        context.add_service(config_service).await;
+        context.add_service(config_service).await?;
         context
             .add_service(LoggingUpdateService::new(
                 input_data.logger_guard,
                 file_events,
             ))
-            .await;
+            .await?;
 
-        Self { signal_store }
+        Ok(Self { signal_store })
     }
 
     async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> Result<(), Self::Error> {

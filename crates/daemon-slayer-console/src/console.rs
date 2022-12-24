@@ -200,7 +200,7 @@ impl Console {
             let health_checker =
                 HealthChecker::new(self.user_config.clone(), health_check, health_tx);
             let mut context = manager.get_context();
-            context.add_service(health_checker).await;
+            context.add_service(health_checker).await.unwrap();
         }
 
         let mut event_reader = EventStream::new().fuse();

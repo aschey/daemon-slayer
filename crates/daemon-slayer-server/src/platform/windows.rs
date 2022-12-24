@@ -36,7 +36,9 @@ async fn get_service_main_impl<T: Handler + Send + 'static>(
     signal::set_sender(signal_tx.clone());
 
     let manager = ServiceManager::new(CancellationToken::new());
-    let handler = T::new(manager.get_context(), input_data).await;
+    let handler = T::new(manager.get_context(), input_data)
+        .await
+        .map_err(|e| ServiceError::ExecutionFailure(e, None))?;
 
     let windows_service_event_handler = move |control_event| -> ServiceControlHandlerResult {
         match control_event {
@@ -157,7 +159,9 @@ pub async fn get_direct_handler<T: Handler + Send + 'static>(
     input_data: Option<T::InputData>,
 ) -> Result<(), ServiceError<T::Error>> {
     let manager = ServiceManager::new(CancellationToken::new());
-    let handler = T::new(manager.get_context(), input_data).await;
+    let handler = T::new(manager.get_context(), input_data)
+        .await
+        .map_err(|e| ServiceError::ExecutionFailure(e, None))?;
 
     let result = handler.run_service(|| {}).await;
     let background_service_errors = manager.stop().await;

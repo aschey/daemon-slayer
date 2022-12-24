@@ -7,7 +7,9 @@ pub async fn run_as_service<T: Handler + Send + 'static>(
     input_data: Option<T::InputData>,
 ) -> Result<(), ServiceError<T::Error>> {
     let manager = ServiceManager::new(CancellationToken::new());
-    let handler = T::new(manager.get_context(), input_data).await;
+    let handler = T::new(manager.get_context(), input_data)
+        .await
+        .map_err(|e| ServiceError::ExecutionFailure(e, None))?;
 
     let result = handler
         .run_service(|| {
