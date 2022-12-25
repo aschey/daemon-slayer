@@ -36,25 +36,26 @@ struct Cli {
 
 #[tokio::main]
 pub async fn main() -> Result<(), BoxedError> {
-    let manager = client::builder(minimal_separate::label())
-        .with_description("test service")
-        .with_args(["run"])
-        .with_program(
-            current_exe()?
-                .parent()
-                .expect("Current exe should have a parent")
-                .join("minimal-server"),
-        )
-        .with_service_level(if cfg!(windows) {
-            Level::System
-        } else {
-            Level::User
-        })
-        .with_windows_config(WindowsConfig::default().with_additional_access(
-            Trustee::CurrentUser,
-            ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
-        ))
-        .build()?;
+    let manager = client::builder(
+        minimal_separate::label(),
+        current_exe()?
+            .parent()
+            .expect("Current exe should have a parent")
+            .join("minimal-server")
+            .try_into()?,
+    )
+    .with_description("test service")
+    .with_args(["run"])
+    .with_service_level(if cfg!(windows) {
+        Level::System
+    } else {
+        Level::User
+    })
+    .with_windows_config(WindowsConfig::default().with_additional_access(
+        Trustee::CurrentUser,
+        ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
+    ))
+    .build()?;
 
     match Cli::parse().arg {
         Arg::Install => {

@@ -15,10 +15,13 @@ use windows::*;
 
 use daemon_slayer_core::Label;
 
-use crate::{config::Builder, Manager};
+use crate::{
+    config::{Builder, Program},
+    Manager,
+};
 
-pub fn builder(label: Label) -> Builder {
-    Builder::new(label)
+pub fn builder(label: Label, program: Program) -> Builder {
+    Builder::new(label, program)
 }
 
 pub(crate) fn get_manager(builder: Builder) -> Result<Box<dyn Manager>, io::Error> {

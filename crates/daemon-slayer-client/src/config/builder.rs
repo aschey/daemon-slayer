@@ -9,9 +9,32 @@ use daemon_slayer_core::config::Accessor;
 use daemon_slayer_core::config::CachedConfig;
 use daemon_slayer_core::Label;
 use std::env::consts::EXE_EXTENSION;
-use std::env::current_exe;
 use std::io;
 use std::path::PathBuf;
+
+#[derive(thiserror::Error, Debug)]
+pub enum IntoProgramError {
+    #[error("The program path contains invalid UTF-8")]
+    InvalidUtf8,
+}
+
+pub struct Program(String);
+
+impl Program {
+    pub fn new(path: impl Into<PathBuf>) -> Result<Self, IntoProgramError> {
+        let pathbuf: PathBuf = path.into().with_extension(EXE_EXTENSION);
+        let path_string = pathbuf.to_str().ok_or(IntoProgramError::InvalidUtf8)?;
+        Ok(Program(path_string.to_owned()))
+    }
+}
+
+impl TryFrom<PathBuf> for Program {
+    type Error = IntoProgramError;
+
+    fn try_from(value: PathBuf) -> Result<Self, Self::Error> {
+        Program::new(value)
+    }
+}
 
 #[derive(Clone)]
 pub struct Builder {
@@ -32,16 +55,13 @@ pub struct Builder {
 }
 
 impl Builder {
-    pub fn new(label: Label) -> Self {
+    pub fn new(label: Label, program: Program) -> Self {
         Self {
             label,
             display_name: None,
             description: "".to_owned(),
             arguments: vec![],
-            program: current_exe()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string(),
+            program: program.0,
             service_level: Level::System,
             autostart: false,
             systemd_config: Default::default(),
@@ -57,13 +77,6 @@ impl Builder {
 
     pub fn with_description(mut self, description: impl Into<String>) -> Self {
         self.description = description.into();
-        self
-    }
-
-    pub fn with_program(mut self, program: impl Into<PathBuf>) -> Self {
-        let mut program = program.into();
-        program.set_extension(EXE_EXTENSION);
-        self.program = program.to_string_lossy().to_string();
         self
     }
 

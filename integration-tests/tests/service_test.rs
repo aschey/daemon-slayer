@@ -4,14 +4,15 @@ use daemon_slayer::client::{Manager, State};
 use std::{fs::File, io::Write, thread, time::Duration};
 
 #[test]
-fn test_async_combined() {
-    test_combined("com.daemonslayer.daemonslayertest", "test_app", 3002);
-}
-
-fn test_combined(service_name: &str, bin_name: &str, port: i32) {
-    let manager = client::config::Builder::new(service_name.parse().unwrap())
-        .build()
-        .unwrap();
+fn test_combined() {
+    let bin_name = "test_app";
+    let port = 3002;
+    let manager = client::config::Builder::new(
+        "com.test.daemon_slayer_test".parse().unwrap(),
+        assert_cmd::cargo::cargo_bin(bin_name).try_into().unwrap(),
+    )
+    .build()
+    .unwrap();
     if manager.info().unwrap().state != State::NotInstalled {
         manager.stop().unwrap();
         thread::sleep(Duration::from_millis(100));

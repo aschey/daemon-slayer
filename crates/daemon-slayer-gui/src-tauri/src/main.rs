@@ -5,6 +5,7 @@ use daemon_slayer_client::config::Level;
 use daemon_slayer_client::{Info, Manager};
 use daemon_slayer_health_check::HealthCheck;
 use daemon_slayer_health_check::{HttpHealthCheck, HttpRequestType};
+use std::path::PathBuf;
 use tauri::{
     CustomMenuItem, Manager as TauriManager, State, SystemTray, SystemTrayEvent, SystemTrayMenu,
     WindowBuilder, WindowEvent, WindowUrl,
@@ -53,8 +54,10 @@ impl ManagerWrapper {
 }
 
 fn main() {
+    let label = args().nth(1).unwrap().parse().unwrap();
+    let exe_path = PathBuf::from(args().nth(1).unwrap()).try_into().unwrap();
     let manager = Arc::new(RwLock::new(ManagerWrapper {
-        manager: daemon_slayer_client::builder(args().nth(1).unwrap().parse().unwrap())
+        manager: daemon_slayer_client::builder(label, exe_path)
             .with_service_level(if cfg!(windows) {
                 Level::System
             } else {

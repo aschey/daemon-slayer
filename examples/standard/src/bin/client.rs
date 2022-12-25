@@ -61,26 +61,27 @@ pub async fn run_async() -> Result<(), BoxedError> {
 
     app_config.ensure_config_file()?;
     let config = app_config.read_config().unwrap_or_default();
-    let manager = client::builder(standard::label())
-        .with_description("test service")
-        .with_args(["run"])
-        .with_program(
-            current_exe()?
-                .parent()
-                .expect("Current exe should have a parent")
-                .join("standard-server"),
-        )
-        .with_service_level(if cfg!(windows) {
-            Level::System
-        } else {
-            Level::User
-        })
-        .with_windows_config(WindowsConfig::default().with_additional_access(
-            Trustee::CurrentUser,
-            ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
-        ))
-        .with_user_config(config.clone())
-        .build()?;
+    let manager = client::builder(
+        standard::label(),
+        current_exe()?
+            .parent()
+            .expect("Current exe should have a parent")
+            .join("standard-server")
+            .try_into()?,
+    )
+    .with_description("test service")
+    .with_args(["run"])
+    .with_service_level(if cfg!(windows) {
+        Level::System
+    } else {
+        Level::User
+    })
+    .with_windows_config(WindowsConfig::default().with_additional_access(
+        Trustee::CurrentUser,
+        ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
+    ))
+    .with_user_config(config.clone())
+    .build()?;
 
     let logger_builder = LoggerBuilder::new(standard::label()).with_config(app_config.clone());
 

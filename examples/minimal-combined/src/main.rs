@@ -1,5 +1,7 @@
-use std::time::{Duration, Instant};
-
+use std::{
+    env::current_exe,
+    time::{Duration, Instant},
+};
 use clap::Parser;
 use daemon_slayer::{
     client::{
@@ -43,7 +45,7 @@ struct Cli {
 
 #[tokio::main]
 pub async fn main() -> Result<(), BoxedError> {
-    let manager = client::builder(ServiceHandler::label())
+    let manager = client::builder(ServiceHandler::label(), current_exe()?.try_into()?)
         .with_description("test service")
         .with_args(["run"])
         .with_service_level(if cfg!(windows) {

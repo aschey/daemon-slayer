@@ -1,4 +1,4 @@
-use std::env::args;
+use std::env::{args, current_exe};
 use std::error::Error;
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -33,9 +33,12 @@ use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 
 #[tokio::main]
 pub async fn main() {
-    let mut manager_builder = client::builder(ServiceHandler::label())
-        .with_description("test service")
-        .with_args(["run"]);
+    let mut manager_builder = client::builder(
+        ServiceHandler::label(),
+        current_exe().unwrap().try_into().unwrap(),
+    )
+    .with_description("test service")
+    .with_args(["run"]);
 
     if let Ok(config_file) = std::env::var("CONFIG_FILE") {
         manager_builder = manager_builder.with_environment_variable("CONFIG_FILE", config_file);
@@ -107,7 +110,7 @@ impl Handler for ServiceHandler {
     }
 
     fn label() -> Label {
-        "com.daemonslayer.daemonslayertest".parse().unwrap()
+        "com.test.daemon_slayer_test".parse().unwrap()
     }
 
     // fn get_watch_paths(&self) -> Vec<PathBuf> {
