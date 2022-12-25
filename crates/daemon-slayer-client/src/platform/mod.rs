@@ -17,18 +17,24 @@ use daemon_slayer_core::Label;
 
 use crate::{
     config::{Builder, Program},
-    Manager,
+    ServiceManager,
 };
 
 pub fn builder(label: Label, program: Program) -> Builder {
     Builder::new(label, program)
 }
 
-pub(crate) fn get_manager(builder: Builder) -> Result<Box<dyn Manager>, io::Error> {
+pub(crate) fn get_manager(builder: Builder) -> Result<ServiceManager, io::Error> {
     #[cfg(target_os = "linux")]
-    return Ok(Box::new(SystemdServiceManager::from_builder(builder)?));
+    return Ok(ServiceManager::new(SystemdServiceManager::from_builder(
+        builder,
+    )?));
     #[cfg(windows)]
-    return Ok(Box::new(WindowsServiceManager::from_builder(builder)?));
+    return Ok(ServiceManager::new(WindowsServiceManager::from_builder(
+        builder,
+    )?));
     #[cfg(target_os = "macos")]
-    return Ok(Box::new(LaunchdServiceManager::from_builder(builder)?));
+    return Ok(ServiceManager::new(LaunchdServiceManager::from_builder(
+        builder,
+    )?));
 }

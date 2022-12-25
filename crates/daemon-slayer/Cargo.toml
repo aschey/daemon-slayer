@@ -36,7 +36,7 @@ cli = [
   "daemon-slayer-error-handler?/cli",
   "daemon-slayer-config?/cli",
 ]
-client = ["daemon-slayer-client", "daemon-slayer-config?/client"]
+client = ["daemon-slayer-client"]
 config = [
   "daemon-slayer-config",
   "daemon-slayer-client?/config",

@@ -4,7 +4,7 @@ use super::EnvironmentVariable;
 use super::Level;
 use super::UserConfig;
 use crate::get_manager;
-use crate::Manager;
+use crate::ServiceManager;
 use daemon_slayer_core::config::Accessor;
 use daemon_slayer_core::config::CachedConfig;
 use daemon_slayer_core::CommandArg;
@@ -135,7 +135,7 @@ impl Builder {
         self
     }
 
-    pub fn build(self) -> Result<Box<dyn Manager>, io::Error> {
+    pub fn build(self) -> Result<ServiceManager, io::Error> {
         get_manager(self)
     }
 

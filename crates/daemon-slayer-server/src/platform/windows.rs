@@ -1,6 +1,6 @@
 use crate::{Handler, ServiceError};
 use daemon_slayer_core::{
-    server::ServiceManager,
+    server::BackgroundServiceManager,
     signal::{self, Signal},
     CancellationToken,
 };
@@ -35,7 +35,7 @@ async fn get_service_main_impl<T: Handler>(
     let (signal_tx, _) = broadcast::channel(32);
     signal::set_sender(signal_tx.clone());
 
-    let manager = ServiceManager::new(CancellationToken::new());
+    let manager = BackgroundServiceManager::new(CancellationToken::new());
     let handler = T::new(manager.get_context(), input_data)
         .await
         .map_err(|e| ServiceError::ExecutionFailure(e, None))?;
@@ -158,7 +158,7 @@ fn set_env_vars<T: Handler>() {
 pub async fn get_direct_handler<T: Handler>(
     input_data: Option<T::InputData>,
 ) -> Result<(), ServiceError<T::Error>> {
-    let manager = ServiceManager::new(CancellationToken::new());
+    let manager = BackgroundServiceManager::new(CancellationToken::new());
     let handler = T::new(manager.get_context(), input_data)
         .await
         .map_err(|e| ServiceError::ExecutionFailure(e, None))?;

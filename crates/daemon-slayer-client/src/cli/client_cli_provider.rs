@@ -1,4 +1,4 @@
-use crate::Manager;
+use crate::ServiceManager;
 use daemon_slayer_core::{
     cli::{clap, Action, ActionType, CommandConfig, CommandMatch, CommandType, InputState},
     BoxedError,
@@ -8,11 +8,11 @@ use std::collections::HashMap;
 #[derive(Clone)]
 pub struct ClientCliProvider {
     commands: HashMap<Action, CommandConfig>,
-    manager: Box<dyn Manager>,
+    manager: ServiceManager,
 }
 
 impl ClientCliProvider {
-    pub fn new(manager: Box<dyn Manager>) -> Self {
+    pub fn new(manager: ServiceManager) -> Self {
         let mut commands = HashMap::default();
         commands.insert(
             Action::Install,

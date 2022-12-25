@@ -1,12 +1,12 @@
 use crate::{Handler, ServiceError};
-use daemon_slayer_core::{server::ServiceManager, CancellationToken};
+use daemon_slayer_core::{server::BackgroundServiceManager, CancellationToken};
 use tap::TapFallible;
 use tracing::{error, warn};
 
 pub async fn run_as_service<T: Handler>(
     input_data: Option<T::InputData>,
 ) -> Result<(), ServiceError<T::Error>> {
-    let manager = ServiceManager::new(CancellationToken::new());
+    let manager = BackgroundServiceManager::new(CancellationToken::new());
     let handler = T::new(manager.get_context(), input_data)
         .await
         .map_err(|e| ServiceError::ExecutionFailure(e, None))?;

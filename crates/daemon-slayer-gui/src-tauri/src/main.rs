@@ -1,8 +1,8 @@
 use std::sync::RwLock;
-use std::{env::args, os, sync::Arc, time::Duration};
+use std::{env::args, sync::Arc, time::Duration};
 
 use daemon_slayer_client::config::Level;
-use daemon_slayer_client::{Info, Manager};
+use daemon_slayer_client::{Info, ServiceManager};
 use daemon_slayer_health_check::HealthCheck;
 use daemon_slayer_health_check::{HttpHealthCheck, HttpRequestType};
 use std::path::PathBuf;
@@ -16,7 +16,7 @@ use tracing_ipc::run_ipc_client;
 
 #[derive(Clone)]
 struct ManagerWrapper {
-    manager: Box<dyn Manager>,
+    manager: ServiceManager,
 }
 
 impl ManagerWrapper {

@@ -103,7 +103,9 @@ pub async fn run_async() -> Result<(), BoxedError> {
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(LoggingCliProvider::new(logger_builder))
         .with_provider(ErrorHandlerCliProvider::default())
-        .with_provider(ConfigCliProvider::new(app_config.clone()).with_manager(manager.clone()))
+        .with_provider(
+            ConfigCliProvider::new(app_config.clone()).with_config_watcher(manager.clone()),
+        )
         .initialize()?;
 
     let (logger, _) = cli

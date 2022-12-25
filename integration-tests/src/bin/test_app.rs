@@ -1,32 +1,20 @@
-use std::env::{args, current_exe};
-use std::error::Error;
-use std::net::SocketAddr;
-use std::path::PathBuf;
-use std::sync::RwLock;
-use std::time::{Duration, Instant};
-
-use axum::extract::Path;
 use axum::routing::get;
 use axum::Router;
 use daemon_slayer::cli::Cli;
 use daemon_slayer::client;
 use daemon_slayer::client::cli::ClientCliProvider;
-
-use daemon_slayer::core::{BoxedError, CommandArg, Label};
+use daemon_slayer::core::{BoxedError, Label};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
-use daemon_slayer::error_handler::ErrorHandler;
-use daemon_slayer::file_watcher::{FileWatcher, FileWatcherBuilder};
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::LoggerBuilder;
-
-use daemon_slayer::client::config::Level;
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::{
     BroadcastEventStore, EventStore, Handler, ServiceContext, Signal, SignalHandler,
 };
 use daemon_slayer::signals::SignalListener;
-use futures::{SinkExt, StreamExt};
-use serde_derive::Deserialize;
+use futures::StreamExt;
+use std::env::current_exe;
+use std::net::SocketAddr;
 use tracing::info;
 
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;

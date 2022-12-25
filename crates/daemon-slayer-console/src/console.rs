@@ -5,11 +5,11 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use daemon_slayer_client::{Info, Manager, State};
+use daemon_slayer_client::{Info, ServiceManager, State};
 use daemon_slayer_core::{
     config::{Accessor, CachedConfig},
     health_check::HealthCheck,
-    server::{BackgroundService, ServiceContext, ServiceManager},
+    server::{BackgroundService, BackgroundServiceManager, ServiceContext},
     BoxedError, CancellationToken, FutureExt,
 };
 use futures::{Future, StreamExt};
@@ -96,7 +96,7 @@ impl BackgroundService for HealthChecker {
 }
 
 pub struct Console {
-    manager: Box<dyn Manager>,
+    manager: ServiceManager,
     info: Info,
     logs: LogView<'static>,
     button_index: usize,
@@ -109,7 +109,7 @@ pub struct Console {
 }
 
 impl Console {
-    pub fn new(manager: Box<dyn Manager>) -> Self {
+    pub fn new(manager: ServiceManager) -> Self {
         let info = manager.info().unwrap();
         let name = manager.name();
         Self {
@@ -188,7 +188,7 @@ impl Console {
         terminal: &mut Terminal<CrosstermBackend<Stdout>>,
         cancellation_token: CancellationToken,
     ) -> Result<(), BoxedError> {
-        let manager = ServiceManager::new(cancellation_token.child_token());
+        let manager = BackgroundServiceManager::new(cancellation_token.child_token());
         let context = manager.get_context();
         if let Some(mut event_fn) = self.event_fn.take() {
             event_fn(context).await;

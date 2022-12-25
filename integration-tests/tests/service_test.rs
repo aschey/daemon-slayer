@@ -44,12 +44,12 @@ fn test_combined() {
     });
 
     wait_for(|| {
-        let response = reqwest::blocking::get(format!("http://127.0.0.1:{port}/test"))
-            .unwrap()
-            .text()
-            .unwrap();
-        println!("Waiting for service response: {response}");
-        response == "test"
+        let response = reqwest::blocking::get(format!("http://127.0.0.1:{port}/test"));
+        println!("Waiting for service response: {response:?}");
+        if let Ok(response) = response {
+            return response.text().unwrap() == "test";
+        }
+        false
     });
 
     run_manager_cmd(bin_name, "disable", || {

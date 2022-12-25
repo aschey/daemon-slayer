@@ -5,23 +5,24 @@ use daemon_slayer_core::{
         ActionType, ArgMatchesExt, CommandConfig, CommandMatch, CommandProvider, CommandType,
         InputState,
     },
+    config::ConfigWatcher,
     BoxedError,
 };
+use tap::TapFallible;
+use tracing::error;
 
 #[derive(Clone)]
 pub struct ConfigCliProvider<T: Configurable> {
     config_command: CommandConfig,
     config: AppConfig<T>,
-    #[cfg(feature = "client")]
-    manager: Option<Box<dyn daemon_slayer_client::Manager>>,
+    watchers: Vec<Box<dyn ConfigWatcher>>,
 }
 
 impl<T: Configurable> ConfigCliProvider<T> {
     pub fn new(config: AppConfig<T>) -> Self {
         Self {
-            #[cfg(feature = "client")]
-            manager: None,
             config,
+            watchers: vec![],
             config_command: CommandConfig {
                 action_type: ActionType::Client,
                 action: None,
@@ -71,9 +72,8 @@ impl<T: Configurable> ConfigCliProvider<T> {
         }
     }
 
-    #[cfg(feature = "client")]
-    pub fn with_manager(mut self, manager: Box<dyn daemon_slayer_client::Manager>) -> Self {
-        self.manager = Some(manager);
+    pub fn with_config_watcher(mut self, watcher: impl ConfigWatcher) -> Self {
+        self.watchers.push(Box::new(watcher));
         self
     }
 }
@@ -100,12 +100,14 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
             Some((CommandType::Subcommand { name, .. }, sub)) if name == "config" => {
                 if let CommandType::Subcommand { children, .. } = &self.config_command.command_type
                 {
-                    #[cfg_attr(not(feature = "client"), allow(unused))]
                     let (state, name) = find_subcommand(sub, children, &self.config)?;
-                    #[cfg(feature = "client")]
+
                     if name == Some("edit") {
-                        if let Some(manager) = &mut self.manager {
-                            manager.on_config_changed()?;
+                        for watcher in &mut self.watchers {
+                            watcher
+                                .on_config_changed()
+                                .tap_err(|e| error!("Error handling config update: {e:?}"))
+                                .ok();
                         }
                     }
                     return Ok(state);

@@ -35,12 +35,12 @@ pub enum AddServiceError {
     ManagerStopped,
 }
 
-pub struct ServiceManager {
+pub struct BackgroundServiceManager {
     cancellation_token: CancellationToken,
     services: Arc<RwLock<Option<Vec<ServiceInfo>>>>,
 }
 
-impl ServiceManager {
+impl BackgroundServiceManager {
     pub fn new(cancellation_token: CancellationToken) -> Self {
         Self {
             services: Arc::new(RwLock::new(Some(vec![]))),

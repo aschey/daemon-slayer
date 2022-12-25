@@ -2,7 +2,8 @@ use arc_swap::{
     access::{DynAccess, Map},
     ArcSwap,
 };
-use std::sync::Arc;
+use dyn_clonable::clonable;
+use std::{io, sync::Arc};
 
 pub trait Accessor<T: Mergeable + Clone + Default> {
     fn access(&self) -> CachedConfig<T>;
@@ -73,5 +74,19 @@ impl<T: Mergeable + Clone + Default> CachedConfig<T> {
         if let Some(inner) = &self.inner {
             self.cache = Some(inner.load().clone());
         }
+    }
+}
+
+#[clonable]
+pub trait ConfigWatcher: Clone + Send + Sync + 'static {
+    fn on_config_changed(&mut self) -> Result<(), io::Error>;
+}
+
+impl<T> ConfigWatcher for Box<T>
+where
+    T: ConfigWatcher + Clone + Send + Sync + 'static,
+{
+    fn on_config_changed(&mut self) -> Result<(), io::Error> {
+        (**self).on_config_changed()
     }
 }

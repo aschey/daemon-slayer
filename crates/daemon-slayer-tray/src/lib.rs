@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use daemon_slayer_client::{Manager, State};
+use daemon_slayer_client::{ServiceManager, State};
 #[cfg(target_os = "macos")]
 use tao::platform::macos::{SystemTrayBuilderExtMacOS, SystemTrayExtMacOS};
 use tao::{
@@ -11,7 +11,7 @@ use tao::{
     TrayId,
 };
 
-pub fn start(icon_path: &std::path::Path, manager: Box<dyn Manager>) {
+pub fn start(icon_path: &std::path::Path, manager: ServiceManager) {
     let event_loop = EventLoop::new();
     let current_state = manager.info().unwrap().state;
     let start_stop_text = get_start_stop_text(&current_state);
