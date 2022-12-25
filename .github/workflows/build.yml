@@ -9,13 +9,13 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - os: macos-latest
-            cargo: sudo -E /Users/runner/.cargo/bin/cargo
+            cargo-admin: sudo -E /Users/runner/.cargo/bin/cargo
             protoc-target: osx-x86_64
           - os: ubuntu-latest
-            cargo: sudo -E /home/runner/.cargo/bin/cargo
+            cargo-admin: sudo -E /home/runner/.cargo/bin/cargo
             protoc-target: linux-x86_64
           - os: windows-latest
-            cargo: cargo
+            cargo-admin: cargo
             protoc-target: win64
       fail-fast: false
     name: Build and test
@@ -39,4 +39,5 @@ jobs:
           unzip protoc-3.19.4-${{ matrix.protoc-target }}.zip -d "${{ github.workspace }}/protoc"
           cargo install cargo-make
           cargo make build-all
-          ${{ matrix.cargo }} test --workspace -- --nocapture
+          ${{ matrix.cargo-admin }} test --workspace -- --nocapture
+          cargo test --workspace -- --nocapture

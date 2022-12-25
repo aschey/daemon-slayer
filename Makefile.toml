@@ -1,6 +1,12 @@
 [config]
 default_to_workspace = false
 
+[tasks.test-admin]
+args = ["test", "--workspace", "--", "--nocapture"]
+clear = true
+command = "cargo"
+env = {RUN_AS_SYSTEM = "true"}
+
 [tasks.test]
 args = ["test", "--workspace", "--", "--nocapture"]
 clear = true
