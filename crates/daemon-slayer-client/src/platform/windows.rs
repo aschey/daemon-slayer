@@ -91,6 +91,7 @@ impl WindowsServiceManager {
         mode: ServiceAccessMode,
     ) -> Result<Option<ServiceEntry>, io::Error> {
         let re_text = if service_type == ServiceType::USER_OWN_PROCESS {
+            // TODO: get LUID deterministically: https://learn.microsoft.com/en-us/windows/win32/api/ntsecapi/nf-ntsecapi-lsaenumeratelogonsessions
             // User services have a random id appended to the end like this: some_service_name_18dcf87g
             // The id changes every login so we have to search for it
             format!(r"^{}_[a-z\d]+$", self.name())

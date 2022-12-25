@@ -18,6 +18,7 @@ use windows_service::{
     service_control_handler::{self, ServiceControlHandlerResult},
 };
 
+// From https://helgeklein.com/blog/per-user-services-in-windows-info-and-configuration
 const USER_OWN_PROCESS_TEMPLATE: u32 = 0x50;
 const USER_SHARE_PROCESS_TEMPLATE: u32 = 0x60;
 
