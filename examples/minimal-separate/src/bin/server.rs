@@ -1,4 +1,3 @@
-use clap::Parser;
 use daemon_slayer::{
     core::{BoxedError, Label},
     server::{
@@ -9,28 +8,16 @@ use daemon_slayer::{
 };
 use std::time::{Duration, Instant};
 
-#[derive(clap::Parser, Debug)]
-enum Arg {
-    /// Run the service using the service manager
-    Run,
-}
-
-#[derive(clap::Parser, Debug)]
-struct Cli {
-    #[command(subcommand)]
-    arg: Option<Arg>,
-}
-
 #[tokio::main]
 pub async fn main() -> Result<(), BoxedError> {
-    match Cli::parse().arg {
-        None => {
-            ServiceHandler::run_directly(None).await?;
-        }
-        Some(Arg::Run) => {
+    let mut args = std::env::args();
+    if let Some(arg) = args.next() {
+        if arg == minimal_separate::run_argument().to_string() {
             ServiceHandler::run_as_service(None).await?;
+            return Ok(());
         }
     }
+    ServiceHandler::run_directly(None).await?;
 
     Ok(())
 }

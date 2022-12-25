@@ -1,7 +1,7 @@
 use confique::Config;
 use daemon_slayer::{
     cli::Cli,
-    config::{server::ConfigService, AppConfig, ConfigFileType},
+    config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigFileType},
     core::{BoxedError, Label},
     error_handler::{cli::ErrorHandlerCliProvider, ErrorSink},
     logging::{
@@ -53,12 +53,12 @@ pub async fn run_async() -> Result<(), BoxedError> {
         LoggerBuilder::new(ServiceHandler::label()).with_config(app_config.clone());
 
     let mut cli = Cli::builder()
-        .with_provider(ServerCliProvider::<ServiceHandler>::default())
+        .with_provider(ServerCliProvider::<ServiceHandler>::new(
+            &standard::run_argument(),
+        ))
         .with_provider(LoggingCliProvider::new(logger_builder))
         .with_provider(ErrorHandlerCliProvider::default())
-        .with_provider(daemon_slayer::config::cli::ConfigCliProvider::new(
-            app_config.clone(),
-        ))
+        .with_provider(ConfigCliProvider::new(app_config.clone()))
         .initialize()?;
 
     let (logger, reload_handle) = cli

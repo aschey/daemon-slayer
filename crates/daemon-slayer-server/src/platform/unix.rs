@@ -3,7 +3,7 @@ use daemon_slayer_core::{server::ServiceManager, CancellationToken};
 use tap::TapFallible;
 use tracing::{error, warn};
 
-pub async fn run_as_service<T: Handler + Send + 'static>(
+pub async fn run_as_service<T: Handler>(
     input_data: Option<T::InputData>,
 ) -> Result<(), ServiceError<T::Error>> {
     let manager = ServiceManager::new(CancellationToken::new());

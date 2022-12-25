@@ -12,8 +12,21 @@ pub trait CommandExt {
     fn add_command_handler(self, command_type: &CommandType) -> Self;
 }
 
+fn contains_flags(matches: &clap::ArgMatches) -> bool {
+    // Check if any flags were actually supplied, not just default values
+    for arg_match in matches.ids() {
+        if let Some(value_source) = matches.value_source(arg_match.as_str()) {
+            if value_source != ValueSource::DefaultValue {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 impl ArgMatchesExt for clap::ArgMatches {
     fn matches(&self, command_type: &CommandType) -> Option<Self> {
+        let contains_flags = contains_flags(self);
         match (command_type, self.subcommand()) {
             (CommandType::Arg { id, .. }, _)
                 if self.value_source(id) == Some(ValueSource::CommandLine) =>
@@ -23,7 +36,7 @@ impl ArgMatchesExt for clap::ArgMatches {
             (CommandType::Subcommand { name, .. }, Some((sub_name, sub))) if sub_name == name => {
                 Some(sub.clone())
             }
-            (CommandType::Default, None) if !self.args_present() => Some(self.clone()),
+            (CommandType::Default, None) if !contains_flags => Some(self.clone()),
             _ => None,
         }
     }
@@ -39,19 +52,20 @@ impl CommandExt for clap::Command {
                 help_text,
                 hide,
             } => {
-                let mut arg = clap::Arg::new(id);
+                let mut arg = clap::Arg::new(id)
+                    .action(clap::ArgAction::SetTrue)
+                    .hide(*hide);
+
                 if let Some(short) = short {
                     arg = arg.short(*short);
                 }
                 if let Some(long) = long {
                     arg = arg.long(long);
                 }
-
-                self.arg(
-                    arg.action(clap::ArgAction::SetTrue)
-                        .help(help_text.as_ref().unwrap())
-                        .hide(*hide),
-                )
+                if let Some(help_text) = help_text.as_ref() {
+                    arg = arg.help(help_text);
+                }
+                self.arg(arg)
             }
             CommandType::Subcommand {
                 name,

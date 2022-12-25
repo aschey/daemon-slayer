@@ -15,7 +15,7 @@ pub use future_ext::*;
 mod label;
 pub use async_trait::async_trait;
 pub use label::*;
-use std::{any::Any, error::Error};
+use std::{any::Any, error::Error, fmt::Display, str::FromStr};
 pub use tokio_util::sync::CancellationToken;
 
 #[cfg(feature = "daemon-slayer-macros")]
@@ -40,3 +40,54 @@ where
 }
 
 pub type BoxedError = Box<dyn Error + Send + Sync + 'static>;
+
+#[derive(thiserror::Error, Debug)]
+pub enum CommandArgParseError {
+    #[error("Short argument {0} should only have a single character")]
+    InvalidShortArg(String),
+    #[error("Argument should not be empty")]
+    EmptyArg,
+}
+
+#[derive(Clone)]
+pub enum CommandArg {
+    Subcommand(String),
+    ShortArg(char),
+    LongArg(String),
+}
+
+impl Display for CommandArg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Subcommand(val) => write!(f, "{val}"),
+            Self::ShortArg(val) => write!(f, "-{val}"),
+            Self::LongArg(val) => write!(f, "--{val}"),
+        }
+    }
+}
+
+impl FromStr for CommandArg {
+    type Err = CommandArgParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.trim().to_owned();
+        if s.starts_with("--") {
+            Ok(CommandArg::LongArg(s.replacen("--", "", 1)))
+        } else if s.starts_with('-') {
+            // '-' plus single character
+            if s.len() == 2 {
+                Ok(CommandArg::ShortArg(
+                    s.chars()
+                        .nth(1)
+                        .expect("Length should already be validated"),
+                ))
+            } else {
+                Err(CommandArgParseError::InvalidShortArg(s))
+            }
+        } else if s.is_empty() {
+            Err(CommandArgParseError::EmptyArg)
+        } else {
+            Ok(CommandArg::Subcommand(s))
+        }
+    }
+}

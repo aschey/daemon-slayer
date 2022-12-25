@@ -1,7 +1,3 @@
-use std::{
-    env::current_exe,
-    time::{Duration, Instant},
-};
 use clap::Parser;
 use daemon_slayer::{
     client::{
@@ -17,6 +13,10 @@ use daemon_slayer::{
         Signal, SignalHandler,
     },
     signals::SignalListener,
+};
+use std::{
+    env::current_exe,
+    time::{Duration, Instant},
 };
 
 #[derive(clap::Parser, Debug)]
@@ -47,7 +47,7 @@ struct Cli {
 pub async fn main() -> Result<(), BoxedError> {
     let manager = client::builder(ServiceHandler::label(), current_exe()?.try_into()?)
         .with_description("test service")
-        .with_args(["run"])
+        .with_arg(&"run".parse()?)
         .with_service_level(if cfg!(windows) {
             Level::System
         } else {

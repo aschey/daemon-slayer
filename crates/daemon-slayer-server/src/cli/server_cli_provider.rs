@@ -4,30 +4,50 @@ use daemon_slayer_core::{
         clap, Action, ActionType, CommandConfig, CommandMatch, CommandProvider, CommandType,
         InputState,
     },
-    BoxedError,
+    BoxedError, CommandArg,
 };
 use std::{collections::HashMap, marker::PhantomData};
 
-pub struct ServerCliProvider<S: Service + Send + Sync> {
+pub struct ServerCliProvider<S: Service> {
     commands: HashMap<Action, CommandConfig>,
     input_data: Option<S::InputData>,
     _phantom: PhantomData<S>,
 }
 
-impl<S: Service + Send + Sync + 'static> Default for ServerCliProvider<S> {
-    fn default() -> Self {
+fn to_run_command(argument: &CommandArg) -> CommandType {
+    match argument {
+        CommandArg::Subcommand(name) => CommandType::Subcommand {
+            name: name.to_owned(),
+            help_text: "".to_owned(),
+            hide: true,
+            children: vec![],
+        },
+        CommandArg::ShortArg(arg) => CommandType::Arg {
+            id: "run".to_owned(),
+            short: Some(arg.to_owned()),
+            long: None,
+            help_text: None,
+            hide: true,
+        },
+        CommandArg::LongArg(arg) => CommandType::Arg {
+            id: "run".to_owned(),
+            short: None,
+            long: Some(arg.to_owned()),
+            help_text: None,
+            hide: true,
+        },
+    }
+}
+
+impl<S: Service> ServerCliProvider<S> {
+    pub fn new(run_command: &CommandArg) -> Self {
         let mut commands = HashMap::new();
         commands.insert(
             Action::Run,
             CommandConfig {
                 action_type: ActionType::Server,
                 action: Some(Action::Run),
-                command_type: CommandType::Subcommand {
-                    name: "run".to_owned(),
-                    help_text: "".to_owned(),
-                    hide: true,
-                    children: vec![],
-                },
+                command_type: to_run_command(run_command),
             },
         );
         commands.insert(
@@ -44,16 +64,13 @@ impl<S: Service + Send + Sync + 'static> Default for ServerCliProvider<S> {
             _phantom: Default::default(),
         }
     }
-}
-
-impl<S: Service + Send + Sync + 'static> ServerCliProvider<S> {
     pub fn set_input_data(&mut self, input_data: S::InputData) {
         self.input_data = Some(input_data);
     }
 }
 
 #[async_trait::async_trait]
-impl<S: Service + Send + Sync + 'static> CommandProvider for ServerCliProvider<S> {
+impl<S: Service> CommandProvider for ServerCliProvider<S> {
     fn get_action_type(&self) -> ActionType {
         ActionType::Server
     }

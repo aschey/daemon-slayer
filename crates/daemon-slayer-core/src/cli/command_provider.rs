@@ -1,7 +1,7 @@
 use super::{Action, ActionType, ArgMatchesExt, CommandExt, CommandType, InputState};
 use crate::{AsAny, BoxedError};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CommandConfig {
     pub action_type: ActionType,
     pub command_type: CommandType,

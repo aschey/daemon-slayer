@@ -2,7 +2,7 @@ use daemon_slayer_core::{server::ServiceContext, Label};
 use std::{fmt, time::Duration};
 
 #[async_trait::async_trait]
-pub trait Handler: Sized {
+pub trait Handler: Sized + Send + Sync + 'static {
     type InputData: Clone + Send + Sync + 'static;
     type Error: fmt::Debug + Send + Sync + 'static;
 

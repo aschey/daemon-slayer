@@ -70,7 +70,7 @@ pub async fn run_async() -> Result<(), BoxedError> {
             .try_into()?,
     )
     .with_description("test service")
-    .with_args(["run"])
+    .with_arg(&standard::run_argument())
     .with_service_level(if cfg!(windows) {
         Level::System
     } else {

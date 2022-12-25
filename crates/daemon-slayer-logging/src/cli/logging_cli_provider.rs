@@ -63,27 +63,25 @@ impl daemon_slayer_core::cli::CommandProvider for LoggingCliProvider {
     ) -> Result<(), BoxedError> {
         let mut builder = self.builder.lock().unwrap();
         if let Some(current_builder) = builder.take() {
-            match matched_command
-                .as_ref()
-                .map(|c| (&c.matched_command.action, &c.matched_command.action_type))
-            {
-                Some((action, ActionType::Client)) => {
-                    if action == &Some(Action::Install) {
-                        current_builder.register()?;
-                    } else if action == &Some(Action::Uninstall) {
-                        current_builder.deregister()?;
-                    }
-                    *builder = Some(
+            *builder = Some(
+                match matched_command
+                    .as_ref()
+                    .map(|c| (&c.matched_command.action, &c.matched_command.action_type))
+                {
+                    Some((action, ActionType::Client)) => {
+                        if action == &Some(Action::Install) {
+                            current_builder.register()?;
+                        } else if action == &Some(Action::Uninstall) {
+                            current_builder.deregister()?;
+                        }
                         current_builder
                             .with_log_to_stderr(false)
-                            .with_ipc_logger(false),
-                    );
-                }
-                Some((_, ActionType::Server)) => {
-                    *builder = Some(current_builder.with_ipc_logger(true));
-                }
-                _ => {}
-            }
+                            .with_ipc_logger(false)
+                    }
+                    Some((_, ActionType::Server)) => current_builder.with_ipc_logger(true),
+                    _ => current_builder,
+                },
+            );
         }
         Ok(())
     }

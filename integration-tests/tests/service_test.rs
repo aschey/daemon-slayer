@@ -1,7 +1,7 @@
 use assert_cmd::Command;
 use daemon_slayer::client;
-use daemon_slayer::client::{Manager, State};
-use std::{fs::File, io::Write, thread, time::Duration};
+use daemon_slayer::client::State;
+use std::{thread, time::Duration};
 
 #[test]
 fn test_combined() {
@@ -14,131 +14,84 @@ fn test_combined() {
     .build()
     .unwrap();
     if manager.info().unwrap().state != State::NotInstalled {
-        manager.stop().unwrap();
-        thread::sleep(Duration::from_millis(100));
-        manager.uninstall().unwrap();
-        thread::sleep(Duration::from_millis(100));
-
-        loop {
-            let status = manager.info().unwrap().state;
-            println!("Waiting for uninstall: {status:?}");
-            if status == State::NotInstalled {
-                break;
-            }
-            thread::sleep(Duration::from_millis(100));
-        }
-    }
-    let config_file = tempfile::tempdir().unwrap().into_path().join("config.toml");
-
-    std::fs::write(&config_file, "test = true").unwrap();
-    Command::cargo_bin(bin_name)
-        .unwrap()
-        .arg("install")
-        .env("CONFIG_FILE", config_file.to_string_lossy().to_string())
-        .output()
-        .unwrap();
-
-    loop {
-        let state = manager.info().unwrap().state;
-        println!("Waiting for install: {state:?}");
-        if state != State::NotInstalled {
-            break;
-        }
-        thread::sleep(Duration::from_millis(100));
+        wait_for(|| {
+            manager.stop().unwrap();
+            wait();
+            manager.uninstall().unwrap();
+            wait();
+            let state = manager.info().unwrap().state;
+            println!("Waiting for uninstall: {state:?}");
+            state == State::NotInstalled
+        });
     }
 
-    Command::cargo_bin(bin_name)
-        .unwrap()
-        .arg("start")
-        .output()
-        .unwrap();
+    run_manager_cmd(bin_name, "install", || {
+        let info = manager.info().unwrap();
+        println!("Waiting for install: {info:?}");
+        info.state == State::Stopped && info.autostart == Some(false) && info.pid.is_none()
+    });
 
-    loop {
-        let state = manager.info().unwrap().state;
-        println!("Waiting for start: {state:?}");
-        if state == State::Started {
-            break;
-        }
-        thread::sleep(Duration::from_millis(100));
-    }
+    run_manager_cmd(bin_name, "start", || {
+        let info = manager.info().unwrap();
+        println!("Waiting for start: {info:?}");
+        info.state == State::Started && info.autostart == Some(false) && info.pid.is_some()
+    });
 
-    Command::cargo_bin(bin_name)
-        .unwrap()
-        .arg("enable")
-        .output()
-        .unwrap();
-
-    loop {
+    run_manager_cmd(bin_name, "enable", || {
         let autostart = manager.info().unwrap().autostart.unwrap();
         println!("Waiting for autostart: {autostart:?}");
-        if autostart {
-            break;
-        }
-        thread::sleep(Duration::from_millis(100));
-    }
-    loop {
-        let config = reqwest::blocking::get(format!("http://127.0.0.1:{port}/config"));
-        println!("Waiting for config: {config:?}");
-        if let Ok(config) = config {
-            if config.text().unwrap() == "false" {
-                break;
-            }
-        }
-        thread::sleep(Duration::from_millis(100));
-    }
+        autostart
+    });
 
-    std::fs::write(config_file, "test = true").unwrap();
-
-    loop {
-        let config = reqwest::blocking::get(format!("http://127.0.0.1:{port}/config"))
+    wait_for(|| {
+        let response = reqwest::blocking::get(format!("http://127.0.0.1:{port}/test"))
             .unwrap()
             .text()
             .unwrap();
-        println!("Waiting for config update: {config}");
-        if config == "true" {
-            break;
-        }
-        thread::sleep(Duration::from_millis(100));
-    }
+        println!("Waiting for service response: {response}");
+        response == "test"
+    });
 
-    Command::cargo_bin(bin_name)
-        .unwrap()
-        .arg("disable")
-        .output()
-        .unwrap();
-
-    loop {
+    run_manager_cmd(bin_name, "disable", || {
         let autostart = manager.info().unwrap().autostart.unwrap();
         println!("Waiting for autostart disable: {autostart:?}");
-        if !autostart {
-            break;
-        }
-        thread::sleep(Duration::from_millis(100));
-    }
+        !autostart
+    });
 
-    manager.stop().unwrap();
+    run_manager_cmd(bin_name, "stop", || {
+        let info = manager.info().unwrap();
+        println!("Waiting for stop: {info:?}");
+        info.state == State::Stopped && info.autostart == Some(false) && info.pid.is_none()
+    });
 
-    loop {
-        let state = manager.info().unwrap().state;
-        println!("Waiting for stop: {state:?}");
-        if state == State::Stopped {
-            break;
-        }
-        thread::sleep(Duration::from_millis(100));
-    }
+    run_manager_cmd(bin_name, "uninstall", || {
+        let info = manager.info().unwrap();
+        println!("Waiting for uninstall: {info:?}");
+        info.state == State::NotInstalled && info.autostart.is_none() && info.pid.is_none()
+    });
 
+    wait();
+}
+
+fn wait() {
+    thread::sleep(Duration::from_millis(100));
+}
+
+fn run_manager_cmd(bin_name: &str, cmd: &str, condition: impl Fn() -> bool) {
     Command::cargo_bin(bin_name)
         .unwrap()
-        .arg("uninstall")
+        .arg(cmd)
         .output()
         .unwrap();
-    loop {
-        let state = manager.info().unwrap().state;
-        println!("Waiting for uninstall: {state:?}");
-        if state == State::NotInstalled {
-            break;
+    wait_for(condition);
+}
+
+fn wait_for(condition: impl Fn() -> bool) {
+    for _ in 0..5 {
+        if condition() {
+            return;
         }
-        thread::sleep(Duration::from_millis(100));
+        wait();
     }
-    thread::sleep(Duration::from_millis(100));
+    panic!("Timed out waiting for the condition")
 }

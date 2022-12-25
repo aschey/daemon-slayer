@@ -7,6 +7,7 @@ use crate::get_manager;
 use crate::Manager;
 use daemon_slayer_core::config::Accessor;
 use daemon_slayer_core::config::CachedConfig;
+use daemon_slayer_core::CommandArg;
 use daemon_slayer_core::Label;
 use std::env::consts::EXE_EXTENSION;
 use std::io;
@@ -80,8 +81,14 @@ impl Builder {
         self
     }
 
-    pub fn with_args<T: Into<String>>(mut self, args: impl IntoIterator<Item = T>) -> Self {
-        self.arguments = args.into_iter().map(|a| a.into()).collect();
+    pub fn with_args<'a>(mut self, args: impl IntoIterator<Item = &'a CommandArg>) -> Self {
+        self.arguments
+            .extend(args.into_iter().map(|a| a.to_string()));
+        self
+    }
+
+    pub fn with_arg(mut self, arg: &CommandArg) -> Self {
+        self.arguments.push(arg.to_string());
         self
     }
 

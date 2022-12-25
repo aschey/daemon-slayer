@@ -45,7 +45,7 @@ pub async fn main() -> Result<(), BoxedError> {
             .try_into()?,
     )
     .with_description("test service")
-    .with_args(["run"])
+    .with_arg(&minimal_separate::run_argument())
     .with_service_level(if cfg!(windows) {
         Level::System
     } else {
