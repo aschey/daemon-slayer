@@ -28,6 +28,7 @@ fn run_tests(is_user_service: bool) {
     })
     .build()
     .unwrap();
+
     if manager.info().unwrap().state != State::NotInstalled {
         wait_for(|| {
             manager.stop().unwrap();
@@ -49,6 +50,12 @@ fn run_tests(is_user_service: bool) {
 
     app_config.ensure_config_file().unwrap();
     assert!(app_config.full_path().exists());
+
+    let uninstalled_info = manager.info().unwrap();
+    assert_eq!(uninstalled_info.state, State::NotInstalled);
+    assert_eq!(uninstalled_info.autostart, None);
+    assert_eq!(uninstalled_info.pid, None);
+    assert_eq!(uninstalled_info.last_exit_code, None);
 
     run_manager_cmd(bin_name, "install", is_user_service, || {
         let info = manager.info().unwrap();
@@ -93,6 +100,18 @@ fn run_tests(is_user_service: bool) {
             return text == "test_env";
         }
         false
+    });
+
+    run_manager_cmd(bin_name, "stop", is_user_service, || {
+        let info = manager.info().unwrap();
+        println!("Waiting for stop: {info:?}");
+        info.state == State::Stopped && info.autostart == Some(false) && info.pid.is_none()
+    });
+
+    run_manager_cmd(bin_name, "restart", is_user_service, || {
+        let info = manager.info().unwrap();
+        println!("Waiting for restart: {info:?}");
+        info.state == State::Started
     });
 
     run_manager_cmd(bin_name, "stop", is_user_service, || {
