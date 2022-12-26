@@ -12,7 +12,7 @@ jobs:
             sudo: sudo
             protoc-target: osx-x86_64
           - os: ubuntu-latest
-            sudo:  sudo env PATH="$PATH"
+            sudo: sudo env PATH="$PATH"
             protoc-target: linux-x86_64
           - os: windows-latest
             protoc-target: win64
@@ -38,5 +38,5 @@ jobs:
           unzip protoc-3.19.4-${{ matrix.protoc-target }}.zip -d "${{ github.workspace }}/protoc"
           cargo install cargo-make
           cargo make build-all
-          ${{ matrix.sudo }} cargo make test-admin
           cargo make test
+          ${{ matrix.sudo }} cargo make test-admin
