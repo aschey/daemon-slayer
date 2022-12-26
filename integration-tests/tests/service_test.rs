@@ -70,8 +70,8 @@ fn run_tests(is_user_service: bool) {
 
     wait_for(|| {
         let response = reqwest::blocking::get(integration_tests::address_string() + "/test");
-        println!("Waiting for service response: {response:?}");
         if let Ok(response) = response {
+            println!("Waiting for service response: {response:?}");
             return response.text().unwrap() == "test";
         }
         false
