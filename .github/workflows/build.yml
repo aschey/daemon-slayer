@@ -6,7 +6,6 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - os: macos-latest
             protoc-target: osx-x86_64
@@ -24,7 +23,7 @@ jobs:
             protoc-target: win64
             test: cargo make test
       fail-fast: false
-    name: Build and test
+    name: Run ${{ matrix.test }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
