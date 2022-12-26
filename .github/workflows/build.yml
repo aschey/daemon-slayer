@@ -11,11 +11,9 @@ jobs:
           - os: macos-latest
             sudo: sudo
             protoc-target: osx-x86_64
-            cleanup: chown -R runner .
           - os: ubuntu-latest
             sudo: sudo env PATH="$PATH"
             protoc-target: linux-x86_64
-            cleanup: chown -R runner .
           - os: windows-latest
             protoc-target: win64
       fail-fast: false
@@ -41,5 +39,3 @@ jobs:
           cargo install cargo-make
           cargo make build-all
           cargo make test
-          ${{ matrix.sudo }} cargo make test-admin
-          ${{ matrix.cleanup }}
