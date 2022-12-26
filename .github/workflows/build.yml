@@ -15,7 +15,7 @@ jobs:
             test: cargo make test
           - os: ubuntu-latest
             protoc-target: linux-x86_64
-            test: sudo -E cargo make test-admin
+            test: sudo env PATH="$PATH" cargo make test-admin
           - os: ubuntu-latest
             protoc-target: linux-x86_64
             test: cargo make test
