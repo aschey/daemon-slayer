@@ -1,0 +1,4 @@
+[client_config]
+[[client_config.environment_variables]]
+name = "DAEMON_SLAYER_TEST_ENV"
+value = "test_env"

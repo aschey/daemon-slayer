@@ -1,33 +1,34 @@
 use axum::routing::get;
 use axum::Router;
 use daemon_slayer::cli::Cli;
-use daemon_slayer::client;
-use daemon_slayer::client::cli::ClientCliProvider;
-use daemon_slayer::client::config::Level;
+use daemon_slayer::client::{self, cli::ClientCliProvider, config::Level};
+use daemon_slayer::config::{AppConfig, ConfigFileType};
 use daemon_slayer::core::{BoxedError, Label};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
-use daemon_slayer::logging::cli::LoggingCliProvider;
-use daemon_slayer::logging::LoggerBuilder;
-use daemon_slayer::server::cli::ServerCliProvider;
+use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
+use daemon_slayer::logging::{cli::LoggingCliProvider, LoggerBuilder};
 use daemon_slayer::server::{
-    BroadcastEventStore, EventStore, Handler, ServiceContext, Signal, SignalHandler,
+    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, ServiceContext, Signal,
+    SignalHandler,
 };
 use daemon_slayer::signals::SignalListener;
 use futures::StreamExt;
+use integration_tests::TestConfig;
 use std::env::current_exe;
-use std::net::SocketAddr;
 use tracing::info;
-
-use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 
 #[tokio::main]
 pub async fn main() {
     let run_argument = "-r".parse().unwrap();
+    let app_config =
+        AppConfig::<TestConfig>::from_config_dir(ServiceHandler::label(), ConfigFileType::Toml)
+            .unwrap();
     let mut manager_builder = client::builder(
         ServiceHandler::label(),
         current_exe().unwrap().try_into().unwrap(),
     )
     .with_description("test service")
+    .with_user_config(app_config.clone())
     .with_arg(&run_argument);
 
     if let Ok(user_service) = std::env::var("USER_SERVICE") {
@@ -76,19 +77,20 @@ impl Handler for ServiceHandler {
     }
 
     fn label() -> Label {
-        "com.test.daemon_slayer_test".parse().unwrap()
+        integration_tests::label()
     }
 
     async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> Result<(), Self::Error> {
         info!("running service");
 
-        let app = Router::new().route("/test", get(test));
-        let addr = SocketAddr::from(([127, 0, 0, 1], 3002));
+        let app = Router::new()
+            .route("/test", get(test))
+            .route("/env", get(env));
 
         on_started();
         info!("started");
         let mut signal_rx = self.signal_store.subscribe_events();
-        axum::Server::bind(&addr)
+        axum::Server::bind(&integration_tests::address())
             .serve(app.into_make_service())
             .with_graceful_shutdown(async {
                 let _ = signal_rx.next().await;
@@ -101,4 +103,8 @@ impl Handler for ServiceHandler {
 
 async fn test() -> &'static str {
     "test"
+}
+
+async fn env() -> String {
+    std::env::var("DAEMON_SLAYER_TEST_ENV").unwrap_or_default()
 }
