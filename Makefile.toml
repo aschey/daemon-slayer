@@ -19,7 +19,7 @@ install_crate = "cargo-hack"
 
 [tasks.build-all]
 script = '''
-cargo build
+cargo build --workspace
 cargo build --features=client-standard,server-standard,grpc-health-check,http-health-check,ipc-health-check,extras,tray
 '''
 
