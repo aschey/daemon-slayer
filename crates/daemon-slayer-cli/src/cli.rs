@@ -73,3 +73,7 @@ impl Cli {
         Ok((InputState::Unhandled, self.matches))
     }
 }
+
+#[cfg(test)]
+#[path = "./cli_test.rs"]
+mod cli_test;

@@ -1,3 +1,5 @@
+use std::ffi::OsString;
+
 use crate::Cli;
 use daemon_slayer_core::{cli::CommandProvider, BoxedError};
 
@@ -27,13 +29,27 @@ impl Builder {
         self
     }
 
-    pub fn initialize(mut self) -> Result<Cli, BoxedError> {
-        let mut command = self.base_command;
+    fn build_command(&mut self) -> clap::Command {
+        let mut command = self.base_command.clone();
 
         for provider in &mut self.providers {
             command = provider.update_command(command);
         }
+        command
+    }
+
+    pub fn initialize(mut self) -> Result<Cli, BoxedError> {
+        let command = self.build_command();
 
         Cli::new(self.providers, command.get_matches())
+    }
+
+    pub fn initialize_from<I, T>(mut self, itr: I) -> Result<Cli, BoxedError>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<OsString> + Clone,
+    {
+        let command = self.build_command();
+        Cli::new(self.providers, command.get_matches_from(itr))
     }
 }

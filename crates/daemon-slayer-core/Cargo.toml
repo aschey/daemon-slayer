@@ -9,7 +9,7 @@ async-trait = "0.1"
 clap = {version = "4", optional = true}
 daemon-slayer-macros = {path = "../daemon-slayer-macros", optional = true}
 dyn-clonable = {version = "0.9", optional = true}
-futures = {version = "0.3", optional = true}
+futures = {version = "0.3"}
 once_cell = {version = "1", optional = true}
 pin-project-lite = "0.2.9"
 strum = {version = "0.24", optional = true}
@@ -18,12 +18,12 @@ tap = "1"
 thiserror = "1"
 tokio = {version = "1", features = ["sync"]}
 tokio-stream = {version = "0.1", features = ["sync"], optional = true}
-tokio-util = {version = "0.7", optional = true}
+tokio-util = {version = "0.7"}
 tracing = "0.1"
 
 [features]
 cli = ["clap", "strum", "strum_macros"]
 config = ["arc-swap", "dyn-clonable", "daemon-slayer-macros", "daemon-slayer-macros/config"]
 health-check = []
-server = ["tokio-stream", "futures", "tokio-util"]
+server = ["tokio-stream"]
 signal = ["once_cell"]
