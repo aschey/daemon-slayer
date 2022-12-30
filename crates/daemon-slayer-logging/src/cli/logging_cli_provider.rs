@@ -48,10 +48,6 @@ impl LoggingCliProvider {
 
 #[async_trait::async_trait]
 impl daemon_slayer_core::cli::CommandProvider for LoggingCliProvider {
-    fn get_action_type(&self) -> ActionType {
-        ActionType::Unknown
-    }
-
     fn get_commands(&self) -> Vec<&CommandConfig> {
         vec![]
     }

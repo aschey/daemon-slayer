@@ -71,10 +71,6 @@ impl<S: Service> ServerCliProvider<S> {
 
 #[async_trait::async_trait]
 impl<S: Service> CommandProvider for ServerCliProvider<S> {
-    fn get_action_type(&self) -> ActionType {
-        ActionType::Server
-    }
-
     fn get_commands(&self) -> Vec<&CommandConfig> {
         self.commands.values().collect()
     }

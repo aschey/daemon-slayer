@@ -32,10 +32,6 @@ impl ConsoleCliProvider {
 }
 #[async_trait::async_trait]
 impl daemon_slayer_core::cli::CommandProvider for ConsoleCliProvider {
-    fn get_action_type(&self) -> ActionType {
-        ActionType::Client
-    }
-
     fn get_commands(&self) -> Vec<&CommandConfig> {
         vec![&self.command]
     }

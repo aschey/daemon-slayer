@@ -1,6 +1,6 @@
 use color_eyre::config::Theme;
 use daemon_slayer_core::{
-    cli::{clap, Action, ActionType, CommandConfig, CommandMatch, InputState},
+    cli::{clap, Action, CommandConfig, CommandMatch, InputState},
     BoxedError,
 };
 
@@ -11,10 +11,6 @@ pub struct ErrorHandlerCliProvider {}
 
 #[async_trait::async_trait]
 impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
-    fn get_action_type(&self) -> ActionType {
-        ActionType::Unknown
-    }
-
     fn get_commands(&self) -> Vec<&CommandConfig> {
         vec![]
     }

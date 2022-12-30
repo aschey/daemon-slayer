@@ -322,6 +322,7 @@ impl LoggerBuilder {
                     })
             })
             .with({
+                #[allow(clippy::redundant_clone)]
                 Layer::new()
                     .pretty()
                     .with_timer(offset.clone())

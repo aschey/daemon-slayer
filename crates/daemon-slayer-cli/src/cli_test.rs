@@ -144,10 +144,6 @@ impl TestProvider {
 
 #[async_trait]
 impl CommandProvider for TestProvider {
-    fn get_action_type(&self) -> ActionType {
-        ActionType::Client
-    }
-
     fn get_commands(&self) -> Vec<&CommandConfig> {
         self.commands.iter().collect()
     }

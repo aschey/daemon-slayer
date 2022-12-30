@@ -166,10 +166,6 @@ impl ClientCliProvider {
 }
 #[async_trait::async_trait]
 impl daemon_slayer_core::cli::CommandProvider for ClientCliProvider {
-    fn get_action_type(&self) -> ActionType {
-        ActionType::Client
-    }
-
     fn get_commands(&self) -> Vec<&CommandConfig> {
         self.commands.values().collect()
     }

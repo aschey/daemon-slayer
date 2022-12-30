@@ -10,8 +10,6 @@ pub struct CommandConfig {
 
 #[async_trait::async_trait]
 pub trait CommandProvider: AsAny + Send + 'static {
-    fn get_action_type(&self) -> ActionType;
-
     fn get_commands(&self) -> Vec<&CommandConfig>;
 
     async fn handle_input(
@@ -40,7 +38,7 @@ impl dyn CommandProvider {
     pub fn action_type(&self, matches: &clap::ArgMatches) -> ActionType {
         for command_config in self.get_commands() {
             if matches.matches(&command_config.command_type).is_some() {
-                return self.get_action_type();
+                return command_config.action_type.clone();
             }
         }
 
