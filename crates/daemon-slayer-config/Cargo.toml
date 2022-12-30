@@ -22,3 +22,7 @@ tracing = "0.1"
 cli = ["daemon-slayer-core/cli"]
 pretty-print = ["bat"]
 server = ["daemon-slayer-core/server"]
+
+[dev-dependencies]
+serde = "1.0.152"
+tempfile = "3.3.0"

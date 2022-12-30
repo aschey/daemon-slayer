@@ -54,10 +54,6 @@ impl<H: HealthCheck + Clone + Send + 'static> CommandProvider for HealthCheckCli
         }
     }
 
-    fn get_action_type(&self) -> daemon_slayer_core::cli::ActionType {
-        ActionType::Client
-    }
-
     fn get_commands(&self) -> Vec<&CommandConfig> {
         vec![&self.command]
     }

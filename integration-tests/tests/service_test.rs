@@ -48,7 +48,7 @@ fn run_tests(is_user_service: bool) {
         std::fs::remove_file(app_config.full_path()).unwrap();
     }
 
-    app_config.ensure_config_file().unwrap();
+    app_config.ensure_created().unwrap();
     assert!(app_config.full_path().exists());
 
     let uninstalled_info = manager.info().unwrap();
