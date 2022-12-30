@@ -72,6 +72,25 @@ async fn test_input_handled_arg() {
     assert_eq!(InputState::Handled, input_state);
     assert!(arg_bool.load(Ordering::Relaxed));
 }
+
+#[tokio::test]
+async fn test_base_command() {
+    let subcommand_bool = Arc::new(AtomicBool::new(false));
+    let cli = Cli::builder()
+        .with_base_command(clap::Command::new("cli_test").subcommand(clap::Command::new("test2")))
+        .with_provider(TestProvider::new(
+            Arc::new(AtomicBool::new(false)),
+            subcommand_bool.clone(),
+            Arc::new(AtomicBool::new(false)),
+        ))
+        .initialize_from(["cli_test", "test2"])
+        .unwrap();
+    let (input_state, matches) = cli.handle_input().await.unwrap();
+    assert_eq!(InputState::Unhandled, input_state);
+    assert!(!subcommand_bool.load(Ordering::Relaxed));
+    assert_eq!("test2", matches.subcommand().unwrap().0);
+}
+
 struct TestProvider {
     initialized: bool,
     default_matched: Arc<AtomicBool>,
