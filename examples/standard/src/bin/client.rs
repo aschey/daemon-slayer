@@ -10,7 +10,7 @@ use daemon_slayer::{
             Level,
         },
     },
-    config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigFileType},
+    config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir, ConfigFileType},
     console::{self, cli::ConsoleCliProvider, Console},
     core::BoxedError,
     error_handler::{cli::ErrorHandlerCliProvider, ErrorSink},
@@ -57,7 +57,7 @@ impl AsRef<logging::UserConfig> for MyConfig {
 
 async fn run() -> Result<(), BoxedError> {
     let app_config =
-        AppConfig::<MyConfig>::from_config_dir(standard::label(), ConfigFileType::Toml)?;
+        AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(standard::label())).build()?;
 
     let config = app_config.read_config().unwrap_or_default();
     let manager = client::builder(

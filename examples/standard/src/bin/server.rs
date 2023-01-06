@@ -1,7 +1,7 @@
 use confique::Config;
 use daemon_slayer::{
     cli::Cli,
-    config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigFileType},
+    config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir, ConfigFileType},
     core::{BoxedError, Label},
     error_handler::{cli::ErrorHandlerCliProvider, ErrorSink},
     logging::{
@@ -45,7 +45,7 @@ pub struct AppData {
 
 async fn run() -> Result<(), BoxedError> {
     let app_config =
-        AppConfig::<MyConfig>::from_config_dir(ServiceHandler::label(), ConfigFileType::Toml)?;
+        AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(standard::label())).build()?;
 
     let logger_builder =
         LoggerBuilder::new(ServiceHandler::label()).with_config(app_config.clone());

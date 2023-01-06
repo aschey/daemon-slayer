@@ -2,7 +2,7 @@ use axum::routing::get;
 use axum::Router;
 use daemon_slayer::cli::Cli;
 use daemon_slayer::client::{self, cli::ClientCliProvider, config::Level};
-use daemon_slayer::config::{AppConfig, ConfigFileType};
+use daemon_slayer::config::{AppConfig, ConfigDir};
 use daemon_slayer::core::{BoxedError, Label};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
@@ -21,7 +21,8 @@ use tracing::info;
 pub async fn main() {
     let run_argument = "-r".parse().unwrap();
     let app_config =
-        AppConfig::<TestConfig>::from_config_dir(ServiceHandler::label(), ConfigFileType::Toml)
+        AppConfig::<TestConfig>::builder(ConfigDir::ProjectDir(ServiceHandler::label()))
+            .build()
             .unwrap();
     let mut manager_builder = client::builder(
         ServiceHandler::label(),

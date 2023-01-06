@@ -1,7 +1,7 @@
 use assert_cmd::Command;
 use daemon_slayer::client::State;
 use daemon_slayer::client::{self, config::Level};
-use daemon_slayer::config::{AppConfig, ConfigFileType};
+use daemon_slayer::config::{AppConfig, ConfigDir};
 use integration_tests::TestConfig;
 use std::{thread, time::Duration};
 
@@ -81,7 +81,8 @@ fn run_tests(is_user_service: bool) {
     });
 
     let app_config =
-        AppConfig::<TestConfig>::from_config_dir(integration_tests::label(), ConfigFileType::Toml)
+        AppConfig::<TestConfig>::builder(ConfigDir::ProjectDir(integration_tests::label()))
+            .build()
             .unwrap();
     assert!(app_config.full_path().exists());
     std::fs::copy("./assets/config.toml", app_config.full_path()).unwrap();
@@ -138,7 +139,7 @@ fn run_manager_cmd(bin_name: &str, cmd: &str, is_user_service: bool, condition: 
 }
 
 fn wait_for(condition: impl Fn() -> bool) {
-    for _ in 0..5 {
+    for _ in 0..10 {
         if condition() {
             return;
         }

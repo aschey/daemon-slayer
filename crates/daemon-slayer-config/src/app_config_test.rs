@@ -1,4 +1,4 @@
-use crate::{AppConfig, ConfigFileType};
+use crate::{AppConfig, ConfigDir, ConfigFileType};
 use confique::Config;
 use daemon_slayer_core::config::Accessor;
 use daemon_slayer_core::Mergeable;
@@ -8,24 +8,39 @@ use tempfile::tempdir;
 fn test_ensure_created() {
     let config_dir = tempdir().unwrap().into_path();
 
-    AppConfig::<TestConfig>::from_custom_path(ConfigFileType::Toml, &config_dir).unwrap();
+    AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
+        .build()
+        .unwrap();
     assert!(config_dir.join("config.toml").exists());
 }
 
 #[test]
 fn test_load_config() {
     let config_dir = tempdir().unwrap().into_path();
-    let test_config =
-        AppConfig::<TestConfig>::from_custom_path(ConfigFileType::Toml, config_dir).unwrap();
+    let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir))
+        .build()
+        .unwrap();
 
     assert!(test_config.read_config().unwrap().load_full().test);
 }
 
 #[test]
+fn test_with_config_filename() {
+    let config_dir = tempdir().unwrap().into_path();
+    AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
+        .with_config_filename("test.toml")
+        .build()
+        .unwrap();
+
+    assert!(config_dir.join("test.toml").exists());
+}
+
+#[test]
 fn test_contents() {
     let config_dir = tempdir().unwrap().into_path();
-    let test_config =
-        AppConfig::<TestConfig>::from_custom_path(ConfigFileType::Toml, config_dir).unwrap();
+    let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir))
+        .build()
+        .unwrap();
 
     assert_eq!(
         "# Default value: true\n#test = true",
@@ -34,10 +49,26 @@ fn test_contents() {
 }
 
 #[test]
+fn test_change_file_type() {
+    let config_dir = tempdir().unwrap().into_path();
+    let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
+        .with_config_file_type(ConfigFileType::Json5)
+        .build()
+        .unwrap();
+    assert_eq!(config_dir.join("config.json5"), test_config.full_path());
+
+    assert_eq!(
+        "{\n  // Default value: true\n  //test: true,\n}",
+        test_config.contents().unwrap().trim()
+    );
+}
+
+#[test]
 fn test_snapshot() {
     let config_dir = tempdir().unwrap().into_path();
-    let test_config =
-        AppConfig::<TestConfig>::from_custom_path(ConfigFileType::Toml, &config_dir).unwrap();
+    let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
+        .build()
+        .unwrap();
 
     assert!(test_config.read_config().unwrap().load().test);
     std::fs::write(config_dir.join("config.toml"), "test = false").unwrap();
@@ -48,8 +79,9 @@ fn test_snapshot() {
 #[test]
 fn test_overwrite() {
     let config_dir = tempdir().unwrap().into_path();
-    let test_config =
-        AppConfig::<TestConfig>::from_custom_path(ConfigFileType::Toml, &config_dir).unwrap();
+    let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
+        .build()
+        .unwrap();
 
     std::fs::write(config_dir.join("config.toml"), "test = false").unwrap();
     assert!(!test_config.read_config().unwrap().load().test);
@@ -60,8 +92,10 @@ fn test_overwrite() {
 #[test]
 fn test_access() {
     let config_dir = tempdir().unwrap().into_path();
-    let test_config =
-        AppConfig::<TestConfig2>::from_custom_path(ConfigFileType::Toml, config_dir).unwrap();
+    let test_config = AppConfig::<TestConfig2>::builder(ConfigDir::Custom(config_dir))
+        .build()
+        .unwrap();
+
     let nested = test_config.access();
     assert!(nested.snapshot().test);
 }

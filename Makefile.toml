@@ -44,10 +44,15 @@ command = "cargo"
 dependencies = ["build-coverage"]
 env = {RUSTFLAGS = "-Cinstrument-coverage", LLVM_PROFILE_FILE = "daemon-slayer-%p-%m.profraw"}
 
-[tasks.copy-coverage]
+[tasks.copy-coverage.windows]
 dependencies = ["gen-coverage"]
 script = '''
 cp C:\Windows\System32\default.profraw .
+'''
+
+[tasks.copy-coverage]
+dependencies = ["gen-coverage"]
+script = '''
 '''
 
 [tasks.gen-coverage-report]

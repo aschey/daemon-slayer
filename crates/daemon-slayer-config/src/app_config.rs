@@ -1,12 +1,10 @@
 use crate::{
-    io_error, ConfigEditError, ConfigFileType, ConfigInitializationError, ConfigLoadError,
+    io_error, AppConfigBuilder, ConfigDir, ConfigEditError, ConfigFileType,
+    ConfigInitializationError, ConfigLoadError,
 };
 use arc_swap::ArcSwap;
 use confique::{json5, toml, yaml, Config};
-use daemon_slayer_core::{
-    config::{Accessor, CachedConfig, Mergeable},
-    Label,
-};
+use daemon_slayer_core::config::{Accessor, CachedConfig, Mergeable};
 use directories::ProjectDirs;
 use std::{
     fs::{create_dir_all, File},
@@ -29,37 +27,38 @@ pub struct AppConfig<T: Configurable> {
 }
 
 impl<T: Configurable> AppConfig<T> {
-    pub fn from_config_dir(
-        identifier: Label,
-        config_file_type: ConfigFileType,
-    ) -> Result<Self, ConfigInitializationError> {
-        let dirs = ProjectDirs::from(
-            &identifier.qualifier,
-            &identifier.organization,
-            &identifier.application,
-        )
-        .ok_or(ConfigInitializationError::NoHomeDir)?;
-
-        let config_dir = dirs.config_dir();
-
-        Self::from_custom_path(config_file_type, config_dir)
-            .map_err(|e| ConfigInitializationError::CreationFailure(config_dir.to_owned(), e))
+    pub fn builder(config_dir: ConfigDir) -> AppConfigBuilder<T> {
+        AppConfigBuilder::new(config_dir)
     }
 
-    pub fn from_custom_path(
-        config_file_type: ConfigFileType,
-        config_dir: impl Into<PathBuf>,
-    ) -> Result<Self, io::Error> {
-        let config = Arc::new(ArcSwap::new(Arc::new(T::default())));
+    pub(crate) fn from_builder(
+        builder: AppConfigBuilder<T>,
+    ) -> Result<Self, ConfigInitializationError> {
+        let config_dir = match builder.config_dir {
+            ConfigDir::Custom(config_dir) => config_dir,
+            ConfigDir::ProjectDir(label) => {
+                ProjectDirs::from(&label.qualifier, &label.organization, &label.application)
+                    .ok_or(ConfigInitializationError::NoHomeDir)?
+                    .config_dir()
+                    .to_owned()
+            }
+        };
 
-        let filename = format!("config{}", config_file_type.to_extension());
+        let config_filename = match builder.config_filename {
+            Some(filename) => filename,
+            None => format!("config{}", builder.config_file_type.to_extension()),
+        };
+
+        let config = Arc::new(ArcSwap::new(Arc::new(T::default())));
         let instance = Self {
-            config_file_type,
-            config_dir: config_dir.into(),
-            filename,
+            config_file_type: builder.config_file_type,
+            config_dir,
+            filename: config_filename,
             config,
         };
-        instance.ensure_created()?;
+        instance
+            .ensure_created()
+            .map_err(|e| ConfigInitializationError::CreationFailure(instance.full_path(), e))?;
         Ok(instance)
     }
 
