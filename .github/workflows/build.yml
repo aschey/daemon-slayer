@@ -21,7 +21,7 @@ jobs:
             test: cargo make test
           - os: windows-latest
             protoc-target: win64
-            test: cargo make test
+            test: cargo make test-admin
       fail-fast: false
     name: Run ${{ matrix.test }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}

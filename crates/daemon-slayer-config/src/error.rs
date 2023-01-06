@@ -4,6 +4,8 @@ use std::{io, path::PathBuf};
 pub enum ConfigInitializationError {
     #[error("The user's home directory could not be located")]
     NoHomeDir,
+    #[error("Error creating config file {0}: {1}")]
+    CreationFailure(PathBuf, io::Error),
 }
 
 #[derive(thiserror::Error, Debug)]

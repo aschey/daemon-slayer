@@ -29,9 +29,10 @@ struct MyConfig {
     logging_config: logging::UserConfig,
 }
 
-pub fn main() -> Result<(), ErrorSink> {
+#[tokio::main]
+pub async fn main() -> Result<(), ErrorSink> {
     let guard = daemon_slayer::logging::init();
-    let result = run_async().map_err(ErrorSink::from_error);
+    let result = run().await.map_err(ErrorSink::from_error);
     drop(guard);
     result
 }
@@ -54,12 +55,10 @@ impl AsRef<logging::UserConfig> for MyConfig {
     }
 }
 
-#[tokio::main]
-pub async fn run_async() -> Result<(), BoxedError> {
+async fn run() -> Result<(), BoxedError> {
     let app_config =
         AppConfig::<MyConfig>::from_config_dir(standard::label(), ConfigFileType::Toml)?;
 
-    app_config.ensure_config_file()?;
     let config = app_config.read_config().unwrap_or_default();
     let manager = client::builder(
         standard::label(),

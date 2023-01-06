@@ -6,7 +6,7 @@ pub enum ConfigFileType {
 }
 
 impl ConfigFileType {
-    pub(crate) fn to_extension(&self) -> &str {
+    pub fn to_extension(&self) -> &str {
         match &self {
             ConfigFileType::Toml => ".toml",
             ConfigFileType::Yaml => ".yaml",

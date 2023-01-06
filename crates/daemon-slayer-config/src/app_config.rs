@@ -42,22 +42,35 @@ impl<T: Configurable> AppConfig<T> {
 
         let config_dir = dirs.config_dir();
 
-        Ok(Self::from_custom_path(config_file_type, config_dir))
+        Self::from_custom_path(config_file_type, config_dir)
+            .map_err(|e| ConfigInitializationError::CreationFailure(config_dir.to_owned(), e))
     }
 
     pub fn from_custom_path(
         config_file_type: ConfigFileType,
         config_dir: impl Into<PathBuf>,
-    ) -> Self {
+    ) -> Result<Self, io::Error> {
         let config = Arc::new(ArcSwap::new(Arc::new(T::default())));
 
         let filename = format!("config{}", config_file_type.to_extension());
-        Self {
+        let instance = Self {
             config_file_type,
             config_dir: config_dir.into(),
             filename,
             config,
+        };
+        instance.ensure_created()?;
+        Ok(instance)
+    }
+
+    pub fn ensure_created(&self) -> Result<(), io::Error> {
+        let full_path = self.full_path();
+        if full_path.exists() {
+            debug!("Not creating config file {full_path:#?} because it already exists");
+            return Ok(());
         }
+
+        self.overwrite_config_file()
     }
 
     pub fn with_config_filename(mut self, filename: impl Into<String>) -> Self {
@@ -71,6 +84,10 @@ impl<T: Configurable> AppConfig<T> {
             ConfigFileType::Toml => toml::template::<T>(toml::FormatOptions::default()),
             ConfigFileType::Json5 => json5::template::<T>(json5::FormatOptions::default()),
         }
+    }
+
+    pub fn file_type(&self) -> &ConfigFileType {
+        &self.config_file_type
     }
 
     pub fn full_path(&self) -> PathBuf {
@@ -88,16 +105,6 @@ impl<T: Configurable> AppConfig<T> {
         let full_path = self.full_path();
         std::fs::read_to_string(&full_path)
             .map_err(|e| io_error(&format!("Error reading config file {full_path:#?}"), e))
-    }
-
-    pub fn ensure_created(&self) -> Result<(), io::Error> {
-        let full_path = self.full_path();
-        if full_path.exists() {
-            debug!("Not creating config file {full_path:#?} because it already exists");
-            return Ok(());
-        }
-
-        self.overwrite_config_file()
     }
 
     pub fn overwrite_config_file(&self) -> Result<(), io::Error> {

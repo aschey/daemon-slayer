@@ -7,9 +7,9 @@ use std::{thread, time::Duration};
 
 #[test]
 fn run() {
-    if cfg!(windows) || std::env::var("RUN_AS_SYSTEM") == Ok("true".to_owned()) {
+    if std::env::var("RUN_AS_SYSTEM") == Ok("true".to_owned()) {
         run_tests(false);
-    } else {
+    } else if !cfg!(windows) {
         run_tests(true);
     }
 }
@@ -48,7 +48,6 @@ fn run_tests(is_user_service: bool) {
         std::fs::remove_file(app_config.full_path()).unwrap();
     }
 
-    app_config.ensure_created().unwrap();
     assert!(app_config.full_path().exists());
 
     let uninstalled_info = manager.info().unwrap();

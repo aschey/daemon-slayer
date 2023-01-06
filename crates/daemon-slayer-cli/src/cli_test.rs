@@ -91,6 +91,35 @@ async fn test_base_command() {
     assert_eq!("test2", matches.subcommand().unwrap().0);
 }
 
+#[tokio::test]
+async fn test_action_type() {
+    let cli = Cli::builder()
+        .with_provider(TestProvider::new(
+            Arc::new(AtomicBool::new(false)),
+            Arc::new(AtomicBool::new(false)),
+            Arc::new(AtomicBool::new(false)),
+        ))
+        .initialize_from(["cli_test", "test"])
+        .unwrap();
+
+    assert_eq!(ActionType::Client, cli.action_type(cli.get_matches()));
+}
+
+#[tokio::test]
+async fn test_action_type_unhandled() {
+    let cli = Cli::builder()
+        .with_base_command(clap::Command::new("cli_test").subcommand(clap::Command::new("test2")))
+        .with_provider(TestProvider::new(
+            Arc::new(AtomicBool::new(false)),
+            Arc::new(AtomicBool::new(false)),
+            Arc::new(AtomicBool::new(false)),
+        ))
+        .initialize_from(["cli_test", "test2"])
+        .unwrap();
+
+    assert_eq!(ActionType::Unknown, cli.action_type(cli.get_matches()));
+}
+
 struct TestProvider {
     initialized: bool,
     default_matched: Arc<AtomicBool>,

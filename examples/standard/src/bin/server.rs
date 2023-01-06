@@ -23,9 +23,10 @@ struct MyConfig {
     logging_config: logging::UserConfig,
 }
 
-pub fn main() -> Result<(), ErrorSink> {
+#[tokio::main]
+pub async fn main() -> Result<(), ErrorSink> {
     let guard = daemon_slayer::logging::init();
-    let result = run_async().map_err(ErrorSink::from_error);
+    let result = run().await.map_err(ErrorSink::from_error);
     drop(guard);
     result
 }
@@ -42,12 +43,9 @@ pub struct AppData {
     reload_handle: ReloadHandle,
 }
 
-#[tokio::main]
-pub async fn run_async() -> Result<(), BoxedError> {
+async fn run() -> Result<(), BoxedError> {
     let app_config =
         AppConfig::<MyConfig>::from_config_dir(ServiceHandler::label(), ConfigFileType::Toml)?;
-
-    app_config.ensure_config_file()?;
 
     let logger_builder =
         LoggerBuilder::new(ServiceHandler::label()).with_config(app_config.clone());

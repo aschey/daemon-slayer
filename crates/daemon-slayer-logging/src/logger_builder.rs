@@ -15,7 +15,7 @@ use time::{
     format_description::well_known::{self, Rfc3339},
     UtcOffset,
 };
-use tracing::{metadata::LevelFilter, Level, Subscriber};
+use tracing::{debug, metadata::LevelFilter, Level, Subscriber};
 use tracing_appender::non_blocking::NonBlockingBuilder;
 use tracing_subscriber::{
     filter::Directive,
@@ -37,12 +37,17 @@ pub struct GlobalLoggerGuard;
 
 impl Drop for GlobalLoggerGuard {
     fn drop(&mut self) {
+        debug!("Dropping global logger guard");
         LOGGER_GUARD.get().take();
     }
 }
 
-pub fn init() -> GlobalLoggerGuard {
+#[ctor::ctor]
+fn init_time() {
     LOCAL_TIME.set(OffsetTime::local_rfc_3339()).ok();
+}
+
+pub fn init() -> GlobalLoggerGuard {
     GlobalLoggerGuard
 }
 

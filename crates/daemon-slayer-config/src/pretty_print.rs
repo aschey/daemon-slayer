@@ -34,7 +34,7 @@ impl Default for PrettyPrintOptions {
 }
 
 impl ConfigFileType {
-    fn to_format_language(&self) -> &str {
+    pub fn to_format_language(&self) -> &str {
         match &self {
             ConfigFileType::Toml => "toml",
             ConfigFileType::Yaml => "yaml",
@@ -52,7 +52,7 @@ impl<T: Configurable> AppConfig<T> {
             .header(true)
             .paging_mode(bat::PagingMode::QuitIfOneScreen)
             .line_numbers(true)
-            .language(self.config_file_type.to_format_language())
+            .language(self.file_type().to_format_language())
             .colored_output(options.color)
             .print()
             .map_err(|e| PrettyPrintError::from_bat_error(full_path, e))?;
