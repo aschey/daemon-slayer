@@ -34,7 +34,7 @@ pub trait Mergeable {
 }
 
 #[derive(Clone, Default)]
-pub struct CachedConfig<T: Mergeable + Clone + Default> {
+pub struct CachedConfig<T: Mergeable + Clone + Default + 'static> {
     inner: Option<Arc<Box<dyn DynAccess<T> + Send + Sync>>>,
     cache: Option<T>,
     explicit: T,
