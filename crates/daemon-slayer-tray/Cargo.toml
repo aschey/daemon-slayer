@@ -6,4 +6,4 @@ version = "0.1.0"
 [dependencies]
 daemon-slayer-client = {path = "../daemon-slayer-client"}
 image = "0.24"
-tao = {version = "0.14", features = ["tray"]}
+tao = {version = "0.15", features = ["tray"]}

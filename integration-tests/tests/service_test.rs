@@ -41,15 +41,6 @@ fn run_tests(is_user_service: bool) {
         });
     }
 
-    let app_config =
-        AppConfig::<TestConfig>::from_config_dir(integration_tests::label(), ConfigFileType::Toml)
-            .unwrap();
-    if app_config.full_path().exists() {
-        std::fs::remove_file(app_config.full_path()).unwrap();
-    }
-
-    assert!(app_config.full_path().exists());
-
     let uninstalled_info = manager.info().unwrap();
     assert_eq!(uninstalled_info.state, State::NotInstalled);
     assert_eq!(uninstalled_info.autostart, None);
@@ -89,6 +80,10 @@ fn run_tests(is_user_service: bool) {
         !autostart
     });
 
+    let app_config =
+        AppConfig::<TestConfig>::from_config_dir(integration_tests::label(), ConfigFileType::Toml)
+            .unwrap();
+    assert!(app_config.full_path().exists());
     std::fs::copy("./assets/config.toml", app_config.full_path()).unwrap();
 
     run_manager_cmd(bin_name, "reload", is_user_service, || {
