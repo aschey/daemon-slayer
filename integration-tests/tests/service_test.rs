@@ -28,12 +28,6 @@ async fn run_tests(is_user_service: bool) {
 
     let config_service = ConfigService::new(app_config.clone());
     let mut config_events = config_service.get_event_store().subscribe_events();
-    let background_services = BackgroundServiceManager::new(CancellationToken::new());
-    background_services
-        .get_context()
-        .add_service(config_service)
-        .await
-        .unwrap();
 
     let mut manager = client::config::Builder::new(
         integration_tests::label(),
@@ -88,6 +82,14 @@ async fn run_tests(is_user_service: bool) {
     assert_eq!(uninstalled_info.last_exit_code, None);
 
     app_config.overwrite_config_file().unwrap();
+
+    // Don't start file watcher until after we reset the config
+    let background_services = BackgroundServiceManager::new(CancellationToken::new());
+    background_services
+        .get_context()
+        .add_service(config_service)
+        .await
+        .unwrap();
 
     manager.install().unwrap();
     wait_for(|| {
