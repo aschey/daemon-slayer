@@ -1,8 +1,8 @@
 use crate::Service;
 use daemon_slayer_core::{
     cli::{
-        clap, Action, ActionType, CommandConfig, CommandMatch, CommandProvider, CommandType,
-        InputState,
+        clap, Action, ActionType, CommandConfig, CommandMatch, CommandOutput, CommandProvider,
+        CommandType,
     },
     BoxedError, CommandArg,
 };
@@ -79,17 +79,19 @@ impl<S: Service> CommandProvider for ServerCliProvider<S> {
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandMatch>,
-    ) -> Result<InputState, BoxedError> {
-        match matched_command.as_ref().map(|c| &c.matched_command.action) {
-            Some(Some(Action::Direct)) => {
-                S::run_directly(self.input_data).await?;
-                Ok(InputState::Handled)
-            }
-            Some(Some(Action::Run)) => {
-                S::run_as_service(self.input_data).await?;
-                Ok(InputState::Handled)
-            }
-            _ => Ok(InputState::Unhandled),
-        }
+    ) -> Result<CommandOutput, BoxedError> {
+        Ok(
+            match matched_command.as_ref().map(|c| &c.matched_command.action) {
+                Some(Some(Action::Direct)) => {
+                    S::run_directly(self.input_data).await?;
+                    CommandOutput::handled(None)
+                }
+                Some(Some(Action::Run)) => {
+                    S::run_as_service(self.input_data).await?;
+                    CommandOutput::handled(None)
+                }
+                _ => CommandOutput::unhandled(),
+            },
+        )
     }
 }

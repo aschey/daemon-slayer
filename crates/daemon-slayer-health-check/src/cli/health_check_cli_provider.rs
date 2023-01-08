@@ -1,6 +1,6 @@
 use daemon_slayer_core::{
     cli::{
-        clap, ActionType, CommandConfig, CommandMatch, CommandProvider, CommandType, InputState,
+        clap, ActionType, CommandConfig, CommandMatch, CommandOutput, CommandProvider, CommandType,
     },
     health_check::HealthCheck,
     BoxedError,
@@ -36,22 +36,19 @@ impl<H: HealthCheck + Clone + Send + 'static> CommandProvider for HealthCheckCli
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandMatch>,
-    ) -> Result<InputState, BoxedError> {
-        match matched_command
+    ) -> Result<CommandOutput, BoxedError> {
+        return match matched_command
             .as_ref()
             .map(|c| &c.matched_command.command_type)
         {
             Some(CommandType::Subcommand { name, .. }) if name == "health" => {
-                match self.health_check.invoke().await {
-                    Ok(()) => println!("Healthy"),
-                    Err(e) => {
-                        println!("Unhealthy: {e:?}");
-                    }
-                }
-                Ok(InputState::Handled)
+                Ok(match self.health_check.invoke().await {
+                    Ok(()) => CommandOutput::handled("Healthy".to_owned()),
+                    Err(e) => CommandOutput::handled(format!("Unhealthy: {e:?}")),
+                })
             }
-            _ => Ok(InputState::Unhandled),
-        }
+            _ => Ok(CommandOutput::unhandled()),
+        };
     }
 
     fn get_commands(&self) -> Vec<&CommandConfig> {

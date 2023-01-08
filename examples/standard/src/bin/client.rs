@@ -10,7 +10,7 @@ use daemon_slayer::{
             Level,
         },
     },
-    config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir, ConfigFileType},
+    config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir},
     console::{self, cli::ConsoleCliProvider, Console},
     core::BoxedError,
     error_handler::{cli::ErrorHandlerCliProvider, ErrorSink},

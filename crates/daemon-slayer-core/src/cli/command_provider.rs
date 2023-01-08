@@ -1,4 +1,4 @@
-use super::{Action, ActionType, ArgMatchesExt, CommandExt, CommandType, InputState};
+use super::{Action, ActionType, ArgMatchesExt, CommandExt, CommandOutput, CommandType};
 use crate::{AsAny, BoxedError};
 
 #[derive(Clone, Debug)]
@@ -16,7 +16,7 @@ pub trait CommandProvider: AsAny + Send + 'static {
         self: Box<Self>,
         matches: &clap::ArgMatches,
         matched_command: &Option<CommandMatch>,
-    ) -> Result<InputState, BoxedError>;
+    ) -> Result<CommandOutput, BoxedError>;
 
     fn initialize(
         &mut self,

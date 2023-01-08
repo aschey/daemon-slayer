@@ -2,8 +2,8 @@ use crate::{AppConfig, ConfigLoadError, Configurable};
 use daemon_slayer_core::{
     cli::{
         clap::{self, ArgMatches},
-        ActionType, ArgMatchesExt, CommandConfig, CommandMatch, CommandProvider, CommandType,
-        InputState,
+        ActionType, ArgMatchesExt, CommandConfig, CommandMatch, CommandOutput, CommandProvider,
+        CommandType,
     },
     config::ConfigWatcher,
     BoxedError,
@@ -88,7 +88,7 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandMatch>,
-    ) -> Result<InputState, BoxedError> {
+    ) -> Result<CommandOutput, BoxedError> {
         match matched_command
             .as_ref()
             .map(|c| (&c.matched_command.command_type, &c.matches))
@@ -97,7 +97,6 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
                 if let CommandType::Subcommand { children, .. } = &self.config_command.command_type
                 {
                     let (state, name) = find_subcommand(sub, children, &self.config)?;
-
                     if name == Some("edit") {
                         for watcher in &mut self.watchers {
                             watcher
@@ -112,7 +111,7 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
             _ => {}
         }
 
-        Ok(InputState::Unhandled)
+        Ok(CommandOutput::unhandled())
     }
 }
 
@@ -120,7 +119,7 @@ fn find_subcommand<'a, T: Configurable>(
     sub: &ArgMatches,
     children: &'a [CommandType],
     config: &AppConfig<T>,
-) -> Result<(InputState, Option<&'a str>), BoxedError> {
+) -> Result<(CommandOutput, Option<&'a str>), BoxedError> {
     for arg in children.iter() {
         if let (CommandType::Subcommand { name, .. }, Some(sub)) = (arg, sub.matches(arg)) {
             let input_state = handle_config_subcommand(Some(name.as_str()), &sub, config);
@@ -134,44 +133,38 @@ fn handle_config_subcommand<T: Configurable>(
     name: Option<&str>,
     #[cfg_attr(not(feature = "pretty-print"), allow(unused))] sub: &ArgMatches,
     config: &AppConfig<T>,
-) -> Result<InputState, BoxedError> {
-    match name {
-        Some("path") => {
-            println!("{}", config.full_path().to_string_lossy());
-            return Ok(InputState::Handled);
-        }
+) -> Result<CommandOutput, BoxedError> {
+    return Ok(match name {
+        Some("path") => CommandOutput::handled(config.full_path().to_string_lossy().to_string()),
         Some("edit") => {
             config.edit()?;
-            return Ok(InputState::Handled);
+            CommandOutput::handled(None)
         }
-        Some("validate") => {
-            match config.read_config() {
-                Ok(_) => println!("Valid"),
-                Err(ConfigLoadError(_, msg)) => {
-                    println!("Invalid: {msg}")
-                }
-            }
-
-            return Ok(InputState::Handled);
-        }
+        Some("validate") => match config.read_config() {
+            Ok(_) => CommandOutput::handled("Valid".to_owned()),
+            Err(ConfigLoadError(_, msg)) => CommandOutput::handled(format!("Invalid: {msg}")),
+        },
         None => {
             #[cfg(feature = "pretty-print")]
             {
                 let plain = *sub.get_one::<bool>("plain").unwrap_or(&false);
                 if plain {
-                    println!("{}", config.contents()?);
+                    CommandOutput::handled(config.contents()?)
                 } else {
                     let no_color = *sub.get_one::<bool>("no_color").unwrap_or(&false);
                     config.pretty_print(crate::PrettyPrintOptions { color: !no_color })?;
+                    CommandOutput::handled(None)
                 }
             }
             #[cfg(not(feature = "pretty-print"))]
             {
-                println!("{}", config.contents()?);
+                CommandOutput::handled(config.contents()?)
             }
-            return Ok(InputState::Handled);
         }
-        _ => {}
-    }
-    Ok(InputState::Unhandled)
+        _ => CommandOutput::unhandled(),
+    });
 }
+
+#[cfg(test)]
+#[path = "./config_cli_provider_test.rs"]
+mod config_cli_provider_test;

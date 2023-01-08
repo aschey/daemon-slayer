@@ -5,7 +5,10 @@ use std::sync::{
 
 use daemon_slayer_core::{
     async_trait,
-    cli::{ActionType, CommandConfig, CommandMatch, CommandProvider, CommandType, InputState},
+    cli::{
+        ActionType, CommandConfig, CommandMatch, CommandOutput, CommandProvider, CommandType,
+        InputState,
+    },
     BoxedError,
 };
 
@@ -55,6 +58,21 @@ async fn test_input_handled_subcommand() {
     let (input_state, _) = cli.handle_input().await.unwrap();
     assert_eq!(InputState::Handled, input_state);
     assert!(subcommand_bool.load(Ordering::Relaxed));
+}
+
+#[tokio::test]
+async fn test_output_subcommand() {
+    let cli = Cli::builder()
+        .with_provider(TestProvider::new(
+            Arc::new(AtomicBool::new(false)),
+            Arc::new(AtomicBool::new(false)),
+            Arc::new(AtomicBool::new(false)),
+        ))
+        .initialize_from(["cli_test", "test"])
+        .unwrap();
+    let mut buf = Vec::new();
+    cli.handle_input_with_writer(&mut buf).await.unwrap();
+    assert_eq!("subcommand\n", String::from_utf8(buf).unwrap());
 }
 
 #[tokio::test]
@@ -181,25 +199,25 @@ impl CommandProvider for TestProvider {
         self: Box<Self>,
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandMatch>,
-    ) -> Result<InputState, BoxedError> {
+    ) -> Result<CommandOutput, BoxedError> {
         if let Some(matched) = matched_command {
             return match &matched.matched_command.command_type {
                 CommandType::Default => {
                     self.default_matched.store(true, Ordering::Relaxed);
-                    Ok(InputState::Handled)
+                    Ok(CommandOutput::handled(None))
                 }
                 CommandType::Subcommand { name, .. } if name.as_str() == "test" => {
                     self.subcommand_matched.store(true, Ordering::Relaxed);
-                    Ok(InputState::Handled)
+                    Ok(CommandOutput::handled("subcommand".to_owned()))
                 }
                 CommandType::Arg { id, .. } if id.as_str() == "test_arg" => {
                     self.arg_matched.store(true, Ordering::Relaxed);
-                    Ok(InputState::Handled)
+                    Ok(CommandOutput::handled(None))
                 }
-                _ => Ok(InputState::Unhandled),
+                _ => Ok(CommandOutput::unhandled()),
             };
         }
-        Ok(InputState::Unhandled)
+        Ok(CommandOutput::unhandled())
     }
 
     fn initialize(

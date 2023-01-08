@@ -1,6 +1,6 @@
 use crate::{LoggerBuilder, LoggerCreationError, ReloadHandle};
 use daemon_slayer_core::{
-    cli::{clap, Action, ActionType, CommandConfig, CommandMatch, InputState},
+    cli::{clap, Action, ActionType, CommandConfig, CommandMatch, CommandOutput},
     BoxedError,
 };
 use std::sync::{Arc, Mutex};
@@ -86,7 +86,7 @@ impl daemon_slayer_core::cli::CommandProvider for LoggingCliProvider {
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         _matched_command: &Option<CommandMatch>,
-    ) -> Result<InputState, BoxedError> {
-        Ok(InputState::Unhandled)
+    ) -> Result<CommandOutput, BoxedError> {
+        Ok(CommandOutput::unhandled())
     }
 }

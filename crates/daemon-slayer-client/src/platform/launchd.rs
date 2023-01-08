@@ -155,6 +155,7 @@ impl Manager for LaunchdServiceManager {
 
     fn reload_config(&self) -> Result<(), io::Error> {
         let current_state = self.info()?.state;
+        self.config.user_config.reload();
         self.stop()?;
         let path = self.get_plist_path()?;
         self.run_launchctl(vec!["unload", &path.to_string_lossy()])?;

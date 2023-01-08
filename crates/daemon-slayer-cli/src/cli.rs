@@ -61,12 +61,21 @@ impl Cli {
     }
 
     pub async fn handle_input(self) -> Result<(InputState, clap::ArgMatches), BoxedError> {
+        self.handle_input_with_writer(std::io::stdout()).await
+    }
+
+    pub async fn handle_input_with_writer(
+        self,
+        mut writer: impl std::io::Write + Send + Sync,
+    ) -> Result<(InputState, clap::ArgMatches), BoxedError> {
         for provider in self.providers {
-            if provider
+            let handler_result = provider
                 .handle_input(&self.matches, &self.matched_command)
-                .await?
-                == InputState::Handled
-            {
+                .await?;
+            if let Some(output) = handler_result.output {
+                writeln!(writer, "{}", output)?;
+            }
+            if handler_result.input_state == InputState::Handled {
                 return Ok((InputState::Handled, self.matches));
             }
         }

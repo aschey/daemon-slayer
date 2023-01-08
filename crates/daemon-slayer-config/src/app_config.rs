@@ -72,11 +72,6 @@ impl<T: Configurable> AppConfig<T> {
         self.overwrite_config_file()
     }
 
-    pub fn with_config_filename(mut self, filename: impl Into<String>) -> Self {
-        self.filename = filename.into();
-        self
-    }
-
     pub fn config_template(&self) -> String {
         match self.config_file_type {
             ConfigFileType::Yaml => yaml::template::<T>(yaml::FormatOptions::default()),

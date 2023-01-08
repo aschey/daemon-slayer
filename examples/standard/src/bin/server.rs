@@ -1,7 +1,7 @@
 use confique::Config;
 use daemon_slayer::{
     cli::Cli,
-    config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir, ConfigFileType},
+    config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir},
     core::{BoxedError, Label},
     error_handler::{cli::ErrorHandlerCliProvider, ErrorSink},
     logging::{

@@ -9,7 +9,7 @@ pub(crate) trait Manager: Clone + Send + Sync + 'static {
     fn display_name(&self) -> &str;
     fn description(&self) -> &str;
     fn arguments(&self) -> &Vec<String>;
-    fn reload_config(&self) -> Result<(), io::Error>;
+    fn reload_config(&mut self) -> Result<(), io::Error>;
     fn on_config_changed(&mut self) -> Result<(), io::Error>;
     fn install(&self) -> Result<(), io::Error>;
     fn uninstall(&self) -> Result<(), io::Error>;
@@ -48,7 +48,7 @@ impl ServiceManager {
         self.inner.arguments()
     }
 
-    pub fn reload_config(&self) -> Result<(), io::Error> {
+    pub fn reload_config(&mut self) -> Result<(), io::Error> {
         self.inner.reload_config()
     }
 

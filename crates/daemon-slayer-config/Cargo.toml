@@ -24,5 +24,6 @@ pretty-print = ["bat"]
 server = ["daemon-slayer-core/server"]
 
 [dev-dependencies]
+daemon-slayer-cli = {path = "../daemon-slayer-cli"}
 serde = "1.0.152"
 tempfile = "3.3.0"

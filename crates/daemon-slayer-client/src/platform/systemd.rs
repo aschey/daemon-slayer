@@ -83,10 +83,14 @@ impl Manager for SystemdServiceManager {
         Ok(())
     }
 
-    fn reload_config(&self) -> Result<(), io::Error> {
+    fn reload_config(&mut self) -> Result<(), io::Error> {
         let current_state = self.info()?.state;
+        self.config.user_config.reload();
         self.stop()?;
         self.install()?;
+        self.client
+            .reload()
+            .map_err(|e| io_error(format!("Error reloading systemd units: {e:?}")))?;
         if current_state == State::Started {
             self.start()?;
         }

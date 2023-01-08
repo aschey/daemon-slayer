@@ -37,6 +37,14 @@ impl TryFrom<PathBuf> for Program {
     }
 }
 
+impl TryFrom<String> for Program {
+    type Error = IntoProgramError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Program::new(value)
+    }
+}
+
 #[derive(Clone)]
 pub struct Builder {
     pub(crate) label: Label,

@@ -1,6 +1,6 @@
 use color_eyre::config::Theme;
 use daemon_slayer_core::{
-    cli::{clap, Action, CommandConfig, CommandMatch, InputState},
+    cli::{clap, Action, CommandConfig, CommandMatch, CommandOutput},
     BoxedError,
 };
 
@@ -40,7 +40,7 @@ impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         _matched_command: &Option<CommandMatch>,
-    ) -> Result<InputState, BoxedError> {
-        Ok(InputState::Unhandled)
+    ) -> Result<CommandOutput, BoxedError> {
+        Ok(CommandOutput::unhandled())
     }
 }

@@ -336,6 +336,7 @@ impl Manager for WindowsServiceManager {
 
     fn reload_config(&self) -> Result<(), io::Error> {
         let current_state = self.info()?.state;
+        self.config.user_config.reload();
         self.stop()?;
         self.add_environment_variables()?;
         if current_state == State::Started {

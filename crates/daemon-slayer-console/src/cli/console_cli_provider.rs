@@ -1,6 +1,6 @@
 use crate::Console;
 use daemon_slayer_core::{
-    cli::{clap, ActionType, CommandConfig, CommandMatch, CommandType, InputState},
+    cli::{clap, ActionType, CommandConfig, CommandMatch, CommandOutput, CommandType},
     BoxedError,
 };
 
@@ -40,7 +40,7 @@ impl daemon_slayer_core::cli::CommandProvider for ConsoleCliProvider {
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandMatch>,
-    ) -> Result<InputState, BoxedError> {
+    ) -> Result<CommandOutput, BoxedError> {
         match matched_command
             .as_ref()
             .map(|c| &c.matched_command.command_type)
@@ -52,9 +52,9 @@ impl daemon_slayer_core::cli::CommandProvider for ConsoleCliProvider {
                 children: _,
             }) if name == "console" => {
                 self.console.run().await.unwrap();
-                Ok(InputState::Handled)
+                Ok(CommandOutput::handled(None))
             }
-            _ => Ok(InputState::Unhandled),
+            _ => Ok(CommandOutput::unhandled()),
         }
     }
 }

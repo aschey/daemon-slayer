@@ -1,8 +1,6 @@
 use axum::routing::get;
 use axum::Router;
 use daemon_slayer::cli::Cli;
-use daemon_slayer::client::{self, cli::ClientCliProvider, config::Level};
-use daemon_slayer::config::{AppConfig, ConfigDir};
 use daemon_slayer::core::{BoxedError, Label};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
@@ -13,36 +11,14 @@ use daemon_slayer::server::{
 };
 use daemon_slayer::signals::SignalListener;
 use futures::StreamExt;
-use integration_tests::TestConfig;
-use std::env::current_exe;
 use tracing::info;
 
 #[tokio::main]
 pub async fn main() {
     let run_argument = "-r".parse().unwrap();
-    let app_config =
-        AppConfig::<TestConfig>::builder(ConfigDir::ProjectDir(ServiceHandler::label()))
-            .build()
-            .unwrap();
-    let mut manager_builder = client::builder(
-        ServiceHandler::label(),
-        current_exe().unwrap().try_into().unwrap(),
-    )
-    .with_description("test service")
-    .with_user_config(app_config.clone())
-    .with_arg(&run_argument);
-
-    if let Ok(user_service) = std::env::var("USER_SERVICE") {
-        if user_service == "1" || user_service == "true" {
-            manager_builder = manager_builder.with_service_level(Level::User);
-        }
-    }
-
-    let manager = manager_builder.build().unwrap();
     let logger_builder = LoggerBuilder::new(ServiceHandler::label());
 
     let mut cli = Cli::builder()
-        .with_provider(ClientCliProvider::new(manager))
         .with_provider(ServerCliProvider::<ServiceHandler>::new(&run_argument))
         .with_provider(ErrorHandlerCliProvider::default())
         .with_provider(LoggingCliProvider::new(logger_builder))

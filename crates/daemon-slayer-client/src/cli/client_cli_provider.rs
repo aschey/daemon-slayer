@@ -1,6 +1,9 @@
 use crate::ServiceManager;
 use daemon_slayer_core::{
-    cli::{clap, Action, ActionType, CommandConfig, CommandMatch, CommandType, InputState},
+    cli::{
+        clap, Action, ActionType, CommandConfig, CommandMatch, CommandOutput, CommandProvider,
+        CommandType,
+    },
     BoxedError,
 };
 use std::collections::HashMap;
@@ -165,7 +168,7 @@ impl ClientCliProvider {
     }
 }
 #[async_trait::async_trait]
-impl daemon_slayer_core::cli::CommandProvider for ClientCliProvider {
+impl CommandProvider for ClientCliProvider {
     fn get_commands(&self) -> Vec<&CommandConfig> {
         self.commands.values().collect()
     }
@@ -174,7 +177,7 @@ impl daemon_slayer_core::cli::CommandProvider for ClientCliProvider {
         mut self: Box<Self>,
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandMatch>,
-    ) -> Result<InputState, BoxedError> {
+    ) -> Result<CommandOutput, BoxedError> {
         if let Some(CommandMatch {
             matched_command, ..
         }) = matched_command
@@ -185,7 +188,7 @@ impl daemon_slayer_core::cli::CommandProvider for ClientCliProvider {
                     Some(Action::Uninstall) => self.manager.uninstall()?,
                     Some(Action::Info) => {
                         let info = self.manager.info()?;
-                        println!("{}", info.pretty_print());
+                        return Ok(CommandOutput::handled(info.pretty_print()));
                     }
                     Some(Action::Start) => self.manager.start()?,
                     Some(Action::Stop) => self.manager.stop()?,
@@ -195,18 +198,17 @@ impl daemon_slayer_core::cli::CommandProvider for ClientCliProvider {
                     Some(Action::Disable) => self.manager.disable_autostart()?,
                     Some(Action::Pid) => {
                         let pid = self.manager.info()?.pid;
-                        println!(
-                            "{}",
+                        return Ok(CommandOutput::handled(
                             pid.map(|p| p.to_string())
-                                .unwrap_or_else(|| "Not running".to_owned())
-                        );
+                                .unwrap_or_else(|| "Not running".to_owned()),
+                        ));
                     }
-                    _ => return Ok(InputState::Unhandled),
+                    _ => return Ok(CommandOutput::unhandled()),
                 }
-                return Ok(InputState::Handled);
+                return Ok(CommandOutput::handled(None));
             }
         }
 
-        Ok(InputState::Unhandled)
+        Ok(CommandOutput::unhandled())
     }
 }
