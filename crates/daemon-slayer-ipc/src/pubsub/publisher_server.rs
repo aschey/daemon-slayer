@@ -151,10 +151,10 @@ where
     M: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone + Debug + Send + Unpin + 'static,
 {
     async fn publish(self, _: context::Context, topic: String, message: Bytes) {
-        let mut subscribers = match self.subscriptions.read().unwrap().get(&topic) {
-            None => return,
-            Some(subscriptions) => subscriptions.clone(),
+        let Some(mut subscribers) = self.subscriptions.read().unwrap().get(&topic).cloned() else {
+            return;
         };
+
         let mut publications = Vec::new();
         for client in subscribers.values_mut() {
             println!("sending to subscriber");
