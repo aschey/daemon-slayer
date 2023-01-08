@@ -153,7 +153,7 @@ impl Manager for LaunchdServiceManager {
         Ok(())
     }
 
-    fn reload_config(&self) -> Result<(), io::Error> {
+    fn reload_config(&mut self) -> Result<(), io::Error> {
         let current_state = self.info()?.state;
         self.config.user_config.reload();
         self.stop()?;
