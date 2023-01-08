@@ -65,3 +65,7 @@ where
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "./background_service_test.rs"]
+mod background_service_test;

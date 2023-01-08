@@ -5,13 +5,14 @@ use daemon_slayer_core::Mergeable;
 use tempfile::tempdir;
 
 #[test]
-fn test_ensure_created() {
+fn test_initial_load() {
     let config_dir = tempdir().unwrap().into_path();
 
-    AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
+    let config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
         .build()
         .unwrap();
     assert!(config_dir.join("config.toml").exists());
+    assert!(config.snapshot().test);
 }
 
 #[test]

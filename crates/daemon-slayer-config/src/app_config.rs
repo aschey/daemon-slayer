@@ -59,6 +59,9 @@ impl<T: Configurable> AppConfig<T> {
         instance
             .ensure_created()
             .map_err(|e| ConfigInitializationError::CreationFailure(instance.full_path(), e))?;
+        instance
+            .read_config()
+            .map_err(ConfigInitializationError::ConfigLoadError)?;
         Ok(instance)
     }
 

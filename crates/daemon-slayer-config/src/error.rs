@@ -6,6 +6,8 @@ pub enum ConfigInitializationError {
     NoHomeDir,
     #[error("Error creating config file {0}: {1}")]
     CreationFailure(PathBuf, io::Error),
+    #[error("{0}")]
+    ConfigLoadError(#[from] ConfigLoadError),
 }
 
 #[derive(thiserror::Error, Debug)]
