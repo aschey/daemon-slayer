@@ -28,8 +28,8 @@ async fn run_tests(is_user_service: bool) {
 
     let config_service = ConfigService::new(app_config.clone());
     let mut config_events = config_service.get_event_store().subscribe_events();
-    let manager = BackgroundServiceManager::new(CancellationToken::new());
-    manager
+    let background_services = BackgroundServiceManager::new(CancellationToken::new());
+    background_services
         .get_context()
         .add_service(config_service)
         .await
@@ -52,6 +52,7 @@ async fn run_tests(is_user_service: bool) {
             assert_cmd::cargo::cargo_bin(bin_name).try_into().unwrap()
         },
     )
+    .with_arg(&integration_tests::service_arg())
     .with_service_level(if is_user_service {
         Level::User
     } else {

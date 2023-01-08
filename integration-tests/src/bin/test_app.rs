@@ -15,11 +15,12 @@ use tracing::info;
 
 #[tokio::main]
 pub async fn main() {
-    let run_argument = "-r".parse().unwrap();
     let logger_builder = LoggerBuilder::new(ServiceHandler::label());
 
     let mut cli = Cli::builder()
-        .with_provider(ServerCliProvider::<ServiceHandler>::new(&run_argument))
+        .with_provider(ServerCliProvider::<ServiceHandler>::new(
+            &integration_tests::service_arg(),
+        ))
         .with_provider(ErrorHandlerCliProvider::default())
         .with_provider(LoggingCliProvider::new(logger_builder))
         .initialize()

@@ -1,7 +1,10 @@
 use std::net::SocketAddr;
 
 use confique::Config;
-use daemon_slayer::{client, core::Label};
+use daemon_slayer::{
+    client,
+    core::{CommandArg, Label},
+};
 
 #[derive(Debug, Config, Default, Clone)]
 pub struct TestConfig {
@@ -25,4 +28,8 @@ pub fn address() -> SocketAddr {
 
 pub fn address_string() -> String {
     format!("http://{}", address())
+}
+
+pub fn service_arg() -> CommandArg {
+    "-r".parse().unwrap()
 }
