@@ -48,7 +48,15 @@ impl WindowsServiceManager {
             });
         }
 
-        let service = self.open_service(service_name, ServiceAccessMode::Read)?;
+        // Service might've been uninstalled as we were querying it
+        let Ok(service) = self.open_service(service_name, ServiceAccessMode::Read) else {
+            return Ok(Info {
+                state: State::NotInstalled,
+                autostart: None,
+                pid: None,
+                last_exit_code: None,
+            });
+        };
 
         let service_status = service.query_status().map_err(|e| {
             io_error(format!(
