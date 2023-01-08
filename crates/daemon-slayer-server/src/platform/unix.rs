@@ -1,6 +1,8 @@
 use crate::{Handler, ServiceError};
 use daemon_slayer_core::{server::BackgroundServiceManager, CancellationToken};
+#[cfg_attr(target_os = "macos", allow(unused_imports))]
 use tap::TapFallible;
+#[cfg_attr(target_os = "macos", allow(unused_imports))]
 use tracing::{error, warn};
 
 pub async fn run_as_service<T: Handler>(

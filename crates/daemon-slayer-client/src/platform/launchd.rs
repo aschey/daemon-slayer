@@ -20,7 +20,6 @@ macro_rules! regex {
 
 regex!(STATE_RE, r"state = (\w+)");
 regex!(PID_RE, r"pid = (\w+)");
-regex!(AUTOSTART_RE, r"runatload = (\w+)");
 regex!(EXIT_CODE_RE, r"last exit code = (\w+)");
 
 #[derive(Clone)]
@@ -237,6 +236,17 @@ impl Manager for LaunchdServiceManager {
     }
 
     fn info(&self) -> Result<Info, io::Error> {
+        let plist_path = self.get_plist_path()?;
+        if !plist_path.exists() {
+            return Ok(Info {
+                state: State::NotInstalled,
+                autostart: None,
+                pid: None,
+                last_exit_code: None,
+            });
+        }
+        let plist =
+            Launchd::from_file(&plist_path).map_err(|e| from_launchd_error(plist_path, e))?;
         let output = self.run_launchctl(vec!["print", &self.service_target()?])?;
         if output.contains("could not find service") {
             return Ok(Info {
@@ -255,10 +265,11 @@ impl Manager for LaunchdServiceManager {
             .get_match_or_default(&PID_RE, &output)
             .map(|pid| pid.parse::<u32>().unwrap_or(0));
 
-        let autostart = match self.get_match_or_default(&AUTOSTART_RE, &output) {
-            Some("1") => Some(true),
-            _ => Some(false),
-        };
+        // We get the autostart status from the plist file instead of the print command because
+        // the format changed sometime between Mac OS 11 and 12 so it seems that it's not very stable.
+        // Unfortunately this means we can't detect if the version of the plist file that's actually loaded
+        // has autostart or not.
+        let autostart = plist.run_at_load;
 
         let last_exit_code = self
             .get_match_or_default(&EXIT_CODE_RE, &output)

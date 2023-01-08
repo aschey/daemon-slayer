@@ -7,6 +7,12 @@ jobs:
     strategy:
       matrix:
         include:
+          - os: macos-12
+            protoc-target: osx-x86_64
+            test: sudo cargo make test-admin
+          - os: macos-12
+            protoc-target: osx-x86_64
+            test: cargo make test
           - os: macos-11
             protoc-target: osx-x86_64
             test: sudo cargo make test-admin
