@@ -16,9 +16,11 @@ use daemon_slayer::{
 };
 use std::time::{Duration, Instant};
 use tracing::info;
+use derive_more::AsRef;
 
-#[derive(Debug, Config, Default, Clone)]
+#[derive(Debug, Config, AsRef, Default, Clone)]
 struct MyConfig {
+    #[as_ref]
     #[config(nested)]
     logging_config: logging::UserConfig,
 }
@@ -29,12 +31,6 @@ pub async fn main() -> Result<(), ErrorSink> {
     let result = run().await.map_err(ErrorSink::from_error);
     drop(guard);
     result
-}
-
-impl AsRef<logging::UserConfig> for MyConfig {
-    fn as_ref(&self) -> &logging::UserConfig {
-        &self.logging_config
-    }
 }
 
 #[derive(Clone)]

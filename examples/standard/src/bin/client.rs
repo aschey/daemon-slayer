@@ -19,13 +19,17 @@ use daemon_slayer::{
     },
     process::cli::ProcessCliProvider,
 };
+use derive_more::AsRef;
 
-#[derive(Debug, confique::Config, Default, Clone)]
+#[derive(Debug, confique::Config, AsRef, Default, Clone)]
 struct MyConfig {
+    #[as_ref]
     #[config(nested)]
     client_config: client::config::UserConfig,
+    #[as_ref]
     #[config(nested)]
     console_config: console::UserConfig,
+    #[as_ref]
     #[config(nested)]
     logging_config: logging::UserConfig,
 }
@@ -36,24 +40,6 @@ pub async fn main() -> Result<(), ErrorSink> {
     let result = run().await.map_err(ErrorSink::from_error);
     drop(guard);
     result
-}
-
-impl AsRef<client::config::UserConfig> for MyConfig {
-    fn as_ref(&self) -> &client::config::UserConfig {
-        &self.client_config
-    }
-}
-
-impl AsRef<console::UserConfig> for MyConfig {
-    fn as_ref(&self) -> &console::UserConfig {
-        &self.console_config
-    }
-}
-
-impl AsRef<logging::UserConfig> for MyConfig {
-    fn as_ref(&self) -> &logging::UserConfig {
-        &self.logging_config
-    }
 }
 
 async fn run() -> Result<(), BoxedError> {
