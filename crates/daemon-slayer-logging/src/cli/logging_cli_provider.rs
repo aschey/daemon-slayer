@@ -1,6 +1,7 @@
 use crate::{LoggerBuilder, LoggerCreationError, ReloadHandle};
 use daemon_slayer_core::{
-    cli::{clap, Action, ActionType, CommandConfig, CommandMatch, CommandOutput},
+    async_trait,
+    cli::{clap, Action, ActionType, CommandConfig, CommandMatch, CommandOutput, CommandProvider},
     BoxedError,
 };
 use std::sync::{Arc, Mutex};
@@ -46,8 +47,8 @@ impl LoggingCliProvider {
     }
 }
 
-#[async_trait::async_trait]
-impl daemon_slayer_core::cli::CommandProvider for LoggingCliProvider {
+#[async_trait]
+impl CommandProvider for LoggingCliProvider {
     fn get_commands(&self) -> Vec<&CommandConfig> {
         vec![]
     }

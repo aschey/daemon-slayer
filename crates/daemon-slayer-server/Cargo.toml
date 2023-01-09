@@ -4,7 +4,6 @@ name = "daemon-slayer-server"
 version = "0.1.0"
 
 [dependencies]
-async-trait = {version = "0.1"}
 daemon-slayer-core = {path = "../daemon-slayer-core", features = ["server", "signal"]}
 daemon-slayer-macros = {path = "../daemon-slayer-macros", features = ["server"]}
 futures = {version = "0.3"}

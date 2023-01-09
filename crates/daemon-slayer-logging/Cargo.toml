@@ -15,7 +15,6 @@ system = ["linux-journald", "mac-oslog", "windows-eventlog"]
 windows-eventlog = ["tracing-eventlog"]
 
 [dependencies]
-async-trait = {version = "0.1"}
 confique = {version = ">= 0.2.2", optional = true}
 ctor = "0.1.26"
 daemon-slayer-core = {path = "../daemon-slayer-core"}

@@ -1,5 +1,6 @@
 use crate::Service;
 use daemon_slayer_core::{
+    async_trait,
     cli::{
         clap, Action, ActionType, CommandConfig, CommandMatch, CommandOutput, CommandProvider,
         CommandType,
@@ -69,7 +70,7 @@ impl<S: Service> ServerCliProvider<S> {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl<S: Service> CommandProvider for ServerCliProvider<S> {
     fn get_commands(&self) -> Vec<&CommandConfig> {
         self.commands.values().collect()

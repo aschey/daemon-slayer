@@ -1,5 +1,6 @@
 use crate::{AppConfig, ConfigLoadError, Configurable};
 use daemon_slayer_core::{
+    async_trait,
     cli::{
         clap::{self, ArgMatches},
         ActionType, ArgMatchesExt, CommandConfig, CommandMatch, CommandOutput, CommandProvider,
@@ -78,7 +79,7 @@ impl<T: Configurable> ConfigCliProvider<T> {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
     fn get_commands(&self) -> Vec<&CommandConfig> {
         vec![&self.config_command]

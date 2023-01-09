@@ -1,5 +1,6 @@
 use crate::Console;
 use daemon_slayer_core::{
+    async_trait,
     cli::{clap, ActionType, CommandConfig, CommandMatch, CommandOutput, CommandType},
     BoxedError,
 };
@@ -30,7 +31,7 @@ impl ConsoleCliProvider {
         self
     }
 }
-#[async_trait::async_trait]
+#[async_trait]
 impl daemon_slayer_core::cli::CommandProvider for ConsoleCliProvider {
     fn get_commands(&self) -> Vec<&CommandConfig> {
         vec![&self.command]

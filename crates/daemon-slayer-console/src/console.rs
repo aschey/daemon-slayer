@@ -7,6 +7,7 @@ use crossterm::{
 };
 use daemon_slayer_client::{Info, ServiceManager, State};
 use daemon_slayer_core::{
+    async_trait,
     config::{Accessor, CachedConfig},
     health_check::HealthCheck,
     server::{BackgroundService, BackgroundServiceManager, ServiceContext},
@@ -58,7 +59,7 @@ impl HealthChecker {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl BackgroundService for HealthChecker {
     fn name<'a>() -> &'a str {
         "health_check_service"

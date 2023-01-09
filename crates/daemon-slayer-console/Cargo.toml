@@ -4,7 +4,6 @@ name = "daemon-slayer-console"
 version = "0.1.0"
 
 [dependencies]
-async-trait = {version = "0.1"}
 confique = {version = ">= 0.2.2", optional = true}
 crossterm = {version = "0.25", features = ["event-stream"]}
 daemon-slayer-client = {path = "../daemon-slayer-client"}

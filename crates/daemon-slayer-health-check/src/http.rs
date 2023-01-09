@@ -1,4 +1,4 @@
-use daemon_slayer_core::{health_check::HealthCheck, BoxedError};
+use daemon_slayer_core::{async_trait, health_check::HealthCheck, BoxedError};
 
 #[derive(Clone)]
 pub enum HttpRequestType {
@@ -24,7 +24,7 @@ impl HttpHealthCheck {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl HealthCheck for HttpHealthCheck {
     async fn invoke(&mut self) -> Result<(), BoxedError> {
         let response = match &self.request_type {

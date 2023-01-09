@@ -1,4 +1,4 @@
-use daemon_slayer_core::{health_check::HealthCheck, BoxedError};
+use daemon_slayer_core::{async_trait, health_check::HealthCheck, BoxedError};
 use std::error::Error;
 use tonic_health::proto::health_client::HealthClient;
 
@@ -19,7 +19,7 @@ impl GrpcHealthCheck {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl HealthCheck for GrpcHealthCheck {
     async fn invoke(&mut self) -> Result<(), BoxedError> {
         let mut client = HealthClient::new(self.endpoint.connect().await?);

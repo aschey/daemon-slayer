@@ -1,6 +1,8 @@
+use daemon_slayer_core::async_trait;
+
 use crate::{Handler, ServiceError};
 
-#[async_trait::async_trait]
+#[async_trait]
 pub trait Service: Handler {
     async fn run_as_service(
         input_data: Option<Self::InputData>,

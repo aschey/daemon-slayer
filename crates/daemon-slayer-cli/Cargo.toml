@@ -4,7 +4,6 @@ name = "daemon-slayer-cli"
 version = "0.1.0"
 
 [dependencies]
-async-trait = {version = "0.1", optional = true}
 clap = {version = "4", features = ["string"]}
 daemon-slayer-core = {path = "../daemon-slayer-core", features = ["cli"]}
 tracing = "0.1"

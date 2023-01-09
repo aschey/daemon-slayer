@@ -8,7 +8,6 @@ version = "0.1.0"
 [dependencies]
 aide-de-camp = {git = "https://github.com/aschey/aide-de-camp", rev = "937143a1ccaa5d3f69d418e4ed120473e3762790"}
 aide-de-camp-sqlite = {git = "https://github.com/aschey/aide-de-camp", rev = "937143a1ccaa5d3f69d418e4ed120473e3762790", default-features = false, features = ["rustls"]}
-async-trait = "0.1"
 daemon-slayer-core = {path = "../daemon-slayer-core", features = ["server"]}
 log = "0.4"
 sqlx = {version = "0.6.2", default-features = false, features = ["runtime-tokio-rustls", "sqlite"]}

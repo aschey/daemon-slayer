@@ -1,5 +1,6 @@
 use color_eyre::config::Theme;
 use daemon_slayer_core::{
+    async_trait,
     cli::{clap, Action, CommandConfig, CommandMatch, CommandOutput},
     BoxedError,
 };
@@ -9,7 +10,7 @@ use crate::ErrorHandler;
 #[derive(Default, Clone)]
 pub struct ErrorHandlerCliProvider {}
 
-#[async_trait::async_trait]
+#[async_trait]
 impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
     fn get_commands(&self) -> Vec<&CommandConfig> {
         vec![]

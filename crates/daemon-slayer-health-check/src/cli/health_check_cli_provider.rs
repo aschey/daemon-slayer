@@ -1,4 +1,5 @@
 use daemon_slayer_core::{
+    async_trait,
     cli::{
         clap, ActionType, CommandConfig, CommandMatch, CommandOutput, CommandProvider, CommandType,
     },
@@ -30,7 +31,7 @@ impl<H: daemon_slayer_core::health_check::HealthCheck + Clone + Send> HealthChec
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl<H: HealthCheck + Clone + Send + 'static> CommandProvider for HealthCheckCliProvider<H> {
     async fn handle_input(
         mut self: Box<Self>,

@@ -1,5 +1,6 @@
 use super::SignalListenerClient;
 use daemon_slayer_core::{
+    async_trait,
     server::{BroadcastEventStore, ServiceContext},
     signal::{self, Signal},
     BoxedError,
@@ -38,7 +39,7 @@ impl signal::Handler for SignalListener {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl daemon_slayer_core::server::BackgroundService for SignalListener {
     fn name<'a>() -> &'a str {
         "signal_listener_service"

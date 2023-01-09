@@ -2,6 +2,7 @@ use crate::{
     build_transport, get_socket_address, Codec, CodecWrapper, IpcClient, IpcRequestHandler,
 };
 use daemon_slayer_core::{
+    async_trait,
     server::{BackgroundService, ServiceContext},
     BoxedError, FutureExt,
 };
@@ -38,7 +39,7 @@ where
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl<H> BackgroundService for IpcServer<H>
 where
     H: IpcRequestHandler + 'static,

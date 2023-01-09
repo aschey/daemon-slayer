@@ -4,8 +4,8 @@ pub mod config;
 mod manager;
 pub use manager::*;
 mod state;
-pub use state::State;
+pub use state::*;
 mod info;
-pub use info::Info;
+pub use info::*;
 #[cfg(feature = "cli")]
 pub mod cli;

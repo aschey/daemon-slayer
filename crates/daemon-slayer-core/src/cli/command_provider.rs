@@ -50,3 +50,9 @@ pub struct CommandMatch {
     pub matched_command: CommandConfig,
     pub matches: clap::ArgMatches,
 }
+
+impl CommandMatch {
+    pub fn matches_subcommand(&self, subcommand_name: &str) -> bool {
+        matches!(&self.matched_command.command_type, CommandType::Subcommand { name, .. } if name == subcommand_name)
+    }
+}

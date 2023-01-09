@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use daemon_slayer_core::{server::ServiceContext, BoxedError, FutureExt};
+use daemon_slayer_core::{async_trait, server::ServiceContext, BoxedError, FutureExt};
 use futures::StreamExt;
 use parity_tokio_ipc::{Endpoint, SecurityAttributes};
 use tokio::io::{split, AsyncReadExt, AsyncWriteExt};
@@ -18,7 +18,7 @@ impl Server {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl daemon_slayer_core::server::BackgroundService for Server {
     fn name<'a>() -> &'a str {
         "ipc_health_check_service"

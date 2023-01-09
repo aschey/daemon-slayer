@@ -1,4 +1,5 @@
 use daemon_slayer_core::{
+    async_trait,
     server::{BackgroundService, ServiceContext},
     BoxedError, FutureExt,
 };
@@ -53,7 +54,7 @@ where
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl<P> BackgroundService for RpcService<P>
 where
     P: ServiceProvider + Send,

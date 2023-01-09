@@ -20,8 +20,8 @@ pub use once_cell;
 #[cfg(windows)]
 pub use windows_service;
 
-pub use async_trait;
 pub use daemon_slayer_core::{
+    async_trait,
     server::{BackgroundService, BroadcastEventStore, EventStore, ServiceContext},
     signal::{Client as SignalHandlerClient, Handler as SignalHandler, Signal},
     AsAny,

@@ -1,5 +1,6 @@
 use crate::{AppConfig, Configurable};
 use daemon_slayer_core::{
+    async_trait,
     server::{BackgroundService, BroadcastEventStore, EventStore, ServiceContext},
     BoxedError, FutureExt,
 };
@@ -32,7 +33,7 @@ where
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl<T> BackgroundService for ConfigService<T>
 where
     T: Configurable,

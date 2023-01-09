@@ -5,7 +5,6 @@ version = "0.1.0"
 
 [dependencies]
 arc-swap = {version = "1"}
-async-trait = "0.1"
 bat = {version = "0.22", default-features = false, features = ["regex-onig", "paging"], optional = true}
 confique = ">= 0.2.2"
 daemon-slayer-core = {path = "../daemon-slayer-core", features = ["config"]}

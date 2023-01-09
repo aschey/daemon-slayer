@@ -1,6 +1,7 @@
 use crate::{build_transport, get_socket_address, Codec, CodecWrapper};
 use bytes::Bytes;
 use daemon_slayer_core::{
+    async_trait,
     server::{BackgroundService, ServiceContext},
     BoxedError, FutureExt,
 };
@@ -169,7 +170,7 @@ where
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl<T, M> BackgroundService for PublisherServer<T, M>
 where
     T: FromStr + Display + Clone + Debug + Send + 'static,

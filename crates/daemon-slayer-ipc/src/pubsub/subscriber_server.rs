@@ -1,4 +1,5 @@
 use daemon_slayer_core::{
+    async_trait,
     server::{BackgroundService, ServiceContext},
     BoxedError, FutureExt,
 };
@@ -46,7 +47,7 @@ where
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl<T, M> BackgroundService for SubscriberServer<T, M>
 where
     T: FromStr + Display + Clone + Debug + Send + 'static,

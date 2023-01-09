@@ -1,4 +1,4 @@
-use daemon_slayer_core::{health_check::HealthCheck, BoxedError};
+use daemon_slayer_core::{async_trait, health_check::HealthCheck, BoxedError};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[derive(Clone)]
@@ -22,7 +22,7 @@ impl IpcHealthCheck {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl HealthCheck for IpcHealthCheck {
     async fn invoke(&mut self) -> Result<(), BoxedError> {
         let mut client = parity_tokio_ipc::Endpoint::connect(&self.sock_path).await?;

@@ -1,5 +1,6 @@
 use crate::{ReloadHandle, UserConfig};
 use daemon_slayer_core::{
+    async_trait,
     server::{
         tokio_stream::StreamExt, BackgroundService, BroadcastEventStore, EventStore, ServiceContext,
     },
@@ -27,7 +28,7 @@ impl<T: LoggingConfig> LoggingUpdateService<T> {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl<T: LoggingConfig> BackgroundService for LoggingUpdateService<T> {
     fn name<'a>() -> &'a str {
         "logging_update_service"

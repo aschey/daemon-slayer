@@ -17,6 +17,7 @@ use daemon_slayer::{
     logging::{
         self, cli::LoggingCliProvider, tracing_subscriber::util::SubscriberInitExt, LoggerBuilder,
     },
+    process::cli::ProcessCliProvider,
 };
 
 #[derive(Debug, confique::Config, Default, Clone)]
@@ -99,6 +100,7 @@ async fn run() -> Result<(), BoxedError> {
 
     let mut cli = Cli::builder()
         .with_provider(ClientCliProvider::new(manager.clone()))
+        .with_provider(ProcessCliProvider::new(manager.info()?.pid))
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(LoggingCliProvider::new(logger_builder))
         .with_provider(ErrorHandlerCliProvider::default())
