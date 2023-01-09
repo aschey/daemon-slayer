@@ -73,7 +73,7 @@ impl CommandProvider for ProcessCliProvider {
                     },
                     "info" => match self.pid {
                         Some(pid) => CommandOutput::handled(format!(
-                            "{:?}",
+                            "{:#?}",
                             ProcessManager::new(pid).process_info()
                         )),
                         None => CommandOutput::handled(

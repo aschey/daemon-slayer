@@ -1,7 +1,7 @@
 use bytesize::ByteSize;
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use serde::Serialize;
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 use sysinfo::{
     Pid, PidExt, Process, ProcessExt, ProcessRefreshKind, RefreshKind, System, SystemExt,
 };
@@ -61,7 +61,9 @@ pub struct ProcessManager {
 impl ProcessManager {
     pub fn new(pid: u32) -> Self {
         let system = System::new_with_specifics(
-            RefreshKind::new().with_processes(ProcessRefreshKind::everything()),
+            RefreshKind::new()
+                .with_processes(ProcessRefreshKind::everything())
+                .with_memory(),
         );
         Self {
             system,
@@ -79,9 +81,11 @@ impl ProcessManager {
 
     pub fn process_info(&mut self) -> Option<ProcessInfo> {
         self.system.refresh_process(self.pid);
+        let total_memory = self.system.total_memory();
+        let all_processes = self.system.processes();
         self.system
             .process(self.pid)
-            .map(|p| ProcessInfo::new(self.pid.as_u32(), p))
+            .map(|p| ProcessInfo::new(self.pid, p, all_processes, total_memory))
     }
 }
 
@@ -99,23 +103,30 @@ pub struct ProcessInfo {
     pub parent_pid: Option<u32>,
     pub disk_usage: Option<DiskUsage>,
     pub status: ProcessStatus,
-    pub subprocesses: Vec<ProcessInfo>,
+    pub child_processes: Vec<ProcessInfo>,
     start_time: DateTime<Utc>,
     cpu_usage: f32,
+    total_memory: u64,
 }
 
 impl ProcessInfo {
-    fn new(pid: u32, process: &Process) -> Self {
+    fn new(
+        pid: Pid,
+        process: &Process,
+        all_processes: &HashMap<Pid, Process>,
+        total_memory: u64,
+    ) -> Self {
         let disk_usage = if cfg!(any(target_os = "windows", target_os = "freebsd")) {
             None
         } else {
             Some(process.disk_usage())
         };
+
         Self {
             name: process.name().to_owned(),
             args: process.cmd().to_owned(),
             exe: process.exe().to_owned(),
-            pid,
+            pid: pid.as_u32(),
             cwd: process.cwd().to_owned(),
             root: process.root().to_owned(),
             memory: ByteSize(process.memory()),
@@ -130,10 +141,21 @@ impl ProcessInfo {
                 written_bytes: ByteSize(d.written_bytes),
                 read_bytes: ByteSize(d.read_bytes),
             }),
-            subprocesses: process
-                .tasks
+            total_memory,
+            child_processes: all_processes
                 .iter()
-                .map(|p| ProcessInfo::new(p.0.as_u32(), p.1))
+                .filter_map(|(cur_pid, cur_process)| {
+                    if cur_process.parent() == Some(pid) {
+                        Some(ProcessInfo::new(
+                            *cur_pid,
+                            cur_process,
+                            all_processes,
+                            total_memory,
+                        ))
+                    } else {
+                        None
+                    }
+                })
                 .collect(),
         }
     }
