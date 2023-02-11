@@ -23,5 +23,5 @@ pub enum ConfigEditError {
 pub struct ConfigLoadError(pub(crate) PathBuf, pub(crate) String);
 
 pub(crate) fn io_error(msg: &str, inner: io::Error) -> io::Error {
-    io::Error::new(inner.kind(), format!("{msg}: {}", inner))
+    io::Error::new(inner.kind(), format!("{msg}: {inner}"))
 }

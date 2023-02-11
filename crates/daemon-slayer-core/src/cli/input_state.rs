@@ -2,6 +2,7 @@
 pub enum InputState {
     Handled,
     Unhandled,
+    UsageError(String),
 }
 
 pub struct CommandOutput {
@@ -13,6 +14,13 @@ impl CommandOutput {
     pub fn unhandled() -> Self {
         Self {
             input_state: InputState::Unhandled,
+            output: None,
+        }
+    }
+
+    pub fn usage_error(message: impl Into<String>) -> Self {
+        Self {
+            input_state: InputState::UsageError(message.into()),
             output: None,
         }
     }

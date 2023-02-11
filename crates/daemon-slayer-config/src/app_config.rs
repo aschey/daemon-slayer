@@ -113,7 +113,7 @@ impl<T: Configurable> AppConfig<T> {
         })?;
         let full_path = self.full_path();
         let mut file = File::create(&full_path)
-            .map_err(|e| io_error(&format!("Error creating config file {:#?}", full_path), e))?;
+            .map_err(|e| io_error(&format!("Error creating config file {full_path:#?}"), e))?;
 
         file.write_all(self.config_template().as_bytes())
             .map_err(|e| io_error("Error writing config template", e))?;

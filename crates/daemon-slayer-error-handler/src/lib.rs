@@ -82,13 +82,13 @@ impl ErrorHandler {
 
     fn write_output(&self, output: impl Display) {
         if self.log {
-            error!("{}", output);
+            error!("{output}");
         }
         if self.write_to_stdout {
-            println!("{}", output);
+            println!("{output}");
         }
         if self.write_to_stderr {
-            eprintln!("{}", output);
+            eprintln!("{output}");
         }
     }
 }

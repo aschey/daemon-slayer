@@ -16,4 +16,7 @@ pub use command_type::*;
 mod arg_matches_ext;
 pub use arg_matches_ext::*;
 
+mod printer;
+pub use printer::*;
+
 pub use clap;

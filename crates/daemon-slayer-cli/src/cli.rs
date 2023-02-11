@@ -1,4 +1,5 @@
 use crate::Builder;
+use clap::builder::StyledStr;
 use daemon_slayer_core::{
     cli::{ActionType, ArgMatchesExt, CommandMatch, CommandProvider, InputState},
     BoxedError,
@@ -7,6 +8,7 @@ use daemon_slayer_core::{
 pub struct Cli {
     providers: Vec<Box<dyn CommandProvider>>,
     matches: clap::ArgMatches,
+    help: StyledStr,
     matched_command: Option<CommandMatch>,
 }
 
@@ -17,6 +19,7 @@ impl Cli {
 
     pub(crate) fn new(
         mut providers: Vec<Box<dyn CommandProvider>>,
+        help: StyledStr,
         matches: clap::ArgMatches,
     ) -> Result<Self, BoxedError> {
         let mut matched_command: Option<CommandMatch> = None;
@@ -36,6 +39,7 @@ impl Cli {
         Ok(Self {
             providers,
             matches,
+            help,
             matched_command,
         })
     }
@@ -73,10 +77,17 @@ impl Cli {
                 .handle_input(&self.matches, &self.matched_command)
                 .await?;
             if let Some(output) = handler_result.output {
-                writeln!(writer, "{}", output)?;
+                writeln!(writer, "{output}")?;
             }
-            if handler_result.input_state == InputState::Handled {
-                return Ok((InputState::Handled, self.matches));
+
+            match handler_result.input_state {
+                InputState::Handled => return Ok((InputState::Handled, self.matches)),
+                InputState::UsageError(message) => {
+                    writeln!(writer, "{message}")?;
+                    writeln!(writer, "{}", self.help)?;
+                    return Ok((InputState::UsageError(message), self.matches));
+                }
+                _ => {}
             }
         }
         Ok((InputState::Unhandled, self.matches))

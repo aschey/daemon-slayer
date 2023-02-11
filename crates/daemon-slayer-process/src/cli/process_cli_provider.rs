@@ -33,7 +33,7 @@ impl ProcessCliProvider {
                         },
                         CommandType::Subcommand {
                             name: "info".to_owned(),
-                            help_text: "Force kill the service process".to_owned(),
+                            help_text: "Show process info".to_owned(),
                             hide: false,
                             children: vec![],
                         },
@@ -72,16 +72,23 @@ impl CommandProvider for ProcessCliProvider {
                         ),
                     },
                     "info" => match self.pid {
-                        Some(pid) => CommandOutput::handled(format!(
-                            "{:#?}",
-                            ProcessManager::new(pid).process_info()
-                        )),
+                        Some(pid) => CommandOutput::handled(
+                            ProcessManager::new(pid)
+                                .process_info()
+                                // THis shouldn't happen since we have a pid
+                                .expect("Failed to load process info")
+                                .pretty_print(),
+                        ),
                         None => CommandOutput::handled(
                             "Cannot fetch process info because it is not running".to_owned(),
                         ),
                     },
                     _ => CommandOutput::unhandled(),
                 });
+            } else {
+                return Ok(CommandOutput::usage_error(
+                    "Command 'process' requires one argument.",
+                ));
             }
         }
         return Ok(CommandOutput::unhandled());

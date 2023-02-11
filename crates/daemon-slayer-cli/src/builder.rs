@@ -39,9 +39,9 @@ impl Builder {
     }
 
     pub fn initialize(mut self) -> Result<Cli, BoxedError> {
-        let command = self.build_command();
+        let mut command = self.build_command();
 
-        Cli::new(self.providers, command.get_matches())
+        Cli::new(self.providers, command.render_help(), command.get_matches())
     }
 
     pub fn initialize_from<I, T>(mut self, itr: I) -> Result<Cli, BoxedError>
@@ -49,7 +49,11 @@ impl Builder {
         I: IntoIterator<Item = T>,
         T: Into<OsString> + Clone,
     {
-        let command = self.build_command();
-        Cli::new(self.providers, command.get_matches_from(itr))
+        let mut command = self.build_command();
+        Cli::new(
+            self.providers,
+            command.render_help(),
+            command.get_matches_from(itr),
+        )
     }
 }

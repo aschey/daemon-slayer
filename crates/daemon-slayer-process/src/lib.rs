@@ -1,5 +1,6 @@
 use bytesize::ByteSize;
-use chrono::{DateTime, Duration, TimeZone, Utc};
+use chrono::{DateTime, Duration, Local, TimeZone, Utc};
+use daemon_slayer_core::cli::Printer;
 use serde::Serialize;
 use std::{collections::HashMap, path::PathBuf};
 use sysinfo::{
@@ -80,6 +81,7 @@ impl ProcessManager {
     }
 
     pub fn process_info(&mut self) -> Option<ProcessInfo> {
+        self.system.refresh_memory();
         self.system.refresh_process(self.pid);
         let total_memory = self.system.total_memory();
         let all_processes = self.system.processes();
@@ -182,5 +184,56 @@ impl ProcessInfo {
 
     pub fn avg_cpu_usage_percent_per_core(&self) -> f32 {
         self.cpu_usage / (num_cpus::get() as f32)
+    }
+
+    pub fn format_start_time(&self) -> String {
+        let converted: DateTime<Local> = DateTime::from(self.start_time);
+        converted.format("%Y-%m-%d %r").to_string()
+    }
+
+    pub fn format_runtime(&self) -> String {
+        let run_time = self.run_time();
+        let seconds = run_time.num_seconds() % 60;
+        let minutes = (run_time.num_seconds() / 60) % 60;
+        let hours = (run_time.num_seconds() / 60) / 60;
+        format!("{hours:0>2}:{minutes:0>2}:{seconds:0>2}")
+    }
+
+    pub fn memory_percent(&self, precision: usize) -> String {
+        format!(
+            "{:.1$}%",
+            (self.memory.as_u64() as f64 / self.total_memory as f64) * 100.0,
+            precision
+        )
+    }
+
+    pub fn pretty_print(&self) -> String {
+        Printer::default()
+            .with_line("Name", &self.name)
+            .with_line("Args", self.args.join(" "))
+            .with_line("Exe", self.exe.to_string_lossy().to_string())
+            .with_line("Pid", self.pid.to_string())
+            .with_line("CWD", self.cwd.to_string_lossy().to_string())
+            .with_line("Root", self.root.to_string_lossy().to_string())
+            .with_line("Memory", self.memory.to_string())
+            .with_line("Memory Percent", self.memory_percent(2))
+            .with_line("Virtual Memory", self.virtual_memory.to_string())
+            .with_line(
+                "Parent PID",
+                self.parent_pid
+                    .map(|p| p.to_string())
+                    .unwrap_or_else(|| "N/A".to_owned()),
+            )
+            //.with_line("Disk Usage", self.disk_usage.map(|d| d.total_read_bytes))
+            .with_line("Status", self.status.to_string())
+            .with_line("Start Time", self.format_start_time())
+            .with_line("Run Time", self.format_runtime())
+            .with_line("Total CPU Usage", self.formatted_total_cpu_usage_percent(2))
+            .with_line(
+                "Avg CPU Usage per Core",
+                self.formatted_avg_cpu_usage_percent_per_core(2),
+            )
+            //.with_line("Child Processes", text)
+            .print()
     }
 }

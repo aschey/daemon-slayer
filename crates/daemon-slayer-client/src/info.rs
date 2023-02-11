@@ -1,4 +1,5 @@
 use crate::State;
+use daemon_slayer_core::cli::Printer;
 use owo_colors::OwoColorize;
 use serde::{Deserialize, Serialize};
 
@@ -12,19 +13,17 @@ pub struct Info {
 
 impl Info {
     pub fn pretty_print(&self) -> String {
-        format!(
-            "{:>10} {}\n{:>10} {}\n{:>10} {}\n{:>10} {}",
-            "State:".bold(),
-            self.state.pretty_print(),
-            "Autostart:".bold(),
-            self.pretty_print_autostart(),
-            "PID:".bold(),
-            self.pid
-                .map(|p| p.to_string())
-                .unwrap_or_else(|| "N/A".to_string()),
-            "Exit Code:".bold(),
-            self.pretty_print_exit_code()
-        )
+        Printer::default()
+            .with_line("State", self.state.pretty_print())
+            .with_line("Autostart", self.pretty_print_autostart())
+            .with_line(
+                "PID",
+                self.pid
+                    .map(|p| p.to_string())
+                    .unwrap_or_else(|| "N/A".to_string()),
+            )
+            .with_line("Exit Code", self.pretty_print_exit_code())
+            .print()
     }
 
     fn pretty_print_autostart(&self) -> String {
