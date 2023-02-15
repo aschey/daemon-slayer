@@ -1,13 +1,12 @@
-use crate::{
-    build_transport, get_socket_address, Codec, CodecWrapper, IpcClient, IpcRequestHandler,
-};
+use crate::{get_socket_address, Codec, CodecWrapper, IpcClient, IpcRequestHandler};
 use daemon_slayer_core::{
     async_trait,
-    server::{BackgroundService, ServiceContext},
+    server::{tokio_stream::StreamExt, BackgroundService, ServiceContext},
     BoxedError, FutureExt,
 };
-use futures::{SinkExt, StreamExt};
+use futures::SinkExt;
 use parity_tokio_ipc::Endpoint;
+use tokio_util::codec::{self, LengthDelimitedCodec};
 
 pub struct IpcServer<H>
 where
@@ -57,17 +56,16 @@ where
             .cancel_on_shutdown(&context.cancellation_token())
             .await
         {
-            let mut transport = build_transport(
-                stream,
-                CodecWrapper::<H::Req, H::Res>::new(self.codec.clone()),
-            );
+            let length_delimited = codec::Framed::new(stream, LengthDelimitedCodec::new());
+
+            let mut stream =
+                tokio_serde::Framed::new(length_delimited, CodecWrapper::new(self.codec.clone()));
 
             let mut handler = self.handler.clone();
             tokio::spawn(async move {
-                loop {
-                    let req = transport.next().await.unwrap().unwrap();
-                    let res = handler.handle_request(req).await;
-                    transport.send(res).await.unwrap();
+                while let Ok(Some(msg)) = stream.try_next().await {
+                    let res = handler.handle_request(msg).await;
+                    stream.send(res).await.unwrap();
                 }
             });
         }

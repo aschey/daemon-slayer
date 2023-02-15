@@ -14,6 +14,6 @@ rand = "0.8.5"
 serde = "1.0.147"
 strum = "0.24.1"
 strum_macros = "0.24.3"
-tarpc = {version = "0.31.0", features = ["tokio1", "serde-transport"]}
 tokio = {version = "1.21.2", features = ["rt-multi-thread", "net", "macros"]}
 tokio-serde = {version = "0.8.0", features = ["bincode", "messagepack", "json", "cbor"]}
+tokio-util = {version = "0.6", features = ["codec"]}
