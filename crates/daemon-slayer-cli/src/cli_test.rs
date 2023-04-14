@@ -3,12 +3,10 @@ use std::sync::{
     Arc,
 };
 
+use clap::{Args, FromArgMatches, Subcommand};
 use daemon_slayer_core::{
     async_trait,
-    cli::{
-        ActionType, CommandConfig, CommandMatch, CommandOutput, CommandProvider, CommandType,
-        InputState,
-    },
+    cli::{ActionType, CommandMatch, CommandOutput, CommandProvider, InputState},
     BoxedError,
 };
 
@@ -17,6 +15,7 @@ use crate::Cli;
 #[test]
 fn test_initialize() {
     let mut cli = Cli::builder()
+        .with_base_command(clap::Command::new("cli_test"))
         .with_provider(TestProvider::new(
             Arc::new(AtomicBool::new(false)),
             Arc::new(AtomicBool::new(false)),
@@ -32,6 +31,7 @@ fn test_initialize() {
 async fn test_input_handled_default() {
     let default_bool = Arc::new(AtomicBool::new(false));
     let cli = Cli::builder()
+        .with_base_command(clap::Command::new("cli_test"))
         .with_provider(TestProvider::new(
             default_bool.clone(),
             Arc::new(AtomicBool::new(false)),
@@ -48,6 +48,7 @@ async fn test_input_handled_default() {
 async fn test_input_handled_subcommand() {
     let subcommand_bool = Arc::new(AtomicBool::new(false));
     let cli = Cli::builder()
+        .with_base_command(clap::Command::new("cli_test"))
         .with_provider(TestProvider::new(
             Arc::new(AtomicBool::new(false)),
             subcommand_bool.clone(),
@@ -63,6 +64,7 @@ async fn test_input_handled_subcommand() {
 #[tokio::test]
 async fn test_output_subcommand() {
     let cli = Cli::builder()
+        .with_base_command(clap::Command::new("cli_test"))
         .with_provider(TestProvider::new(
             Arc::new(AtomicBool::new(false)),
             Arc::new(AtomicBool::new(false)),
@@ -79,12 +81,13 @@ async fn test_output_subcommand() {
 async fn test_input_handled_arg() {
     let arg_bool = Arc::new(AtomicBool::new(false));
     let cli = Cli::builder()
+        .with_base_command(clap::Command::new("cli_test"))
         .with_provider(TestProvider::new(
             Arc::new(AtomicBool::new(false)),
             Arc::new(AtomicBool::new(false)),
             arg_bool.clone(),
         ))
-        .initialize_from(["cli_test", "-t"])
+        .initialize_from(["cli_test", "-t", "true"])
         .unwrap();
     let (input_state, _) = cli.handle_input().await.unwrap();
     assert_eq!(InputState::Handled, input_state);
@@ -112,6 +115,7 @@ async fn test_base_command() {
 #[tokio::test]
 async fn test_action_type() {
     let cli = Cli::builder()
+        .with_base_command(clap::Command::new("cli_test"))
         .with_provider(TestProvider::new(
             Arc::new(AtomicBool::new(false)),
             Arc::new(AtomicBool::new(false)),
@@ -120,7 +124,7 @@ async fn test_action_type() {
         .initialize_from(["cli_test", "test"])
         .unwrap();
 
-    assert_eq!(ActionType::Client, cli.action_type(cli.get_matches()));
+    assert_eq!(ActionType::Client, cli.action_type());
 }
 
 #[tokio::test]
@@ -135,7 +139,18 @@ async fn test_action_type_unhandled() {
         .initialize_from(["cli_test", "test2"])
         .unwrap();
 
-    assert_eq!(ActionType::Unknown, cli.action_type(cli.get_matches()));
+    assert_eq!(ActionType::Unknown, cli.action_type());
+}
+
+#[derive(Subcommand)]
+enum TestCommands {
+    Test,
+}
+
+#[derive(Args)]
+struct TestArgs {
+    #[arg(short, long)]
+    test_arg: Option<bool>,
 }
 
 struct TestProvider {
@@ -143,7 +158,6 @@ struct TestProvider {
     default_matched: Arc<AtomicBool>,
     subcommand_matched: Arc<AtomicBool>,
     arg_matched: Arc<AtomicBool>,
-    commands: Vec<CommandConfig>,
 }
 
 impl TestProvider {
@@ -157,67 +171,56 @@ impl TestProvider {
             default_matched,
             subcommand_matched,
             arg_matched,
-            commands: vec![
-                CommandConfig {
-                    action_type: ActionType::Client,
-                    command_type: CommandType::Default,
-                    action: None,
-                },
-                CommandConfig {
-                    action_type: ActionType::Client,
-                    command_type: CommandType::Subcommand {
-                        name: "test".to_owned(),
-                        help_text: "help".to_owned(),
-                        hide: false,
-                        children: vec![],
-                    },
-                    action: None,
-                },
-                CommandConfig {
-                    action_type: ActionType::Client,
-                    command_type: CommandType::Arg {
-                        id: "test_arg".to_owned(),
-                        short: Some('t'),
-                        long: Some("test".to_owned()),
-                        help_text: None,
-                        hide: false,
-                    },
-                    action: None,
-                },
-            ],
         }
     }
 }
 
 #[async_trait]
 impl CommandProvider for TestProvider {
-    fn get_commands(&self) -> Vec<&CommandConfig> {
-        self.commands.iter().collect()
+    fn get_commands(&self, command: clap::Command) -> clap::Command {
+        let command = TestCommands::augment_subcommands(command);
+        TestArgs::augment_args(command)
     }
 
     async fn handle_input(
         self: Box<Self>,
-        _matches: &clap::ArgMatches,
-        matched_command: &Option<CommandMatch>,
+        matches: &clap::ArgMatches,
+        _matched_command: &Option<CommandMatch>,
     ) -> Result<CommandOutput, BoxedError> {
-        if let Some(matched) = matched_command {
-            return match &matched.matched_command.command_type {
-                CommandType::Default => {
-                    self.default_matched.store(true, Ordering::Relaxed);
-                    Ok(CommandOutput::handled(None))
-                }
-                CommandType::Subcommand { name, .. } if name.as_str() == "test" => {
-                    self.subcommand_matched.store(true, Ordering::Relaxed);
-                    Ok(CommandOutput::handled("subcommand".to_owned()))
-                }
-                CommandType::Arg { id, .. } if id.as_str() == "test_arg" => {
-                    self.arg_matched.store(true, Ordering::Relaxed);
-                    Ok(CommandOutput::handled(None))
-                }
-                _ => Ok(CommandOutput::unhandled()),
-            };
+        if matches.subcommand().is_none() && !matches.args_present() {
+            self.default_matched.store(true, Ordering::Relaxed);
+            return Ok(CommandOutput::handled(None));
         }
+        if TestCommands::from_arg_matches(matches).is_ok() {
+            self.subcommand_matched.store(true, Ordering::Relaxed);
+            return Ok(CommandOutput::handled("subcommand".to_owned()));
+        }
+
+        if matches!(
+            TestArgs::from_arg_matches(matches),
+            Ok(TestArgs { test_arg: Some(_) })
+        ) {
+            self.arg_matched.store(true, Ordering::Relaxed);
+            return Ok(CommandOutput::handled(None));
+        }
+
         Ok(CommandOutput::unhandled())
+    }
+
+    fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
+        let arg_match = matches!(
+            TestArgs::from_arg_matches(matches),
+            Ok(TestArgs { test_arg: Some(_) })
+        );
+        let cmd_match = TestCommands::from_arg_matches(matches).is_ok();
+        if arg_match || cmd_match {
+            Some(CommandMatch {
+                action_type: ActionType::Client,
+                action: None,
+            })
+        } else {
+            None
+        }
     }
 
     fn initialize(
