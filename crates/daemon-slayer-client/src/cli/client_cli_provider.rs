@@ -2,176 +2,70 @@ use crate::ServiceManager;
 use daemon_slayer_core::{
     async_trait,
     cli::{
-        clap, Action, ActionType, CommandConfig, CommandMatch, CommandOutput, CommandProvider,
-        CommandType,
+        clap::{self, FromArgMatches, Subcommand},
+        Action, ActionType, ClientAction, CommandMatch, CommandOutput, CommandProvider,
     },
     BoxedError,
 };
-use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct ClientCliProvider {
-    commands: HashMap<Action, CommandConfig>,
     manager: ServiceManager,
+}
+
+#[derive(Subcommand)]
+enum CliCommands {
+    /// Install the service using the system's service manager
+    Install,
+    /// Uninstall the service from the system's service manager
+    Uninstall,
+    /// Start the service
+    Start,
+    /// Stop the service
+    Stop,
+    /// Restart the service
+    Restart,
+    /// Get the service's current status
+    Info,
+    /// Get the service's current PID
+    Pid,
+    /// Reload the service config
+    Reload,
+    /// Enable autostart
+    Enable,
+    /// Disable autostart
+    Disable,
 }
 
 impl ClientCliProvider {
     pub fn new(manager: ServiceManager) -> Self {
-        let mut commands = HashMap::default();
-        commands.insert(
-            Action::Install,
-            CommandConfig {
-                action: Some(Action::Install),
-                action_type: ActionType::Client,
-                command_type: CommandType::Subcommand {
-                    name: Action::Install.to_string(),
-                    help_text: "Install the service using the system's service manager".to_owned(),
-                    hide: false,
-                    children: vec![],
-                },
-            },
-        );
-        commands.insert(
-            Action::Uninstall,
-            CommandConfig {
-                action: Some(Action::Uninstall),
-                action_type: ActionType::Client,
-                command_type: CommandType::Subcommand {
-                    name: Action::Uninstall.to_string(),
-                    help_text: "Uninstall the service from the system's service manager".to_owned(),
-                    hide: false,
-                    children: vec![],
-                },
-            },
-        );
-        commands.insert(
-            Action::Start,
-            CommandConfig {
-                action: Some(Action::Start),
-                action_type: ActionType::Client,
-                command_type: CommandType::Subcommand {
-                    name: Action::Start.to_string(),
-                    help_text: "Start the service".to_owned(),
-                    hide: false,
-                    children: vec![],
-                },
-            },
-        );
-        commands.insert(
-            Action::Info,
-            CommandConfig {
-                action: Some(Action::Info),
-                action_type: ActionType::Client,
-                command_type: CommandType::Subcommand {
-                    name: Action::Info.to_string(),
-                    help_text: "Get the service's current status".into(),
-                    hide: false,
-                    children: vec![],
-                },
-            },
-        );
-        commands.insert(
-            Action::Pid,
-            CommandConfig {
-                action: Some(Action::Pid),
-                action_type: ActionType::Client,
-                command_type: CommandType::Subcommand {
-                    name: Action::Pid.to_string(),
-                    help_text: "Get the service's current PID".to_owned(),
-                    hide: false,
-                    children: vec![],
-                },
-            },
-        );
-        commands.insert(
-            Action::Stop,
-            CommandConfig {
-                action: Some(Action::Stop),
-                action_type: ActionType::Client,
-                command_type: CommandType::Subcommand {
-                    name: Action::Stop.to_string(),
-                    help_text: "Stop the service".to_owned(),
-                    hide: false,
-                    children: vec![],
-                },
-            },
-        );
-
-        commands.insert(
-            Action::Restart,
-            CommandConfig {
-                action: Some(Action::Restart),
-                action_type: ActionType::Client,
-                command_type: CommandType::Subcommand {
-                    name: Action::Restart.to_string(),
-                    help_text: "Restart the service".to_owned(),
-                    hide: false,
-                    children: vec![],
-                },
-            },
-        );
-
-        commands.insert(
-            Action::Reload,
-            CommandConfig {
-                action: Some(Action::Reload),
-                action_type: ActionType::Client,
-                command_type: CommandType::Subcommand {
-                    name: Action::Reload.to_string(),
-                    help_text: "Reload the service config".to_owned(),
-                    hide: false,
-                    children: vec![],
-                },
-            },
-        );
-
-        commands.insert(
-            Action::Enable,
-            CommandConfig {
-                action: Some(Action::Enable),
-                action_type: ActionType::Client,
-                command_type: CommandType::Subcommand {
-                    name: Action::Enable.to_string(),
-                    help_text: "Enable autostart".to_owned(),
-                    hide: false,
-                    children: vec![],
-                },
-            },
-        );
-
-        commands.insert(
-            Action::Disable,
-            CommandConfig {
-                action: Some(Action::Disable),
-                action_type: ActionType::Client,
-                command_type: CommandType::Subcommand {
-                    name: Action::Disable.to_string(),
-                    help_text: "Disable autostart".to_owned(),
-                    hide: false,
-                    children: vec![],
-                },
-            },
-        );
-
-        Self { commands, manager }
-    }
-
-    pub fn with_action(mut self, action: Action, command_type: CommandType) -> Self {
-        if let Some(command_config) = self.commands.get_mut(&action) {
-            command_config.command_type = command_type;
-        }
-        self
-    }
-
-    pub fn without_action(mut self, action: Action) -> Self {
-        self.commands.remove(&action);
-        self
+        Self { manager }
     }
 }
+
 #[async_trait]
 impl CommandProvider for ClientCliProvider {
-    fn get_commands(&self) -> Vec<&CommandConfig> {
-        self.commands.values().collect()
+    fn get_commands(&self, command: clap::Command) -> clap::Command {
+        CliCommands::augment_subcommands(command)
+    }
+
+    fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
+        let cmd = CliCommands::from_arg_matches(matches).ok()?;
+        Some(CommandMatch {
+            action_type: ActionType::Client,
+            action: Some(Action::Client(match cmd {
+                CliCommands::Install => ClientAction::Install,
+                CliCommands::Uninstall => ClientAction::Uninstall,
+                CliCommands::Start => ClientAction::Start,
+                CliCommands::Stop => ClientAction::Stop,
+                CliCommands::Restart => ClientAction::Restart,
+                CliCommands::Info => ClientAction::Info,
+                CliCommands::Pid => ClientAction::Pid,
+                CliCommands::Reload => ClientAction::Reload,
+                CliCommands::Enable => ClientAction::Enable,
+                CliCommands::Disable => ClientAction::Disable,
+            })),
+        })
     }
 
     async fn handle_input(
@@ -180,34 +74,33 @@ impl CommandProvider for ClientCliProvider {
         matched_command: &Option<CommandMatch>,
     ) -> Result<CommandOutput, BoxedError> {
         if let Some(CommandMatch {
-            matched_command, ..
+            action: Some(Action::Client(action)),
+            ..
         }) = matched_command
         {
-            if matched_command.action_type == ActionType::Client {
-                match matched_command.action {
-                    Some(Action::Install) => self.manager.install()?,
-                    Some(Action::Uninstall) => self.manager.uninstall()?,
-                    Some(Action::Info) => {
-                        let info = self.manager.info()?;
-                        return Ok(CommandOutput::handled(info.pretty_print()));
-                    }
-                    Some(Action::Start) => self.manager.start()?,
-                    Some(Action::Stop) => self.manager.stop()?,
-                    Some(Action::Restart) => self.manager.restart()?,
-                    Some(Action::Reload) => self.manager.reload_config()?,
-                    Some(Action::Enable) => self.manager.enable_autostart()?,
-                    Some(Action::Disable) => self.manager.disable_autostart()?,
-                    Some(Action::Pid) => {
-                        let pid = self.manager.info()?.pid;
-                        return Ok(CommandOutput::handled(
-                            pid.map(|p| p.to_string())
-                                .unwrap_or_else(|| "Not running".to_owned()),
-                        ));
-                    }
-                    _ => return Ok(CommandOutput::unhandled()),
+            match action {
+                ClientAction::Install => self.manager.install()?,
+                ClientAction::Uninstall => self.manager.uninstall()?,
+                ClientAction::Info => {
+                    let info = self.manager.info()?;
+                    return Ok(CommandOutput::handled(info.pretty_print()));
                 }
-                return Ok(CommandOutput::handled(None));
+                ClientAction::Start => self.manager.start()?,
+                ClientAction::Stop => self.manager.stop()?,
+                ClientAction::Restart => self.manager.restart()?,
+                ClientAction::Reload => self.manager.reload_config()?,
+                ClientAction::Enable => self.manager.enable_autostart()?,
+                ClientAction::Disable => self.manager.disable_autostart()?,
+                ClientAction::Pid => {
+                    let pid = self.manager.info()?.pid;
+                    return Ok(CommandOutput::handled(
+                        pid.map(|p| p.to_string())
+                            .unwrap_or_else(|| "Not running".to_owned()),
+                    ));
+                }
+                _ => return Ok(CommandOutput::unhandled()),
             }
+            return Ok(CommandOutput::handled(None));
         }
 
         Ok(CommandOutput::unhandled())

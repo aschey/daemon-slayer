@@ -10,12 +10,6 @@ pub use action_type::*;
 mod action;
 pub use action::*;
 
-mod command_type;
-pub use command_type::*;
-
-mod arg_matches_ext;
-pub use arg_matches_ext::*;
-
 mod printer;
 pub use printer::*;
 

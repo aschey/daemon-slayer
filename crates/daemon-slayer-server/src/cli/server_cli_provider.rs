@@ -2,69 +2,28 @@ use crate::Service;
 use daemon_slayer_core::{
     async_trait,
     cli::{
-        clap, Action, ActionType, CommandConfig, CommandMatch, CommandOutput, CommandProvider,
-        CommandType,
+        clap::{self},
+        Action, ActionType, CommandMatch, CommandOutput, CommandProvider, ServerAction,
     },
     BoxedError, CommandArg,
 };
-use std::{collections::HashMap, marker::PhantomData};
+use std::marker::PhantomData;
 
 pub struct ServerCliProvider<S: Service> {
-    commands: HashMap<Action, CommandConfig>,
     input_data: Option<S::InputData>,
+    run_command: CommandArg,
     _phantom: PhantomData<S>,
-}
-
-fn to_run_command(argument: &CommandArg) -> CommandType {
-    match argument {
-        CommandArg::Subcommand(name) => CommandType::Subcommand {
-            name: name.to_owned(),
-            help_text: "".to_owned(),
-            hide: true,
-            children: vec![],
-        },
-        CommandArg::ShortArg(arg) => CommandType::Arg {
-            id: "run".to_owned(),
-            short: Some(arg.to_owned()),
-            long: None,
-            help_text: None,
-            hide: true,
-        },
-        CommandArg::LongArg(arg) => CommandType::Arg {
-            id: "run".to_owned(),
-            short: None,
-            long: Some(arg.to_owned()),
-            help_text: None,
-            hide: true,
-        },
-    }
 }
 
 impl<S: Service> ServerCliProvider<S> {
     pub fn new(run_command: &CommandArg) -> Self {
-        let mut commands = HashMap::new();
-        commands.insert(
-            Action::Run,
-            CommandConfig {
-                action_type: ActionType::Server,
-                action: Some(Action::Run),
-                command_type: to_run_command(run_command),
-            },
-        );
-        commands.insert(
-            Action::Direct,
-            CommandConfig {
-                action_type: ActionType::Server,
-                command_type: CommandType::Default,
-                action: Some(Action::Direct),
-            },
-        );
         Self {
-            commands,
+            run_command: run_command.to_owned(),
             input_data: Default::default(),
             _phantom: Default::default(),
         }
     }
+
     pub fn set_input_data(&mut self, input_data: S::InputData) {
         self.input_data = Some(input_data);
     }
@@ -72,8 +31,39 @@ impl<S: Service> ServerCliProvider<S> {
 
 #[async_trait]
 impl<S: Service> CommandProvider for ServerCliProvider<S> {
-    fn get_commands(&self) -> Vec<&CommandConfig> {
-        self.commands.values().collect()
+    fn get_commands(&self, cmd: clap::Command) -> clap::Command {
+        cmd.subcommand(clap::Command::new(self.run_command.to_string()))
+    }
+
+    fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
+        match &self.run_command {
+            CommandArg::Subcommand(sub) if matches!(matches.subcommand(), Some((sub_name, _)) 
+            if sub_name == sub) => {
+                Some(CommandMatch {
+                    action_type: ActionType::Server,
+                    action: Some(Action::Server(ServerAction::Run)),
+                })
+            }
+            CommandArg::LongArg(arg) if matches.get_one::<bool>(arg) == Some(&true) => {
+                Some(CommandMatch {
+                    action_type: ActionType::Server,
+                    action: Some(Action::Server(ServerAction::Run)),
+                })
+            }
+            CommandArg::ShortArg(arg)
+                if matches.get_one::<bool>(&arg.to_string()) == Some(&true) =>
+            {
+                Some(CommandMatch {
+                    action_type: ActionType::Server,
+                    action: Some(Action::Server(ServerAction::Run)),
+                })
+            }
+            _ if matches.subcommand().is_none() && !matches.args_present() => Some(CommandMatch {
+                action_type: ActionType::Server,
+                action: Some(Action::Server(ServerAction::Direct)),
+            }),
+            _ => None,
+        }
     }
 
     async fn handle_input(
@@ -81,18 +71,22 @@ impl<S: Service> CommandProvider for ServerCliProvider<S> {
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandMatch>,
     ) -> Result<CommandOutput, BoxedError> {
-        Ok(
-            match matched_command.as_ref().map(|c| &c.matched_command.action) {
-                Some(Some(Action::Direct)) => {
-                    S::run_directly(self.input_data).await?;
-                    CommandOutput::handled(None)
-                }
-                Some(Some(Action::Run)) => {
-                    S::run_as_service(self.input_data).await?;
-                    CommandOutput::handled(None)
-                }
-                _ => CommandOutput::unhandled(),
-            },
-        )
+        match matched_command {
+            Some(CommandMatch {
+                action: Some(Action::Server(ServerAction::Direct)),
+                ..
+            }) => {
+                S::run_directly(self.input_data).await?;
+                Ok(CommandOutput::handled(None))
+            }
+            Some(CommandMatch {
+                action: Some(Action::Server(ServerAction::Run)),
+                ..
+            }) => {
+                S::run_as_service(self.input_data).await?;
+                Ok(CommandOutput::handled(None))
+            }
+            _ => Ok(CommandOutput::unhandled()),
+        }
     }
 }

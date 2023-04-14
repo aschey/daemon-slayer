@@ -33,7 +33,7 @@ impl Builder {
         let mut command = self.base_command.clone();
 
         for provider in &mut self.providers {
-            command = provider.update_command(command);
+            command = provider.get_commands(command);
         }
         command
     }

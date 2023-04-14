@@ -1,7 +1,7 @@
 use crate::Builder;
 use clap::builder::StyledStr;
 use daemon_slayer_core::{
-    cli::{ActionType, ArgMatchesExt, CommandMatch, CommandProvider, InputState},
+    cli::{ActionType, CommandMatch, CommandProvider, InputState},
     BoxedError,
 };
 
@@ -24,15 +24,11 @@ impl Cli {
     ) -> Result<Self, BoxedError> {
         let mut matched_command: Option<CommandMatch> = None;
         for provider in &providers {
-            for cmd in provider.get_commands() {
-                if let Some(matches) = matches.matches(&cmd.command_type) {
-                    matched_command = Some(CommandMatch {
-                        matched_command: cmd.to_owned(),
-                        matches,
-                    });
-                }
+            if let Some(command_match) = provider.matches(&matches) {
+                matched_command = Some(command_match);
             }
         }
+
         for provider in &mut providers {
             provider.initialize(&matches, &matched_command)?;
         }
@@ -44,14 +40,12 @@ impl Cli {
         })
     }
 
-    pub fn action_type(&self, matches: &clap::ArgMatches) -> ActionType {
-        for provider in &self.providers {
-            let action_type = provider.action_type(matches);
-            if action_type != ActionType::Unknown {
-                return action_type;
-            }
+    pub fn action_type(&self) -> ActionType {
+        if let Some(matched) = &self.matched_command {
+            matched.action_type.clone()
+        } else {
+            ActionType::Unknown
         }
-        ActionType::Unknown
     }
 
     pub fn get_matches(&self) -> &clap::ArgMatches {

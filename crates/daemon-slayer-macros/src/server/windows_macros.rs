@@ -4,7 +4,7 @@ use syn::Ident;
 
 pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream) -> TokenStream {
     quote! {
-        static __INPUT_DATA: #crate_name::once_cell::sync::OnceCell<Box<dyn #crate_name::AsAny + Send + Sync + 'static>> = 
+        static __INPUT_DATA: #crate_name::once_cell::sync::OnceCell<Box<dyn #crate_name::AsAny + Send + Sync + 'static>> =
             #crate_name::once_cell::sync::OnceCell::new();
 
         #crate_name::windows_service::define_windows_service!(func_service_main, handle_service_main);

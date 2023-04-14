@@ -1,7 +1,7 @@
 use crate::{LoggerBuilder, LoggerCreationError, ReloadHandle};
 use daemon_slayer_core::{
     async_trait,
-    cli::{clap, Action, ActionType, CommandConfig, CommandMatch, CommandOutput, CommandProvider},
+    cli::{clap, Action, ActionType, ClientAction, CommandMatch, CommandOutput, CommandProvider},
     BoxedError,
 };
 use std::sync::{Arc, Mutex};
@@ -49,8 +49,12 @@ impl LoggingCliProvider {
 
 #[async_trait]
 impl CommandProvider for LoggingCliProvider {
-    fn get_commands(&self) -> Vec<&CommandConfig> {
-        vec![]
+    fn get_commands(&self, command: clap::Command) -> clap::Command {
+        command
+    }
+
+    fn matches(&self, _matches: &clap::ArgMatches) -> Option<CommandMatch> {
+        None
     }
 
     fn initialize(
@@ -60,25 +64,22 @@ impl CommandProvider for LoggingCliProvider {
     ) -> Result<(), BoxedError> {
         let mut builder = self.builder.lock().unwrap();
         if let Some(current_builder) = builder.take() {
-            *builder = Some(
-                match matched_command
-                    .as_ref()
-                    .map(|c| (&c.matched_command.action, &c.matched_command.action_type))
-                {
-                    Some((action, ActionType::Client)) => {
-                        if action == &Some(Action::Install) {
+            if let Some(matched) = matched_command {
+                *builder = Some(match matched.action_type {
+                    ActionType::Client => {
+                        if matched.action == Some(Action::Client(ClientAction::Install)) {
                             current_builder.register()?;
-                        } else if action == &Some(Action::Uninstall) {
+                        } else if matched.action == Some(Action::Client(ClientAction::Uninstall)) {
                             current_builder.deregister()?;
                         }
                         current_builder
                             .with_log_to_stderr(false)
                             .with_ipc_logger(false)
                     }
-                    Some((_, ActionType::Server)) => current_builder.with_ipc_logger(true),
-                    _ => current_builder,
-                },
-            );
+                    ActionType::Server => current_builder.with_ipc_logger(true),
+                    ActionType::Unknown => current_builder,
+                })
+            }
         }
         Ok(())
     }
