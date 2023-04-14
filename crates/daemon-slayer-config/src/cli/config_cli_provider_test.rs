@@ -80,6 +80,8 @@ async fn test_config_watcher() {
         .unwrap();
     std::env::set_var("EDITOR", "true");
     let (tx, mut rx) = mpsc::channel(32);
+    // Clone sender to ensure it isn't dropped before calling recv()
+    let _tx = tx.clone();
     let watcher = TestConfigWatcher { tx };
     let cli = Cli::builder()
         .with_provider(ConfigCliProvider::new(test_config).with_config_watcher(watcher))
