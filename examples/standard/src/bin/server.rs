@@ -14,9 +14,9 @@ use daemon_slayer::{
     },
     signals::SignalListener,
 };
+use derive_more::AsRef;
 use std::time::{Duration, Instant};
 use tracing::info;
-use derive_more::AsRef;
 
 #[derive(Debug, Config, AsRef, Default, Clone)]
 struct MyConfig {

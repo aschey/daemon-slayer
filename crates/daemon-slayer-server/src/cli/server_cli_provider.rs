@@ -2,7 +2,7 @@ use crate::Service;
 use daemon_slayer_core::{
     async_trait,
     cli::{
-        clap::{self},
+        clap::{self, ArgAction, parser::ValueSource},
         Action, ActionType, CommandMatch, CommandOutput, CommandProvider, ServerAction,
     },
     BoxedError, CommandArg,
@@ -32,10 +32,16 @@ impl<S: Service> ServerCliProvider<S> {
 #[async_trait]
 impl<S: Service> CommandProvider for ServerCliProvider<S> {
     fn get_commands(&self, cmd: clap::Command) -> clap::Command {
-        cmd.subcommand(clap::Command::new(self.run_command.to_string()))
+        let cmd = cmd.arg_required_else_help(false);
+        match &self.run_command {
+            CommandArg::Subcommand(sub) => cmd.subcommand(clap::Command::new(sub)),
+            CommandArg::ShortArg(arg) => cmd.arg(clap::Arg::new("run").short(*arg).action(ArgAction::SetTrue)),
+            CommandArg::LongArg(arg) => cmd.arg(clap::Arg::new("run").long(arg).action(ArgAction::SetTrue))
+        }
     }
 
     fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
+        let has_flags = matches.ids().any(|i| matches.value_source(i.as_str()) != Some(ValueSource::DefaultValue));
         match &self.run_command {
             CommandArg::Subcommand(sub) if matches!(matches.subcommand(), Some((sub_name, _)) 
             if sub_name == sub) => {
@@ -44,21 +50,13 @@ impl<S: Service> CommandProvider for ServerCliProvider<S> {
                     action: Some(Action::Server(ServerAction::Run)),
                 })
             }
-            CommandArg::LongArg(arg) if matches.get_one::<bool>(arg) == Some(&true) => {
+            CommandArg::LongArg(_) | CommandArg::ShortArg(_) if matches.get_flag("run") => {
                 Some(CommandMatch {
                     action_type: ActionType::Server,
                     action: Some(Action::Server(ServerAction::Run)),
                 })
             }
-            CommandArg::ShortArg(arg)
-                if matches.get_one::<bool>(&arg.to_string()) == Some(&true) =>
-            {
-                Some(CommandMatch {
-                    action_type: ActionType::Server,
-                    action: Some(Action::Server(ServerAction::Run)),
-                })
-            }
-            _ if matches.subcommand().is_none() && !matches.args_present() => Some(CommandMatch {
+            _ if matches.subcommand().is_none() && !has_flags => Some(CommandMatch {
                 action_type: ActionType::Server,
                 action: Some(Action::Server(ServerAction::Direct)),
             }),

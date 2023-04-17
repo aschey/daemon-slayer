@@ -79,6 +79,8 @@ impl CommandProvider for LoggingCliProvider {
                     ActionType::Server => current_builder.with_ipc_logger(true),
                     ActionType::Unknown => current_builder,
                 })
+            } else {
+                *builder = Some(current_builder);
             }
         }
         Ok(())

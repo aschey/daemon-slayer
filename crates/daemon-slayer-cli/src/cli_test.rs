@@ -21,7 +21,7 @@ fn test_initialize() {
             Arc::new(AtomicBool::new(false)),
             Arc::new(AtomicBool::new(false)),
         ))
-        .initialize()
+        .initialize_from(["cli_test"])
         .unwrap();
     let provider = cli.get_provider::<TestProvider>().unwrap();
     assert!(provider.initialized);
@@ -37,7 +37,7 @@ async fn test_input_handled_default() {
             Arc::new(AtomicBool::new(false)),
             Arc::new(AtomicBool::new(false)),
         ))
-        .initialize()
+        .initialize_from(["cli_test"])
         .unwrap();
     let (input_state, _) = cli.handle_input().await.unwrap();
     assert_eq!(InputState::Handled, input_state);

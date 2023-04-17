@@ -3,7 +3,7 @@ use daemon_slayer_core::cli::clap::{Args, FromArgMatches, Subcommand};
 use daemon_slayer_core::{
     async_trait,
     cli::{
-        clap::{self, ArgMatches},
+        clap::{self},
         ActionType, CommandMatch, CommandOutput, CommandProvider,
     },
     config::ConfigWatcher,
@@ -82,6 +82,12 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
                 }
                 Some(ConfigCommands::Edit) => {
                     self.config.edit()?;
+                    for watcher in &mut self.watchers {
+                        watcher
+                            .on_config_changed()
+                            .tap_err(|e| error!("Error handling config update: {e:?}"))
+                            .ok();
+                    }
                     CommandOutput::handled(None)
                 }
                 Some(ConfigCommands::Validate) => match self.config.read_config() {
