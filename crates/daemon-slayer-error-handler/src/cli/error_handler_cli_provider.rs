@@ -7,8 +7,8 @@ use daemon_slayer_core::{
 
 use crate::ErrorHandler;
 
-#[derive(Default, Clone)]
-pub struct ErrorHandlerCliProvider {}
+#[derive(Default, Clone, Debug)]
+pub struct ErrorHandlerCliProvider;
 
 #[async_trait]
 impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {

@@ -4,7 +4,6 @@ use daemon_slayer_core::{
     cli::{clap, Action, ActionType, ClientAction, CommandMatch, CommandOutput, CommandProvider},
     BoxedError,
 };
-use std::sync::{Arc, Mutex};
 use tracing::Subscriber;
 use tracing_subscriber::{registry::LookupSpan, util::SubscriberInitExt};
 
@@ -16,20 +15,20 @@ pub enum LoggerInitializationError {
     AlreadyCreated,
 }
 
-#[derive(Clone)]
+#[derive(Debug)]
 pub struct LoggingCliProvider {
-    pub builder: Arc<Mutex<Option<LoggerBuilder>>>,
+    pub builder: Option<LoggerBuilder>,
 }
 
 impl LoggingCliProvider {
     pub fn new(builder: LoggerBuilder) -> Self {
         Self {
-            builder: Arc::new(Mutex::new(Some(builder))),
+            builder: Some(builder),
         }
     }
 
     pub fn get_logger(
-        self,
+        mut self,
     ) -> Result<
         (
             impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
@@ -38,8 +37,6 @@ impl LoggingCliProvider {
         LoggerInitializationError,
     > {
         self.builder
-            .lock()
-            .unwrap()
             .take()
             .ok_or(LoggerInitializationError::AlreadyCreated)?
             .build()
@@ -62,10 +59,9 @@ impl CommandProvider for LoggingCliProvider {
         _matches: &clap::ArgMatches,
         matched_command: &Option<CommandMatch>,
     ) -> Result<(), BoxedError> {
-        let mut builder = self.builder.lock().unwrap();
-        if let Some(current_builder) = builder.take() {
+        if let Some(current_builder) = self.builder.take() {
             if let Some(matched) = matched_command {
-                *builder = Some(match matched.action_type {
+                self.builder = Some(match matched.action_type {
                     ActionType::Client => {
                         if matched.action == Some(Action::Client(ClientAction::Install)) {
                             current_builder.register()?;
@@ -80,7 +76,7 @@ impl CommandProvider for LoggingCliProvider {
                     ActionType::Unknown => current_builder,
                 })
             } else {
-                *builder = Some(current_builder);
+                self.builder = Some(current_builder);
             }
         }
         Ok(())

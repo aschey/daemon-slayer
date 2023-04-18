@@ -1,5 +1,9 @@
+use std::fmt::Debug;
+
+use downcast_rs::{impl_downcast, Downcast};
+
 use super::{Action, ActionType, CommandOutput};
-use crate::{AsAny, BoxedError};
+use crate::BoxedError;
 
 #[derive(Clone, Debug)]
 pub struct CommandMatch {
@@ -7,8 +11,10 @@ pub struct CommandMatch {
     pub action: Option<Action>,
 }
 
+impl_downcast!(CommandProvider);
+
 #[async_trait::async_trait]
-pub trait CommandProvider: AsAny + Send + 'static {
+pub trait CommandProvider: Downcast + Send + 'static {
     fn get_commands(&self, cmd: clap::Command) -> clap::Command;
 
     fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch>;

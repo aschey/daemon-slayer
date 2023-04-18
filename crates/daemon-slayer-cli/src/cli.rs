@@ -52,10 +52,33 @@ impl Cli {
         &self.matches
     }
 
-    pub fn get_provider<T: CommandProvider>(&mut self) -> Option<&mut T> {
+    pub fn try_get_provider<T: CommandProvider>(&mut self) -> Option<&mut T> {
         self.providers
             .iter_mut()
             .find_map(|p| p.as_any_mut().downcast_mut::<T>())
+    }
+
+    pub fn get_provider<T: CommandProvider>(&mut self) -> &mut T {
+        self.try_get_provider().expect("Provider not found")
+    }
+
+    pub fn try_take_provider<T: CommandProvider>(&mut self) -> Option<T> {
+        let provider_index = self
+            .providers
+            .iter()
+            .position(|p| p.as_any().downcast_ref::<T>().is_some());
+        if let Some(i) = provider_index {
+            match self.providers.remove(i).downcast() {
+                Ok(provider) => Some(*provider),
+                Err(_) => None,
+            }
+        } else {
+            None
+        }
+    }
+
+    pub fn take_provider<T: CommandProvider>(&mut self) -> T {
+        self.try_take_provider().expect("Provider not found")
     }
 
     pub async fn handle_input(self) -> Result<(InputState, clap::ArgMatches), BoxedError> {

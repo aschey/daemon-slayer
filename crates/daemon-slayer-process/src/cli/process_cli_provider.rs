@@ -29,6 +29,7 @@ enum CliCommands {
     Process(ProcessArgs),
 }
 
+#[derive(Clone, Debug)]
 pub struct ProcessCliProvider {
     pid: Option<u32>,
 }

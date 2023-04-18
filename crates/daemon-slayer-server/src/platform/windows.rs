@@ -73,7 +73,7 @@ async fn get_service_main_impl<T: Handler>(
         }
     };
     let status_handle_ = status_handle.clone();
-    let on_started = move || {
+    let notify_ready = move || {
         info!("Setting status to 'running'");
         if let Err(e) = status_handle_
             .lock()
@@ -92,7 +92,7 @@ async fn get_service_main_impl<T: Handler>(
         }
     };
 
-    let result = handler.run_service(on_started).await;
+    let result = handler.run_service(notify_ready).await;
 
     let exit_code = match &result {
         Ok(()) => 0,

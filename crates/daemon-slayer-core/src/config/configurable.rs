@@ -2,6 +2,7 @@ use arc_swap::{
     access::{DynAccess, Map},
     ArcSwap,
 };
+use derivative::Derivative;
 use dyn_clonable::clonable;
 use std::{io, sync::Arc};
 
@@ -33,8 +34,10 @@ pub trait Mergeable {
     fn merge(user_config: Option<&Self>, app_config: &Self) -> Self;
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Derivative)]
+#[derivative(Debug)]
 pub struct CachedConfig<T: Mergeable + Clone + Default + 'static> {
+    #[derivative(Debug = "ignore")]
     inner: Option<Arc<Box<dyn DynAccess<T> + Send + Sync>>>,
     cache: Option<T>,
     explicit: T,

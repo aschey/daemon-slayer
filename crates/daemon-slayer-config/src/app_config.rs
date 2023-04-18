@@ -18,7 +18,7 @@ pub trait Configurable: Config + Default + Send + Sync + Clone + 'static {}
 
 impl<T> Configurable for T where T: Config + Default + Send + Sync + Clone + 'static {}
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AppConfig<T: Configurable> {
     config_file_type: ConfigFileType,
     config_dir: PathBuf,

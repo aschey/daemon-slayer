@@ -2,13 +2,16 @@ use crate::Service;
 use daemon_slayer_core::{
     async_trait,
     cli::{
-        clap::{self, ArgAction, parser::ValueSource},
+        clap::{self, parser::ValueSource, ArgAction},
         Action, ActionType, CommandMatch, CommandOutput, CommandProvider, ServerAction,
     },
     BoxedError, CommandArg,
 };
 use std::marker::PhantomData;
 
+const RUN_ID: &str = "run";
+
+#[derive(Clone)]
 pub struct ServerCliProvider<S: Service> {
     input_data: Option<S::InputData>,
     run_command: CommandArg,
@@ -35,22 +38,29 @@ impl<S: Service> CommandProvider for ServerCliProvider<S> {
         let cmd = cmd.arg_required_else_help(false);
         match &self.run_command {
             CommandArg::Subcommand(sub) => cmd.subcommand(clap::Command::new(sub)),
-            CommandArg::ShortArg(arg) => cmd.arg(clap::Arg::new("run").short(*arg).action(ArgAction::SetTrue)),
-            CommandArg::LongArg(arg) => cmd.arg(clap::Arg::new("run").long(arg).action(ArgAction::SetTrue))
+            CommandArg::ShortArg(arg) => cmd.arg(
+                clap::Arg::new(RUN_ID)
+                    .short(*arg)
+                    .action(ArgAction::SetTrue),
+            ),
+            CommandArg::LongArg(arg) => {
+                cmd.arg(clap::Arg::new(RUN_ID).long(arg).action(ArgAction::SetTrue))
+            }
         }
     }
 
     fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
-        let has_flags = matches.ids().any(|i| matches.value_source(i.as_str()) != Some(ValueSource::DefaultValue));
+        let has_flags = matches
+            .ids()
+            .any(|i| matches.value_source(i.as_str()) != Some(ValueSource::DefaultValue));
         match &self.run_command {
-            CommandArg::Subcommand(sub) if matches!(matches.subcommand(), Some((sub_name, _)) 
-            if sub_name == sub) => {
+            CommandArg::Subcommand(sub) if matches!(matches.subcommand(), Some((sub_name, _)) if sub_name == sub) => {
                 Some(CommandMatch {
                     action_type: ActionType::Server,
                     action: Some(Action::Server(ServerAction::Run)),
                 })
             }
-            CommandArg::LongArg(_) | CommandArg::ShortArg(_) if matches.get_flag("run") => {
+            CommandArg::LongArg(_) | CommandArg::ShortArg(_) if matches.get_flag(RUN_ID) => {
                 Some(CommandMatch {
                     action_type: ActionType::Server,
                     action: Some(Action::Server(ServerAction::Run)),

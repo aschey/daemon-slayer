@@ -1,12 +1,10 @@
-use confique::Config;
+use clap::{FromArgMatches as _, Parser, Subcommand as _};
 use daemon_slayer::{
-    cli::Cli,
-    config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir},
+    cli::{Cli, InputState},
     core::{BoxedError, Label},
     error_handler::{cli::ErrorHandlerCliProvider, ErrorSink},
     logging::{
-        self, cli::LoggingCliProvider, server::LoggingUpdateService,
-        tracing_subscriber::util::SubscriberInitExt, LoggerBuilder, ReloadHandle,
+        cli::LoggingCliProvider, tracing_subscriber::util::SubscriberInitExt, LoggerBuilder,
     },
     server::{
         cli::ServerCliProvider, futures::StreamExt, BroadcastEventStore, EventStore, Handler,
@@ -14,15 +12,15 @@ use daemon_slayer::{
     },
     signals::SignalListener,
 };
-use derive_more::AsRef;
 use std::time::{Duration, Instant};
 use tracing::info;
 
-#[derive(Debug, Config, AsRef, Default, Clone)]
-struct MyConfig {
-    #[as_ref]
-    #[config(nested)]
-    logging_config: logging::UserConfig,
+#[derive(Parser, Debug)]
+enum Subcommands {
+    Derived {
+        #[arg(short, long)]
+        derived_flag: bool,
+    },
 }
 
 #[tokio::main]
@@ -33,39 +31,27 @@ pub async fn main() -> Result<(), ErrorSink> {
     result
 }
 
-#[derive(Clone, Debug)]
-pub struct AppData {
-    config: AppConfig<MyConfig>,
-    reload_handle: ReloadHandle,
-}
-
 async fn run() -> Result<(), BoxedError> {
-    let app_config =
-        AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(standard::label())).build()?;
+    let logger_builder = LoggerBuilder::new(ServiceHandler::label());
 
-    let logger_builder =
-        LoggerBuilder::new(ServiceHandler::label()).with_config(app_config.clone());
-
+    let clap_cmd = Subcommands::augment_subcommands(clap::Command::default());
     let mut cli = Cli::builder()
+        .with_base_command(clap_cmd)
         .with_provider(ServerCliProvider::<ServiceHandler>::new(
-            &standard::run_argument(),
+            &"run".parse().expect("failed to parse the run argument"),
         ))
         .with_provider(LoggingCliProvider::new(logger_builder))
         .with_provider(ErrorHandlerCliProvider::default())
-        .with_provider(ConfigCliProvider::new(app_config.clone()))
         .initialize()?;
 
-    let (logger, reload_handle) = cli.take_provider::<LoggingCliProvider>().get_logger()?;
-
+    let (logger, _) = cli.take_provider::<LoggingCliProvider>().get_logger()?;
     logger.init();
 
-    cli.get_provider::<ServerCliProvider<ServiceHandler>>()
-        .set_input_data(AppData {
-            config: app_config,
-            reload_handle: reload_handle.clone(),
-        });
-
-    cli.handle_input().await?;
+    if let (InputState::Unhandled, matches) = cli.handle_input().await? {
+        if let Ok(cmd) = Subcommands::from_arg_matches(&matches) {
+            println!("Derived: {cmd:?}");
+        }
+    }
 
     Ok(())
 }
@@ -78,30 +64,21 @@ pub struct ServiceHandler {
 #[daemon_slayer::core::async_trait]
 impl Handler for ServiceHandler {
     type Error = BoxedError;
-    type InputData = AppData;
+    type InputData = ();
 
     fn label() -> Label {
-        standard::label()
+        "com.example.daemon_slayer_custom_command"
+            .parse()
+            .expect("Should parse the label")
     }
 
     async fn new(
         mut context: ServiceContext,
-        input_data: Option<Self::InputData>,
+        _: Option<Self::InputData>,
     ) -> Result<Self, Self::Error> {
-        let input_data = input_data.unwrap();
         let signal_listener = SignalListener::all();
         let signal_store = signal_listener.get_event_store();
         context.add_service(signal_listener).await?;
-
-        let config_service = ConfigService::new(input_data.config);
-        let file_events = config_service.get_event_store();
-        context.add_service(config_service).await?;
-        context
-            .add_service(LoggingUpdateService::new(
-                input_data.reload_handle,
-                file_events,
-            ))
-            .await?;
 
         Ok(Self { signal_store })
     }

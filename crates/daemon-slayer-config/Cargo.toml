@@ -9,6 +9,7 @@ bat = {version = "0.22", default-features = false, features = ["regex-onig", "pa
 confique = ">= 0.2.2"
 daemon-slayer-core = {path = "../daemon-slayer-core", features = ["config"]}
 daemon-slayer-file-watcher = {path = "../daemon-slayer-file-watcher"}
+derivative = "2"
 directories = "4"
 edit = "0.1"
 futures = "0.3"

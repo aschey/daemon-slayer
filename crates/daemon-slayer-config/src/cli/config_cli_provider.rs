@@ -9,6 +9,7 @@ use daemon_slayer_core::{
     config::ConfigWatcher,
     BoxedError,
 };
+use derivative::Derivative;
 use tap::TapFallible;
 use tracing::error;
 
@@ -36,9 +37,11 @@ enum CliCommands {
     Config(ConfigArgs),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Derivative)]
+#[derivative(Debug)]
 pub struct ConfigCliProvider<T: Configurable> {
     config: AppConfig<T>,
+    #[derivative(Debug = "ignore")]
     watchers: Vec<Box<dyn ConfigWatcher>>,
 }
 

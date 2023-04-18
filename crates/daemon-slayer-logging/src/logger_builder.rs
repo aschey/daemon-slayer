@@ -64,7 +64,7 @@ pub enum LoggerCreationError {
     NoHomeDir,
 }
 
-#[derive(Hash, Eq, PartialEq, Clone)]
+#[derive(Hash, Eq, PartialEq, Clone, Debug)]
 pub enum LogTarget {
     File,
     EventLog,
@@ -117,7 +117,7 @@ pub struct UserConfig {
     pub(crate) log_level: LogLevel,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LoggerBuilder {
     #[allow(unused)]
     label: Label,

@@ -47,9 +47,9 @@ impl Handler for ServiceHandler {
         Ok(Self { signal_store })
     }
 
-    async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> Result<(), Self::Error> {
+    async fn run_service<F: FnOnce() + Send>(mut self, notify_ready: F) -> Result<(), Self::Error> {
         println!("running service");
-        on_started();
+        notify_ready();
 
         let mut signal_rx = self.signal_store.subscribe_events();
         let start_time = Instant::now();

@@ -102,7 +102,7 @@ impl Handler for ServiceHandler {
     fn label() -> Label {
         "com.example.daemon_slayer_minimal_combined"
             .parse()
-            .expect("Should parse the label")
+            .expect("Failed to parse label")
     }
 
     async fn new(
@@ -116,10 +116,10 @@ impl Handler for ServiceHandler {
         Ok(Self { signal_store })
     }
 
-    async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> Result<(), Self::Error> {
+    async fn run_service<F: FnOnce() + Send>(mut self, notify_ready: F) -> Result<(), Self::Error> {
         println!("running service");
         let start_time = Instant::now();
-        on_started();
+        notify_ready();
         let mut signal_rx = self.signal_store.subscribe_events();
         loop {
             match tokio::time::timeout(Duration::from_secs(1), signal_rx.next()).await {

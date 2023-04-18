@@ -4,7 +4,7 @@ use dyn_clonable::clonable;
 use std::{io, result::Result};
 
 #[clonable]
-pub(crate) trait Manager: Clone + Send + Sync + 'static {
+pub(crate) trait Manager: std::fmt::Debug + Clone + Send + Sync + 'static {
     fn name(&self) -> String;
     fn display_name(&self) -> &str;
     fn description(&self) -> &str;
@@ -21,7 +21,7 @@ pub(crate) trait Manager: Clone + Send + Sync + 'static {
     fn info(&self) -> Result<Info, io::Error>;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ServiceManager {
     inner: Box<dyn Manager>,
 }

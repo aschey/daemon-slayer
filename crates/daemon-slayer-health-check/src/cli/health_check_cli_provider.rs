@@ -14,7 +14,7 @@ enum CliCommands {
 }
 
 #[derive(Clone)]
-pub struct HealthCheckCliProvider<H: daemon_slayer_core::health_check::HealthCheck + Clone + Send> {
+pub struct HealthCheckCliProvider<H: HealthCheck + Clone + Send> {
     health_check: H,
 }
 

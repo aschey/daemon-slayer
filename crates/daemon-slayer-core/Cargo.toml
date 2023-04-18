@@ -8,6 +8,8 @@ arc-swap = {version = "1.5", optional = true}
 async-trait = "0.1"
 clap = {version = "4", features = ["derive"], optional = true}
 daemon-slayer-macros = {path = "../daemon-slayer-macros", optional = true}
+derivative = "2"
+downcast-rs = {version = "1", optional = true}
 dyn-clonable = {version = "0.9", optional = true}
 futures = {version = "0.3"}
 once_cell = {version = "1", optional = true}
@@ -24,7 +26,7 @@ tracing = "0.1"
 unicode-width = {version = "0.1", optional = true}
 
 [features]
-cli = ["clap", "strum", "strum_macros", "owo-colors", "unicode-width"]
+cli = ["clap", "strum", "strum_macros", "owo-colors", "unicode-width", "downcast-rs"]
 config = ["arc-swap", "dyn-clonable", "daemon-slayer-macros", "daemon-slayer-macros/config"]
 health-check = []
 server = ["tokio-stream"]

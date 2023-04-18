@@ -45,7 +45,7 @@ impl TryFrom<String> for Program {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Builder {
     pub(crate) label: Label,
     #[cfg_attr(unix, allow(unused))]

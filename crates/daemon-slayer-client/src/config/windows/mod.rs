@@ -4,7 +4,7 @@ pub use service_access::*;
 mod trustee;
 pub use trustee::*;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct WindowsConfig {
     pub(crate) additional_access: Option<(Trustee, BitFlags<ServiceAccess>)>,
 }

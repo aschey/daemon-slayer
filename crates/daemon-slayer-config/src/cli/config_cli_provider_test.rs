@@ -98,7 +98,7 @@ struct TestConfig {
     test: bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct TestConfigWatcher {
     tx: mpsc::Sender<()>,
 }

@@ -23,7 +23,7 @@ fn test_initialize() {
         ))
         .initialize_from(["cli_test"])
         .unwrap();
-    let provider = cli.get_provider::<TestProvider>().unwrap();
+    let provider = cli.get_provider::<TestProvider>();
     assert!(provider.initialized);
 }
 
@@ -153,6 +153,7 @@ struct TestArgs {
     test_arg: Option<bool>,
 }
 
+#[derive(Debug)]
 struct TestProvider {
     initialized: bool,
     default_matched: Arc<AtomicBool>,

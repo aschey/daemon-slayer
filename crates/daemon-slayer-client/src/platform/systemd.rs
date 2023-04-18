@@ -9,7 +9,7 @@ use systemd_client::{
     UnitLoadStateType, UnitSubStateType,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SystemdServiceManager {
     config: Builder,
     client: SystemdManagerProxyBlocking<'static>,

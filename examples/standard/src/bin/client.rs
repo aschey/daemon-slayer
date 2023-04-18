@@ -95,11 +95,7 @@ async fn run() -> Result<(), BoxedError> {
         )
         .initialize()?;
 
-    let (logger, _) = cli
-        .get_provider::<LoggingCliProvider>()
-        .unwrap()
-        .clone()
-        .get_logger()?;
+    let (logger, _) = cli.take_provider::<LoggingCliProvider>().get_logger()?;
     logger.init();
 
     cli.handle_input().await?;

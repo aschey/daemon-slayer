@@ -26,8 +26,8 @@ pub async fn main() {
         .initialize()
         .unwrap();
 
-    let logger_provider = cli.get_provider::<LoggingCliProvider>().unwrap();
-    let (logger, _) = logger_provider.clone().get_logger().unwrap();
+    let logger_provider = cli.take_provider::<LoggingCliProvider>();
+    let (logger, _) = logger_provider.get_logger().unwrap();
     logger.init();
 
     cli.handle_input().await.unwrap();
@@ -58,14 +58,14 @@ impl Handler for ServiceHandler {
         integration_tests::label()
     }
 
-    async fn run_service<F: FnOnce() + Send>(mut self, on_started: F) -> Result<(), Self::Error> {
+    async fn run_service<F: FnOnce() + Send>(mut self, notify_ready: F) -> Result<(), Self::Error> {
         info!("running service");
 
         let app = Router::new()
             .route("/test", get(test))
             .route("/env", get(env));
 
-        on_started();
+        notify_ready();
         info!("started");
         let mut signal_rx = self.signal_store.subscribe_events();
         axum::Server::bind(&integration_tests::address())

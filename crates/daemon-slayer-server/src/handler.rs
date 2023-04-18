@@ -17,5 +17,5 @@ pub trait Handler: Sized + Send + Sync + 'static {
 
     fn label() -> Label;
 
-    async fn run_service<F: FnOnce() + Send>(self, on_started: F) -> Result<(), Self::Error>;
+    async fn run_service<F: FnOnce() + Send>(self, notify_ready: F) -> Result<(), Self::Error>;
 }

@@ -8,7 +8,7 @@ use daemon_slayer_core::{
     BoxedError,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ClientCliProvider {
     manager: ServiceManager,
 }
