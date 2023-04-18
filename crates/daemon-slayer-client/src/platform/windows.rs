@@ -25,7 +25,7 @@ enum ServiceAccessMode {
     ChangeConfig,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct WindowsServiceManager {
     config: Builder,
 }

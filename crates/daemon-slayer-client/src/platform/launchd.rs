@@ -22,7 +22,7 @@ regex!(STATE_RE, r"state = (\w+)");
 regex!(PID_RE, r"pid = (\w+)");
 regex!(EXIT_CODE_RE, r"last exit code = (\w+)");
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LaunchdServiceManager {
     config: Builder,
 }
