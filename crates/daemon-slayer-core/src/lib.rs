@@ -15,11 +15,29 @@ pub use future_ext::*;
 mod label;
 pub use async_trait::async_trait;
 pub use label::*;
-use std::{error::Error, fmt::Display, str::FromStr};
+use std::{any::Any, error::Error, fmt::Display, str::FromStr};
 pub use tokio_util::sync::CancellationToken;
 
 #[cfg(feature = "daemon-slayer-macros")]
 pub use daemon_slayer_macros::*;
+
+pub trait AsAny {
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
+}
+
+impl<T> AsAny for T
+where
+    T: Any,
+{
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+}
 
 pub type BoxedError = Box<dyn Error + Send + Sync + 'static>;
 

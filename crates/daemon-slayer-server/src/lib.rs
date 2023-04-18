@@ -24,6 +24,7 @@ pub use daemon_slayer_core::{
     async_trait,
     server::{BackgroundService, BroadcastEventStore, EventStore, ServiceContext},
     signal::{Client as SignalHandlerClient, Handler as SignalHandler, Signal},
+    AsAny,
 };
 pub use futures;
 
