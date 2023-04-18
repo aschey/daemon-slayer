@@ -76,7 +76,7 @@ pub enum LogTarget {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct LogLevel(pub(crate) Level);
+pub struct LogLevel(pub Level);
 
 impl LogLevel {
     pub(crate) fn to_level_filter(&self) -> LevelFilter {
@@ -114,7 +114,7 @@ impl<'de> serde::Deserialize<'de> for LogLevel {
 #[cfg_attr(feature = "config", derive(confique::Config, serde::Deserialize))]
 pub struct UserConfig {
     #[cfg_attr(feature = "config", config(default = "info"))]
-    pub(crate) log_level: LogLevel,
+    pub log_level: LogLevel,
 }
 
 #[derive(Clone, Debug)]
