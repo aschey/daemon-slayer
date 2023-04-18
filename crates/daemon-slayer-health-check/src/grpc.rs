@@ -1,6 +1,8 @@
 use daemon_slayer_core::{async_trait, health_check::HealthCheck, BoxedError};
 use std::error::Error;
-use tonic_health::proto::health_client::HealthClient;
+use tonic_health::pb::{
+    health_check_response::ServingStatus, health_client::HealthClient, HealthCheckRequest,
+};
 
 #[derive(Clone)]
 pub struct GrpcHealthCheck {
@@ -24,11 +26,9 @@ impl HealthCheck for GrpcHealthCheck {
     async fn invoke(&mut self) -> Result<(), BoxedError> {
         let mut client = HealthClient::new(self.endpoint.connect().await?);
 
-        let response = client
-            .check(tonic_health::proto::HealthCheckRequest::default())
-            .await?;
+        let response = client.check(HealthCheckRequest::default()).await?;
         match response.into_inner().status() {
-            tonic_health::proto::health_check_response::ServingStatus::Serving => Ok(()),
+            ServingStatus::Serving => Ok(()),
             _ => Err("invalid status"),
         }?;
 

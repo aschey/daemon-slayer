@@ -10,7 +10,7 @@ proc-macro = true
 proc-macro-crate = "1"
 proc-macro2 = "1"
 quote = "1"
-syn = "1"
+syn = "2"
 
 [features]
 config = []

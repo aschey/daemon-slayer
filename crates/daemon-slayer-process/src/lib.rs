@@ -32,6 +32,8 @@ pub enum ProcessStatus {
     Parked,
     #[strum(serialize = "Lock Blocked")]
     LockBlocked,
+    #[strum(serialize = "Uninterruptible Disk Sleep")]
+    UninterruptibleDiskSleep,
     Unknown(u32),
 }
 
@@ -49,6 +51,9 @@ impl ProcessStatus {
             sysinfo::ProcessStatus::Waking => ProcessStatus::Waking,
             sysinfo::ProcessStatus::Parked => ProcessStatus::Parked,
             sysinfo::ProcessStatus::LockBlocked => ProcessStatus::LockBlocked,
+            sysinfo::ProcessStatus::UninterruptibleDiskSleep => {
+                ProcessStatus::UninterruptibleDiskSleep
+            }
             sysinfo::ProcessStatus::Unknown(status) => ProcessStatus::Unknown(status),
         }
     }
