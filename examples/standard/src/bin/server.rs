@@ -33,7 +33,7 @@ pub async fn main() -> Result<(), ErrorSink> {
     result
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct AppData {
     config: AppConfig<MyConfig>,
     reload_handle: ReloadHandle,
