@@ -44,3 +44,16 @@ args = ["llvm-cov", "--workspace", "--all-features", "--html", "--open", "--igno
 command = "cargo"
 env = {RUN_AS_SYSTEM = "true"}
 install_crate = "cargo-llvm-cov"
+
+[tasks.update]
+args = ["update"]
+command = "cargo"
+install_crate = "cargo-edit"
+
+[tasks.upgrade]
+args = ["upgrade"]
+command = "cargo"
+install_crate = "cargo-edit"
+
+[tasks.update-all]
+dependencies = ["update", "upgrade"]

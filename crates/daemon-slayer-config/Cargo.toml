@@ -5,12 +5,12 @@ version = "0.1.0"
 
 [dependencies]
 arc-swap = {version = "1"}
-bat = {version = "0.22", default-features = false, features = ["regex-onig", "paging"], optional = true}
+bat = {version = "0.23", default-features = false, features = ["regex-onig", "paging"], optional = true}
 confique = ">= 0.2.2"
 daemon-slayer-core = {path = "../daemon-slayer-core", features = ["config"]}
 daemon-slayer-file-watcher = {path = "../daemon-slayer-file-watcher"}
 derivative = "2"
-directories = "4"
+directories = "5"
 edit = "0.1"
 futures = "0.3"
 tap = "1"
@@ -25,5 +25,5 @@ server = ["daemon-slayer-core/server"]
 
 [dev-dependencies]
 daemon-slayer-cli = {path = "../daemon-slayer-cli"}
-serde = "1.0.152"
-tempfile = "3.3.0"
+serde = "1.0.160"
+tempfile = "3.5.0"

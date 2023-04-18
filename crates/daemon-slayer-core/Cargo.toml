@@ -4,7 +4,7 @@ name = "daemon-slayer-core"
 version = "0.1.0"
 
 [dependencies]
-arc-swap = {version = "1.5", optional = true}
+arc-swap = {version = "1", optional = true}
 async-trait = "0.1"
 clap = {version = "4", features = ["derive"], optional = true}
 daemon-slayer-macros = {path = "../daemon-slayer-macros", optional = true}
