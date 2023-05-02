@@ -165,6 +165,6 @@ pub async fn get_direct_handler<T: Handler>(
         .map_err(|e| ServiceError::ExecutionFailure(e, None))?;
 
     let result = handler.run_service(|| {}).await;
-    let background_service_errors = manager.stop().await;
+    let background_service_errors = manager.cancel().await;
     ServiceError::from_service_result(result, background_service_errors)
 }

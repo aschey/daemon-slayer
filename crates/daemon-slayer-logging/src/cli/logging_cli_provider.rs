@@ -68,11 +68,21 @@ impl CommandProvider for LoggingCliProvider {
                         } else if matched.action == Some(Action::Client(ClientAction::Uninstall)) {
                             current_builder.deregister()?;
                         }
-                        current_builder
+                        #[cfg(feature = "ipc")]
+                        let res = current_builder
                             .with_log_to_stderr(false)
-                            .with_ipc_logger(false)
+                            .with_ipc_logger(false);
+                        #[cfg(not(feature = "ipc"))]
+                        let res = current_builder.with_log_to_stderr(false);
+                        res
                     }
-                    ActionType::Server => current_builder.with_ipc_logger(true),
+                    ActionType::Server => {
+                        #[cfg(feature = "ipc")]
+                        let res = current_builder.with_ipc_logger(true);
+                        #[cfg(not(feature = "ipc"))]
+                        let res = current_builder;
+                        res
+                    }
                     ActionType::Unknown => current_builder,
                 })
             } else {

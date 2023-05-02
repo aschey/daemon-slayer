@@ -130,6 +130,7 @@ pub struct LoggerBuilder {
     env_filter_directives: Vec<Directive>,
     log_to_stdout: bool,
     log_to_stderr: bool,
+    #[cfg(feature = "ipc")]
     enable_ipc_logger: bool,
 }
 
@@ -146,6 +147,7 @@ impl LoggerBuilder {
             user_config: Default::default(),
             log_to_stdout: false,
             log_to_stderr: true,
+            #[cfg(feature = "ipc")]
             enable_ipc_logger: false,
             target_directives: Default::default(),
             env_filter_directives: vec![],
@@ -194,6 +196,7 @@ impl LoggerBuilder {
         self
     }
 
+    #[cfg(feature = "ipc")]
     pub fn with_ipc_logger(mut self, enable_ipc_logger: bool) -> Self {
         self.enable_ipc_logger = enable_ipc_logger;
         self
