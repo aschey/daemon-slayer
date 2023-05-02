@@ -99,7 +99,7 @@ async fn get_service_main_impl<T: Handler>(
         Err(_) => 1,
     };
 
-    let background_service_errors = manager.stop().await;
+    let background_service_errors = manager.cancel().await;
 
     {
         let handle = status_handle.lock().unwrap();

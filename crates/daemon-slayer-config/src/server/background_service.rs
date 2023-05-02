@@ -38,7 +38,7 @@ impl<T> BackgroundService for ConfigService<T>
 where
     T: Configurable,
 {
-    fn name<'a>() -> &'a str {
+    fn name(&self) -> &str {
         "config_service"
     }
 

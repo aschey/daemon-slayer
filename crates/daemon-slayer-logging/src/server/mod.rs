@@ -30,7 +30,7 @@ impl<T: LoggingConfig> LoggingUpdateService<T> {
 
 #[async_trait]
 impl<T: LoggingConfig> BackgroundService for LoggingUpdateService<T> {
-    fn name<'a>() -> &'a str {
+    fn name(&self) -> &str {
         "logging_update_service"
     }
 

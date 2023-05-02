@@ -6,6 +6,7 @@ version = "0.1.0"
 [dependencies]
 arc-swap = {version = "1", optional = true}
 async-trait = "0.1"
+background-service = {git = "https://github.com/aschey/background-service-rs", rev = "0d0fc38608bf0443dd9d1ff162f97431248018e3", optional = true}
 clap = {version = "4", features = ["derive"], optional = true}
 daemon-slayer-macros = {path = "../daemon-slayer-macros", optional = true}
 derivative = "2"
@@ -29,5 +30,5 @@ unicode-width = {version = "0.1", optional = true}
 cli = ["clap", "strum", "strum_macros", "owo-colors", "unicode-width", "downcast-rs"]
 config = ["arc-swap", "dyn-clonable", "daemon-slayer-macros", "daemon-slayer-macros/config"]
 health-check = []
-server = ["tokio-stream"]
+server = ["tokio-stream", "background-service"]
 signal = ["once_cell"]

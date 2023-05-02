@@ -73,7 +73,7 @@ impl FileWatcher {
 
 #[async_trait::async_trait]
 impl daemon_slayer_core::server::BackgroundService for FileWatcher {
-    fn name<'a>() -> &'a str {
+    fn name(&self) -> &str {
         "file_watcher_service"
     }
 

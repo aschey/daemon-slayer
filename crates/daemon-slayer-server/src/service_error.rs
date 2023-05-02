@@ -1,4 +1,4 @@
-use daemon_slayer_core::{server::BackgroundServiceErrors, BoxedError};
+use daemon_slayer_core::{server::error::BackgroundServiceErrors, BoxedError};
 use std::fmt;
 
 #[derive(thiserror::Error, Debug)]

@@ -12,7 +12,7 @@ pub use task_queue_builder::*;
 
 #[async_trait]
 impl BackgroundService for TaskQueue {
-    fn name<'a>() -> &'a str {
+    fn name(&self) -> &str {
         "task_queue_service"
     }
 

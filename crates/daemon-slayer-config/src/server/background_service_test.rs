@@ -36,7 +36,7 @@ async fn test_serivce() {
     assert!(!new.test);
     assert!(!test_config.snapshot().test);
 
-    service_manager.stop().await.unwrap();
+    service_manager.cancel().await.unwrap();
 }
 
 #[derive(Default, Clone, Config, Debug)]

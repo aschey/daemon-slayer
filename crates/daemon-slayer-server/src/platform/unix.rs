@@ -27,6 +27,6 @@ pub async fn run_as_service<T: Handler>(
         .tap_err(|e| warn!("Error sending stopping notification: {e:?}"))
         .ok();
 
-    let background_service_errors = manager.stop().await;
+    let background_service_errors = manager.cancel().await;
     ServiceError::from_service_result(result, background_service_errors)
 }

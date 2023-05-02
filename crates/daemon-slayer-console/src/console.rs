@@ -59,7 +59,7 @@ impl HealthChecker {
 
 #[async_trait]
 impl BackgroundService for HealthChecker {
-    fn name<'a>() -> &'a str {
+    fn name(&self) -> &str {
         "health_check_service"
     }
 
