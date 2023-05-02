@@ -41,7 +41,7 @@ impl signal::Handler for SignalListener {
 
 #[async_trait]
 impl daemon_slayer_core::server::BackgroundService for SignalListener {
-    fn name<'a>() -> &'a str {
+    fn name(&self) -> &str {
         "signal_listener_service"
     }
 
