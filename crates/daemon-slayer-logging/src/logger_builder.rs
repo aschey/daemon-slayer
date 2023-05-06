@@ -347,9 +347,9 @@ impl LoggerBuilder {
 
         #[cfg(feature = "ipc")]
         let (ipc_writer, ipc_guard) = if self.enable_ipc_logger {
-            tracing_ipc::Writer::new(&self.label.application)
+            tilia::Writer::new(&(self.label.application.to_owned() + "_logger"))
         } else {
-            tracing_ipc::Writer::disabled()
+            tilia::Writer::disabled()
         };
         #[cfg(feature = "ipc")]
         guard.add_guard(Box::new(ipc_guard));
@@ -361,7 +361,7 @@ impl LoggerBuilder {
                 .with_thread_ids(true)
                 .with_thread_names(true)
                 .with_writer(ipc_writer)
-                .with_filter(tracing_ipc::Filter::new(
+                .with_filter(tilia::Filter::new(
                     self.get_filter_for_target(LogTarget::Ipc),
                 ))
         });

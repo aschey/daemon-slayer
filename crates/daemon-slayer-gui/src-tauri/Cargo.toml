@@ -19,8 +19,8 @@ serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
 tauri = {version = "1.1", features = ["api-all", "system-tray"]}
 tauri-plugin-positioner = {git = "https://github.com/aschey/tauri-plugin-positioner", features = ["system-tray"]}
+tilia = {git = "https://github.com/aschey/tilia", rev = "f62f771e44cb043b57e430bc1e113dbc543ad939"}
 tokio = {version = "1.21.2", features = ["time"]}
-tracing-ipc = {git = "https://github.com/aschey/tracing-ipc", rev = "2eaab76b62330415b2c98c8e51799997fa165264"}
 
 [features]
 # by default Tauri runs in production mode

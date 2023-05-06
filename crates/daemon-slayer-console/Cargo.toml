@@ -10,8 +10,8 @@ daemon-slayer-client = {path = "../daemon-slayer-client"}
 daemon-slayer-core = {path = "../daemon-slayer-core", features = ["server", "config", "health-check"], optional = true}
 futures = {version = "0.3"}
 serde = {version = "1", optional = true}
+tilia-widget = {git = "https://github.com/aschey/tilia", rev = "f62f771e44cb043b57e430bc1e113dbc543ad939"}
 tokio = {version = "1", features = ["rt-multi-thread", "macros"]}
-tracing-ipc-widget = {git = "https://github.com/aschey/tracing-ipc", rev = "2eaab76b62330415b2c98c8e51799997fa165264"}
 tui = {version = "0.19"}
 
 [features]

@@ -11,8 +11,8 @@ use tauri::{
     WindowBuilder, WindowEvent, WindowUrl,
 };
 use tauri_plugin_positioner::on_tray_event;
+use tilia::run_ipc_client;
 use tokio::sync::mpsc;
-use tracing_ipc::run_ipc_client;
 
 #[derive(Clone)]
 struct ManagerWrapper {

@@ -17,8 +17,8 @@ use std::{
     pin::Pin,
     time::{Duration, Instant},
 };
+use tilia_widget::LogView;
 use tokio::sync::mpsc;
-use tracing_ipc_widget::LogView;
 use tui::{
     backend::CrosstermBackend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
