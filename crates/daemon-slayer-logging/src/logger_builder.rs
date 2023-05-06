@@ -347,7 +347,7 @@ impl LoggerBuilder {
 
         #[cfg(feature = "ipc")]
         let (ipc_writer, ipc_guard) = if self.enable_ipc_logger {
-            tilia::Writer::new(&(self.label.application.to_owned() + "_logger"))
+            tilia::Writer::<1024>::new(&(self.label.application.to_owned() + "_logger"))
         } else {
             tilia::Writer::disabled()
         };

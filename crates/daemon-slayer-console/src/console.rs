@@ -24,7 +24,7 @@ use tui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, BorderType, Borders, Paragraph, Wrap},
+    widgets::{Block, BorderType, Borders, Paragraph},
     Frame, Terminal,
 };
 
@@ -78,7 +78,7 @@ impl BackgroundService for HealthChecker {
                         let _ = self.tx.send(true).await;
                     }
                 }
-                Err(e) => {
+                Err(_e) => {
                     if is_healthy != Some(false) {
                         is_healthy = Some(false);
                         let _ = self.tx.send(false).await;
@@ -274,7 +274,7 @@ impl Console {
                                     _ => {}
                                 }
                             }
-                            Err(e) => return Ok(()),
+                            Err(_e) => return Ok(()),
                             _ => {}
                         }
                     }
