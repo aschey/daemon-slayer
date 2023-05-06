@@ -110,7 +110,7 @@ pub struct Console {
 impl Console {
     pub fn new(manager: ServiceManager) -> Self {
         let info = manager.info().unwrap();
-        let name = manager.name();
+        let name = manager.name() + "_logger";
         Self {
             manager,
             info,
