@@ -2,6 +2,7 @@ use crate::{
     config::{Builder, Level},
     Info, Manager, State,
 };
+use daemon_slayer_core::Label;
 use launchd::Launchd;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -289,6 +290,10 @@ impl Manager for LaunchdServiceManager {
 
     fn name(&self) -> String {
         self.config.label.qualified_name()
+    }
+
+    fn label(&self) -> &Label {
+        &self.config.label
     }
 
     fn arguments(&self) -> &Vec<String> {

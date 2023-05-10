@@ -1,4 +1,5 @@
 use crate::{config::Builder, Info, Manager, State};
+use daemon_slayer_core::Label;
 use std::io;
 use systemd_client::{
     create_unit_configuration_file, create_user_unit_configuration_file,
@@ -309,6 +310,10 @@ impl Manager for SystemdServiceManager {
 
     fn name(&self) -> String {
         self.config.label.application.clone()
+    }
+
+    fn label(&self) -> &Label {
+        &self.config.label
     }
 
     fn arguments(&self) -> &Vec<String> {

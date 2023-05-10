@@ -2,6 +2,7 @@ use crate::{
     config::{windows::Trustee, Builder, Level},
     Info, Manager, State,
 };
+use daemon_slayer_core::Label;
 use regex::Regex;
 use registry::{Data, Hive, Security};
 use std::io;
@@ -340,6 +341,10 @@ impl Manager for WindowsServiceManager {
 
     fn name(&self) -> String {
         self.config.label.application.clone()
+    }
+
+    fn label(&self) -> &Label {
+        &self.config.label
     }
 
     fn reload_config(&mut self) -> Result<(), io::Error> {
