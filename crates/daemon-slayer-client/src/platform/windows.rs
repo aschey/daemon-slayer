@@ -246,7 +246,7 @@ impl WindowsServiceManager {
             if self.info()?.state == desired_state {
                 return Ok(());
             }
-            thread::sleep(Duration::from_millis(100));
+            thread::sleep(Duration::from_millis(1000));
         }
         Err(io::Error::new(
             io::ErrorKind::TimedOut,
@@ -437,6 +437,11 @@ impl Manager for WindowsServiceManager {
     }
 
     fn uninstall(&self) -> Result<(), io::Error> {
+        if self.info()?.state == State::Started {
+            // Make sure we stop the service before attempting to uninstall, otherwise the uninstall can hang
+            self.stop()?;
+            self.wait_for_state(State::Stopped)?;
+        }
         if self.config.is_user() {
             if let Some(current_service_name) = self.current_service_name()? {
                 self.delete_service(&current_service_name, ServiceType::USER_OWN_PROCESS)?;

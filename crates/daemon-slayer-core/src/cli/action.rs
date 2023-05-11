@@ -27,6 +27,4 @@ pub enum ClientAction {
     Enable,
     Disable,
     Pid,
-    Run,
-    Direct,
 }
