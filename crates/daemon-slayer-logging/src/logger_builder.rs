@@ -2,7 +2,7 @@ use super::{logger_guard::LoggerGuard, timezone::Timezone};
 use crate::ReloadHandle;
 use daemon_slayer_core::{
     config::{Accessor, CachedConfig},
-    BoxedError, Label,
+    BoxedError, Label, Mergeable,
 };
 use once_cell::sync::OnceCell;
 use std::{
@@ -110,16 +110,15 @@ impl<'de> serde::Deserialize<'de> for LogLevel {
     }
 }
 
-#[derive(daemon_slayer_core::Mergeable, Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Mergeable)]
 #[cfg_attr(feature = "config", derive(confique::Config, serde::Deserialize))]
 pub struct UserConfig {
     #[cfg_attr(feature = "config", config(default = "info"))]
     pub log_level: LogLevel,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct LoggerBuilder {
-    #[allow(unused)]
     label: Label,
     #[cfg(feature = "file")]
     file_rotation_period: tracing_appender::rolling::Rotation,

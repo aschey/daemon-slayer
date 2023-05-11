@@ -103,6 +103,7 @@ impl CommandProvider for ClientCliProvider {
             if state == State::NotInstalled
                 && *action != ClientAction::Install
                 && *action != ClientAction::Uninstall
+                && *action != ClientAction::Info
             {
                 return Ok(CommandOutput::handled(
                     "Cannot complete action because service is not installed"

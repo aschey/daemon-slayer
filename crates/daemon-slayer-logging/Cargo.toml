@@ -10,14 +10,14 @@ file = ["directories"]
 ipc = ["tilia"]
 linux-journald = ["tracing-journald"]
 mac-oslog = ["tracing-oslog"]
-server = []
+server = ["daemon-slayer-core/server"]
 system = ["linux-journald", "mac-oslog", "windows-eventlog"]
 windows-eventlog = ["tracing-eventlog"]
 
 [dependencies]
 confique = { version = ">= 0.2.2", optional = true }
 ctor = "0.2"
-daemon-slayer-core = { path = "../daemon-slayer-core" }
+daemon-slayer-core = { path = "../daemon-slayer-core", features = ["config"] }
 directories = { version = "5", optional = true }
 futures = { version = "0.3", optional = true }
 once_cell = "1"
