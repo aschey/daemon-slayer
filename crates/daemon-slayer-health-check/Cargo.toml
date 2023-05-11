@@ -4,12 +4,14 @@ name = "daemon-slayer-health-check"
 version = "0.1.0"
 
 [dependencies]
-daemon-slayer-core = {path = "../daemon-slayer-core", features = ["health-check"]}
-parity-tokio-ipc = {version = "0.9", optional = true}
-reqwest = {version = "0.11", optional = true}
-tokio = {version = "1", features = ["net"]}
-tonic = {version = "0.9", optional = true}
-tonic-health = {version = "0.9", optional = true}
+daemon-slayer-core = { path = "../daemon-slayer-core", features = [
+    "health-check",
+] }
+parity-tokio-ipc = { version = "0.9", optional = true }
+reqwest = { version = "0.11", optional = true }
+tokio = { version = "1", features = ["net"] }
+tonic = { version = "0.9", optional = true }
+tonic-health = { version = "0.9", optional = true }
 
 [features]
 cli = ["daemon-slayer-core/cli"]

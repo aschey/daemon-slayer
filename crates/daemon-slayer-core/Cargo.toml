@@ -4,31 +4,43 @@ name = "daemon-slayer-core"
 version = "0.1.0"
 
 [dependencies]
-arc-swap = {version = "1", optional = true}
+arc-swap = { version = "1", optional = true }
 async-trait = "0.1"
-background-service = {git = "https://github.com/aschey/background-service-rs", rev = "0d0fc38608bf0443dd9d1ff162f97431248018e3", optional = true}
-clap = {version = "4", features = ["derive"], optional = true}
-daemon-slayer-macros = {path = "../daemon-slayer-macros", optional = true}
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "0d0fc38608bf0443dd9d1ff162f97431248018e3", optional = true }
+clap = { version = "4", features = ["derive"], optional = true }
+daemon-slayer-macros = { path = "../daemon-slayer-macros", optional = true }
 derivative = "2"
-downcast-rs = {version = "1", optional = true}
-dyn-clonable = {version = "0.9", optional = true}
-futures = {version = "0.3"}
-once_cell = {version = "1", optional = true}
-owo-colors = {version = "3", optional = true}
+downcast-rs = { version = "1", optional = true }
+dyn-clonable = { version = "0.9", optional = true }
+futures = { version = "0.3" }
+once_cell = { version = "1", optional = true }
+owo-colors = { version = "3", optional = true }
 pin-project-lite = "0.2.9"
-strum = {version = "0.24", optional = true}
-strum_macros = {version = "0.24", optional = true}
+strum = { version = "0.24", optional = true }
+strum_macros = { version = "0.24", optional = true }
 tap = "1"
 thiserror = "1"
-tokio = {version = "1", features = ["sync"]}
-tokio-stream = {version = "0.1", features = ["sync"], optional = true}
-tokio-util = {version = "0.7"}
+tokio = { version = "1", features = ["sync"] }
+tokio-stream = { version = "0.1", features = ["sync"], optional = true }
+tokio-util = { version = "0.7" }
 tracing = "0.1"
-unicode-width = {version = "0.1", optional = true}
+unicode-width = { version = "0.1", optional = true }
 
 [features]
-cli = ["clap", "strum", "strum_macros", "owo-colors", "unicode-width", "downcast-rs"]
-config = ["arc-swap", "dyn-clonable", "daemon-slayer-macros", "daemon-slayer-macros/config"]
+cli = [
+    "clap",
+    "strum",
+    "strum_macros",
+    "owo-colors",
+    "unicode-width",
+    "downcast-rs",
+]
+config = [
+    "arc-swap",
+    "dyn-clonable",
+    "daemon-slayer-macros",
+    "daemon-slayer-macros/config",
+]
 health-check = []
 server = ["tokio-stream", "background-service"]
 signal = ["once_cell"]

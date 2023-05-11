@@ -1,4 +1,8 @@
 [workspace]
-exclude = ["crates/daemon-slayer-gui", "crates/daemon-slayer-console", "crates/daemon-slayer-tray"]
+exclude = [
+    "crates/daemon-slayer-gui",
+    "crates/daemon-slayer-console",
+    "crates/daemon-slayer-tray",
+]
 members = ["crates/*", "integration-tests"]
 resolver = "2"

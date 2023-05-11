@@ -5,11 +5,20 @@ version = "0.1.0"
 
 [dependencies]
 async-trait = "0.1"
-bus = {version = "2", optional = true}
-daemon-slayer-core = {path = "../daemon-slayer-core", features = ["server"]}
-futures = {version = "0.3", optional = true}
-notify = {version = "5", default-features = false, features = ["fsevent-sys", "macos_fsevent"]}
-notify-debouncer-mini = {version = "0.2", default-features = false}
+bus = { version = "2", optional = true }
+daemon-slayer-core = { path = "../daemon-slayer-core", features = ["server"] }
+futures = { version = "0.3", optional = true }
+notify = { version = "5", default-features = false, features = [
+    "fsevent-sys",
+    "macos_fsevent",
+] }
+notify-debouncer-mini = { version = "0.2", default-features = false }
 tap = "1"
-tokio = {version = "1", features = ["rt-multi-thread", "net", "io-util", "sync", "macros"]}
+tokio = { version = "1", features = [
+    "rt-multi-thread",
+    "net",
+    "io-util",
+    "sync",
+    "macros",
+] }
 tracing = "0.1"

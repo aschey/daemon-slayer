@@ -8,7 +8,7 @@ cli = ["daemon-slayer-core/cli"]
 
 [dependencies]
 color-eyre = "0.6"
-daemon-slayer-core = {path = "../daemon-slayer-core"}
+daemon-slayer-core = { path = "../daemon-slayer-core" }
 once_cell = "1"
 tap = "1"
 thiserror = "1"

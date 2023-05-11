@@ -5,5 +5,9 @@ version = "0.1.0"
 
 [dependencies]
 clap = { version = "4.0.32", features = ["derive"] }
-daemon-slayer = {path = "../../crates/daemon-slayer", features = ["client", "server", "signals"]}
-tokio = {version = "1.23.0", features = ["macros", "rt-multi-thread"]}
+daemon-slayer = { path = "../../crates/daemon-slayer", features = [
+    "client",
+    "server",
+    "signals",
+] }
+tokio = { version = "1.23.0", features = ["macros", "rt-multi-thread"] }

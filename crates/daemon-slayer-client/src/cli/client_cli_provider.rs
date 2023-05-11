@@ -100,7 +100,8 @@ impl CommandProvider for ClientCliProvider {
                 }
                 _ => return Ok(CommandOutput::unhandled()),
             }
-            return Ok(CommandOutput::handled(None));
+            let info = self.manager.info()?;
+            return Ok(CommandOutput::handled(info.pretty_print()));
         }
 
         Ok(CommandOutput::unhandled())

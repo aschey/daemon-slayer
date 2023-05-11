@@ -4,9 +4,9 @@ name = "daemon-slayer-process"
 version = "0.1.0"
 
 [dependencies]
-bytesize = {version = "1", features = ["serde"]}
-chrono = {version = "0.4", features = ["serde"]}
-daemon-slayer-core = {path = "../daemon-slayer-core"}
+bytesize = { version = "1", features = ["serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+daemon-slayer-core = { path = "../daemon-slayer-core" }
 num_cpus = "1"
 readonly = "0.2"
 serde = "1"

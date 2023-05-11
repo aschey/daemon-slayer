@@ -8,7 +8,7 @@ repository = ""
 version = "0.1.0"
 
 [dependencies]
-daemon-slayer-gui = {path = "./src-tauri"}
+daemon-slayer-gui = { path = "./src-tauri" }
 
 [lib]
 path = "./lib.rs"

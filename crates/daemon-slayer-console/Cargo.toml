@@ -4,15 +4,19 @@ name = "daemon-slayer-console"
 version = "0.1.0"
 
 [dependencies]
-confique = {version = ">= 0.2.2", optional = true}
-crossterm = {version = "0.25", features = ["event-stream"]}
-daemon-slayer-client = {path = "../daemon-slayer-client"}
-daemon-slayer-core = {path = "../daemon-slayer-core", features = ["server", "config", "health-check"], optional = true}
-futures = {version = "0.3"}
-serde = {version = "1", optional = true}
-tilia-widget = {git = "https://github.com/aschey/tilia", rev = "ccfc59e04403da27784d9361bd766a4ce175e62c"}
-tokio = {version = "1", features = ["rt-multi-thread", "macros"]}
-tui = {version = "0.19"}
+confique = { version = ">= 0.2.2", optional = true }
+crossterm = { version = "0.25", features = ["event-stream"] }
+daemon-slayer-client = { path = "../daemon-slayer-client" }
+daemon-slayer-core = { path = "../daemon-slayer-core", features = [
+    "server",
+    "config",
+    "health-check",
+], optional = true }
+futures = { version = "0.3" }
+serde = { version = "1", optional = true }
+tilia-widget = { git = "https://github.com/aschey/tilia", rev = "ccfc59e04403da27784d9361bd766a4ce175e62c" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tui = { version = "0.19" }
 
 [features]
 cli = ["daemon-slayer-core/cli"]
