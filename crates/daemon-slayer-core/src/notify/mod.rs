@@ -50,6 +50,7 @@ impl Notification {
 
     pub fn image_path(mut self, path: impl AsRef<str>) -> Self {
         self.image_path = Some(path.as_ref().to_owned());
+        #[cfg(not(target_os = "macos"))]
         self.inner.image_path(path.as_ref());
         self
     }
