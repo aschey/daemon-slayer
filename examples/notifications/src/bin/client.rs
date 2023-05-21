@@ -44,19 +44,19 @@ pub async fn main() -> Result<(), ErrorSink> {
 
 async fn run() -> Result<(), BoxedError> {
     let app_config =
-        AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(standard::label())).build()?;
+        AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(notifications::label())).build()?;
 
     let config = app_config.read_config().unwrap_or_default();
     let manager = client::builder(
-        standard::label(),
+        notifications::label(),
         current_exe()?
             .parent()
             .expect("Current exe should have a parent")
-            .join("standard-server")
+            .join("notification-server")
             .try_into()?,
     )
     .with_description("test service")
-    .with_arg(&standard::run_argument())
+    .with_arg(&notifications::run_argument())
     .with_service_level(if cfg!(windows) {
         Level::System
     } else {
@@ -69,7 +69,7 @@ async fn run() -> Result<(), BoxedError> {
     .with_user_config(config.clone())
     .build()?;
 
-    let logger_builder = LoggerBuilder::new(standard::label()).with_config(app_config.clone());
+    let logger_builder = LoggerBuilder::new(notifications::label()).with_config(app_config.clone());
 
     let app_config_ = app_config.clone();
     let console = Console::new(manager.clone())
@@ -89,7 +89,7 @@ async fn run() -> Result<(), BoxedError> {
         .with_provider(ProcessCliProvider::new(manager.info()?.pid))
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(LoggingCliProvider::new(logger_builder))
-        .with_provider(ErrorHandlerCliProvider::new(standard::label()))
+        .with_provider(ErrorHandlerCliProvider::new(notifications::label()))
         .with_provider(
             ConfigCliProvider::new(app_config.clone()).with_config_watcher(manager.clone()),
         )

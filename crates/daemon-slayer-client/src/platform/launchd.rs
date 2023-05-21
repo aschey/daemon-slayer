@@ -64,7 +64,7 @@ impl LaunchdServiceManager {
                 )
             })?
             .trim()
-            .to_lowercase();
+            .to_ascii_lowercase();
         Ok(out)
     }
 

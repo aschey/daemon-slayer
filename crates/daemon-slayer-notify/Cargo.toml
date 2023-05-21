@@ -1,0 +1,16 @@
+[package]
+name = "daemon-slayer-notify"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+daemon-slayer-core = { path = "../daemon-slayer-core", features = [
+    "server",
+    "notify",
+] }
+tokio = { version = "1", features = ["time"] }
+
+[features]
+cli = ["daemon-slayer-core/cli"]

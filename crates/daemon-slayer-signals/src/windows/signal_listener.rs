@@ -5,8 +5,9 @@ use daemon_slayer_core::{
     signal::{self, Signal},
     BoxedError,
 };
+use tap::TapFallible;
 use tokio::sync::broadcast;
-use tracing::info;
+use tracing::{info, warn};
 
 pub struct SignalListener {
     signal_tx: broadcast::Sender<Signal>,
@@ -28,7 +29,6 @@ impl Default for SignalListener {
             let (tx, _) = broadcast::channel(32);
             tx
         });
-
         Self { signal_tx }
     }
 }
@@ -47,26 +47,40 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
 
     async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let cancellation_token = context.cancellation_token();
+        info!("Registering signal handlers");
         let mut ctrl_c_stream = tokio::signal::windows::ctrl_c().unwrap();
-        let mut ctrl_break_stream = tokio::signal::windows::ctrl_break().unwrap();
-        let mut ctrl_shutdown_stream = tokio::signal::windows::ctrl_shutdown().unwrap();
-        let mut ctrl_logoff_stream = tokio::signal::windows::ctrl_logoff().unwrap();
-        let mut ctrl_close_stream = tokio::signal::windows::ctrl_close().unwrap();
+        // TODO: leaving these commented while debugging signals not always getting sent
+        // let mut ctrl_break_stream = tokio::signal::windows::ctrl_break().unwrap();
+        // let mut ctrl_shutdown_stream = tokio::signal::windows::ctrl_shutdown().unwrap();
+        // let mut ctrl_logoff_stream = tokio::signal::windows::ctrl_logoff().unwrap();
+        // let mut ctrl_close_stream = tokio::signal::windows::ctrl_close().unwrap();
 
-        loop {
-            tokio::select! {
-                _ = ctrl_c_stream.recv() => { self.signal_tx.send(Signal::SIGINT).ok() }
-                _ = ctrl_break_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
-                _ = ctrl_shutdown_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
-                _ = ctrl_logoff_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
-                _ = ctrl_close_stream.recv() => {  self.signal_tx.send(Signal::SIGINT).ok() }
-                _ = cancellation_token.cancelled() => {
-                    info!("Shutdown requested. Stopping signal handler.");
-                    return Ok(());
-                }
-            };
-            info!("Signal received. Requesting global shutdown.");
-            cancellation_token.cancel();
-        }
+        tokio::select! {
+            _ = ctrl_c_stream.recv() => {
+                info!("Received ctrl+c signal");
+                self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok()
+            }
+            // _ = ctrl_break_stream.recv() => {
+            //     self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok()
+            // }
+            // _ = ctrl_shutdown_stream.recv() => {
+            //     self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok()
+            // }
+            // _ = ctrl_logoff_stream.recv() => {
+            //     self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok()
+            // }
+            // _ = ctrl_close_stream.recv() => {
+            //     self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok()
+            // }
+            _ = cancellation_token.cancelled() => {
+                info!("Shutdown requested. Stopping signal handler.");
+                self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok();
+                return Ok(());
+            }
+        };
+
+        info!("Signal received. Requesting global shutdown.");
+        cancellation_token.cancel();
+        return Ok(());
     }
 }

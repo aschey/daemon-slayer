@@ -2,7 +2,7 @@ use crate::{
     config::{windows::Trustee, Builder, Level},
     Info, Manager, State,
 };
-use daemon_slayer_core::Label;
+use daemon_slayer_core::{process::get_spawn_interactive_var, Label};
 use regex::Regex;
 use registry::{Data, Hive, Security};
 use std::io;
@@ -100,9 +100,9 @@ impl WindowsServiceManager {
         mode: ServiceAccessMode,
     ) -> Result<Option<ServiceEntry>, io::Error> {
         let re_text = if service_type == ServiceType::USER_OWN_PROCESS {
-            // TODO: get LUID deterministically: https://learn.microsoft.com/en-us/windows/win32/api/ntsecapi/nf-ntsecapi-lsaenumeratelogonsessions
-            // User services have a random id appended to the end like this: some_service_name_18dcf87g
-            // The id changes every login so we have to search for it
+            // User services have a random id called a LUID appended to the end like this: some_service_name_18dcf87g.
+            // The id changes every login so we have to search for it.
+            // There does not seem to be any API we can use to get the LUID in a cleaner way.
             format!(r"^{}_[a-z\d]+$", self.name())
         } else {
             format!("^{}$", self.name())
@@ -307,7 +307,11 @@ impl WindowsServiceManager {
     }
 
     fn add_environment_variables(&self) -> Result<(), io::Error> {
-        let env_vars = self.config.environment_variables();
+        let mut env_vars = self.config.environment_variables();
+        if !self.config.is_user() {
+            // Add a variable when running in system mode to let the app know that we need to spawn separate processes for interactive functionality
+            env_vars.push((get_spawn_interactive_var(self.label()), "1".to_owned()))
+        }
         if env_vars.is_empty() {
             return Ok(());
         }

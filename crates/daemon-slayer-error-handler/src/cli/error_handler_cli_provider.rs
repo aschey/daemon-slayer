@@ -2,13 +2,21 @@ use color_eyre::config::Theme;
 use daemon_slayer_core::{
     async_trait,
     cli::{clap, Action, CommandMatch, CommandOutput, ServerAction},
-    BoxedError,
+    BoxedError, Label,
 };
 
 use crate::ErrorHandler;
 
-#[derive(Default, Clone, Debug)]
-pub struct ErrorHandlerCliProvider;
+#[derive(Clone, Debug)]
+pub struct ErrorHandlerCliProvider {
+    label: Label,
+}
+
+impl ErrorHandlerCliProvider {
+    pub fn new(label: Label) -> Self {
+        Self { label }
+    }
+}
 
 #[async_trait]
 impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
@@ -30,16 +38,19 @@ impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
             ..
         }) = matched_command
         {
-            ErrorHandler::default()
+            let handler = ErrorHandler::new(self.label.clone())
                 .with_theme(Theme::default())
                 .with_write_to_stdout(false)
                 .with_write_to_stderr(false)
-                .with_log(true)
-                .install()?;
+                .with_log(true);
+            #[cfg(feature = "notify")]
+            let handler = handler.with_notify(true);
+
+            handler.install()?;
             return Ok(());
         }
 
-        ErrorHandler::default().install()?;
+        ErrorHandler::new(self.label.clone()).install()?;
         Ok(())
     }
 

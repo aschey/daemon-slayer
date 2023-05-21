@@ -12,7 +12,7 @@ readonly = "0.2"
 serde = "1"
 strum = "0.24"
 strum_macros = "0.24"
-sysinfo = "0.28"
+sysinfo = "0.29"
 
 [features]
 cli = ["daemon-slayer-core/cli"]

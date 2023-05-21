@@ -34,6 +34,7 @@ cli = [
   "daemon-slayer-error-handler?/cli",
   "daemon-slayer-config?/cli",
   "daemon-slayer-process?/cli",
+  "daemon-slayer-notify?/cli",
 ]
 client = ["daemon-slayer-client"]
 config = [
@@ -65,6 +66,7 @@ server = [
 signals = ["daemon-slayer-signals"]
 task-queue = ["daemon-slayer-task-queue"]
 tray = ["daemon-slayer-tray", "client"]
+notify = ["daemon-slayer-notify", "daemon-slayer-error-handler?/notify"]
 
 [dependencies]
 daemon-slayer-cli = { path = "../daemon-slayer-cli", optional = true }
@@ -81,3 +83,4 @@ daemon-slayer-server = { path = "../daemon-slayer-server", optional = true }
 daemon-slayer-signals = { path = "../daemon-slayer-signals", optional = true }
 daemon-slayer-task-queue = { path = "../daemon-slayer-task-queue", optional = true }
 daemon-slayer-tray = { path = "../daemon-slayer-tray", optional = true }
+daemon-slayer-notify = { path = "../daemon-slayer-notify", optional = true }

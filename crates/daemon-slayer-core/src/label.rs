@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use thiserror::Error;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Label {
     pub qualifier: String,
     pub organization: String,

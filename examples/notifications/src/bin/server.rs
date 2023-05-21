@@ -2,12 +2,13 @@ use confique::Config;
 use daemon_slayer::{
     cli::Cli,
     config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir},
-    core::{BoxedError, Label},
+    core::{notify::Notification, BoxedError, Label},
     error_handler::{cli::ErrorHandlerCliProvider, ErrorSink},
     logging::{
         self, cli::LoggingCliProvider, server::LoggingUpdateService,
         tracing_subscriber::util::SubscriberInitExt, LoggerBuilder, ReloadHandle,
     },
+    notify::{cli::NotifyCliProvider, NotificationService},
     server::{
         cli::ServerCliProvider, futures::StreamExt, BroadcastEventStore, EventStore, Handler,
         ServiceContext, Signal, SignalHandler,
@@ -41,18 +42,19 @@ pub struct AppData {
 
 async fn run() -> Result<(), BoxedError> {
     let app_config =
-        AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(standard::label())).build()?;
+        AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(notifications::label())).build()?;
 
     let logger_builder =
         LoggerBuilder::new(ServiceHandler::label()).with_config(app_config.clone());
 
     let mut cli = Cli::builder()
         .with_provider(ServerCliProvider::<ServiceHandler>::new(
-            &standard::run_argument(),
+            &notifications::run_argument(),
         ))
         .with_provider(LoggingCliProvider::new(logger_builder))
         .with_provider(ErrorHandlerCliProvider::new(ServiceHandler::label()))
         .with_provider(ConfigCliProvider::new(app_config.clone()))
+        .with_provider(NotifyCliProvider::new(ServiceHandler::label()))
         .initialize()?;
 
     let (logger, reload_handle) = cli.take_provider::<LoggingCliProvider>().get_logger()?;
@@ -81,7 +83,7 @@ impl Handler for ServiceHandler {
     type InputData = AppData;
 
     fn label() -> Label {
-        standard::label()
+        notifications::label()
     }
 
     async fn new(
@@ -91,7 +93,16 @@ impl Handler for ServiceHandler {
         let input_data = input_data.unwrap();
         let signal_listener = SignalListener::all();
         let signal_store = signal_listener.get_event_store();
+
         context.add_service(signal_listener).await?;
+        context
+            .add_service(
+                NotificationService::new(signal_store.clone(), |_| {
+                    Notification::new(Self::label()).summary("Signal received")
+                })
+                .with_shutdown_timeout(Duration::from_millis(100)),
+            )
+            .await?;
 
         let config_service = ConfigService::new(input_data.config);
         let file_events = config_service.get_event_store();
@@ -116,13 +127,15 @@ impl Handler for ServiceHandler {
             match tokio::time::timeout(Duration::from_secs(1), signal_rx.next()).await {
                 Ok(_) => {
                     info!("stopping service");
-                    return Ok(());
+                    panic!("Simulated panic");
                 }
                 Err(_) => {
-                    info!(
-                        "Run time: {} seconds",
-                        Instant::now().duration_since(start_time).as_secs()
-                    )
+                    Notification::new(Self::label())
+                        .subtitle(format!(
+                            "Run time: {} seconds",
+                            Instant::now().duration_since(start_time).as_secs()
+                        ))
+                        .show()?;
                 }
             }
         }

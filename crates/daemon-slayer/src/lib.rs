@@ -57,3 +57,8 @@ pub mod file_watcher {
 pub mod process {
     pub use daemon_slayer_process::*;
 }
+
+#[cfg(feature = "notify")]
+pub mod notify {
+    pub use daemon_slayer_notify::*;
+}

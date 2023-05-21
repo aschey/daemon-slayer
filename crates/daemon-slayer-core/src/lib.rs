@@ -1,14 +1,17 @@
 #[cfg(feature = "cli")]
 pub mod cli;
+#[cfg(feature = "config")]
+pub mod config;
 #[cfg(feature = "health-check")]
 pub mod health_check;
+#[cfg(feature = "notify")]
+pub mod notify;
+#[cfg(feature = "process")]
+pub mod process;
 #[cfg(feature = "server")]
 pub mod server;
 #[cfg(feature = "signal")]
 pub mod signal;
-
-#[cfg(feature = "config")]
-pub mod config;
 
 mod future_ext;
 pub use future_ext::*;
