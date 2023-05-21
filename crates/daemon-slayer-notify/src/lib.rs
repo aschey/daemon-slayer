@@ -19,7 +19,7 @@ pub struct NotificationService<E, F> {
 impl<E, F> NotificationService<E, F>
 where
     E: EventStore,
-    F: FnMut(E::Item) -> Notification,
+    F: FnMut(E::Item) -> Option<Notification>,
 {
     pub fn new(event_store: E, create_notification: F) -> Self {
         Self {
@@ -41,7 +41,7 @@ where
 impl<E, F> BackgroundService for NotificationService<E, F>
 where
     E: EventStore + Send,
-    F: FnMut(E::Item) -> Notification + Send,
+    F: FnMut(E::Item) -> Option<Notification> + Send,
 {
     fn name(&self) -> &str {
         "notifier_service"
@@ -55,12 +55,16 @@ where
             .cancel_on_shutdown(&cancellation_token)
             .await
         {
-            (self.create_notification)(event).show()?;
+            if let Some(notification) = (self.create_notification)(event) {
+                notification.show().await?
+            }
         }
 
         if let Some(timeout) = self.shutdown_timeout {
             if let Ok(Some(event)) = tokio::time::timeout(timeout, event_stream.next()).await {
-                (self.create_notification)(event).show()?;
+                if let Some(notification) = (self.create_notification)(event) {
+                    notification.show().await?
+                }
             }
         }
 

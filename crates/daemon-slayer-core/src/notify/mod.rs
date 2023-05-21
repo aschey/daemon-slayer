@@ -105,7 +105,7 @@ impl Notification {
         self
     }
 
-    pub fn show(&self) -> Result<(), NotificationError> {
+    pub async fn show(&self) -> Result<(), NotificationError> {
         // Windows services running as admin can't send notifications
         // We get around this by spawning a separate process running as the current user
         // and sending the notification from there
@@ -124,13 +124,24 @@ impl Notification {
                 .map_err(NotificationError::ProcessSpawnFailure);
         }
 
-        self.inner
-            .show()
-            .map_err(NotificationError::NotificationFailure)?;
+        #[cfg(target_os = "linux")]
+        if let Ok("") | Err(_) = env::var("DBUS_SESSION_BUS_ADDRESS").as_deref() {
+            // If the session bus address is not set, we can't spawn notifications from the current process (we're probably running as root)
+            // Spawn the process as the logged in users instead
+            let cmd = format!(
+                "{} notify {}",
+                &current_exe().unwrap().to_string_lossy(),
+                self.to_args()
+            );
+            crate::process::linux::run_process_as_logged_on_users(&cmd).await;
+            return Ok(());
+        }
+
+        self.inner.show_async().await.unwrap();
+
         Ok(())
     }
 
-    #[cfg(windows)]
     fn to_args(&self) -> String {
         let mut args = format!("\"{}\"", self.inner.summary);
         if let Some(subtitle) = &self.inner.subtitle {

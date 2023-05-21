@@ -77,7 +77,7 @@ impl CommandProvider for NotifyCliProvider {
         if let Some(icon) = args.icon {
             notification = notification.icon(icon);
         }
-        notification.show()?;
+        notification.show().await?;
 
         Ok(CommandOutput::handled("Notification sent".to_owned()))
     }

@@ -11,6 +11,7 @@ daemon-slayer-core = { path = "../daemon-slayer-core", features = [
     "notify",
 ] }
 tokio = { version = "1", features = ["time"] }
+tracing = "0.1"
 
 [features]
 cli = ["daemon-slayer-core/cli"]

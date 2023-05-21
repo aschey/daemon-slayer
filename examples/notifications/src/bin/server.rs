@@ -2,7 +2,7 @@ use confique::Config;
 use daemon_slayer::{
     cli::Cli,
     config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir},
-    core::{notify::Notification, BoxedError, Label},
+    core::{notify::Notification, BoxedError, CancellationToken, Label},
     error_handler::{cli::ErrorHandlerCliProvider, ErrorSink},
     logging::{
         self, cli::LoggingCliProvider, server::LoggingUpdateService,
@@ -17,7 +17,7 @@ use daemon_slayer::{
 };
 use derive_more::AsRef;
 use std::time::{Duration, Instant};
-use tracing::info;
+use tracing::{error, info};
 
 #[derive(Debug, Config, AsRef, Default, Clone)]
 struct MyConfig {
@@ -74,7 +74,7 @@ async fn run() -> Result<(), BoxedError> {
 
 #[derive(daemon_slayer::server::Service)]
 pub struct ServiceHandler {
-    signal_store: BroadcastEventStore<Signal>,
+    cancellation_token: CancellationToken,
 }
 
 #[daemon_slayer::core::async_trait]
@@ -97,8 +97,18 @@ impl Handler for ServiceHandler {
         context.add_service(signal_listener).await?;
         context
             .add_service(
-                NotificationService::new(signal_store.clone(), |_| {
-                    Notification::new(Self::label()).summary("Signal received")
+                NotificationService::new(signal_store.clone(), |signal| {
+                    if let Ok(signal) = signal {
+                        if signal != Signal::SIGCHLD {
+                            return Some(
+                                Notification::new(Self::label()).summary("Signal received"),
+                            );
+                        } else {
+                            return None;
+                        }
+                    }
+
+                    Some(Notification::new(Self::label()).summary("Signal received"))
                 })
                 .with_shutdown_timeout(Duration::from_millis(100)),
             )
@@ -114,28 +124,36 @@ impl Handler for ServiceHandler {
             ))
             .await?;
 
-        Ok(Self { signal_store })
+        Ok(Self {
+            cancellation_token: context.cancellation_token(),
+        })
     }
 
     async fn run_service<F: FnOnce() + Send>(mut self, notify_ready: F) -> Result<(), Self::Error> {
         info!("running service");
         notify_ready();
 
-        let mut signal_rx = self.signal_store.subscribe_events();
         let start_time = Instant::now();
         loop {
-            match tokio::time::timeout(Duration::from_secs(1), signal_rx.next()).await {
+            match tokio::time::timeout(Duration::from_secs(1), self.cancellation_token.cancelled())
+                .await
+            {
                 Ok(_) => {
                     info!("stopping service");
-                    panic!("Simulated panic");
+                    return Err("test".into());
+                    // panic!("Simulated panic");
                 }
                 Err(_) => {
-                    Notification::new(Self::label())
+                    if let Err(e) = Notification::new(Self::label())
                         .summary(format!(
                             "Run time: {} seconds",
                             Instant::now().duration_since(start_time).as_secs()
                         ))
-                        .show()?;
+                        .show()
+                        .await
+                    {
+                        error!("Error showing notification: {e:?}");
+                    }
                 }
             }
         }

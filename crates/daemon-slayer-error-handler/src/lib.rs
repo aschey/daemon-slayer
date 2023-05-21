@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     fmt::{Debug, Display},
-    sync::Arc,
+    sync::{mpsc, Arc},
 };
 
 pub use color_eyre::config::Theme;
@@ -125,12 +125,33 @@ impl ErrorHandler {
     fn show_notification(&self) {
         #[cfg(feature = "notify")]
         if self.notify {
-            (self.notification_builder)(daemon_slayer_core::notify::Notification::new(
-                self.label.clone(),
-            ))
-            .show()
-            .tap_err(|e| error!("Failed to show notification: {e:?}"))
-            .ok();
+            let notification = (self.notification_builder)(
+                daemon_slayer_core::notify::Notification::new(self.label.clone()),
+            );
+            if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                let (tx, rx) = mpsc::channel();
+                handle.spawn(async move {
+                    notification
+                        .show()
+                        .await
+                        .tap_err(|e| error!("Failed to show notification: {e:?}"))
+                        .ok();
+                    tx.send(()).ok();
+                });
+                rx.recv().ok();
+            } else {
+                tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap()
+                    .block_on(async {
+                        notification
+                            .show()
+                            .await
+                            .tap_err(|e| error!("Failed to show notification: {e:?}"))
+                            .ok();
+                    });
+            }
         }
     }
 

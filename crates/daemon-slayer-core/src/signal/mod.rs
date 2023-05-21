@@ -4,7 +4,7 @@ pub use handler::*;
 mod client;
 pub use client::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Signal {
     SIGTERM,
     SIGQUIT,
