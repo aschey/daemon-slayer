@@ -131,7 +131,7 @@ impl Handler for ServiceHandler {
                 }
                 Err(_) => {
                     Notification::new(Self::label())
-                        .subtitle(format!(
+                        .summary(format!(
                             "Run time: {} seconds",
                             Instant::now().duration_since(start_time).as_secs()
                         ))

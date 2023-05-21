@@ -125,9 +125,11 @@ impl Notification {
 
         self.inner
             .show()
-            .map_err(NotificationError::NotificationFailure)
+            .map_err(NotificationError::NotificationFailure)?;
+        Ok(())
     }
 
+    #[cfg(windows)]
     fn to_args(&self) -> String {
         let mut args = format!("\"{}\"", self.inner.summary);
         if let Some(subtitle) = &self.inner.subtitle {
