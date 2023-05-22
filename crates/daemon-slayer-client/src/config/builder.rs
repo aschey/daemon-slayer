@@ -45,6 +45,12 @@ impl TryFrom<String> for Program {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum ServiceType {
+    Native,
+    Container,
+}
+
 #[derive(Clone, Debug)]
 pub struct Builder {
     pub(crate) label: Label,
@@ -61,6 +67,7 @@ pub struct Builder {
     #[cfg_attr(not(windows), allow(unused))]
     pub(crate) windows_config: WindowsConfig,
     pub(crate) user_config: CachedConfig<UserConfig>,
+    pub(crate) service_type: ServiceType,
 }
 
 impl Builder {
@@ -76,6 +83,7 @@ impl Builder {
             systemd_config: Default::default(),
             windows_config: Default::default(),
             user_config: Default::default(),
+            service_type: ServiceType::Native,
         }
     }
 
@@ -143,8 +151,13 @@ impl Builder {
         self
     }
 
-    pub fn build(self) -> Result<ServiceManager, io::Error> {
-        get_manager(self)
+    pub fn with_service_type(mut self, service_type: ServiceType) -> Self {
+        self.service_type = service_type;
+        self
+    }
+
+    pub async fn build(self) -> Result<ServiceManager, io::Error> {
+        get_manager(self).await
     }
 
     pub(crate) fn arguments_iter(&self) -> impl Iterator<Item = &String> {

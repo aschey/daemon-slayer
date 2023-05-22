@@ -12,58 +12,58 @@ use tao::{
 };
 
 pub fn start(icon_path: &std::path::Path, manager: ServiceManager) {
-    let event_loop = EventLoop::new();
-    let current_state = manager.info().unwrap().state;
-    let start_stop_text = get_start_stop_text(&current_state);
+    // let event_loop = EventLoop::new();
+    // let current_state = manager.info().unwrap().state;
+    // let start_stop_text = get_start_stop_text(&current_state);
 
-    let main_tray_id = TrayId::new("main-tray");
-    let icon = load_icon(icon_path);
-    let mut tray_menu = Menu::new();
-    let mut start_stop_item = tray_menu.add_item(MenuItemAttributes::new(start_stop_text));
-    let restart_item = tray_menu.add_item(MenuItemAttributes::new("Restart"));
-    let quit_item = tray_menu.add_item(MenuItemAttributes::new("Quit"));
+    // let main_tray_id = TrayId::new("main-tray");
+    // let icon = load_icon(icon_path);
+    // let mut tray_menu = Menu::new();
+    // let mut start_stop_item = tray_menu.add_item(MenuItemAttributes::new(start_stop_text));
+    // let restart_item = tray_menu.add_item(MenuItemAttributes::new("Restart"));
+    // let quit_item = tray_menu.add_item(MenuItemAttributes::new("Quit"));
 
-    let mut system_tray = Some(
-        SystemTrayBuilder::new(icon, Some(tray_menu))
-            .with_id(main_tray_id)
-            .with_tooltip("tao - windowing creation library")
-            .build(&event_loop)
-            .unwrap(),
-    );
-    #[cfg(target_os = "macos")]
-    if let Some(t) = system_tray.as_mut() {
-        t.set_title("Tao")
-    }
+    // let mut system_tray = Some(
+    //     SystemTrayBuilder::new(icon, Some(tray_menu))
+    //         .with_id(main_tray_id)
+    //         .with_tooltip("tao - windowing creation library")
+    //         .build(&event_loop)
+    //         .unwrap(),
+    // );
+    // #[cfg(target_os = "macos")]
+    // if let Some(t) = system_tray.as_mut() {
+    //     t.set_title("Tao")
+    // }
 
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::WaitUntil(
-            Instant::now()
-                .checked_add(Duration::from_millis(1000))
-                .unwrap(),
-        );
+    // event_loop.run(move |event, _, control_flow| {
+    //     *control_flow = ControlFlow::WaitUntil(
+    //         Instant::now()
+    //             .checked_add(Duration::from_millis(1000))
+    //             .unwrap(),
+    //     );
 
-        let current_state = manager.info().unwrap().state;
-        start_stop_item.set_title(get_start_stop_text(&current_state));
-        if let Event::MenuEvent {
-            menu_id,
-            origin: MenuType::ContextMenu,
-            ..
-        } = event
-        {
-            if menu_id == quit_item.clone().id() {
-                system_tray.take();
-                *control_flow = ControlFlow::Exit;
-            } else if menu_id == start_stop_item.clone().id() {
-                if current_state == State::Started {
-                    manager.stop().unwrap();
-                } else {
-                    manager.start().unwrap();
-                }
-            } else if menu_id == restart_item.clone().id() {
-                manager.restart().unwrap();
-            }
-        }
-    });
+    //     let current_state = manager.info().unwrap().state;
+    //     start_stop_item.set_title(get_start_stop_text(&current_state));
+    //     if let Event::MenuEvent {
+    //         menu_id,
+    //         origin: MenuType::ContextMenu,
+    //         ..
+    //     } = event
+    //     {
+    //         if menu_id == quit_item.clone().id() {
+    //             system_tray.take();
+    //             *control_flow = ControlFlow::Exit;
+    //         } else if menu_id == start_stop_item.clone().id() {
+    //             if current_state == State::Started {
+    //                 manager.stop().unwrap();
+    //             } else {
+    //                 manager.start().unwrap();
+    //             }
+    //         } else if menu_id == restart_item.clone().id() {
+    //             manager.restart().unwrap();
+    //         }
+    //     }
+    // });
 }
 
 fn get_start_stop_text(state: &State) -> &str {

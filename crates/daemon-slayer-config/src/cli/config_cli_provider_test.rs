@@ -1,6 +1,6 @@
 use confique::Config;
 use daemon_slayer_cli::Cli;
-use daemon_slayer_core::config::ConfigWatcher;
+use daemon_slayer_core::{async_trait, config::ConfigWatcher};
 use tempfile::tempdir;
 use tokio::sync::mpsc;
 
@@ -103,9 +103,10 @@ struct TestConfigWatcher {
     tx: mpsc::Sender<()>,
 }
 
+#[async_trait]
 impl ConfigWatcher for TestConfigWatcher {
-    fn on_config_changed(&mut self) -> Result<(), std::io::Error> {
-        self.tx.try_send(()).unwrap();
+    async fn on_config_changed(&mut self) -> Result<(), std::io::Error> {
+        self.tx.send(()).await.unwrap();
         Ok(())
     }
 }

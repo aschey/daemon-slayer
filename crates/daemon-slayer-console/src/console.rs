@@ -108,8 +108,8 @@ pub struct Console {
 }
 
 impl Console {
-    pub fn new(manager: ServiceManager) -> Self {
-        let info = manager.info().unwrap();
+    pub async fn new(manager: ServiceManager) -> Self {
+        let info = manager.info().await.unwrap();
         let name = manager.label().application.to_owned() + "_logger";
         Self {
             manager,
@@ -206,7 +206,7 @@ impl Console {
         let mut last_update = Instant::now();
         loop {
             if Instant::now().duration_since(last_update) > Duration::from_secs(1) {
-                self.info = self.manager.info().unwrap();
+                self.info = self.manager.info().await.unwrap();
                 last_update = Instant::now();
             }
 
@@ -246,27 +246,27 @@ impl Console {
                                         match self.button_index {
                                             0 => {
                                                 if self.info.state == State::NotInstalled {
-                                                    self.manager.install()?
+                                                    self.manager.install().await?
                                                 } else {
-                                                    self.manager.uninstall()?;
+                                                    self.manager.uninstall().await?;
                                                 }
                                             },
                                             1 => {
                                                     if self.info.autostart.unwrap_or(false) {
-                                                        self.manager.disable_autostart()?;
+                                                        self.manager.disable_autostart().await?;
                                                     } else {
-                                                        self.manager.enable_autostart()?;
+                                                        self.manager.enable_autostart().await?;
                                                     }
                                                 }
                                             2 => {
                                                 if self.info.state == State::Stopped {
-                                                    self.manager.start()?
+                                                    self.manager.start().await?
                                                 } else {
-                                                    self.manager.stop()?;
+                                                    self.manager.stop().await?;
                                                 }
                                             },
                                             3 => {
-                                                self.manager.restart()?;
+                                                self.manager.restart().await?;
                                             },
                                             _ => {}
                                         }

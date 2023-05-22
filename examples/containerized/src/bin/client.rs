@@ -1,5 +1,3 @@
-use std::env::current_exe;
-
 use daemon_slayer::{
     cli::Cli,
     client::{
@@ -7,7 +5,7 @@ use daemon_slayer::{
         cli::ClientCliProvider,
         config::{
             windows::{ServiceAccess, Trustee, WindowsConfig},
-            Level,
+            Level, ServiceType,
         },
     },
     config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir},
@@ -44,33 +42,27 @@ pub async fn main() -> Result<(), ErrorSink> {
 
 async fn run() -> Result<(), BoxedError> {
     let app_config =
-        AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(standard::label())).build()?;
+        AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(containerized::label())).build()?;
 
     let config = app_config.read_config().unwrap_or_default();
-    let manager = client::builder(
-        standard::label(),
-        current_exe()?
-            .parent()
-            .expect("Current exe should have a parent")
-            .join("standard-server")
-            .try_into()?,
-    )
-    .with_description("test service")
-    .with_arg(&standard::run_argument())
-    .with_service_level(if cfg!(windows) {
-        Level::System
-    } else {
-        Level::User
-    })
-    .with_windows_config(WindowsConfig::default().with_additional_access(
-        Trustee::CurrentUser,
-        ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
-    ))
-    .with_user_config(config.clone())
-    .build()
-    .await?;
+    let manager = client::builder(containerized::label(), "myapp".to_owned().try_into()?)
+        .with_description("test service")
+        .with_service_type(ServiceType::Container)
+        .with_arg(&containerized::run_argument())
+        .with_service_level(if cfg!(windows) {
+            Level::System
+        } else {
+            Level::User
+        })
+        .with_windows_config(WindowsConfig::default().with_additional_access(
+            Trustee::CurrentUser,
+            ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
+        ))
+        .with_user_config(config.clone())
+        .build()
+        .await?;
 
-    let logger_builder = LoggerBuilder::new(standard::label()).with_config(app_config.clone());
+    let logger_builder = LoggerBuilder::new(containerized::label()).with_config(app_config.clone());
 
     let app_config_ = app_config.clone();
     let console = Console::new(manager.clone())
@@ -91,7 +83,7 @@ async fn run() -> Result<(), BoxedError> {
         .with_provider(ProcessCliProvider::new(manager.info().await?.pid))
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(LoggingCliProvider::new(logger_builder))
-        .with_provider(ErrorHandlerCliProvider::new(standard::label()))
+        .with_provider(ErrorHandlerCliProvider::new(containerized::label()))
         .with_provider(
             ConfigCliProvider::new(app_config.clone()).with_config_watcher(manager.clone()),
         )

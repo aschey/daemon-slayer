@@ -57,7 +57,8 @@ pub async fn main() -> Result<(), BoxedError> {
             Trustee::CurrentUser,
             ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
         ))
-        .build()?;
+        .build()
+        .await?;
 
     match Cli::parse().arg {
         None => {
@@ -67,22 +68,22 @@ pub async fn main() -> Result<(), BoxedError> {
             ServiceHandler::run_as_service(None).await?;
         }
         Some(Arg::Install) => {
-            manager.install()?;
+            manager.install().await?;
         }
         Some(Arg::Uninstall) => {
-            manager.uninstall()?;
+            manager.uninstall().await?;
         }
         Some(Arg::Info) => {
-            println!("{}", manager.info()?.pretty_print());
+            println!("{}", manager.info().await?.pretty_print());
         }
         Some(Arg::Start) => {
-            manager.start()?;
+            manager.start().await?;
         }
         Some(Arg::Stop) => {
-            manager.stop()?;
+            manager.stop().await?;
         }
         Some(Arg::Restart) => {
-            manager.restart()?;
+            manager.restart().await?;
         }
     }
 

@@ -67,12 +67,14 @@ async fn run() -> Result<(), BoxedError> {
         ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
     ))
     .with_user_config(config.clone())
-    .build()?;
+    .build()
+    .await?;
 
     let logger_builder = LoggerBuilder::new(notifications::label()).with_config(app_config.clone());
 
     let app_config_ = app_config.clone();
     let console = Console::new(manager.clone())
+        .await
         .with_config(app_config.clone())
         .with_configure_services(move |mut context| {
             let app_config = app_config_.clone();
@@ -86,7 +88,7 @@ async fn run() -> Result<(), BoxedError> {
 
     let mut cli = Cli::builder()
         .with_provider(ClientCliProvider::new(manager.clone()))
-        .with_provider(ProcessCliProvider::new(manager.info()?.pid))
+        .with_provider(ProcessCliProvider::new(manager.info().await?.pid))
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(LoggingCliProvider::new(logger_builder))
         .with_provider(ErrorHandlerCliProvider::new(notifications::label()))

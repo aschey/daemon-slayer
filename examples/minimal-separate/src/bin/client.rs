@@ -55,26 +55,27 @@ pub async fn main() -> Result<(), BoxedError> {
         Trustee::CurrentUser,
         ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
     ))
-    .build()?;
+    .build()
+    .await?;
 
     match Cli::parse().arg {
         Arg::Install => {
-            manager.install()?;
+            manager.install().await?;
         }
         Arg::Uninstall => {
-            manager.uninstall()?;
+            manager.uninstall().await?;
         }
         Arg::Info => {
-            println!("{}", manager.info()?.pretty_print());
+            println!("{}", manager.info().await?.pretty_print());
         }
         Arg::Start => {
-            manager.start()?;
+            manager.start().await?;
         }
         Arg::Stop => {
-            manager.stop()?;
+            manager.stop().await?;
         }
         Arg::Restart => {
-            manager.restart()?;
+            manager.restart().await?;
         }
     }
 

@@ -1,4 +1,4 @@
-use std::{io, thread::sleep, time::Duration};
+use std::{io, time::Duration};
 
 use crate::{Info, ServiceManager, State};
 use daemon_slayer_core::{
@@ -10,6 +10,7 @@ use daemon_slayer_core::{
     BoxedError,
 };
 use owo_colors::OwoColorize;
+use tokio::time::sleep;
 
 #[derive(Clone, Debug)]
 pub struct ClientCliProvider {
@@ -45,7 +46,7 @@ impl ClientCliProvider {
         Self { manager }
     }
 
-    fn wait_for_condition(
+    async fn wait_for_condition(
         &self,
         condition: impl Fn(&Info) -> bool,
         failure_msg: &str,
@@ -53,12 +54,12 @@ impl ClientCliProvider {
         // State changes can be asynchronous, wait for the desired state
         let max_attempts = 5;
         for _ in 0..max_attempts {
-            let info = self.manager.info()?;
+            let info = self.manager.info().await?;
             if condition(&info) {
                 return Ok(CommandOutput::handled(info.pretty_print()));
             }
             println!("{}", "Waiting for desired state...\n".dimmed());
-            sleep(Duration::from_secs(1));
+            sleep(Duration::from_secs(1)).await;
         }
         Ok(CommandOutput::handled(failure_msg.red().to_string()))
     }
@@ -99,7 +100,7 @@ impl CommandProvider for ClientCliProvider {
             ..
         }) = matched_command
         {
-            let state = self.manager.info()?.state;
+            let state = self.manager.info().await?.state;
             if state == State::NotInstalled
                 && *action != ClientAction::Install
                 && *action != ClientAction::Uninstall
@@ -113,61 +114,75 @@ impl CommandProvider for ClientCliProvider {
             }
             match action {
                 ClientAction::Install => {
-                    self.manager.install()?;
-                    return Ok(self.wait_for_condition(
-                        |info| info.state != State::NotInstalled,
-                        "Failed to install service",
-                    )?);
+                    self.manager.install().await?;
+                    return Ok(self
+                        .wait_for_condition(
+                            |info| info.state != State::NotInstalled,
+                            "Failed to install service",
+                        )
+                        .await?);
                 }
                 ClientAction::Uninstall => {
-                    self.manager.uninstall()?;
-                    return Ok(self.wait_for_condition(
-                        |info| info.state == State::NotInstalled,
-                        "Failed to uninstall service",
-                    )?);
+                    self.manager.uninstall().await?;
+                    return Ok(self
+                        .wait_for_condition(
+                            |info| info.state == State::NotInstalled,
+                            "Failed to uninstall service",
+                        )
+                        .await?);
                 }
                 ClientAction::Info => {
-                    let info = self.manager.info()?;
+                    let info = self.manager.info().await?;
                     return Ok(CommandOutput::handled(info.pretty_print()));
                 }
                 ClientAction::Start => {
-                    self.manager.start()?;
-                    return Ok(self.wait_for_condition(
-                        |info| info.state == State::Started,
-                        "Failed to start service",
-                    )?);
+                    self.manager.start().await?;
+                    return Ok(self
+                        .wait_for_condition(
+                            |info| info.state == State::Started,
+                            "Failed to start service",
+                        )
+                        .await?);
                 }
                 ClientAction::Stop => {
-                    self.manager.stop()?;
-                    return Ok(self.wait_for_condition(
-                        |info| info.state == State::Stopped,
-                        "Failed to stop service",
-                    )?);
+                    self.manager.stop().await?;
+                    return Ok(self
+                        .wait_for_condition(
+                            |info| info.state == State::Stopped,
+                            "Failed to stop service",
+                        )
+                        .await?);
                 }
                 ClientAction::Restart => {
-                    self.manager.restart()?;
-                    return Ok(self.wait_for_condition(
-                        |info| info.state == State::Started,
-                        "Failed to restart service",
-                    )?);
+                    self.manager.restart().await?;
+                    return Ok(self
+                        .wait_for_condition(
+                            |info| info.state == State::Started,
+                            "Failed to restart service",
+                        )
+                        .await?);
                 }
-                ClientAction::Reload => self.manager.reload_config()?,
+                ClientAction::Reload => self.manager.reload_config().await?,
                 ClientAction::Enable => {
-                    self.manager.enable_autostart()?;
-                    return Ok(self.wait_for_condition(
-                        |info| info.autostart == Some(true),
-                        "Failed to enable autostart",
-                    )?);
+                    self.manager.enable_autostart().await?;
+                    return Ok(self
+                        .wait_for_condition(
+                            |info| info.autostart == Some(true),
+                            "Failed to enable autostart",
+                        )
+                        .await?);
                 }
                 ClientAction::Disable => {
-                    self.manager.disable_autostart()?;
-                    return Ok(self.wait_for_condition(
-                        |info| info.autostart == Some(false),
-                        "Failed to disable autostart",
-                    )?);
+                    self.manager.disable_autostart().await?;
+                    return Ok(self
+                        .wait_for_condition(
+                            |info| info.autostart == Some(false),
+                            "Failed to disable autostart",
+                        )
+                        .await?);
                 }
                 ClientAction::Pid => {
-                    let pid = self.manager.info()?.pid;
+                    let pid = self.manager.info().await?.pid;
                     return Ok(CommandOutput::handled(
                         pid.map(|p| p.to_string())
                             .unwrap_or_else(|| "Not running".to_owned()),

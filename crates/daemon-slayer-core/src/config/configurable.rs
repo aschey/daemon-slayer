@@ -2,6 +2,7 @@ use arc_swap::{
     access::{DynAccess, Map},
     ArcSwap,
 };
+use async_trait::async_trait;
 use derivative::Derivative;
 use dyn_clonable::clonable;
 use std::{io, sync::Arc};
@@ -81,15 +82,17 @@ impl<T: Mergeable + Clone + Default> CachedConfig<T> {
 }
 
 #[clonable]
+#[async_trait]
 pub trait ConfigWatcher: Clone + Send + Sync + 'static {
-    fn on_config_changed(&mut self) -> Result<(), io::Error>;
+    async fn on_config_changed(&mut self) -> Result<(), io::Error>;
 }
 
+#[async_trait]
 impl<T> ConfigWatcher for Box<T>
 where
     T: ConfigWatcher + Clone + Send + Sync + 'static,
 {
-    fn on_config_changed(&mut self) -> Result<(), io::Error> {
-        (**self).on_config_changed()
+    async fn on_config_changed(&mut self) -> Result<(), io::Error> {
+        (**self).on_config_changed().await
     }
 }

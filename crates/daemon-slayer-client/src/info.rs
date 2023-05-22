@@ -9,11 +9,12 @@ pub struct Info {
     pub autostart: Option<bool>,
     pub pid: Option<u32>,
     pub last_exit_code: Option<i32>,
+    pub id: Option<String>,
 }
 
 impl Info {
     pub fn pretty_print(&self) -> String {
-        Printer::default()
+        let mut printer = Printer::default()
             .with_line("State", self.state.pretty_print())
             .with_line("Autostart", self.pretty_print_autostart())
             .with_line(
@@ -21,7 +22,11 @@ impl Info {
                 self.pid
                     .map(|p| p.to_string())
                     .unwrap_or_else(|| "N/A".to_string()),
-            )
+            );
+        if let Some(id) = &self.id {
+            printer = printer.with_line("ID", id);
+        }
+        printer
             .with_line("Exit Code", self.pretty_print_exit_code())
             .print()
     }

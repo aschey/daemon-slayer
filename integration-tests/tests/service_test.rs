@@ -60,22 +60,23 @@ async fn run_tests(is_user_service: bool) {
             .to_string(),
     )
     .build()
+    .await
     .unwrap();
 
-    if manager.info().unwrap().state != State::NotInstalled {
+    if manager.info().await.unwrap().state != State::NotInstalled {
         wait_for_async(|| async {
-            manager.stop().unwrap();
+            manager.stop().await.unwrap();
             wait().await;
-            manager.uninstall().unwrap();
+            manager.uninstall().await.unwrap();
             wait().await;
-            let state = manager.info().unwrap().state;
+            let state = manager.info().await.unwrap().state;
             println!("Waiting for uninstall: {state:?}");
             state == State::NotInstalled
         })
         .await;
     }
 
-    let uninstalled_info = manager.info().unwrap();
+    let uninstalled_info = manager.info().await.unwrap();
     assert_eq!(uninstalled_info.state, State::NotInstalled);
     assert_eq!(uninstalled_info.autostart, None);
     assert_eq!(uninstalled_info.pid, None);
@@ -91,25 +92,25 @@ async fn run_tests(is_user_service: bool) {
         .await
         .unwrap();
 
-    manager.install().unwrap();
-    wait_for(|| {
-        let info = manager.info().unwrap();
+    manager.install().await.unwrap();
+    wait_for_async(|| async {
+        let info = manager.info().await.unwrap();
         println!("Waiting for install: {info:?}");
         info.state == State::Stopped && info.autostart == Some(false) && info.pid.is_none()
     })
     .await;
 
-    manager.start().unwrap();
-    wait_for(|| {
-        let info = manager.info().unwrap();
+    manager.start().await.unwrap();
+    wait_for_async(|| async {
+        let info = manager.info().await.unwrap();
         println!("Waiting for start: {info:?}");
         info.state == State::Started && info.autostart == Some(false) && info.pid.is_some()
     })
     .await;
 
-    manager.enable_autostart().unwrap();
-    wait_for(|| {
-        let autostart = manager.info().unwrap().autostart.unwrap();
+    manager.enable_autostart().await.unwrap();
+    wait_for_async(|| async {
+        let autostart = manager.info().await.unwrap().autostart.unwrap();
         println!("Waiting for autostart: {autostart:?}");
         autostart
     })
@@ -125,9 +126,9 @@ async fn run_tests(is_user_service: bool) {
     })
     .await;
 
-    manager.disable_autostart().unwrap();
-    wait_for(|| {
-        let autostart = manager.info().unwrap().autostart.unwrap();
+    manager.disable_autostart().await.unwrap();
+    wait_for_async(|| async {
+        let autostart = manager.info().await.unwrap().autostart.unwrap();
         println!("Waiting for autostart disable: {autostart:?}");
         !autostart
     })
@@ -136,7 +137,7 @@ async fn run_tests(is_user_service: bool) {
     assert!(app_config.full_path().exists());
     std::fs::copy("./assets/config.toml", app_config.full_path()).unwrap();
     config_events.next().await.unwrap().unwrap();
-    manager.reload_config().unwrap();
+    manager.reload_config().await.unwrap();
     wait_for_async(|| async {
         let response = reqwest::get(integration_tests::address_string() + "/env").await;
         if let Ok(response) = response {
@@ -148,33 +149,33 @@ async fn run_tests(is_user_service: bool) {
     })
     .await;
 
-    manager.stop().unwrap();
-    wait_for(|| {
-        let info = manager.info().unwrap();
+    manager.stop().await.unwrap();
+    wait_for_async(|| async {
+        let info = manager.info().await.unwrap();
         println!("Waiting for stop: {info:?}");
         info.state == State::Stopped && info.autostart == Some(false) && info.pid.is_none()
     })
     .await;
 
-    manager.restart().unwrap();
-    wait_for(|| {
-        let info = manager.info().unwrap();
+    manager.restart().await.unwrap();
+    wait_for_async(|| async {
+        let info = manager.info().await.unwrap();
         println!("Waiting for restart: {info:?}");
         info.state == State::Started
     })
     .await;
 
-    manager.stop().unwrap();
-    wait_for(|| {
-        let info = manager.info().unwrap();
+    manager.stop().await.unwrap();
+    wait_for_async(|| async {
+        let info = manager.info().await.unwrap();
         println!("Waiting for stop: {info:?}");
         info.state == State::Stopped && info.autostart == Some(false) && info.pid.is_none()
     })
     .await;
 
-    manager.uninstall().unwrap();
-    wait_for(|| {
-        let info = manager.info().unwrap();
+    manager.uninstall().await.unwrap();
+    wait_for_async(|| async {
+        let info = manager.info().await.unwrap();
         println!("Waiting for uninstall: {info:?}");
         info.state == State::NotInstalled && info.autostart.is_none() && info.pid.is_none()
     })
@@ -186,16 +187,6 @@ async fn run_tests(is_user_service: bool) {
 
 async fn wait() {
     tokio::time::sleep(Duration::from_millis(100)).await;
-}
-
-async fn wait_for(condition: impl Fn() -> bool) {
-    for _ in 0..10 {
-        if condition() {
-            return;
-        }
-        wait().await;
-    }
-    panic!("Timed out waiting for the condition")
 }
 
 async fn wait_for_async<F: Future<Output = bool>>(condition: impl Fn() -> F) {
