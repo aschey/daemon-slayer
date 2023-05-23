@@ -1,72 +1,187 @@
-use std::time::{Duration, Instant};
-
+use async_trait::async_trait;
 use daemon_slayer_client::{ServiceManager, State};
-#[cfg(target_os = "macos")]
-use tao::platform::macos::{SystemTrayBuilderExtMacOS, SystemTrayExtMacOS};
-use tao::{
-    event::Event,
-    event_loop::{ControlFlow, EventLoop},
-    menu::{ContextMenu as Menu, MenuItemAttributes, MenuType},
-    system_tray::SystemTrayBuilder,
-    TrayId,
+use gtk::glib::{MainContext, PRIORITY_DEFAULT};
+use std::{
+    path::PathBuf,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
+use tray_icon::{
+    icon::Icon,
+    menu::{Menu, MenuEvent, MenuItem},
+    TrayEvent, TrayIcon, TrayIconBuilder,
 };
 
-pub fn start(icon_path: &std::path::Path, manager: ServiceManager) {
-    // let event_loop = EventLoop::new();
-    // let current_state = manager.info().unwrap().state;
-    // let start_stop_text = get_start_stop_text(&current_state);
-
-    // let main_tray_id = TrayId::new("main-tray");
-    // let icon = load_icon(icon_path);
-    // let mut tray_menu = Menu::new();
-    // let mut start_stop_item = tray_menu.add_item(MenuItemAttributes::new(start_stop_text));
-    // let restart_item = tray_menu.add_item(MenuItemAttributes::new("Restart"));
-    // let quit_item = tray_menu.add_item(MenuItemAttributes::new("Quit"));
-
-    // let mut system_tray = Some(
-    //     SystemTrayBuilder::new(icon, Some(tray_menu))
-    //         .with_id(main_tray_id)
-    //         .with_tooltip("tao - windowing creation library")
-    //         .build(&event_loop)
-    //         .unwrap(),
-    // );
-    // #[cfg(target_os = "macos")]
-    // if let Some(t) = system_tray.as_mut() {
-    //     t.set_title("Tao")
-    // }
-
-    // event_loop.run(move |event, _, control_flow| {
-    //     *control_flow = ControlFlow::WaitUntil(
-    //         Instant::now()
-    //             .checked_add(Duration::from_millis(1000))
-    //             .unwrap(),
-    //     );
-
-    //     let current_state = manager.info().unwrap().state;
-    //     start_stop_item.set_title(get_start_stop_text(&current_state));
-    //     if let Event::MenuEvent {
-    //         menu_id,
-    //         origin: MenuType::ContextMenu,
-    //         ..
-    //     } = event
-    //     {
-    //         if menu_id == quit_item.clone().id() {
-    //             system_tray.take();
-    //             *control_flow = ControlFlow::Exit;
-    //         } else if menu_id == start_stop_item.clone().id() {
-    //             if current_state == State::Started {
-    //                 manager.stop().unwrap();
-    //             } else {
-    //                 manager.start().unwrap();
-    //             }
-    //         } else if menu_id == restart_item.clone().id() {
-    //             manager.restart().unwrap();
-    //         }
-    //     }
-    // });
+#[async_trait]
+pub trait MenuHandler: Send + Sync {
+    async fn refresh_state(&mut self);
+    fn build_menu(&mut self) -> Menu;
+    fn build_tray(&mut self, menu: &Menu) -> TrayIcon;
+    fn update_menu(&self, menu: &Menu);
+    async fn handle_event(&mut self, event: TrayIconEvent) -> Continue;
 }
 
-fn get_start_stop_text(state: &State) -> &str {
+pub struct Continue(pub bool);
+
+#[derive(Debug)]
+pub enum TrayIconEvent {
+    Menu(MenuEvent),
+    Tray(TrayEvent),
+}
+
+pub struct DefaultMenuHandler {
+    manager: ServiceManager,
+    icon_path: std::path::PathBuf,
+    current_state: State,
+    start_stop_id: u32,
+    restart_id: u32,
+    quit_id: u32,
+}
+
+#[async_trait]
+impl MenuHandler for DefaultMenuHandler {
+    async fn refresh_state(&mut self) {
+        self.current_state = self.manager.info().await.unwrap().state;
+    }
+
+    fn build_menu(&mut self) -> Menu {
+        let menu = Menu::new();
+        let start_stop_text = get_start_stop_text(&self.current_state);
+        let start_stop = MenuItem::new(start_stop_text, true, None);
+        self.start_stop_id = start_stop.id();
+        let restart = MenuItem::new("Restart", true, None);
+        self.restart_id = restart.id();
+        let quit = MenuItem::new("Quit", true, None);
+        self.quit_id = quit.id();
+        menu.append_items(&[&start_stop, &restart, &quit]);
+        menu
+    }
+
+    fn build_tray(&mut self, menu: &Menu) -> TrayIcon {
+        TrayIconBuilder::new()
+            .with_menu(Box::new(menu.clone()))
+            .with_icon(load_icon(&self.icon_path))
+            .build()
+            .unwrap()
+    }
+
+    fn update_menu(&self, menu: &Menu) {
+        menu.items()[0]
+            .as_any()
+            .downcast_ref::<MenuItem>()
+            .unwrap()
+            .set_text(get_start_stop_text(&self.current_state));
+    }
+
+    async fn handle_event(&mut self, event: TrayIconEvent) -> Continue {
+        if let TrayIconEvent::Menu(event) = event {
+            match event.id {
+                id if id == self.start_stop_id => {
+                    if self.current_state == State::Started {
+                        self.manager.stop().await.unwrap();
+                    } else {
+                        self.manager.start().await.unwrap();
+                    }
+                }
+                id if id == self.restart_id => {
+                    self.manager.restart().await.unwrap();
+                }
+                id if id == self.quit_id => {
+                    return Continue(false);
+                }
+                _ => {}
+            }
+        }
+        Continue(true)
+    }
+}
+
+pub struct Tray<T: MenuHandler + 'static> {
+    menu_handler: T,
+}
+
+impl Tray<DefaultMenuHandler> {
+    pub fn with_default_handler(manager: ServiceManager, icon_path: impl Into<PathBuf>) -> Self {
+        Self {
+            menu_handler: DefaultMenuHandler {
+                manager,
+                icon_path: icon_path.into(),
+                current_state: State::NotInstalled,
+                start_stop_id: 0,
+                restart_id: 0,
+                quit_id: 0,
+            },
+        }
+    }
+}
+
+impl<T: MenuHandler> Tray<T> {
+    pub async fn start(mut self) {
+        self.menu_handler.refresh_state().await;
+        let menu_handler = Arc::new(RwLock::new(self.menu_handler));
+        let menu_handler_ = menu_handler.clone();
+        let (menu_tx, mut menu_rx) = tokio::sync::mpsc::channel(32);
+        let (tray_tx, mut tray_rx) = tokio::sync::mpsc::channel(32);
+
+        #[cfg(target_os = "linux")]
+        let (tx, rx) = MainContext::channel(PRIORITY_DEFAULT);
+        #[cfg(target_os = "linux")]
+        std::thread::spawn(move || {
+            gtk::init().unwrap();
+            let menu = menu_handler.write().unwrap().build_menu();
+            MenuEvent::set_event_handler(Some(move |e: MenuEvent| menu_tx.try_send(e).unwrap()));
+            TrayEvent::set_event_handler(Some(move |e| tray_tx.try_send(e).unwrap()));
+            let _tray_icon = menu_handler.write().unwrap().build_tray(&menu);
+            rx.attach(None, move |_| {
+                menu_handler.read().unwrap().update_menu(&menu);
+                gtk::prelude::Continue(true)
+            });
+            gtk::main();
+        });
+
+        #[cfg(not(target_os = "linux"))]
+        {
+            let menu = menu_handler.write().unwrap().build_menu();
+            MenuEvent::set_event_handler(Some(move |e: MenuEvent| menu_tx.try_send(e).unwrap()));
+            TrayEvent::set_event_handler(Some(move |e| tray_tx.try_send(e).unwrap()));
+            let _tray_icon = menu_handler.write().unwrap().build_tray(&menu);
+        }
+
+        #[cfg(target_os = "linux")]
+        let handle_state_change = || tx.send(()).unwrap();
+        #[cfg(not(target_os = "linux"))]
+        let handle_state_change = || menu_handler.read().unwrap().update_menu(&menu);
+
+        loop {
+            tokio::select! {
+                Some(event) = menu_rx.recv() => {
+                    menu_handler_.write().unwrap().refresh_state().await;
+                    if let Continue(false) =
+                        menu_handler_.write().unwrap().handle_event(TrayIconEvent::Menu(event)).await {
+                        return;
+                    }
+                    menu_handler_.write().unwrap().refresh_state().await;
+                    handle_state_change();
+                }
+                Some(event) = tray_rx.recv() => {
+                    menu_handler_.write().unwrap().refresh_state().await;
+                    if let Continue(false) =
+                        menu_handler_.write().unwrap().handle_event(TrayIconEvent::Tray(event)).await {
+                        return;
+                    }
+                    menu_handler_.write().unwrap().refresh_state().await;
+                    handle_state_change();
+                }
+                _ = tokio:: time:: sleep(Duration::from_secs(1)) => {
+                    menu_handler_.write().unwrap().refresh_state().await;
+                    handle_state_change();
+                }
+            }
+        }
+    }
+}
+
+pub fn get_start_stop_text(state: &State) -> &str {
     if state == &State::Started {
         "Stop"
     } else {
@@ -74,15 +189,12 @@ fn get_start_stop_text(state: &State) -> &str {
     }
 }
 
-fn load_icon(path: &std::path::Path) -> tao::system_tray::Icon {
+pub fn load_icon(path: &std::path::Path) -> Icon {
     let (icon_rgba, icon_width, icon_height) = {
-        let image = image::open(path)
-            .expect("Failed to open icon path")
-            .into_rgba8();
+        let image = image::open(path).unwrap().into_rgba8();
         let (width, height) = image.dimensions();
         let rgba = image.into_raw();
         (rgba, width, height)
     };
-    tao::system_tray::Icon::from_rgba(icon_rgba, icon_width, icon_height)
-        .expect("Failed to open icon")
+    Icon::from_rgba(icon_rgba, icon_width, icon_height).unwrap()
 }

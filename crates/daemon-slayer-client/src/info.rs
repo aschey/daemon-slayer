@@ -1,5 +1,4 @@
 use crate::State;
-use daemon_slayer_core::cli::Printer;
 use owo_colors::OwoColorize;
 use serde::{Deserialize, Serialize};
 
@@ -13,8 +12,9 @@ pub struct Info {
 }
 
 impl Info {
+    #[cfg(feature = "cli")]
     pub fn pretty_print(&self) -> String {
-        let mut printer = Printer::default()
+        let mut printer = daemon_slayer_core::cli::Printer::default()
             .with_line("State", self.state.pretty_print())
             .with_line("Autostart", self.pretty_print_autostart())
             .with_line(
