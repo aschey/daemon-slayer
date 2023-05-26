@@ -2,11 +2,11 @@ use crate::{
     config::{windows::Trustee, Builder, Level},
     Info, Manager, State,
 };
-use daemon_slayer_core::{process::get_spawn_interactive_var, Label};
+use daemon_slayer_core::{async_trait, process::get_spawn_interactive_var, Label};
 use regex::Regex;
 use registry::{Data, Hive, Security};
 use std::io;
-use std::{thread, time::Duration};
+use std::time::Duration;
 use utfx::U16CString;
 use windows_service::{
     service::{
@@ -36,7 +36,11 @@ impl WindowsServiceManager {
         Ok(Self { config: builder })
     }
 
-    fn query_info(&self, service_name: &str, service_type: ServiceType) -> Result<Info, io::Error> {
+    async fn query_info(
+        &self,
+        service_name: &str,
+        service_type: ServiceType,
+    ) -> Result<Info, io::Error> {
         if self
             .find_service(service_type, ServiceAccessMode::Read)?
             .is_none()
@@ -45,6 +49,7 @@ impl WindowsServiceManager {
                 state: State::NotInstalled,
                 autostart: None,
                 pid: None,
+                id: None,
                 last_exit_code: None,
             });
         }
@@ -55,6 +60,7 @@ impl WindowsServiceManager {
                 state: State::NotInstalled,
                 autostart: None,
                 pid: None,
+                id: None,
                 last_exit_code: None,
             });
         };
@@ -90,6 +96,7 @@ impl WindowsServiceManager {
             state,
             autostart: Some(autostart),
             pid: service_status.process_id,
+            id: None,
             last_exit_code: last_exit_code.map(|code| code as i32),
         })
     }
@@ -180,7 +187,7 @@ impl WindowsServiceManager {
         self.open_service(&self.name(), mode)
     }
 
-    fn delete_service(
+    async fn delete_service(
         &self,
         service_name: &str,
         service_type: ServiceType,
@@ -195,7 +202,7 @@ impl WindowsServiceManager {
                 return Ok(());
             }
         }
-        if self.query_info(service_name, service_type)?.state != State::NotInstalled {
+        if self.query_info(service_name, service_type).await?.state != State::NotInstalled {
             let service = self.open_service(service_name, ServiceAccessMode::Write)?;
             service.delete().map_err(|e| {
                 io_error(format!(
@@ -240,13 +247,13 @@ impl WindowsServiceManager {
         }
     }
 
-    fn wait_for_state(&self, desired_state: State) -> Result<(), io::Error> {
+    async fn wait_for_state(&self, desired_state: State) -> Result<(), io::Error> {
         let attempts = 5;
         for _ in 0..attempts {
-            if self.info()?.state == desired_state {
+            if self.info().await?.state == desired_state {
                 return Ok(());
             }
-            thread::sleep(Duration::from_millis(1000));
+            tokio::time::sleep(Duration::from_millis(1000)).await;
         }
         Err(io::Error::new(
             io::ErrorKind::TimedOut,
@@ -338,6 +345,7 @@ impl WindowsServiceManager {
     }
 }
 
+#[async_trait]
 impl Manager for WindowsServiceManager {
     fn display_name(&self) -> &str {
         self.config.display_name()
@@ -351,28 +359,28 @@ impl Manager for WindowsServiceManager {
         &self.config.label
     }
 
-    fn reload_config(&mut self) -> Result<(), io::Error> {
-        let current_state = self.info()?.state;
+    async fn reload_config(&mut self) -> Result<(), io::Error> {
+        let current_state = self.info().await?.state;
         self.config.user_config.reload();
-        self.stop()?;
+        self.stop().await?;
         self.add_environment_variables()?;
         if current_state == State::Started {
-            self.start()?;
+            self.start().await?;
         }
         Ok(())
     }
 
-    fn on_config_changed(&mut self) -> Result<(), io::Error> {
+    async fn on_config_changed(&mut self) -> Result<(), io::Error> {
         let snapshot = self.config.user_config.snapshot();
         self.config.user_config.reload();
         let current = self.config.user_config.load();
         if current.environment_variables != snapshot.environment_variables {
-            self.reload_config()?;
+            self.reload_config().await?;
         }
         Ok(())
     }
 
-    fn install(&self) -> Result<(), io::Error> {
+    async fn install(&self) -> Result<(), io::Error> {
         if self.open_base_service(ServiceAccessMode::Write).is_err() {
             let service_info = self.get_service_info();
             let manager = self.get_manager(ServiceAccessMode::Write)?;
@@ -440,27 +448,28 @@ impl Manager for WindowsServiceManager {
         Ok(())
     }
 
-    fn uninstall(&self) -> Result<(), io::Error> {
-        if self.info()?.state == State::Started {
+    async fn uninstall(&self) -> Result<(), io::Error> {
+        if self.info().await?.state == State::Started {
             // Make sure we stop the service before attempting to uninstall, otherwise the uninstall can hang
-            self.stop()?;
-            self.wait_for_state(State::Stopped)?;
+            self.stop().await?;
+            self.wait_for_state(State::Stopped).await?;
         }
         if self.config.is_user() {
             if let Some(current_service_name) = self.current_service_name()? {
-                self.delete_service(&current_service_name, ServiceType::USER_OWN_PROCESS)?;
+                self.delete_service(&current_service_name, ServiceType::USER_OWN_PROCESS)
+                    .await?;
             };
             // Still attempt to delete the service template if the user service wasn't found
             // Could be that the user service wasn't created yet
         }
         let name = self.name();
-        self.delete_service(&name, ServiceType::OWN_PROCESS)?;
+        self.delete_service(&name, ServiceType::OWN_PROCESS).await?;
 
         Ok(())
     }
 
-    fn start(&self) -> Result<(), io::Error> {
-        if self.info()?.state == State::Started {
+    async fn start(&self) -> Result<(), io::Error> {
+        if self.info().await?.state == State::Started {
             return Ok(());
         }
 
@@ -471,8 +480,8 @@ impl Manager for WindowsServiceManager {
         Ok(())
     }
 
-    fn stop(&self) -> Result<(), io::Error> {
-        if self.info()?.state != State::Started {
+    async fn stop(&self) -> Result<(), io::Error> {
+        if self.info().await?.state != State::Started {
             return Ok(());
         }
         let service = self.open_current_service(ServiceAccessMode::Execute)?;
@@ -482,26 +491,26 @@ impl Manager for WindowsServiceManager {
         Ok(())
     }
 
-    fn restart(&self) -> Result<(), io::Error> {
-        if self.info()?.state == State::Started {
-            self.stop()?;
-            self.wait_for_state(State::Stopped)?;
+    async fn restart(&self) -> Result<(), io::Error> {
+        if self.info().await?.state == State::Started {
+            self.stop().await?;
+            self.wait_for_state(State::Stopped).await?;
         }
-        self.start()?;
-        self.wait_for_state(State::Started)
+        self.start().await?;
+        self.wait_for_state(State::Started).await
     }
 
-    fn enable_autostart(&mut self) -> Result<(), io::Error> {
+    async fn enable_autostart(&mut self) -> Result<(), io::Error> {
         self.set_autostart_enabled(true)?;
         Ok(())
     }
 
-    fn disable_autostart(&mut self) -> Result<(), io::Error> {
+    async fn disable_autostart(&mut self) -> Result<(), io::Error> {
         self.set_autostart_enabled(false)?;
         Ok(())
     }
 
-    fn info(&self) -> Result<Info, io::Error> {
+    async fn info(&self) -> Result<Info, io::Error> {
         let service = match self.current_service_name()? {
             Some(service) => service,
             None => {
@@ -509,6 +518,7 @@ impl Manager for WindowsServiceManager {
                     state: State::NotInstalled,
                     autostart: None,
                     pid: None,
+                    id: None,
                     last_exit_code: None,
                 })
             }
@@ -516,8 +526,9 @@ impl Manager for WindowsServiceManager {
 
         if self.config.is_user() {
             self.query_info(&service, ServiceType::USER_OWN_PROCESS)
+                .await
         } else {
-            self.query_info(&service, ServiceType::OWN_PROCESS)
+            self.query_info(&service, ServiceType::OWN_PROCESS).await
         }
     }
 

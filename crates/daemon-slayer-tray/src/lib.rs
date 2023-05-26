@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use daemon_slayer_client::{ServiceManager, State};
-use gtk::glib::{MainContext, PRIORITY_DEFAULT};
 use std::{
     path::PathBuf,
     sync::{Arc, RwLock},
@@ -124,7 +123,7 @@ impl<T: MenuHandler> Tray<T> {
         let (tray_tx, mut tray_rx) = tokio::sync::mpsc::channel(32);
 
         #[cfg(target_os = "linux")]
-        let (tx, rx) = MainContext::channel(PRIORITY_DEFAULT);
+        let (tx, rx) = gtk::glib::MainContext::channel(gtk::glib::PRIORITY_DEFAULT);
         #[cfg(target_os = "linux")]
         std::thread::spawn(move || {
             gtk::init().unwrap();
@@ -140,12 +139,13 @@ impl<T: MenuHandler> Tray<T> {
         });
 
         #[cfg(not(target_os = "linux"))]
-        {
-            let menu = menu_handler.write().unwrap().build_menu();
-            MenuEvent::set_event_handler(Some(move |e: MenuEvent| menu_tx.try_send(e).unwrap()));
-            TrayEvent::set_event_handler(Some(move |e| tray_tx.try_send(e).unwrap()));
-            let _tray_icon = menu_handler.write().unwrap().build_tray(&menu);
-        }
+        let menu = menu_handler.write().unwrap().build_menu();
+        #[cfg(not(target_os = "linux"))]
+        MenuEvent::set_event_handler(Some(move |e: MenuEvent| menu_tx.try_send(e).unwrap()));
+        #[cfg(not(target_os = "linux"))]
+        TrayEvent::set_event_handler(Some(move |e| tray_tx.try_send(e).unwrap()));
+        #[cfg(not(target_os = "linux"))]
+        let _tray_icon = menu_handler.write().unwrap().build_tray(&menu);
 
         #[cfg(target_os = "linux")]
         let handle_state_change = || tx.send(()).unwrap();

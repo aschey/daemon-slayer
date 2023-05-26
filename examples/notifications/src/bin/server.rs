@@ -140,8 +140,7 @@ impl Handler for ServiceHandler {
             {
                 Ok(_) => {
                     info!("stopping service");
-                    return Err("test".into());
-                    // panic!("Simulated panic");
+                    return Ok(());
                 }
                 Err(_) => {
                     if let Err(e) = Notification::new(Self::label())

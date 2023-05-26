@@ -29,6 +29,7 @@ impl Default for SignalListener {
             let (tx, _) = broadcast::channel(32);
             tx
         });
+
         Self { signal_tx }
     }
 }
@@ -47,6 +48,7 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
 
     async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let cancellation_token = context.cancellation_token();
+        let mut signal_rx = self.signal_tx.subscribe();
         info!("Registering signal handlers");
         let mut ctrl_c_stream = tokio::signal::windows::ctrl_c().unwrap();
         // TODO: leaving these commented while debugging signals not always getting sent
@@ -58,7 +60,7 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
         tokio::select! {
             _ = ctrl_c_stream.recv() => {
                 info!("Received ctrl+c signal");
-                self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok()
+                self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok();
             }
             // _ = ctrl_break_stream.recv() => {
             //     self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok()
@@ -72,6 +74,9 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
             // _ = ctrl_close_stream.recv() => {
             //     self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok()
             // }
+            _ = signal_rx.recv() => {
+                info!("Received signal from channel");
+            }
             _ = cancellation_token.cancelled() => {
                 info!("Shutdown requested. Stopping signal handler.");
                 self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok();

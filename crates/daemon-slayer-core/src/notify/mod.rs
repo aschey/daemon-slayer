@@ -137,8 +137,10 @@ impl Notification {
             return Ok(());
         }
 
+        #[cfg(all(unix, not(target_os = "macos")))]
         self.inner.show_async().await.unwrap();
-
+        #[cfg(any(not(unix), target_os = "macos"))]
+        self.inner.show().unwrap();
         Ok(())
     }
 

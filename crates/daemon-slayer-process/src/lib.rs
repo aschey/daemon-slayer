@@ -4,7 +4,7 @@ use daemon_slayer_core::cli::Printer;
 use serde::Serialize;
 use std::{collections::HashMap, path::PathBuf};
 use sysinfo::{
-    Pid, PidExt, Process, ProcessExt, ProcessRefreshKind, RefreshKind, System, SystemExt,
+    Pid, PidExt, Process, ProcessExt, ProcessRefreshKind, RefreshKind, Signal, System, SystemExt,
 };
 #[cfg(feature = "cli")]
 pub mod cli;
@@ -81,8 +81,9 @@ impl ProcessManager {
         let system = System::new_with_specifics(
             RefreshKind::new().with_processes(ProcessRefreshKind::everything()),
         );
+
         let proc = system.process(Pid::from_u32(pid)).unwrap();
-        proc.kill();
+        proc.kill_with(Signal::Kill);
     }
 
     pub fn process_info(&mut self) -> Option<ProcessInfo> {
