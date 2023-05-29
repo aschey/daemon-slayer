@@ -6,27 +6,33 @@ use daemon_slayer::{
     tray::Tray,
 };
 
-#[tokio::main]
-pub async fn main() -> Result<(), BoxedError> {
+pub fn main() -> Result<(), BoxedError> {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
     let icon_path = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/icon.png"));
-    let manager = client::builder(
-        standard::label(),
-        current_exe()?
-            .parent()
-            .expect("Current exe should have a parent")
-            .join("standard-server")
-            .try_into()?,
-    )
-    .with_description("test service")
-    .with_arg(&standard::run_argument())
-    .with_service_level(if cfg!(windows) {
-        Level::System
-    } else {
-        Level::User
-    })
-    .build()
-    .await?;
+    let manager = rt
+        .block_on(
+            client::builder(
+                standard::label(),
+                current_exe()?
+                    .parent()
+                    .expect("Current exe should have a parent")
+                    .join("standard-server")
+                    .try_into()?,
+            )
+            .with_description("test service")
+            .with_arg(&standard::run_argument())
+            .with_service_level(if cfg!(windows) {
+                Level::System
+            } else {
+                Level::User
+            })
+            .build(),
+        )
+        .unwrap();
 
-    Tray::with_default_handler(manager, icon_path).start().await;
+    Tray::with_default_handler(manager, icon_path).start();
     Ok(())
 }
