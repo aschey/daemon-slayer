@@ -1,6 +1,9 @@
 use async_trait::async_trait;
 use daemon_slayer_client::{ServiceManager, State};
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    time::{Duration, Instant},
+};
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
 use tray_icon::{
     icon::Icon,
@@ -109,32 +112,39 @@ impl Tray<DefaultMenuHandler> {
 
 impl<T: MenuHandler> Tray<T> {
     pub fn start(mut self) {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
+        let handle = tokio::runtime::Handle::current();
+        handle.block_on(self.menu_handler.refresh_state());
 
-        rt.block_on(self.menu_handler.refresh_state());
+        let event_loop = EventLoopBuilder::new().build();
 
         let menu = self.menu_handler.build_menu();
         let mut tray_icon = Some(self.menu_handler.build_tray(&menu));
 
-        let event_loop = EventLoopBuilder::new().build();
-
         let menu_channel = MenuEvent::receiver();
         let tray_channel = TrayEvent::receiver();
 
+        let mut last_update_time = Instant::now();
         event_loop.run(move |_event, _, control_flow| {
             if let Ok(event) = menu_channel.try_recv() {
-                rt.block_on(self.menu_handler.refresh_state());
-                *control_flow = rt.block_on(self.menu_handler.handle_menu_event(event));
+                *control_flow = handle.block_on(self.menu_handler.handle_menu_event(event));
+                handle.block_on(self.menu_handler.refresh_state());
                 self.menu_handler.update_menu(&menu)
             } else if let Ok(event) = tray_channel.try_recv() {
-                rt.block_on(self.menu_handler.refresh_state());
-                *control_flow = rt.block_on(self.menu_handler.handle_tray_event(event));
+                *control_flow = handle.block_on(self.menu_handler.handle_tray_event(event));
+                handle.block_on(self.menu_handler.refresh_state());
                 self.menu_handler.update_menu(&menu)
             } else {
-                *control_flow = ControlFlow::Poll;
+                let now = Instant::now();
+                if now.duration_since(last_update_time) >= Duration::from_secs(1) {
+                    handle.block_on(self.menu_handler.refresh_state());
+                    last_update_time = now;
+                }
+
+                *control_flow = ControlFlow::WaitUntil(
+                    Instant::now()
+                        .checked_add(Duration::from_millis(10))
+                        .unwrap(),
+                );
             }
 
             if *control_flow == ControlFlow::Exit {

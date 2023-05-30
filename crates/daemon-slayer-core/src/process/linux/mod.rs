@@ -11,6 +11,7 @@ use zbus::{dbus_proxy, zvariant::OwnedObjectPath, Connection};
     default_path = "/org/freedesktop/login1"
 )]
 trait Manager {
+    #[allow(clippy::type_complexity)]
     fn list_sessions(&self) -> zbus::Result<Vec<(String, u32, String, String, OwnedObjectPath)>>;
 }
 

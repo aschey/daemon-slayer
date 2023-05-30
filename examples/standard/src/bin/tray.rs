@@ -1,4 +1,4 @@
-use std::{env::current_exe, path::PathBuf};
+use std::{env::current_exe, path::PathBuf, time::Duration};
 
 use daemon_slayer::{
     client::{self, config::Level},
@@ -7,10 +7,13 @@ use daemon_slayer::{
 };
 
 pub fn main() -> Result<(), BoxedError> {
-    let rt = tokio::runtime::Builder::new_current_thread()
+    let rt = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
+        .worker_threads(1)
         .build()
         .unwrap();
+    let _guard = rt.enter();
+
     let icon_path = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/icon.png"));
     let manager = rt
         .block_on(

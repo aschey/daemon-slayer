@@ -5,7 +5,7 @@ use std::{
 
 use notify_rust::{Hint, Timeout, Urgency};
 
-use crate::{process::get_spawn_interactive_var, Label};
+use crate::Label;
 
 #[derive(thiserror::Error, Debug)]
 pub enum NotificationError {
@@ -110,7 +110,7 @@ impl Notification {
         // We get around this by spawning a separate process running as the current user
         // and sending the notification from there
         #[cfg(windows)]
-        if let Ok("1" | "true") = env::var(get_spawn_interactive_var(&self.label))
+        if let Ok("1" | "true") = env::var(crate::process::get_spawn_interactive_var(&self.label))
             .map(|v| v.to_lowercase())
             .as_deref()
         {
