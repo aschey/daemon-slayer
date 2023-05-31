@@ -345,10 +345,24 @@ impl LoggerBuilder {
             .with(tracing_error::ErrorLayer::default());
 
         #[cfg(feature = "ipc")]
-        let (ipc_writer, ipc_guard) = if self.enable_ipc_logger {
-            tilia::Writer::<1024>::new(&(self.label.application.to_owned() + "_logger"))
-        } else {
-            tilia::Writer::disabled()
+        let (ipc_writer, ipc_guard) = {
+            use tower_rpc::{
+                transport::{ipc, CodecTransport},
+                LengthDelimitedCodec,
+            };
+            let name = self.label.application.to_owned() + "_logger";
+            let make_transport = move || {
+                let name = name.to_owned();
+                Box::pin(async move {
+                    let transport = ipc::create_endpoint(name, ipc::OnConflict::Overwrite).unwrap();
+                    CodecTransport::new(transport, LengthDelimitedCodec)
+                })
+            };
+            if self.enable_ipc_logger {
+                tilia::Writer::<1024, _, _, _, _, _>::new(make_transport)
+            } else {
+                tilia::Writer::<1024, _, _, _, _, _>::disabled(make_transport)
+            }
         };
         #[cfg(feature = "ipc")]
         guard.add_guard(Box::new(ipc_guard));

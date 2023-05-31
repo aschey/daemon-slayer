@@ -5,7 +5,7 @@ version = "0.1.0"
 
 [dependencies]
 confique = { version = ">= 0.2.2", optional = true }
-crossterm = { version = "0.25", features = ["event-stream"] }
+crossterm = { version = "0.26", features = ["event-stream"] }
 daemon-slayer-client = { path = "../daemon-slayer-client" }
 daemon-slayer-core = { path = "../daemon-slayer-core", features = [
     "server",
@@ -14,9 +14,15 @@ daemon-slayer-core = { path = "../daemon-slayer-core", features = [
 ], optional = true }
 futures = { version = "0.3" }
 serde = { version = "1", optional = true }
-tilia-widget = { git = "https://github.com/aschey/tilia", rev = "ccfc59e04403da27784d9361bd766a4ce175e62c" }
+tilia-widget = { git = "https://github.com/aschey/tilia", rev = "d6dcdf00b83fd78902baa33c033758763065dfb7" }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-tui = { version = "0.19" }
+ratatui = { version = "0.21" }
+tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "72f2d60708dc57d91e8330f7efbec77744f763c3", features = [
+    "client",
+    "server",
+    "ipc",
+] }
+
 
 [features]
 cli = ["daemon-slayer-core/cli"]

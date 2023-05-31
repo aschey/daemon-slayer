@@ -10,17 +10,21 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = {version = "1.1", features = []}
+tauri-build = { version = "1.1", features = [] }
 
 [dependencies]
-daemon-slayer-client = {path = "../../daemon-slayer-client"}
-daemon-slayer-health-check = {path = "../../daemon-slayer-health-check", features = ["http-health-check"]}
-serde = {version = "1.0", features = ["derive"]}
+daemon-slayer-client = { path = "../../daemon-slayer-client" }
+daemon-slayer-health-check = { path = "../../daemon-slayer-health-check", features = [
+    "http-health-check",
+] }
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tauri = {version = "1.1", features = ["api-all", "system-tray"]}
-tauri-plugin-positioner = {git = "https://github.com/aschey/tauri-plugin-positioner", features = ["system-tray"]}
-tilia = {git = "https://github.com/aschey/tilia", rev = "ccfc59e04403da27784d9361bd766a4ce175e62c"}
-tokio = {version = "1.21.2", features = ["time"]}
+tauri = { version = "1.1", features = ["api-all", "system-tray"] }
+tauri-plugin-positioner = { git = "https://github.com/aschey/tauri-plugin-positioner", features = [
+    "system-tray",
+] }
+tilia = { git = "https://github.com/aschey/tilia", rev = "d6dcdf00b83fd78902baa33c033758763065dfb7" }
+tokio = { version = "1.21.2", features = ["time"] }
 
 [features]
 # by default Tauri runs in production mode

@@ -12,21 +12,23 @@ use daemon_slayer_core::{
     BoxedError, CancellationToken, FutureExt,
 };
 use futures::{Future, StreamExt};
+use ratatui::{
+    backend::CrosstermBackend,
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, BorderType, Borders, Paragraph},
+    Frame, Terminal,
+};
 use std::{
     io::{self, Stdout},
     pin::Pin,
+    rc::Rc,
     time::{Duration, Instant},
 };
 use tilia_widget::LogView;
 use tokio::sync::mpsc;
-use tui::{
-    backend::CrosstermBackend,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    text::{Span, Spans},
-    widgets::{Block, BorderType, Borders, Paragraph},
-    Frame, Terminal,
-};
+use tower_rpc::{length_delimited_codec, transport::ipc};
 
 #[derive(daemon_slayer_core::Mergeable, Debug, Clone, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "config", derive(confique::Config, serde::Deserialize))]
@@ -114,7 +116,13 @@ impl Console {
         Self {
             manager,
             info,
-            logs: LogView::new(name),
+            logs: LogView::new(move || {
+                let name = name.clone();
+                Box::pin(async move {
+                    let client_transport = ipc::connect(name).await?;
+                    Ok(length_delimited_codec(client_transport))
+                })
+            }),
             button_index: 0,
             is_healthy: None,
             health_check: None,
@@ -368,8 +376,8 @@ impl Console {
             .split(top_right);
 
         let button = Paragraph::new(vec![
-            Spans::from(""),
-            Spans::from(vec![
+            Line::from(""),
+            Line::from(vec![
                 Span::raw(" "),
                 get_button(
                     if self.info.state == State::NotInstalled {
@@ -480,7 +488,7 @@ fn get_label_value(value: impl Into<String>, color: Color) -> Paragraph<'static>
         .style(Style::default().fg(color))
 }
 
-fn get_label_area(num_labels: u16, left: Rect) -> (Vec<Rect>, Vec<Rect>) {
+fn get_label_area(num_labels: u16, left: Rect) -> (Rc<[Rect]>, Rc<[Rect]>) {
     let bounds: Vec<_> = (0..num_labels).map(|_| Constraint::Length(1)).collect();
     let vert_slices = horizontal()
         .margin(2)
