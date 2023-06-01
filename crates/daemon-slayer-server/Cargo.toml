@@ -27,7 +27,7 @@ tokio = { version = "1", features = [
     "macros",
     "sync",
 ] }
-windows-service = { git = "https://github.com/aschey/windows-service-rs", rev = "467408c9aba7d8221e5cf5a9992765ad7abeeb55" }
+windows-service = { git = "https://github.com/aschey/windows-service-rs", rev = "32919aebe4c59f7855a8ebd72fe7d716db6a8f28" }
 
 [target.'cfg(unix)'.dependencies]
 tokio = { version = "1", features = [

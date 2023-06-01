@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use bollard::service::HostConfig;
 use daemon_slayer::{
     cli::Cli,
     client::{
@@ -9,7 +12,7 @@ use daemon_slayer::{
         },
     },
     config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir},
-    console::{self, cli::ConsoleCliProvider, Console},
+    console::{self, cli::ConsoleCliProvider, Console, LogSource},
     core::BoxedError,
     error_handler::{cli::ErrorHandlerCliProvider, ErrorSink},
     logging::{
@@ -59,13 +62,25 @@ async fn run() -> Result<(), BoxedError> {
             ServiceAccess::Start | ServiceAccess::Stop | ServiceAccess::ChangeConfig,
         ))
         .with_user_config(config.clone())
+        .with_configure_container(|config| {
+            let current_dir = std::env::current_dir().unwrap();
+            let path_mount = format!(
+                "{}/config:{}",
+                current_dir.to_string_lossy(),
+                "/root/.config".to_owned()
+            );
+            config.host_config = Some(HostConfig {
+                binds: Some(vec![path_mount]),
+                ..Default::default()
+            });
+        })
         .build()
         .await?;
 
     let logger_builder = LoggerBuilder::new(containerized::label()).with_config(app_config.clone());
 
     let app_config_ = app_config.clone();
-    let console = Console::new(manager.clone())
+    let console = Console::new(manager.clone(), LogSource::Container)
         .await
         .with_config(app_config.clone())
         .with_configure_services(move |mut context| {

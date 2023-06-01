@@ -73,25 +73,30 @@ impl Manager for DockerServiceManager {
     }
 
     async fn install(&self) -> Result<(), io::Error> {
+        let mut config = bollard::container::Config {
+            image: Some(self.config.program.clone()),
+            env: Some(
+                self.config
+                    .user_config
+                    .load()
+                    .environment_variables
+                    .iter()
+                    .map(|e| format!("{}={}", e.name, e.value))
+                    .collect(),
+            ),
+            ..Default::default()
+        };
+        if let Some(configure) = &self.config.configure_container {
+            configure(&mut config);
+        }
+
         self.docker
             .create_container::<&str, String>(
                 Some(CreateContainerOptions {
                     name: &self.name(),
                     ..Default::default()
                 }),
-                bollard::container::Config {
-                    image: Some(self.config.program.clone()),
-                    env: Some(
-                        self.config
-                            .user_config
-                            .load()
-                            .environment_variables
-                            .iter()
-                            .map(|e| format!("{}={}", e.name, e.value))
-                            .collect(),
-                    ),
-                    ..Default::default()
-                },
+                config,
             )
             .await
             .unwrap();

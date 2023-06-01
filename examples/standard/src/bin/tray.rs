@@ -1,4 +1,4 @@
-use std::{env::current_exe, path::PathBuf, time::Duration};
+use std::{env::current_exe, path::PathBuf};
 
 use daemon_slayer::{
     client::{self, config::Level},

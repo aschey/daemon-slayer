@@ -14,9 +14,6 @@ ENV UID=10001
 RUN adduser \
     --disabled-password \
     --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
     --uid "${UID}" \
     "${USER}"
 
@@ -24,8 +21,6 @@ RUN adduser \
 WORKDIR /app
 
 COPY ./ .
-
-RUN ls
 
 RUN cd examples/containerized && cargo build --bin containerized-server --target x86_64-unknown-linux-musl
 
@@ -37,6 +32,7 @@ FROM scratch
 # Import from builder.
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
+COPY --from=builder /home /home
 
 WORKDIR /app
 
@@ -44,6 +40,5 @@ WORKDIR /app
 COPY --from=builder /app/examples/target/x86_64-unknown-linux-musl/debug/containerized-server ./
 
 # Use an unprivileged user.
-USER app:app
-
+#USER app:app
 CMD ["/app/containerized-server"]

@@ -211,17 +211,14 @@ impl LoggerBuilder {
     }
 
     fn get_filter_for_target(&self, target: LogTarget) -> EnvFilter {
+        // Don't filer anything by default
+        let mut env_filter = EnvFilter::default().add_directive(LevelFilter::TRACE.into());
         if let Some(directives) = self.target_directives.get(&target) {
-            let mut env_filter = EnvFilter::from_default_env()
-                .add_directive(self.user_config.snapshot().log_level.0.into());
             for directive in directives {
                 env_filter = env_filter.add_directive(directive.clone());
             }
-            env_filter
-        } else {
-            EnvFilter::from_default_env()
-                .add_directive(self.user_config.snapshot().log_level.0.into())
         }
+        env_filter
     }
 
     pub fn register(&self) -> Result<(), BoxedError> {
@@ -262,8 +259,7 @@ impl LoggerBuilder {
             _ => OffsetTime::new(UtcOffset::UTC, well_known::Rfc3339),
         };
 
-        let mut env_filter = EnvFilter::from_default_env()
-            .add_directive(self.user_config.snapshot().log_level.0.into());
+        let mut env_filter = EnvFilter::default().add_directive(LevelFilter::TRACE.into());
         for directive in &self.env_filter_directives {
             env_filter = env_filter.add_directive(directive.clone());
         }
@@ -325,7 +321,7 @@ impl LoggerBuilder {
                     .with_filter(if self.log_to_stdout {
                         self.get_filter_for_target(LogTarget::Stdout)
                     } else {
-                        EnvFilter::from_default_env().add_directive(LevelFilter::OFF.into())
+                        EnvFilter::default().add_directive(LevelFilter::OFF.into())
                     })
             })
             .with({
@@ -339,7 +335,7 @@ impl LoggerBuilder {
                     .with_filter(if self.log_to_stderr {
                         self.get_filter_for_target(LogTarget::Stderr)
                     } else {
-                        EnvFilter::from_default_env().add_directive(LevelFilter::OFF.into())
+                        EnvFilter::default().add_directive(LevelFilter::OFF.into())
                     })
             })
             .with(tracing_error::ErrorLayer::default());

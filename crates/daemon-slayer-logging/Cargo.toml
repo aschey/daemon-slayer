@@ -24,7 +24,7 @@ once_cell = "1"
 serde = { version = "1", optional = true }
 tap = "1"
 thiserror = "1"
-tilia = { git = "https://github.com/aschey/tilia", rev = "d6dcdf00b83fd78902baa33c033758763065dfb7", optional = true }
+tilia = { git = "https://github.com/aschey/tilia", rev = "9c64d54cfe1e403727816790cb08b650b0dcf8bf", optional = true }
 time = "0.3"
 tracing = "0.1"
 tracing-appender = { version = "0.2" }

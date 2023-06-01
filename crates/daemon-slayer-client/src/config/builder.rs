@@ -9,9 +9,11 @@ use daemon_slayer_core::config::Accessor;
 use daemon_slayer_core::config::CachedConfig;
 use daemon_slayer_core::CommandArg;
 use daemon_slayer_core::Label;
+use derivative::Derivative;
 use std::env::consts::EXE_EXTENSION;
 use std::io;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 #[derive(thiserror::Error, Debug)]
 pub enum IntoProgramError {
@@ -51,7 +53,15 @@ pub enum ServiceType {
     Container,
 }
 
-#[derive(Clone, Debug)]
+pub trait ContainerConfigFn: Send + Sync {}
+
+impl<F> ContainerConfigFn for F where
+    F: FnMut(&mut bollard::container::Config<String>) + Clone + Send + Sync
+{
+}
+
+#[derive(Clone, Derivative)]
+#[derivative(Debug)]
 pub struct Builder {
     pub(crate) label: Label,
     #[cfg_attr(unix, allow(unused))]
@@ -68,6 +78,9 @@ pub struct Builder {
     pub(crate) windows_config: WindowsConfig,
     pub(crate) user_config: CachedConfig<UserConfig>,
     pub(crate) service_type: ServiceType,
+    #[derivative(Debug = "ignore")]
+    pub(crate) configure_container:
+        Option<Arc<Box<dyn Fn(&mut bollard::container::Config<String>) + Send + Sync>>>,
 }
 
 impl Builder {
@@ -84,6 +97,7 @@ impl Builder {
             windows_config: Default::default(),
             user_config: Default::default(),
             service_type: ServiceType::Native,
+            configure_container: None,
         }
     }
 
@@ -153,6 +167,14 @@ impl Builder {
 
     pub fn with_service_type(mut self, service_type: ServiceType) -> Self {
         self.service_type = service_type;
+        self
+    }
+
+    pub fn with_configure_container(
+        mut self,
+        configure_container: impl Fn(&mut bollard::container::Config<String>) + Send + Sync + 'static,
+    ) -> Self {
+        self.configure_container = Some(Arc::new(Box::new(configure_container)));
         self
     }
 

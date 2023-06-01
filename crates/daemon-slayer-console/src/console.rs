@@ -26,9 +26,11 @@ use std::{
     rc::Rc,
     time::{Duration, Instant},
 };
-use tilia_widget::LogView;
+use tilia_widget::{
+    transport::{docker::docker_client, ipc_client},
+    LogView,
+};
 use tokio::sync::mpsc;
-use tower_rpc::{length_delimited_codec, transport::ipc};
 
 #[derive(daemon_slayer_core::Mergeable, Debug, Clone, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "config", derive(confique::Config, serde::Deserialize))]
@@ -96,6 +98,12 @@ impl BackgroundService for HealthChecker {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum LogSource {
+    Ipc,
+    Container,
+}
+
 pub struct Console {
     manager: ServiceManager,
     info: Info,
@@ -110,19 +118,16 @@ pub struct Console {
 }
 
 impl Console {
-    pub async fn new(manager: ServiceManager) -> Self {
+    pub async fn new(manager: ServiceManager, log_source: LogSource) -> Self {
         let info = manager.info().await.unwrap();
-        let name = manager.label().application.to_owned() + "_logger";
+        let name = manager.label().application.to_owned();
         Self {
             manager,
             info,
-            logs: LogView::new(move || {
-                let name = name.clone();
-                Box::pin(async move {
-                    let client_transport = ipc::connect(name).await?;
-                    Ok(length_delimited_codec(client_transport))
-                })
-            }),
+            logs: match log_source {
+                LogSource::Ipc => LogView::new(ipc_client(name + "_logger")),
+                LogSource::Container => LogView::new(docker_client(name)),
+            },
             button_index: 0,
             is_healthy: None,
             health_check: None,

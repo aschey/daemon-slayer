@@ -11,7 +11,7 @@ use daemon_slayer::{
         },
     },
     config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir},
-    console::{self, cli::ConsoleCliProvider, Console},
+    console::{self, cli::ConsoleCliProvider, Console, LogSource},
     core::BoxedError,
     error_handler::{cli::ErrorHandlerCliProvider, ErrorSink},
     logging::{
@@ -73,7 +73,7 @@ async fn run() -> Result<(), BoxedError> {
     let logger_builder = LoggerBuilder::new(notifications::label()).with_config(app_config.clone());
 
     let app_config_ = app_config.clone();
-    let console = Console::new(manager.clone())
+    let console = Console::new(manager.clone(), LogSource::Ipc)
         .await
         .with_config(app_config.clone())
         .with_configure_services(move |mut context| {

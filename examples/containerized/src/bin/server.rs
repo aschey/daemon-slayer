@@ -35,16 +35,16 @@ pub async fn main() -> Result<(), ErrorSink> {
 
 #[derive(Clone)]
 pub struct AppData {
-    // config: AppConfig<MyConfig>,
+    config: AppConfig<MyConfig>,
     reload_handle: ReloadHandle,
 }
 
 async fn run() -> Result<(), BoxedError> {
-    // let app_config =
-    //     AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(containerized::label())).build()?;
+    let app_config =
+        AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(containerized::label())).build()?;
 
-    let logger_builder = LoggerBuilder::new(ServiceHandler::label());
-    // .with_config(app_config.clone());
+    let logger_builder =
+        LoggerBuilder::new(ServiceHandler::label()).with_config(app_config.clone());
 
     let mut cli = Cli::builder()
         .with_provider(ServerCliProvider::<ServiceHandler>::new(
@@ -52,7 +52,7 @@ async fn run() -> Result<(), BoxedError> {
         ))
         .with_provider(LoggingCliProvider::new(logger_builder))
         .with_provider(ErrorHandlerCliProvider::new(containerized::label()))
-        // .with_provider(ConfigCliProvider::new(app_config.clone()))
+        .with_provider(ConfigCliProvider::new(app_config.clone()))
         .initialize()?;
 
     let (logger, reload_handle) = cli.take_provider::<LoggingCliProvider>().get_logger()?;
@@ -61,7 +61,7 @@ async fn run() -> Result<(), BoxedError> {
 
     cli.get_provider::<ServerCliProvider<ServiceHandler>>()
         .set_input_data(AppData {
-            // config: app_config,
+            config: app_config,
             reload_handle: reload_handle.clone(),
         });
 
@@ -93,15 +93,15 @@ impl Handler for ServiceHandler {
         let signal_store = signal_listener.get_event_store();
         context.add_service(signal_listener).await?;
 
-        // let config_service = ConfigService::new(input_data.config);
-        // let file_events = config_service.get_event_store();
-        // context.add_service(config_service).await?;
-        // context
-        //     .add_service(LoggingUpdateService::new(
-        //         input_data.reload_handle,
-        //         file_events,
-        //     ))
-        //     .await?;
+        let config_service = ConfigService::new(input_data.config);
+        let file_events = config_service.get_event_store();
+        context.add_service(config_service).await?;
+        context
+            .add_service(LoggingUpdateService::new(
+                input_data.reload_handle,
+                file_events,
+            ))
+            .await?;
 
         Ok(Self { signal_store })
     }
@@ -122,7 +122,7 @@ impl Handler for ServiceHandler {
                     info!(
                         "Run time: {} seconds",
                         Instant::now().duration_since(start_time).as_secs()
-                    )
+                    );
                 }
             }
         }
