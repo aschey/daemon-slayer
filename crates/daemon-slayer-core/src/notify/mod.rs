@@ -109,7 +109,7 @@ impl Notification {
         // Windows services running as admin can't send notifications
         // We get around this by spawning a separate process running as the current user
         // and sending the notification from there
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "macos"))]
         if let Ok("1" | "true") = env::var(crate::process::get_spawn_interactive_var(&self.label))
             .map(|v| v.to_lowercase())
             .as_deref()
@@ -120,8 +120,11 @@ impl Notification {
                 self.to_args()
             );
 
+            #[cfg(windows)]
             return crate::process::windows::start_process_as_current_user(&cmd, false)
                 .map_err(NotificationError::ProcessSpawnFailure);
+            #[cfg(target_os = "macos")]
+            crate::process::macos::run_process_as_logged_on_user(&cmd).await;
         }
 
         #[cfg(target_os = "linux")]
@@ -138,9 +141,15 @@ impl Notification {
         }
 
         #[cfg(all(unix, not(target_os = "macos")))]
-        self.inner.show_async().await.unwrap();
+        self.inner
+            .show_async()
+            .await
+            .map_err(|e| NotificationError::NotificationFailure(e))?;
+
         #[cfg(any(not(unix), target_os = "macos"))]
-        self.inner.show().unwrap();
+        self.inner
+            .show()
+            .map_err(|e| NotificationError::NotificationFailure(e))?;
         Ok(())
     }
 
