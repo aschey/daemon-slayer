@@ -144,12 +144,12 @@ impl Notification {
         self.inner
             .show_async()
             .await
-            .map_err(|e| NotificationError::NotificationFailure(e))?;
+            .map_err(NotificationError::NotificationFailure)?;
 
         #[cfg(any(not(unix), target_os = "macos"))]
         self.inner
             .show()
-            .map_err(|e| NotificationError::NotificationFailure(e))?;
+            .map_err(NotificationError::NotificationFailure)?;
         Ok(())
     }
 
