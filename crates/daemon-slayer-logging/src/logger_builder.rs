@@ -4,12 +4,12 @@ use daemon_slayer_core::{
     config::{Accessor, CachedConfig},
     BoxedError, Label, Mergeable,
 };
-use once_cell::sync::OnceCell;
 use std::{
     collections::HashMap,
     io::{self, stderr, stdout},
     ops::Deref,
     str::FromStr,
+    sync::OnceLock,
 };
 use time::{
     format_description::well_known::{self, Rfc3339},
@@ -27,10 +27,10 @@ use tracing_subscriber::{
     EnvFilter, Layer as SubscriberLayer,
 };
 
-static LOGGER_GUARD: OnceCell<Option<LoggerGuard>> = OnceCell::new();
+static LOGGER_GUARD: OnceLock<Option<LoggerGuard>> = OnceLock::new();
 
-static LOCAL_TIME: OnceCell<Result<OffsetTime<Rfc3339>, time::error::IndeterminateOffset>> =
-    OnceCell::new();
+static LOCAL_TIME: OnceLock<Result<OffsetTime<Rfc3339>, time::error::IndeterminateOffset>> =
+    OnceLock::new();
 
 #[must_use]
 pub struct GlobalLoggerGuard;

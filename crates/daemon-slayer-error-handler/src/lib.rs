@@ -1,13 +1,12 @@
 use std::{
     error::Error,
     fmt::{Debug, Display},
-    sync::{mpsc, Arc},
+    sync::{mpsc, Arc, OnceLock},
 };
 
 pub use color_eyre::config::Theme;
 use color_eyre::Report;
 use daemon_slayer_core::Label;
-use once_cell::sync::OnceCell;
 use tap::TapFallible;
 use tracing::error;
 #[cfg(feature = "cli")]
@@ -15,7 +14,7 @@ pub mod cli;
 
 pub use color_eyre;
 
-static HANDLER: OnceCell<ErrorHandler> = OnceCell::new();
+static HANDLER: OnceLock<ErrorHandler> = OnceLock::new();
 
 #[derive(thiserror::Error, Debug)]
 #[error("Unable to install error handler: {0}")]

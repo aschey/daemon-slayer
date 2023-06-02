@@ -1,11 +1,11 @@
-use once_cell::sync::OnceCell;
+use std::sync::OnceLock;
 use tap::TapFallible;
 use tokio::sync::broadcast;
 use tracing::error;
 
 use super::Signal;
 
-static SENDER: OnceCell<broadcast::Sender<Signal>> = OnceCell::new();
+static SENDER: OnceLock<broadcast::Sender<Signal>> = OnceLock::new();
 
 pub fn set_sender(tx: broadcast::Sender<Signal>) {
     SENDER

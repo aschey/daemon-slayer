@@ -13,7 +13,6 @@ derivative = "2"
 downcast-rs = { version = "1", optional = true }
 dyn-clonable = { version = "0.9", optional = true }
 futures = { version = "0.3" }
-once_cell = { version = "1", optional = true }
 owo-colors = { version = "3", optional = true }
 pin-project-lite = "0.2.9"
 strum = { version = "0.24", optional = true }
@@ -60,7 +59,7 @@ config = [
 ]
 health-check = []
 server = ["tokio-stream", "background-service"]
-signal = ["once_cell"]
+signal = []
 notify = ["notify-rust", "process"]
 process = [
     "windows-sys",

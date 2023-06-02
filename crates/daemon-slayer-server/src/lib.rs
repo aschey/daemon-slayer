@@ -16,8 +16,6 @@ pub mod cli;
 pub use sd_notify;
 
 #[cfg(windows)]
-pub use once_cell;
-#[cfg(windows)]
 pub use windows_service;
 
 pub use daemon_slayer_core::{
