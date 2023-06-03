@@ -17,7 +17,7 @@ pub struct Config {
     pub label: Label,
     pub display_name: Option<String>,
     pub description: String,
-    pub program: String,
+    pub program: Program,
     pub arguments: Vec<String>,
     pub service_level: Level,
     pub autostart: bool,

@@ -81,7 +81,7 @@ impl Manager for DockerServiceManager {
 
     async fn install(&self) -> Result<(), io::Error> {
         let mut config = bollard::container::Config {
-            image: Some(self.config.program.clone()),
+            image: Some(self.config.program.name().to_owned()),
             env: Some(
                 self.config
                     .user_config

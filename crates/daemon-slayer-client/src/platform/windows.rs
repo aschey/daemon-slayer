@@ -239,7 +239,7 @@ impl WindowsServiceManager {
                 ServiceStartType::OnDemand
             },
             error_control: ServiceErrorControl::Normal,
-            executable_path: (&self.config.program).into(),
+            executable_path: self.config.program.full_name().into(),
             launch_arguments: self.config.arguments_iter().map(Into::into).collect(),
             dependencies: vec![],
             account_name: None, // run as System

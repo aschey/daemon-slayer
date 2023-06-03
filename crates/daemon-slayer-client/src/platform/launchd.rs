@@ -173,8 +173,8 @@ impl Manager for LaunchdServiceManager {
     }
 
     async fn install(&self) -> Result<(), io::Error> {
-        let mut file = Launchd::new(self.name(), &self.config.program)
-            .map_err(|e| from_launchd_error(&self.config.program, e))?
+        let mut file = Launchd::new(self.name(), self.config.program.full_name())
+            .map_err(|e| from_launchd_error(self.config.program.full_name(), e))?
             .with_program_arguments(
                 self.config
                     .full_arguments_iter()

@@ -1,5 +1,8 @@
 use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyModifiers},
+    event::{
+        DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyEventKind,
+        KeyModifiers,
+    },
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -237,54 +240,56 @@ impl Console {
                     if let Some(event) = maybe_event {
                         match event {
                             Ok(Event::Key(key)) => {
-                                match (key.modifiers, key.code) {
-                                    (_, KeyCode::Char('q') | KeyCode::Esc) |
-                                        (KeyModifiers::CONTROL, KeyCode::Char('c')) => {
-                                            cancellation_token.cancel();
-                                            return Ok(());
-                                        },
-                                    (_, KeyCode::Down) =>  self.logs.next(),
-                                    (_, KeyCode::Up) =>  self.logs.previous(),
-                                    (_, KeyCode::Left) => {
-                                        if self.button_index > 0 {
-                                            self.button_index -= 1;
-                                        }
-                                    }
-                                    (_, KeyCode::Right) => {
-                                        if self.button_index < 4 {
-                                            self.button_index += 1;
-                                        }
-                                    }
-                                    (_, KeyCode::Enter) => {
-                                        match self.button_index {
-                                            0 => {
-                                                if self.info.state == State::NotInstalled {
-                                                    self.manager.install().await?
-                                                } else {
-                                                    self.manager.uninstall().await?;
-                                                }
+                                if key.kind == KeyEventKind::Press {
+                                    match (key.modifiers, key.code) {
+                                        (_, KeyCode::Char('q') | KeyCode::Esc) |
+                                            (KeyModifiers::CONTROL, KeyCode::Char('c')) => {
+                                                cancellation_token.cancel();
+                                                return Ok(());
                                             },
-                                            1 => {
-                                                    if self.info.autostart.unwrap_or(false) {
-                                                        self.manager.disable_autostart().await?;
+                                        (_, KeyCode::Down) =>  self.logs.next(),
+                                        (_, KeyCode::Up) =>  self.logs.previous(),
+                                        (_, KeyCode::Left) => {
+                                            if self.button_index > 0 {
+                                                self.button_index -= 1;
+                                            }
+                                        }
+                                        (_, KeyCode::Right) => {
+                                            if self.button_index < 4 {
+                                                self.button_index += 1;
+                                            }
+                                        }
+                                        (_, KeyCode::Enter) => {
+                                            match self.button_index {
+                                                0 => {
+                                                    if self.info.state == State::NotInstalled {
+                                                        self.manager.install().await?
                                                     } else {
-                                                        self.manager.enable_autostart().await?;
+                                                        self.manager.uninstall().await?;
                                                     }
-                                                }
-                                            2 => {
-                                                if self.info.state == State::Stopped {
-                                                    self.manager.start().await?
-                                                } else {
-                                                    self.manager.stop().await?;
-                                                }
-                                            },
-                                            3 => {
-                                                self.manager.restart().await?;
-                                            },
-                                            _ => {}
+                                                },
+                                                1 => {
+                                                        if self.info.autostart.unwrap_or(false) {
+                                                            self.manager.disable_autostart().await?;
+                                                        } else {
+                                                            self.manager.enable_autostart().await?;
+                                                        }
+                                                    }
+                                                2 => {
+                                                    if self.info.state == State::Stopped {
+                                                        self.manager.start().await?
+                                                    } else {
+                                                        self.manager.stop().await?;
+                                                    }
+                                                },
+                                                3 => {
+                                                    self.manager.restart().await?;
+                                                },
+                                                _ => {}
+                                            }
                                         }
+                                        _ => {}
                                     }
-                                    _ => {}
                                 }
                             }
                             Err(_e) => return Ok(()),

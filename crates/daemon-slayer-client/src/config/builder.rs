@@ -21,13 +21,33 @@ pub enum IntoProgramError {
     InvalidUtf8,
 }
 
-pub struct Program(String);
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Program {
+    name: String,
+    full_name: String,
+}
 
 impl Program {
     pub fn new(path: impl Into<PathBuf>) -> Result<Self, IntoProgramError> {
-        let pathbuf: PathBuf = path.into().with_extension(EXE_EXTENSION);
-        let path_string = pathbuf.to_str().ok_or(IntoProgramError::InvalidUtf8)?;
-        Ok(Program(path_string.to_owned()))
+        let name: PathBuf = path.into();
+
+        let full_name = name
+            .with_extension(EXE_EXTENSION)
+            .to_str()
+            .ok_or(IntoProgramError::InvalidUtf8)?
+            .to_owned();
+        Ok(Program {
+            name: name.to_string_lossy().to_string(),
+            full_name,
+        })
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn full_name(&self) -> &str {
+        &self.full_name
     }
 }
 
@@ -68,7 +88,7 @@ pub struct Builder {
     pub(crate) display_name: Option<String>,
     #[cfg_attr(unix, allow(unused))]
     pub(crate) description: String,
-    pub(crate) program: String,
+    pub(crate) program: Program,
     pub(crate) arguments: Vec<String>,
     pub(crate) service_level: Level,
     pub(crate) autostart: bool,
@@ -90,7 +110,7 @@ impl Builder {
             display_name: None,
             description: "".to_owned(),
             arguments: vec![],
-            program: program.0,
+            program,
             service_level: Level::System,
             autostart: false,
             systemd_config: Default::default(),
@@ -208,6 +228,6 @@ impl Builder {
 
     #[cfg(unix)]
     pub(crate) fn full_arguments_iter(&self) -> impl Iterator<Item = &String> {
-        std::iter::once(&self.program).chain(self.arguments_iter())
+        std::iter::once(&self.program.full_name).chain(self.arguments_iter())
     }
 }
