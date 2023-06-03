@@ -1,6 +1,6 @@
 use std::{io, time::Duration};
 
-use crate::{Info, ServiceManager, State};
+use crate::{config::Level, Info, ServiceManager, State};
 use daemon_slayer_core::{
     async_trait,
     cli::{
@@ -115,6 +115,14 @@ impl CommandProvider for ClientCliProvider {
             match action {
                 ClientAction::Install => {
                     self.manager.install().await?;
+
+                    #[cfg(windows)]
+                    if self.manager.config().service_level == Level::User {
+                        return Ok(CommandOutput::handled(
+                            "Please log out to complete service installation".to_owned(),
+                        ));
+                    }
+
                     return Ok(self
                         .wait_for_condition(
                             |info| info.state != State::NotInstalled,

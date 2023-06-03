@@ -1,4 +1,4 @@
-use crate::Info;
+use crate::{config::Config, Info};
 use daemon_slayer_core::{async_trait, config::ConfigWatcher, Label};
 use dyn_clonable::clonable;
 use std::{io, result::Result};
@@ -11,6 +11,7 @@ pub(crate) trait Manager: std::fmt::Debug + Clone + Send + Sync + 'static {
     fn label(&self) -> &Label;
     fn description(&self) -> &str;
     fn arguments(&self) -> &Vec<String>;
+    fn config(&self) -> Config;
     async fn reload_config(&mut self) -> Result<(), io::Error>;
     async fn on_config_changed(&mut self) -> Result<(), io::Error>;
     async fn install(&self) -> Result<(), io::Error>;
@@ -44,6 +45,10 @@ impl ServiceManager {
 
     pub fn label(&self) -> &Label {
         self.inner.label()
+    }
+
+    pub fn config(&self) -> Config {
+        self.inner.config()
     }
 
     pub fn description(&self) -> &str {

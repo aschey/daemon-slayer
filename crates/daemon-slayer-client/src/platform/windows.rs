@@ -1,5 +1,5 @@
 use crate::{
-    config::{windows::Trustee, Builder, Level},
+    config::{windows::Trustee, Builder, Config, Level},
     Info, Manager, State,
 };
 use daemon_slayer_core::{async_trait, process::get_spawn_interactive_var, Label};
@@ -357,6 +357,10 @@ impl Manager for WindowsServiceManager {
 
     fn label(&self) -> &Label {
         &self.config.label
+    }
+
+    fn config(&self) -> Config {
+        self.config.clone().into()
     }
 
     async fn reload_config(&mut self) -> Result<(), io::Error> {

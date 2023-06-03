@@ -10,7 +10,10 @@ use bollard::{
 };
 use daemon_slayer_core::{async_trait, Label};
 
-use crate::{config::Builder, Info, Manager, State};
+use crate::{
+    config::{Builder, Config},
+    Info, Manager, State,
+};
 
 #[derive(Debug, Clone)]
 pub struct DockerServiceManager {
@@ -41,6 +44,10 @@ impl Manager for DockerServiceManager {
 
     fn label(&self) -> &Label {
         &self.config.label
+    }
+
+    fn config(&self) -> Config {
+        self.config.clone().into()
     }
 
     fn arguments(&self) -> &Vec<String> {
