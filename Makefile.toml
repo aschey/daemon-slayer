@@ -5,7 +5,7 @@ default_to_workspace = false
 args = ["test", "--workspace"]
 clear = true
 command = "cargo"
-env = {RUN_AS_SYSTEM = "true"}
+env = { RUN_AS_SYSTEM = "true" }
 
 [tasks.test]
 args = ["test", "--workspace", "--all-features"]
@@ -13,14 +13,22 @@ clear = true
 command = "cargo"
 
 [tasks.clippy]
-args = ["hack", "--feature-powerset", "--no-dev-deps", "clippy", "--", "-D", "warnings"]
+args = [
+    "hack",
+    "--feature-powerset",
+    "--no-dev-deps",
+    "clippy",
+    "--",
+    "-D",
+    "warnings",
+]
 command = "cargo"
 install_crate = "cargo-hack"
 
 [tasks.build-all]
 script = '''
 cargo build --workspace
-cargo build --workspace --features=client-standard,server-standard,grpc-health-check,http-health-check,ipc-health-check,extras,tray,config-pretty-print
+cargo build --workspace --all-features
 '''
 
 [tasks.build-examples]
@@ -34,15 +42,31 @@ cargo build
 '''
 
 [tasks.coverage]
-args = ["llvm-cov", "--workspace", "--all-features", "--html", "--open", "--ignore-filename-regex", "\".cargo|.*_test\\.rs|integration_tests.*\""]
+args = [
+    "llvm-cov",
+    "--workspace",
+    "--all-features",
+    "--html",
+    "--open",
+    "--ignore-filename-regex",
+    "\".cargo|.*_test\\.rs|integration_tests.*\"",
+]
 clear = true
 command = "cargo"
 install_crate = "cargo-llvm-cov"
 
 [tasks.coverage-admin]
-args = ["llvm-cov", "--workspace", "--all-features", "--html", "--open", "--ignore-filename-regex", "\".cargo|.*_test\\.rs|integration_tests.*\""]
+args = [
+    "llvm-cov",
+    "--workspace",
+    "--all-features",
+    "--html",
+    "--open",
+    "--ignore-filename-regex",
+    "\".cargo|.*_test\\.rs|integration_tests.*\"",
+]
 command = "cargo"
-env = {RUN_AS_SYSTEM = "true"}
+env = { RUN_AS_SYSTEM = "true" }
 install_crate = "cargo-llvm-cov"
 
 [tasks.update]

@@ -1,11 +1,20 @@
 use crate::Label;
 
 #[cfg(target_os = "linux")]
-pub(crate) mod linux;
+mod linux;
 #[cfg(target_os = "macos")]
-pub(crate) mod macos;
+mod macos;
 #[cfg(windows)]
-pub(crate) mod windows;
+mod windows;
+
+pub mod platform {
+    #[cfg(target_os = "linux")]
+    pub use super::linux::*;
+    #[cfg(target_os = "macos")]
+    pub use super::macos::*;
+    #[cfg(windows)]
+    pub use super::windows::*;
+}
 
 pub fn get_spawn_interactive_var(label: &Label) -> String {
     format!(

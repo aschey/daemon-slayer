@@ -21,7 +21,7 @@ pub async fn main() {
         .with_provider(ServerCliProvider::<ServiceHandler>::new(
             &integration_tests::service_arg(),
         ))
-        .with_provider(ErrorHandlerCliProvider::new(integration_tests::label()))
+        .with_provider(ErrorHandlerCliProvider::default())
         .with_provider(LoggingCliProvider::new(logger_builder))
         .initialize()
         .unwrap();
@@ -49,7 +49,7 @@ impl Handler for ServiceHandler {
     ) -> Result<Self, Self::Error> {
         let signal_listener = SignalListener::all();
         let signal_store = signal_listener.get_event_store();
-        context.add_service(signal_listener).await.unwrap();
+        context.add_service(signal_listener);
 
         Ok(Self { signal_store })
     }

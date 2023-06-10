@@ -8,7 +8,8 @@ confique = "0.2.2"
 daemon-slayer = { path = "../../crates/daemon-slayer", features = [
     "client-standard",
     "server-standard",
-    "notify",
+    "native-notification",
+    "dialog",
 ] }
 daemon-slayer-logging = { path = "../../crates/daemon-slayer-logging", features = [
     "system",

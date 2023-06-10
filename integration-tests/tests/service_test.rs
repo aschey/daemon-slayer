@@ -88,9 +88,7 @@ async fn run_tests(is_user_service: bool) {
     let background_services = BackgroundServiceManager::new(CancellationToken::new());
     background_services
         .get_context()
-        .add_service(config_service)
-        .await
-        .unwrap();
+        .add_service(config_service);
 
     manager.install().await.unwrap();
     wait_for_async(|| async {

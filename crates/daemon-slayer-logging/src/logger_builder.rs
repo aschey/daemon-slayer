@@ -119,6 +119,7 @@ pub struct UserConfig {
 
 #[derive(Debug, Clone)]
 pub struct LoggerBuilder {
+    #[allow(dead_code)]
     label: Label,
     #[cfg(feature = "file")]
     file_rotation_period: tracing_appender::rolling::Rotation,
@@ -355,9 +356,9 @@ impl LoggerBuilder {
                 })
             };
             if self.enable_ipc_logger {
-                tilia::Writer::<1024, _, _, _, _, _>::new(make_transport)
+                tilia::Writer::new(1024, make_transport)
             } else {
-                tilia::Writer::<1024, _, _, _, _, _>::disabled(make_transport)
+                tilia::Writer::disabled(make_transport)
             }
         };
         #[cfg(feature = "ipc")]

@@ -47,7 +47,7 @@ where
             .with_watch_path(self.config.full_path())
             .build();
         let event_store = file_watcher.get_event_store();
-        context.add_service(file_watcher).await?;
+        context.add_service(file_watcher);
 
         let mut event_stream = event_store.subscribe_events();
 

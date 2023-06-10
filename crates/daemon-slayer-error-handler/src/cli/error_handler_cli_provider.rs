@@ -2,19 +2,43 @@ use color_eyre::config::Theme;
 use daemon_slayer_core::{
     async_trait,
     cli::{clap, Action, CommandMatch, CommandOutput, ServerAction},
-    BoxedError, Label,
+    BoxedError,
 };
 
 use crate::ErrorHandler;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ErrorHandlerCliProvider {
-    label: Label,
+    #[cfg(feature = "notify")]
+    notification: Option<
+        std::sync::Arc<
+            Box<dyn daemon_slayer_core::notify::ShowNotification<Output = ()> + Send + Sync>,
+        >,
+    >,
+}
+
+impl Default for ErrorHandlerCliProvider {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ErrorHandlerCliProvider {
-    pub fn new(label: Label) -> Self {
-        Self { label }
+    pub fn new() -> Self {
+        Self {
+            #[cfg(feature = "notify")]
+            notification: None,
+        }
+    }
+
+    #[cfg(feature = "notify")]
+    pub fn with_notification<N>(self, notification: N) -> Self
+    where
+        N: daemon_slayer_core::notify::ShowNotification<Output = ()> + Send + Sync + 'static,
+    {
+        Self {
+            notification: Some(std::sync::Arc::new(Box::new(notification))),
+        }
     }
 }
 
@@ -34,23 +58,26 @@ impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
         matched_command: &Option<CommandMatch>,
     ) -> Result<(), BoxedError> {
         if let Some(CommandMatch {
-            action: Some(Action::Server(ServerAction::Run)),
+            action: Some(Action::Server(ServerAction::Run | ServerAction::Direct)),
             ..
         }) = matched_command
         {
-            let handler = ErrorHandler::new(self.label.clone())
+            #[allow(unused_mut)]
+            let mut handler = ErrorHandler::default()
                 .with_theme(Theme::default())
                 .with_write_to_stdout(false)
                 .with_write_to_stderr(false)
                 .with_log(true);
             #[cfg(feature = "notify")]
-            let handler = handler.with_notify(true);
+            if let Some(notification) = self.notification.clone() {
+                handler = handler.with_boxed_notification(notification);
+            }
 
             handler.install()?;
             return Ok(());
         }
 
-        ErrorHandler::new(self.label.clone()).install()?;
+        ErrorHandler::default().install()?;
         Ok(())
     }
 

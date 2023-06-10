@@ -1,4 +1,4 @@
-use std::process::Stdio;
+use std::{io, process::Stdio};
 
 use tokio::process::Command;
 
@@ -15,7 +15,7 @@ trait Manager {
     fn list_sessions(&self) -> zbus::Result<Vec<(String, u32, String, String, OwnedObjectPath)>>;
 }
 
-pub async fn run_process_as_logged_on_users(cmd: &str) {
+pub async fn run_process_as_current_user(cmd: &str, _visible: bool) -> io::Result<()> {
     let conn = Connection::system().await.unwrap();
     let proxy = ManagerProxy::new(&conn).await.unwrap();
 
@@ -37,8 +37,9 @@ pub async fn run_process_as_logged_on_users(cmd: &str) {
             .stdout(Stdio::null())
             .stdin(Stdio::null())
             .stderr(Stdio::null())
-            .spawn()
-            .unwrap();
-        child.wait().await.unwrap();
+            .spawn()?;
+        child.wait().await?;
     }
+
+    Ok(())
 }

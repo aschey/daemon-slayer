@@ -1,12 +1,11 @@
 use std::{
     error::Error,
     fmt::{Debug, Display},
-    sync::{mpsc, Arc, OnceLock},
+    sync::OnceLock,
 };
 
 pub use color_eyre::config::Theme;
 use color_eyre::Report;
-use daemon_slayer_core::Label;
 use tap::TapFallible;
 use tracing::error;
 #[cfg(feature = "cli")]
@@ -26,36 +25,29 @@ pub struct ErrorHandler {
     write_to_stdout: bool,
     write_to_stderr: bool,
     log: bool,
-    label: Label,
     #[cfg(feature = "notify")]
-    notify: bool,
-    #[cfg(feature = "notify")]
-    notification_builder: Arc<
-        Box<
-            dyn Fn(
-                    daemon_slayer_core::notify::Notification,
-                ) -> daemon_slayer_core::notify::Notification
-                + Send
-                + Sync,
+    notification: Option<
+        std::sync::Arc<
+            Box<dyn daemon_slayer_core::notify::ShowNotification<Output = ()> + Send + Sync>,
         >,
     >,
 }
 
+impl Default for ErrorHandler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ErrorHandler {
-    pub fn new(label: Label) -> Self {
+    pub fn new() -> Self {
         Self {
-            label,
             theme: Theme::dark(),
             write_to_stdout: false,
             write_to_stderr: true,
             log: false,
             #[cfg(feature = "notify")]
-            notify: false,
-            #[cfg(feature = "notify")]
-            notification_builder: Arc::new(Box::new(|notification| {
-                let app = notification.label.application.clone();
-                notification.summary(format!("Application {app} encountered a fatal error"))
-            })),
+            notification: None,
         }
     }
 
@@ -82,20 +74,30 @@ impl ErrorHandler {
     }
 
     #[cfg(feature = "notify")]
-    pub fn with_notify(self, notify: bool) -> Self {
-        Self { notify, ..self }
+    pub fn with_notification<N>(self, notification: N) -> Self
+    where
+        N: daemon_slayer_core::notify::ShowNotification<Output = ()> + Send + Sync + 'static,
+    {
+        Self {
+            notification: Some(std::sync::Arc::new(Box::new(notification))),
+            ..self
+        }
     }
 
     #[cfg(feature = "notify")]
-    pub fn with_notification_builder<F>(self, builder: F) -> Self
-    where
-        F: Fn(daemon_slayer_core::notify::Notification) -> daemon_slayer_core::notify::Notification
-            + Send
-            + Sync
-            + 'static,
-    {
+    pub(crate) fn with_boxed_notification(
+        self,
+        notification: std::sync::Arc<
+            Box<
+                dyn daemon_slayer_core::notify::ShowNotification<Output = ()>
+                    + Send
+                    + Sync
+                    + 'static,
+            >,
+        >,
+    ) -> Self {
         Self {
-            notification_builder: Arc::new(Box::new(builder)),
+            notification: Some(notification),
             ..self
         }
     }
@@ -123,17 +125,14 @@ impl ErrorHandler {
 
     fn show_notification(&self) {
         #[cfg(feature = "notify")]
-        if self.notify {
-            let notification = (self.notification_builder)(
-                daemon_slayer_core::notify::Notification::new(self.label.clone()),
-            );
+        if let Some(notification) = self.notification.clone() {
             if let Ok(handle) = tokio::runtime::Handle::try_current() {
-                let (tx, rx) = mpsc::channel();
+                let (tx, rx) = std::sync::mpsc::channel();
                 handle.spawn(async move {
                     notification
                         .show()
                         .await
-                        .tap_err(|e| error!("Failed to show notification: {e:?}"))
+                        .tap_err(|e| error!("Error showing notification: {e}"))
                         .ok();
                     tx.send(()).ok();
                 });
@@ -147,7 +146,7 @@ impl ErrorHandler {
                         notification
                             .show()
                             .await
-                            .tap_err(|e| error!("Failed to show notification: {e:?}"))
+                            .tap_err(|e| error!("Error showing notification: {e}"))
                             .ok();
                     });
             }
@@ -194,10 +193,7 @@ where
 
 impl Debug for ErrorSink {
     fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let handler = HANDLER
-            .get()
-            .cloned()
-            .unwrap_or_else(|| ErrorHandler::new(Label::default()));
+        let handler = HANDLER.get().cloned().unwrap_or_default();
 
         handler.write_output(format!("{:?}", self.report));
         handler.show_notification();

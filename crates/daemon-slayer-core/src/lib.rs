@@ -13,8 +13,8 @@ pub mod server;
 #[cfg(feature = "signal")]
 pub mod signal;
 
-mod future_ext;
-pub use future_ext::*;
+pub use futures_cancel::*;
+
 mod label;
 pub use async_trait::async_trait;
 pub use label::*;

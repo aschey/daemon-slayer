@@ -67,6 +67,8 @@ signals = ["daemon-slayer-signals"]
 task-queue = ["daemon-slayer-task-queue"]
 tray = ["daemon-slayer-tray", "client"]
 notify = ["daemon-slayer-notify", "daemon-slayer-error-handler?/notify"]
+native-notification = ["notify", "daemon-slayer-notify/native-notification"]
+dialog = ["notify", "daemon-slayer-notify/dialog"]
 
 [dependencies]
 daemon-slayer-cli = { path = "../daemon-slayer-cli", optional = true }

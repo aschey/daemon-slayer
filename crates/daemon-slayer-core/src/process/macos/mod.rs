@@ -1,18 +1,16 @@
-use std::process::Stdio;
-
 use regex::Regex;
+use std::{io, process::Stdio};
 use tokio::{io::AsyncWriteExt, process::Command};
 use tracing::info;
 
 // from https://scriptingosx.com/2020/02/getting-the-current-user-in-macos-update/
 
-pub async fn run_process_as_logged_on_user(cmd: &str) {
+pub async fn run_process_as_current_user(cmd: &str, _visible: bool) -> io::Result<()> {
     let mut user_info = Command::new("scutil")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
+        .spawn()?;
 
     user_info
         .stdin
@@ -39,7 +37,8 @@ pub async fn run_process_as_logged_on_user(cmd: &str) {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .args(args)
-        .spawn()
-        .unwrap();
-    cmd.wait().await.unwrap();
+        .spawn()?;
+    cmd.wait().await?;
+
+    Ok(())
 }

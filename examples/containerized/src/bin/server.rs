@@ -51,7 +51,7 @@ async fn run() -> Result<(), BoxedError> {
             &containerized::run_argument(),
         ))
         .with_provider(LoggingCliProvider::new(logger_builder))
-        .with_provider(ErrorHandlerCliProvider::new(containerized::label()))
+        .with_provider(ErrorHandlerCliProvider::default())
         .with_provider(ConfigCliProvider::new(app_config.clone()))
         .initialize()?;
 
@@ -91,17 +91,15 @@ impl Handler for ServiceHandler {
         let input_data = input_data.unwrap();
         let signal_listener = SignalListener::all();
         let signal_store = signal_listener.get_event_store();
-        context.add_service(signal_listener).await?;
+        context.add_service(signal_listener);
 
         let config_service = ConfigService::new(input_data.config);
         let file_events = config_service.get_event_store();
-        context.add_service(config_service).await?;
-        context
-            .add_service(LoggingUpdateService::new(
-                input_data.reload_handle,
-                file_events,
-            ))
-            .await?;
+        context.add_service(config_service);
+        context.add_service(LoggingUpdateService::new(
+            input_data.reload_handle,
+            file_events,
+        ));
 
         Ok(Self { signal_store })
     }

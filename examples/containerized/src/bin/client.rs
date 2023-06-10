@@ -83,14 +83,8 @@ async fn run() -> Result<(), BoxedError> {
     let console = Console::new(manager.clone(), LogSource::Container)
         .await
         .with_config(app_config.clone())
-        .with_configure_services(move |mut context| {
-            let app_config = app_config_.clone();
-            async move {
-                context
-                    .add_service(ConfigService::new(app_config))
-                    .await
-                    .unwrap();
-            }
+        .with_configure_services(|mut context| {
+            context.add_service(ConfigService::new(app_config_));
         });
 
     let mut cli = Cli::builder()
@@ -98,7 +92,7 @@ async fn run() -> Result<(), BoxedError> {
         .with_provider(ProcessCliProvider::new(manager.info().await?.pid))
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(LoggingCliProvider::new(logger_builder))
-        .with_provider(ErrorHandlerCliProvider::new(containerized::label()))
+        .with_provider(ErrorHandlerCliProvider::default())
         .with_provider(
             ConfigCliProvider::new(app_config.clone()).with_config_watcher(manager.clone()),
         )

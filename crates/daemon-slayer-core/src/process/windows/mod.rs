@@ -67,7 +67,7 @@ fn get_active_session_id() -> Result<u32, io::Error> {
     }
 }
 
-pub fn start_process_as_current_user(cmd: &str, visible: bool) -> io::Result<()> {
+pub async fn run_process_as_current_user(cmd: &str, visible: bool) -> io::Result<()> {
     unsafe {
         let token = get_session_user_token()?;
         let mut p_env = ptr::null_mut();

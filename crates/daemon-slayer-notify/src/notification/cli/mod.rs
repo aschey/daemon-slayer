@@ -4,9 +4,11 @@ use daemon_slayer_core::{
         clap::{self, Args, FromArgMatches, Subcommand},
         ActionType, CommandMatch, CommandOutput, CommandProvider,
     },
-    notify::Notification,
+    notify::ShowNotification,
     BoxedError, Label,
 };
+
+use crate::notification::Notification;
 
 #[derive(Subcommand)]
 enum NotifyCommand {
@@ -77,8 +79,12 @@ impl CommandProvider for NotifyCliProvider {
         if let Some(icon) = args.icon {
             notification = notification.icon(icon);
         }
-        notification.show().await?;
+        let output = notification
+            .show()
+            .await
+            .map(|_| "Notification sent".to_owned())
+            .unwrap_or_else(|e| e.to_string());
 
-        Ok(CommandOutput::handled("Notification sent".to_owned()))
+        Ok(CommandOutput::handled(output))
     }
 }

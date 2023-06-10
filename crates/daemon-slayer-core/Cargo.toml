@@ -6,7 +6,7 @@ version = "0.1.0"
 [dependencies]
 arc-swap = { version = "1", optional = true }
 async-trait = "0.1"
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "0d0fc38608bf0443dd9d1ff162f97431248018e3", optional = true }
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "639911fe9bfee863c35dbab967185dae6a4a395f", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
 daemon-slayer-macros = { path = "../daemon-slayer-macros", optional = true }
 derivative = "2"
@@ -25,6 +25,7 @@ tokio-util = { version = "0.7" }
 tracing = "0.1"
 unicode-width = { version = "0.1", optional = true }
 notify-rust = { version = "4", optional = true, features = ["async"] }
+futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "563f413a206c50c7cc1a003cf6a9d3b227b0b04d" }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.48", optional = true, features = [
@@ -60,7 +61,7 @@ config = [
 health-check = []
 server = ["tokio-stream", "background-service"]
 signal = []
-notify = ["notify-rust", "process"]
+notify = []
 process = [
     "windows-sys",
     "widestring",

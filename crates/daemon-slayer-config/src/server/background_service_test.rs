@@ -24,11 +24,7 @@ async fn test_serivce() {
 
     let service = ConfigService::new(test_config.clone());
     let mut events = service.get_event_store().subscribe_events();
-    service_manager
-        .get_context()
-        .add_service(service)
-        .await
-        .unwrap();
+    service_manager.get_context().add_service(service);
     tokio::time::sleep(Duration::from_millis(50)).await;
     std::fs::write(test_config.full_path(), "test = false").unwrap();
     let (current, new) = events.next().await.unwrap().unwrap();

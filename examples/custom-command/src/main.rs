@@ -41,7 +41,7 @@ async fn run() -> Result<(), BoxedError> {
             &"run".parse().expect("failed to parse the run argument"),
         ))
         .with_provider(LoggingCliProvider::new(logger_builder))
-        .with_provider(ErrorHandlerCliProvider::new(ServiceHandler::label()))
+        .with_provider(ErrorHandlerCliProvider::default())
         .initialize()?;
 
     let (logger, _) = cli.take_provider::<LoggingCliProvider>().get_logger()?;
@@ -78,7 +78,7 @@ impl Handler for ServiceHandler {
     ) -> Result<Self, Self::Error> {
         let signal_listener = SignalListener::all();
         let signal_store = signal_listener.get_event_store();
-        context.add_service(signal_listener).await?;
+        context.add_service(signal_listener);
 
         Ok(Self { signal_store })
     }

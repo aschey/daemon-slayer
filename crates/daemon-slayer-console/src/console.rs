@@ -14,7 +14,7 @@ use daemon_slayer_core::{
     server::{BackgroundService, BackgroundServiceManager, ServiceContext},
     BoxedError, CancellationToken, FutureExt,
 };
-use futures::{Future, StreamExt};
+use futures::StreamExt;
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -25,7 +25,6 @@ use ratatui::{
 };
 use std::{
     io::{self, Stdout},
-    pin::Pin,
     rc::Rc,
     time::{Duration, Instant},
 };
@@ -116,8 +115,7 @@ pub struct Console {
     health_check: Option<Box<dyn HealthCheck + Send + Sync + 'static>>,
     has_health_check: bool,
     user_config: CachedConfig<UserConfig>,
-    event_fn:
-        Option<Box<dyn FnMut(ServiceContext) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send>>,
+    event_fn: Option<Box<dyn FnOnce(ServiceContext) + Send>>,
 }
 
 impl Console {
@@ -148,17 +146,11 @@ impl Console {
         self
     }
 
-    pub fn with_configure_services<F, Fut>(mut self, configure: F) -> Self
+    pub fn with_configure_services<F>(mut self, configure: F) -> Self
     where
-        F: FnMut(ServiceContext) -> Fut + Clone + Send + 'static,
-        Fut: Future<Output = ()> + Send,
+        F: FnOnce(ServiceContext) + Send + 'static,
     {
-        self.event_fn = Some(Box::new(move |context: ServiceContext| {
-            let mut configure = configure.clone();
-            Box::pin(async move {
-                configure(context).await;
-            })
-        }));
+        self.event_fn = Some(Box::new(configure));
         self
     }
 
@@ -205,8 +197,8 @@ impl Console {
     ) -> Result<(), BoxedError> {
         let manager = BackgroundServiceManager::new(cancellation_token.child_token());
         let context = manager.get_context();
-        if let Some(mut event_fn) = self.event_fn.take() {
-            event_fn(context).await;
+        if let Some(event_fn) = self.event_fn.take() {
+            event_fn(context);
         }
 
         let (health_tx, mut health_rx) = mpsc::channel(32);
@@ -215,7 +207,7 @@ impl Console {
             let health_checker =
                 HealthChecker::new(self.user_config.clone(), health_check, health_tx);
             let mut context = manager.get_context();
-            context.add_service(health_checker).await.unwrap();
+            context.add_service(health_checker);
         }
 
         let mut event_reader = EventStream::new().fuse();
