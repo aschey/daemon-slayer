@@ -133,7 +133,7 @@ impl ShowNotification for Notification {
         // We get around this by spawning a separate process running as the current user
         // and sending the notification from there
         #[cfg(any(windows, target_os = "macos"))]
-        if let Ok("1" | "true") = env::var(crate::process::get_spawn_interactive_var(&self.label))
+        if let Ok("1" | "true") = env::var(process::get_spawn_interactive_var(&self.label))
             .map(|v| v.to_lowercase())
             .as_deref()
         {
