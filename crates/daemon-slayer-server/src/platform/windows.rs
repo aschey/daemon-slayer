@@ -22,11 +22,11 @@ use windows_service::{
 const USER_OWN_PROCESS_TEMPLATE: u32 = 0x50;
 const USER_SHARE_PROCESS_TEMPLATE: u32 = 0x60;
 
-pub fn get_service_main<T: Handler>(input_data: Option<T::InputData>) {
+pub fn get_service_main<T: Handler>(
+    input_data: Option<T::InputData>,
+) -> Result<(), ServiceError<T::Error>> {
     let rt = Runtime::new().expect("Tokio runtime failed to initialize");
-    if let Err(e) = rt.block_on(get_service_main_impl::<T>(input_data)) {
-        error!("Error running service: {e}");
-    }
+    rt.block_on(get_service_main_impl::<T>(input_data))
 }
 
 async fn get_service_main_impl<T: Handler>(

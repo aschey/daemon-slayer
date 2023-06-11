@@ -27,4 +27,4 @@ pub use daemon_slayer_core::{
 pub use futures;
 
 pub use daemon_slayer_macros::*;
-pub use tracing;
+pub use tokio;

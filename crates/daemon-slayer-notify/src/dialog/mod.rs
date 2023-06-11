@@ -3,8 +3,6 @@ use std::{io, marker::PhantomData};
 use super::ShowNotification;
 use daemon_slayer_core::async_trait;
 use native_dialog::MessageType;
-use tap::TapFallible;
-use tracing::error;
 
 #[cfg(feature = "cli")]
 pub mod cli;
@@ -73,28 +71,20 @@ impl ShowNotification for MessageDialog<Alert> {
 
     async fn show(&self) -> io::Result<Self::Output> {
         let this = self.clone();
-        let (tx, rx) = tokio::sync::oneshot::channel();
+
         tokio::task::spawn_blocking(move || {
             native_dialog::MessageDialog::default()
                 .set_title(&this.title)
                 .set_text(&this.text)
                 .set_type(this.message_type)
                 .show_alert()
-                .tap_err(|e| error!("Error showing alert: {e:?}"))
-                .ok();
-
-            tx.send(())
-                .tap_err(|e| {
-                    error!("Error sending dialog signal: {e:?}");
+                .map_err(|e| match e {
+                    native_dialog::Error::IoFailure(e) => e,
+                    e => io::Error::new(io::ErrorKind::Other, e.to_string()),
                 })
-                .ok();
-        });
-        rx.await
-            .tap_err(|e| {
-                error!("Error receiving dialog signal {e:?}");
-            })
-            .ok();
-        Ok(())
+        })
+        .await
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?
     }
 }
 
