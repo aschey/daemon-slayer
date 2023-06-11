@@ -1,5 +1,4 @@
 use std::{
-    error::Error,
     fmt::{Debug, Display},
     sync::OnceLock,
 };
@@ -22,9 +21,9 @@ pub struct HookInstallError(String);
 #[derive(Clone)]
 pub struct ErrorHandler {
     theme: Theme,
-    write_to_stdout: bool,
-    write_to_stderr: bool,
-    log: bool,
+    pub(crate) write_to_stdout: bool,
+    pub(crate) write_to_stderr: bool,
+    pub(crate) log: bool,
     #[cfg(feature = "notify")]
     notification: Option<
         std::sync::Arc<
@@ -172,13 +171,14 @@ pub struct ErrorSink {
 
 impl ErrorSink {
     pub fn new(source: impl Into<color_eyre::Report>) -> Self {
-        Self {
-            report: source.into(),
+        let handler = HANDLER.get().cloned().unwrap_or_default();
+        let report = source.into();
+        if handler.log {
+            error!("{:?}", report);
         }
-    }
 
-    pub fn from_error(source: Box<dyn Error + Send + Sync + 'static>) -> Self {
-        Self::new(color_eyre::eyre::eyre!(source))
+        handler.show_notification();
+        Self { report }
     }
 }
 
@@ -192,11 +192,7 @@ where
 }
 
 impl Debug for ErrorSink {
-    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let handler = HANDLER.get().cloned().unwrap_or_default();
-
-        handler.write_output(format!("{:?}", self.report));
-        handler.show_notification();
-        Ok(())
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt.write_str(&format!("{:?}", self.report))
     }
 }

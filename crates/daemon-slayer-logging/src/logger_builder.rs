@@ -356,7 +356,15 @@ impl LoggerBuilder {
                 })
             };
             if self.enable_ipc_logger {
-                tilia::Writer::new(1024, make_transport)
+                let (writer, guard) = tilia::Writer::new(1024, make_transport);
+                // Attempt to eagerly initialize the RPC server
+                // since this function is likely called from the main thread
+                // where we should have a Tokio runtime available
+
+                // Without this, logging may not work properly from within
+                // the windows service handler
+                writer.init();
+                (writer, guard)
             } else {
                 tilia::Writer::disabled(make_transport)
             }

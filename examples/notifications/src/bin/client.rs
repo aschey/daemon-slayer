@@ -13,7 +13,7 @@ use daemon_slayer::{
     config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir},
     console::{self, cli::ConsoleCliProvider, Console, LogSource},
     core::BoxedError,
-    error_handler::{cli::ErrorHandlerCliProvider, ErrorSink},
+    error_handler::{cli::ErrorHandlerCliProvider, color_eyre::eyre, ErrorSink},
     logging::{
         self, cli::LoggingCliProvider, tracing_subscriber::util::SubscriberInitExt, LoggerBuilder,
     },
@@ -37,7 +37,7 @@ struct MyConfig {
 #[tokio::main]
 pub async fn main() -> Result<(), ErrorSink> {
     let guard = daemon_slayer::logging::init();
-    let result = run().await.map_err(ErrorSink::from_error);
+    let result = run().await.map_err(|e| ErrorSink::new(eyre::eyre!(e)));
     drop(guard);
     result
 }
@@ -58,7 +58,7 @@ async fn run() -> Result<(), BoxedError> {
     .with_description("test service")
     .with_arg(&notifications::run_argument())
     .with_service_level(if cfg!(windows) {
-        Level::System
+        Level::User
     } else {
         Level::User
     })

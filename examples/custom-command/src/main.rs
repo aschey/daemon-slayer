@@ -2,7 +2,7 @@ use clap::{FromArgMatches as _, Parser, Subcommand as _};
 use daemon_slayer::{
     cli::{Cli, InputState},
     core::{BoxedError, Label},
-    error_handler::{cli::ErrorHandlerCliProvider, ErrorSink},
+    error_handler::{cli::ErrorHandlerCliProvider, color_eyre::eyre, ErrorSink},
     logging::{
         cli::LoggingCliProvider, tracing_subscriber::util::SubscriberInitExt, LoggerBuilder,
     },
@@ -26,7 +26,7 @@ enum Subcommands {
 #[tokio::main]
 pub async fn main() -> Result<(), ErrorSink> {
     let guard = daemon_slayer::logging::init();
-    let result = run().await.map_err(ErrorSink::from_error);
+    let result = run().await.map_err(|e| ErrorSink::new(eyre::eyre!(e)));
     drop(guard);
     result
 }

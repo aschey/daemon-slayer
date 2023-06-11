@@ -3,7 +3,7 @@ use daemon_slayer::{
     cli::Cli,
     config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir},
     core::{notify::ShowNotification, BoxedError, CancellationToken, Label},
-    error_handler::{cli::ErrorHandlerCliProvider, ErrorSink},
+    error_handler::{cli::ErrorHandlerCliProvider, color_eyre::eyre, ErrorSink},
     logging::{
         self, cli::LoggingCliProvider, server::LoggingUpdateService,
         tracing_subscriber::util::SubscriberInitExt, LoggerBuilder, ReloadHandle,
@@ -30,7 +30,7 @@ struct MyConfig {
 #[tokio::main]
 pub async fn main() -> Result<(), ErrorSink> {
     let guard = daemon_slayer::logging::init();
-    let result = run().await.map_err(ErrorSink::from_error);
+    let result = run().await.map_err(|e| ErrorSink::new(eyre::eyre!(e)));
     drop(guard);
     result
 }
@@ -73,7 +73,6 @@ async fn run() -> Result<(), BoxedError> {
         });
 
     cli.handle_input().await?;
-
     Ok(())
 }
 

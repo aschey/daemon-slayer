@@ -51,29 +51,28 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
         let mut signal_rx = self.signal_tx.subscribe();
         info!("Registering signal handlers");
         let mut ctrl_c_stream = tokio::signal::windows::ctrl_c().unwrap();
-        // TODO: leaving these commented while debugging signals not always getting sent
-        // let mut ctrl_break_stream = tokio::signal::windows::ctrl_break().unwrap();
-        // let mut ctrl_shutdown_stream = tokio::signal::windows::ctrl_shutdown().unwrap();
-        // let mut ctrl_logoff_stream = tokio::signal::windows::ctrl_logoff().unwrap();
-        // let mut ctrl_close_stream = tokio::signal::windows::ctrl_close().unwrap();
+        let mut ctrl_break_stream = tokio::signal::windows::ctrl_break().unwrap();
+        let mut ctrl_shutdown_stream = tokio::signal::windows::ctrl_shutdown().unwrap();
+        let mut ctrl_logoff_stream = tokio::signal::windows::ctrl_logoff().unwrap();
+        let mut ctrl_close_stream = tokio::signal::windows::ctrl_close().unwrap();
 
         tokio::select! {
             _ = ctrl_c_stream.recv() => {
                 info!("Received ctrl+c signal");
                 self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok();
             }
-            // _ = ctrl_break_stream.recv() => {
-            //     self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok()
-            // }
-            // _ = ctrl_shutdown_stream.recv() => {
-            //     self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok()
-            // }
-            // _ = ctrl_logoff_stream.recv() => {
-            //     self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok()
-            // }
-            // _ = ctrl_close_stream.recv() => {
-            //     self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok()
-            // }
+            _ = ctrl_break_stream.recv() => {
+                self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok();
+            }
+            _ = ctrl_shutdown_stream.recv() => {
+                self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok();
+            }
+            _ = ctrl_logoff_stream.recv() => {
+                self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok();
+            }
+            _ = ctrl_close_stream.recv() => {
+                self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok();
+            }
             _ = signal_rx.recv() => {
                 info!("Received signal from channel");
             }

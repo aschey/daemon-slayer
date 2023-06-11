@@ -58,7 +58,7 @@ impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
         matched_command: &Option<CommandMatch>,
     ) -> Result<(), BoxedError> {
         if let Some(CommandMatch {
-            action: Some(Action::Server(ServerAction::Run | ServerAction::Direct)),
+            action: Some(Action::Server(ServerAction::Run)),
             ..
         }) = matched_command
         {
