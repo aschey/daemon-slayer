@@ -57,6 +57,12 @@ http-health-check = [
   "daemon-slayer-health-check/http-health-check",
 ]
 logging = ["daemon-slayer-logging"]
+logging-ipc = ["daemon-slayer-logging/ipc"]
+logging-linux-journald = ["daemon-slayer-logging/linux-journald"]
+logging-mac-oslog = ["daemon-slayer-logging/mac-oslog"]
+logging-system = ["daemon-slayer-logging/system"]
+logging-windows-eventlog = ["daemon-slayer-logging/windows-eventlog"]
+logging-file = ["daemon-slayer-logging/file"]
 process = ["daemon-slayer-process"]
 server = [
   "daemon-slayer-server",
