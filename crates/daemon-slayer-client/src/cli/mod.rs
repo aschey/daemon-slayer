@@ -52,7 +52,8 @@ impl ClientCliProvider {
         failure_msg: &str,
     ) -> Result<CommandOutput, io::Error> {
         // State changes can be asynchronous, wait for the desired state
-        let max_attempts = 5;
+        // Starting a service can take a while on certain platforms so we'll be conservative with the timeout here
+        let max_attempts = 10;
         for _ in 0..max_attempts {
             let info = self.manager.info().await?;
             if condition(&info) {
