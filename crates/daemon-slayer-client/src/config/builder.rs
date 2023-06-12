@@ -73,12 +73,7 @@ pub enum ServiceType {
     Container,
 }
 
-pub trait ContainerConfigFn: Send + Sync {}
-
-impl<F> ContainerConfigFn for F where
-    F: FnMut(&mut bollard::container::Config<String>) + Clone + Send + Sync
-{
-}
+pub type ContainerConfigFn = dyn Fn(&mut bollard::container::Config<String>) + Send + Sync;
 
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
@@ -99,8 +94,7 @@ pub struct Builder {
     pub(crate) user_config: CachedConfig<UserConfig>,
     pub(crate) service_type: ServiceType,
     #[derivative(Debug = "ignore")]
-    pub(crate) configure_container:
-        Option<Arc<Box<dyn Fn(&mut bollard::container::Config<String>) + Send + Sync>>>,
+    pub(crate) configure_container: Option<Arc<Box<ContainerConfigFn>>>,
 }
 
 impl Builder {
