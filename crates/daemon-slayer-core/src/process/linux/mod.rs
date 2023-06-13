@@ -1,7 +1,6 @@
+use crate::Label;
 use std::{env, io, process::Stdio};
-
 use tokio::process::Command;
-
 use tracing::{info, warn};
 use zbus::{dbus_proxy, zvariant::OwnedObjectPath, Connection};
 
@@ -15,7 +14,11 @@ trait Manager {
     fn list_sessions(&self) -> zbus::Result<Vec<(String, u32, String, String, OwnedObjectPath)>>;
 }
 
-pub async fn run_process_as_current_user(cmd: &str, _visible: bool) -> io::Result<String> {
+pub async fn run_process_as_current_user(
+    _label: &Label,
+    cmd: &str,
+    _visible: bool,
+) -> io::Result<String> {
     let conn = Connection::system()
         .await
         .map_err(|e| io::Error::new(io::ErrorKind::ConnectionRefused, e.to_string()))?;

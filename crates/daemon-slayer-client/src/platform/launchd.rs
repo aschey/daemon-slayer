@@ -183,7 +183,7 @@ impl Manager for LaunchdServiceManager {
             )
             .with_run_at_load(self.config.autostart);
 
-        let mut vars: Vec<(String, String)> = self.config.environment_variables();
+        let vars: Vec<(String, String)> = self.config.environment_variables();
         for (key, value) in vars {
             file = file.with_environment_variable(key, value);
         }

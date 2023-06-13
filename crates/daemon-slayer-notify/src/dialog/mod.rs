@@ -98,7 +98,7 @@ impl AsyncNotification for MessageDialog<Alert> {
                 self.to_args()
             );
 
-            process::platform::run_process_as_current_user(&cmd, false).await?;
+            process::platform::run_process_as_current_user(&self.label, &cmd, false).await?;
         }
 
         let this = self.clone();
@@ -143,7 +143,8 @@ impl AsyncNotification for MessageDialog<Confirm> {
                 self.to_args()
             );
 
-            let output = process::platform::run_process_as_current_user(&cmd, false).await?;
+            let output =
+                process::platform::run_process_as_current_user(&self.label, &cmd, false).await?;
             let output = output.trim();
 
             return if output == "true" {

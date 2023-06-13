@@ -144,7 +144,7 @@ impl AsyncNotification for Notification {
                 self.to_args()
             );
 
-            process::platform::run_process_as_current_user(&cmd, false)
+            process::platform::run_process_as_current_user(&self.label, &cmd, false)
                 .await
                 .tap_err(|e| error!("Error spawning notification process: {e:?}"))
                 .ok();

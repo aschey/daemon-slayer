@@ -1,11 +1,38 @@
+use crate::{process::get_admin_var, Label};
 use regex::Regex;
-use std::{io, process::Stdio};
+use std::{env, io, process::Stdio};
 use tokio::{io::AsyncWriteExt, process::Command};
 use tracing::info;
 
 // from https://scriptingosx.com/2020/02/getting-the-current-user-in-macos-update/
 
-pub async fn run_process_as_current_user(cmd: &str, _visible: bool) -> io::Result<String> {
+pub async fn run_process_as_current_user(
+    label: &Label,
+    cmd: &str,
+    _visible: bool,
+) -> io::Result<String> {
+    let is_admin = matches!(
+        env::var(get_admin_var(&label))
+            .map(|v| v.to_lowercase())
+            .as_deref(),
+        Ok("1" | "true")
+    );
+
+    let cmd_args = shlex::split(cmd).unwrap();
+
+    if !is_admin {
+        let output = Command::new(&cmd_args[0])
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .args(&cmd_args[1..])
+            .output()
+            .await?;
+
+        return String::from_utf8(output.stdout)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()));
+    }
+
     let mut user_info = Command::new("scutil")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -30,7 +57,7 @@ pub async fn run_process_as_current_user(cmd: &str, _visible: bool) -> io::Resul
     let uid = cap.get(1).unwrap().as_str().to_string();
     info!("Spawning process as user {uid}");
     let mut args = vec!["launchctl".to_owned(), "asuser".to_owned(), uid];
-    args.extend(shlex::split(cmd).unwrap().into_iter());
+    args.extend(cmd_args.into_iter());
 
     let output = Command::new("sudo")
         .stdin(Stdio::null())

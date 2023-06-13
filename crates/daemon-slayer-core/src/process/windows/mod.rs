@@ -1,3 +1,4 @@
+use crate::Label;
 use core::ffi;
 use std::{io, ptr, slice};
 use widestring::U16CString;
@@ -67,7 +68,11 @@ fn get_active_session_id() -> Result<u32, io::Error> {
     }
 }
 
-pub async fn run_process_as_current_user(cmd: &str, visible: bool) -> io::Result<String> {
+pub async fn run_process_as_current_user(
+    _label: &Label,
+    cmd: &str,
+    visible: bool,
+) -> io::Result<String> {
     unsafe {
         let token = get_session_user_token()?;
         let mut p_env = ptr::null_mut();
