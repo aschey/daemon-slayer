@@ -37,7 +37,8 @@ pub async fn run_process_as_current_user(cmd: &str, _visible: bool) -> io::Resul
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .args(args)
-        .output()?;
+        .output()
+        .await?;
 
     String::from_utf8(output.stdout)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))
