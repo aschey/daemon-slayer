@@ -4,7 +4,7 @@ use daemon_slayer_core::{
         clap::{self, Args, FromArgMatches, Subcommand},
         ActionType, CommandMatch, CommandOutput, CommandProvider,
     },
-    notify::ShowNotification,
+    notify::AsyncNotification,
     BoxedError, Label,
 };
 

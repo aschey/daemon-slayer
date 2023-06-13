@@ -5,7 +5,7 @@ use tracing::info;
 
 // from https://scriptingosx.com/2020/02/getting-the-current-user-in-macos-update/
 
-pub async fn run_process_as_current_user(cmd: &str, _visible: bool) -> io::Result<()> {
+pub async fn run_process_as_current_user(cmd: &str, _visible: bool) -> io::Result<String> {
     let mut user_info = Command::new("scutil")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -32,13 +32,13 @@ pub async fn run_process_as_current_user(cmd: &str, _visible: bool) -> io::Resul
     let mut args = vec!["launchctl".to_owned(), "asuser".to_owned(), uid];
     args.extend(shlex::split(cmd).unwrap().into_iter());
 
-    let mut cmd = Command::new("sudo")
+    let output = Command::new("sudo")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .args(args)
-        .spawn()?;
-    cmd.wait().await?;
+        .output()?;
 
-    Ok(())
+    String::from_utf8(output.stdout)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))
 }

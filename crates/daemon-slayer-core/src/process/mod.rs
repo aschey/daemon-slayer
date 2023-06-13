@@ -16,9 +16,6 @@ pub mod platform {
     pub use super::windows::*;
 }
 
-pub fn get_spawn_interactive_var(label: &Label) -> String {
-    format!(
-        "{}_SPAWN_INTERACTIVE",
-        label.application.to_ascii_uppercase()
-    )
+pub fn get_admin_var(label: &Label) -> String {
+    format!("{}_ADMIN", label.application.to_ascii_uppercase())
 }

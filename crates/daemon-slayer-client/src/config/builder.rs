@@ -7,6 +7,7 @@ use crate::get_manager;
 use crate::ServiceManager;
 use daemon_slayer_core::config::Accessor;
 use daemon_slayer_core::config::CachedConfig;
+use daemon_slayer_core::process::get_admin_var;
 use daemon_slayer_core::CommandArg;
 use daemon_slayer_core::Label;
 use derivative::Derivative;
@@ -212,12 +213,17 @@ impl Builder {
     }
 
     pub(crate) fn environment_variables(&self) -> Vec<(String, String)> {
-        self.user_config
+        let mut vars: Vec<_> = self
+            .user_config
             .load()
             .environment_variables
             .iter()
             .map(|pair| (pair.name.to_owned(), pair.value.to_owned()))
-            .collect()
+            .collect();
+        if !self.is_user() {
+            vars.push((get_admin_var(&self.label), "1".to_owned()))
+        }
+        vars
     }
 
     #[cfg(unix)]

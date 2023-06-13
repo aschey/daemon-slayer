@@ -4,8 +4,8 @@ use daemon_slayer_core::{
         clap::{self, Args, FromArgMatches, Subcommand},
         ActionType, CommandMatch, CommandOutput, CommandProvider,
     },
-    notify::ShowNotification,
-    BoxedError,
+    notify::BlockingNotification,
+    BoxedError, Label,
 };
 use native_dialog::MessageType;
 use tap::TapFallible;
@@ -21,7 +21,7 @@ enum DialogCommand {
 
 #[derive(Args, Clone)]
 struct DialogArgs {
-    #[arg(long)]
+    #[arg(short, long)]
     title: Option<String>,
     text: String,
     #[arg(short, long, value_parser = message_type_parser)]
@@ -37,8 +37,15 @@ fn message_type_parser(val: &str) -> Result<MessageType, String> {
     }
 }
 
-#[derive(Default)]
-pub struct DialogCliProvider {}
+pub struct DialogCliProvider {
+    label: Label,
+}
+
+impl DialogCliProvider {
+    pub fn new(label: Label) -> Self {
+        Self { label }
+    }
+}
 
 #[async_trait]
 impl CommandProvider for DialogCliProvider {
@@ -65,27 +72,26 @@ impl CommandProvider for DialogCliProvider {
 
         match command {
             DialogCommand::Alert(args) => {
-                let mut dialog = MessageDialog::<Alert>::default();
+                let mut dialog = MessageDialog::<Alert>::new(self.label);
                 if let Some(title) = args.title {
                     dialog = dialog.with_title(title);
                 }
                 dialog = dialog.with_text(args.text);
 
                 dialog
-                    .show()
-                    .await
+                    .show_blocking()
                     .tap_err(|e| error!("Error showing dialog: {e}"))
                     .ok();
                 Ok(CommandOutput::handled(None))
             }
             DialogCommand::Confirm(args) => {
-                let mut dialog = MessageDialog::<Confirm>::default();
+                let mut dialog = MessageDialog::<Confirm>::new(self.label);
                 if let Some(title) = args.title {
                     dialog = dialog.with_title(title);
                 }
                 dialog = dialog.with_text(args.text);
 
-                let result = dialog.show().await;
+                let result = dialog.show_blocking();
                 Ok(CommandOutput::handled(
                     result
                         .map(|r| r.to_string())

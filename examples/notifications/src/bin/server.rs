@@ -2,14 +2,14 @@ use confique::Config;
 use daemon_slayer::{
     cli::Cli,
     config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir},
-    core::{notify::ShowNotification, BoxedError, CancellationToken, Label},
+    core::{notify::AsyncNotification, BoxedError, CancellationToken, Label},
     error_handler::{cli::ErrorHandlerCliProvider, color_eyre::eyre, ErrorSink},
     logging::{
         self, cli::LoggingCliProvider, server::LoggingUpdateService,
         tracing_subscriber::util::SubscriberInitExt, LoggerBuilder, ReloadHandle,
     },
     notify::{
-        dialog::{cli::DialogCliProvider, Alert, MessageDialog},
+        dialog::{cli::DialogCliProvider, Alert, Confirm, MessageDialog},
         notification::{cli::NotifyCliProvider, Notification},
         NotificationService,
     },
@@ -48,19 +48,18 @@ async fn run() -> Result<(), BoxedError> {
     let logger_builder =
         LoggerBuilder::new(ServiceHandler::label()).with_config(app_config.clone());
 
-    let mut cli =
-        Cli::builder()
-            .with_provider(ServerCliProvider::<ServiceHandler>::new(
-                &notifications::run_argument(),
-            ))
-            .with_provider(LoggingCliProvider::new(logger_builder))
-            .with_provider(ErrorHandlerCliProvider::default().with_notification(
-                MessageDialog::<Alert>::default().with_text("An error occurred"),
-            ))
-            .with_provider(ConfigCliProvider::new(app_config.clone()))
-            .with_provider(NotifyCliProvider::new(ServiceHandler::label()))
-            .with_provider(DialogCliProvider::default())
-            .initialize()?;
+    let mut cli = Cli::builder()
+        .with_provider(ServerCliProvider::<ServiceHandler>::new(
+            &notifications::run_argument(),
+        ))
+        .with_provider(LoggingCliProvider::new(logger_builder))
+        .with_provider(ErrorHandlerCliProvider::default().with_notification(
+            MessageDialog::<Alert>::new(ServiceHandler::label()).with_text("An error occurred"),
+        ))
+        .with_provider(ConfigCliProvider::new(app_config.clone()))
+        .with_provider(NotifyCliProvider::new(ServiceHandler::label()))
+        .with_provider(DialogCliProvider::new(ServiceHandler::label()))
+        .initialize()?;
 
     let (logger, reload_handle) = cli.take_provider::<LoggingCliProvider>().get_logger()?;
 
@@ -130,6 +129,13 @@ impl Handler for ServiceHandler {
     async fn run_service<F: FnOnce() + Send>(mut self, notify_ready: F) -> Result<(), Self::Error> {
         info!("running service");
         notify_ready();
+        let run_service = MessageDialog::<Confirm>::new(Self::label())
+            .with_text("Run the service?")
+            .show()
+            .await?;
+        if !run_service {
+            return Ok(());
+        }
 
         let start_time = Instant::now();
         loop {

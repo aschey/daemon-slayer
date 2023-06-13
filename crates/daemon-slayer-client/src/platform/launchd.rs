@@ -2,7 +2,7 @@ use crate::{
     config::{Builder, Config, Level},
     Info, Manager, State,
 };
-use daemon_slayer_core::{async_trait, process::get_spawn_interactive_var, Label};
+use daemon_slayer_core::{async_trait, Label};
 use launchd::Launchd;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -184,9 +184,6 @@ impl Manager for LaunchdServiceManager {
             .with_run_at_load(self.config.autostart);
 
         let mut vars: Vec<(String, String)> = self.config.environment_variables();
-        if !self.config.is_user() {
-            vars.push((get_spawn_interactive_var(self.label()), "1".to_owned()))
-        }
         for (key, value) in vars {
             file = file.with_environment_variable(key, value);
         }

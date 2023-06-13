@@ -2,7 +2,7 @@ use crate::{
     config::{windows::Trustee, Builder, Config, Level},
     Info, Manager, State,
 };
-use daemon_slayer_core::{async_trait, process::get_spawn_interactive_var, Label};
+use daemon_slayer_core::{async_trait, Label};
 use regex::Regex;
 use registry::{Data, Hive, Security};
 use std::io;
@@ -315,10 +315,6 @@ impl WindowsServiceManager {
 
     fn add_environment_variables(&self) -> Result<(), io::Error> {
         let mut env_vars = self.config.environment_variables();
-        if !self.config.is_user() {
-            // Add a variable when running in system mode to let the app know that we need to spawn separate processes for interactive functionality
-            env_vars.push((get_spawn_interactive_var(self.label()), "1".to_owned()))
-        }
         if env_vars.is_empty() {
             return Ok(());
         }

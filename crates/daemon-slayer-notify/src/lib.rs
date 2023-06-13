@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use daemon_slayer_core::{
     async_trait,
-    notify::ShowNotification,
+    notify::AsyncNotification,
     server::{tokio_stream::StreamExt, BackgroundService, EventStore, ServiceContext},
     BoxedError, FutureExt,
 };
@@ -24,7 +24,7 @@ impl<E, F, N> NotificationService<E, F>
 where
     E: EventStore,
     F: FnMut(E::Item) -> Option<N>,
-    N: ShowNotification,
+    N: AsyncNotification,
 {
     pub fn new(event_store: E, create_notification: F) -> Self {
         Self {
@@ -47,7 +47,7 @@ impl<E, F, N> BackgroundService for NotificationService<E, F>
 where
     E: EventStore + Send,
     F: FnMut(E::Item) -> Option<N> + Send,
-    N: ShowNotification + Send + Sync,
+    N: AsyncNotification + Send + Sync,
 {
     fn name(&self) -> &str {
         "notifier_service"

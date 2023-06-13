@@ -8,11 +8,12 @@ use notify_rust::{Hint, Timeout, Urgency};
 use tap::TapFallible;
 use tracing::error;
 
-use super::ShowNotification;
+use super::AsyncNotification;
 
 #[cfg(feature = "cli")]
 pub mod cli;
 
+#[derive(Clone)]
 pub struct Notification {
     inner: notify_rust::Notification,
     image_path: Option<String>,
@@ -126,14 +127,14 @@ impl Notification {
 }
 
 #[async_trait]
-impl ShowNotification for Notification {
+impl AsyncNotification for Notification {
     type Output = ();
     async fn show(&self) -> io::Result<Self::Output> {
-        // Windows services running as admin can't send notifications
+        // Services running as admin can't send notifications
         // We get around this by spawning a separate process running as the current user
         // and sending the notification from there
-        #[cfg(any(windows, target_os = "macos"))]
-        if let Ok("1" | "true") = env::var(process::get_spawn_interactive_var(&self.label))
+
+        if let Ok("1" | "true") = env::var(process::get_admin_var(&self.label))
             .map(|v| v.to_lowercase())
             .as_deref()
         {
@@ -147,21 +148,7 @@ impl ShowNotification for Notification {
                 .await
                 .tap_err(|e| error!("Error spawning notification process: {e:?}"))
                 .ok();
-        }
 
-        #[cfg(target_os = "linux")]
-        if let Ok("") | Err(_) = env::var("DBUS_SESSION_BUS_ADDRESS").as_deref() {
-            // If the session bus address is not set, we can't spawn notifications from the current process (we're probably running as root)
-            // Spawn the process as the logged in users instead
-            let cmd = format!(
-                "{} notify {}",
-                &current_exe().unwrap().to_string_lossy(),
-                self.to_args()
-            );
-            process::platform::run_process_as_current_user(&cmd, false)
-                .await
-                .tap_err(|e| error!("Error spawning notification process: {e:?}"))
-                .ok();
             return Ok(());
         }
 

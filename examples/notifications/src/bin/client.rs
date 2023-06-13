@@ -58,7 +58,7 @@ async fn run() -> Result<(), BoxedError> {
     .with_description("test service")
     .with_arg(&notifications::run_argument())
     .with_service_level(if cfg!(windows) {
-        Level::User
+        Level::System
     } else {
         Level::User
     })
