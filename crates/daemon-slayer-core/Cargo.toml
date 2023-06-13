@@ -26,7 +26,6 @@ tracing = "0.1"
 unicode-width = { version = "0.1", optional = true }
 notify-rust = { version = "4", optional = true, features = ["async"] }
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "563f413a206c50c7cc1a003cf6a9d3b227b0b04d" }
-serde = { version = "1", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.48", optional = true, features = [
@@ -62,7 +61,7 @@ config = [
 health-check = []
 server = ["tokio-stream", "background-service"]
 signal = []
-notify = ["serde"]
+notify = []
 process = [
     "windows-sys",
     "widestring",
