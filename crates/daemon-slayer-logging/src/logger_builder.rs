@@ -351,7 +351,12 @@ impl LoggerBuilder {
             let make_transport = move || {
                 let name = name.to_owned();
                 Box::pin(async move {
-                    let transport = ipc::create_endpoint(name, ipc::OnConflict::Overwrite).unwrap();
+                    let transport = ipc::create_endpoint(
+                        name,
+                        ipc::SecurityAttributes::allow_everyone_create().unwrap(),
+                        ipc::OnConflict::Overwrite,
+                    )
+                    .unwrap();
                     CodecTransport::new(transport, LengthDelimitedCodec)
                 })
             };

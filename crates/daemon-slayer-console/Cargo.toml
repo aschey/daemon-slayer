@@ -14,13 +14,13 @@ daemon-slayer-core = { path = "../daemon-slayer-core", features = [
 ], optional = true }
 futures = { version = "0.3" }
 serde = { version = "1", optional = true }
-tilia-widget = { git = "https://github.com/aschey/tilia", rev = "98208bff3c4b27b2a978592db5837cfe5dfa4e3c", features = [
+tilia-widget = { git = "https://github.com/aschey/tilia", rev = "5efee0499224be1046e4487aabfc1cc3a2285c05", features = [
     "ipc",
     "docker",
 ] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 ratatui = { version = "0.21" }
-tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "7cc9de34f32e9cb5d6bc9e22ba0508011fd7d580", features = [
+tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "4314c2f8b2e49c6ad48138bbacf581f83c5f084e", features = [
     "client",
     "server",
     "ipc",

@@ -24,7 +24,7 @@ once_cell = "1"
 serde = { version = "1", optional = true }
 tap = "1"
 thiserror = "1"
-tilia = { git = "https://github.com/aschey/tilia", rev = "98208bff3c4b27b2a978592db5837cfe5dfa4e3c", optional = true }
+tilia = { git = "https://github.com/aschey/tilia", rev = "5efee0499224be1046e4487aabfc1cc3a2285c05", optional = true }
 time = "0.3"
 tracing = "0.1"
 tracing-appender = { version = "0.2" }
@@ -33,7 +33,7 @@ tracing-subscriber = { version = "0.3", features = [
     "local-time",
     "env-filter",
 ] }
-tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "7cc9de34f32e9cb5d6bc9e22ba0508011fd7d580", optional = true, features = [
+tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "4314c2f8b2e49c6ad48138bbacf581f83c5f084e", optional = true, features = [
     "client",
     "server",
     "ipc",
