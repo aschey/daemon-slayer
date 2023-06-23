@@ -8,6 +8,7 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
+use tap::TapFallible;
 use tokio::{runtime::Runtime, sync::broadcast};
 use tracing::{error, info};
 use windows_service::{
@@ -50,12 +51,20 @@ async fn get_service_main_impl<T: Handler>(
             // Handle stop
             ServiceControl::Stop => {
                 info!("Received stop command from service manager");
-                if let Err(e) = signal_tx.send(Signal::SIGINT) {
-                    error!("Error sending stop signal: {e:?}");
-                }
+                signal_tx
+                    .send(Signal::SIGINT)
+                    .tap_err(|e| error!("Error sending stop signal: {e:?}"))
+                    .ok();
                 ServiceControlHandlerResult::NoError
             }
-
+            ServiceControl::Shutdown => {
+                info!("Received shutdown command from service manager");
+                signal_tx
+                    .send(Signal::SIGINT)
+                    .tap_err(|e| error!("Error sending stop signal: {e:?}"))
+                    .ok();
+                ServiceControlHandlerResult::NoError
+            }
             _ => ServiceControlHandlerResult::NotImplemented,
         }
     };
@@ -81,7 +90,7 @@ async fn get_service_main_impl<T: Handler>(
             .set_service_status(ServiceStatus {
                 service_type: ServiceType::OWN_PROCESS,
                 current_state: ServiceState::Running,
-                controls_accepted: ServiceControlAccept::STOP,
+                controls_accepted: ServiceControlAccept::STOP | ServiceControlAccept::SHUTDOWN,
                 exit_code: ServiceExitCode::Win32(0),
                 checkpoint: 0,
                 wait_hint: Duration::default(),

@@ -2,5 +2,6 @@
 pub enum ActionType {
     Server,
     Client,
+    Other,
     Unknown,
 }

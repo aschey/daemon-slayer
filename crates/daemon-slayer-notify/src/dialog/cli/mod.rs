@@ -56,7 +56,7 @@ impl CommandProvider for DialogCliProvider {
     fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
         DialogCommand::from_arg_matches(matches).ok()?;
         Some(CommandMatch {
-            action_type: ActionType::Server,
+            action_type: ActionType::Other,
             action: None,
         })
     }

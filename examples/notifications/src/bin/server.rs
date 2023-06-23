@@ -147,6 +147,7 @@ impl Handler for ServiceHandler {
                     return Err("Simulated error".into());
                 }
                 Err(_) => {
+                    info!("Showing notification");
                     if let Err(e) = Notification::new(Self::label())
                         .summary(format!(
                             "Run time: {} seconds",

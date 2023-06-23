@@ -83,7 +83,7 @@ impl CommandProvider for LoggingCliProvider {
                         let res = current_builder;
                         res
                     }
-                    ActionType::Unknown => current_builder,
+                    ActionType::Unknown | ActionType::Other => current_builder,
                 })
             } else {
                 self.builder = Some(current_builder);

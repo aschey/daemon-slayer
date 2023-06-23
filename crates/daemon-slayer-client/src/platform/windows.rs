@@ -314,7 +314,7 @@ impl WindowsServiceManager {
     }
 
     fn add_environment_variables(&self) -> Result<(), io::Error> {
-        let mut env_vars = self.config.environment_variables();
+        let env_vars = self.config.environment_variables();
         if env_vars.is_empty() {
             return Ok(());
         }
