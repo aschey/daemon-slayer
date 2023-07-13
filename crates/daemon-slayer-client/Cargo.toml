@@ -17,6 +17,7 @@ enumflags2 = "0.7"
 eyre = "0.6"
 owo-colors = { version = "3", features = ["supports-colors"] }
 serde = { version = "1" }
+spinoff = { version = "0.7.0", optional = true }
 strum = "0.24"
 strum_macros = "0.24"
 thiserror = "1"
@@ -27,6 +28,7 @@ regex = "1"
 registry = "1"
 utfx = "0.1"
 windows-args = "0.2"
+colored = { version = "2", optional = true }
 windows-service = { git = "https://github.com/aschey/windows-service-rs", rev = "32919aebe4c59f7855a8ebd72fe7d716db6a8f28" }
 
 [target.'cfg(target_os="linux")'.dependencies]
@@ -40,5 +42,5 @@ regex = "1"
 tokio = { version = "1", features = ["time", "process"] }
 
 [features]
-cli = ["daemon-slayer-core/cli"]
+cli = ["daemon-slayer-core/cli", "spinoff", "colored"]
 config = ["confique"]

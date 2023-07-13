@@ -1,5 +1,3 @@
-use std::{io, time::Duration};
-
 use crate::{Info, ServiceManager, State};
 use daemon_slayer_core::{
     async_trait,
@@ -10,11 +8,18 @@ use daemon_slayer_core::{
     BoxedError,
 };
 use owo_colors::OwoColorize;
+use spinoff::Spinner;
+use std::{io, time::Duration};
 use tokio::time::sleep;
+
+pub use spinoff::spinners;
+pub use spinoff::Color;
 
 #[derive(Clone, Debug)]
 pub struct ClientCliProvider {
     manager: ServiceManager,
+    spinner_type: spinners::SpinnerFrames,
+    spinner_color: Color,
 }
 
 #[derive(Subcommand)]
@@ -43,26 +48,58 @@ enum CliCommands {
 
 impl ClientCliProvider {
     pub fn new(manager: ServiceManager) -> Self {
-        Self { manager }
+        Self {
+            manager,
+            spinner_type: spinners::Dots.into(),
+            spinner_color: Color::Cyan,
+        }
+    }
+
+    pub fn with_spinner_type(self, spinner_type: impl Into<spinners::SpinnerFrames>) -> Self {
+        Self {
+            spinner_type: spinner_type.into(),
+            ..self
+        }
+    }
+
+    pub fn with_spinner_color(self, spinner_color: Color) -> Self {
+        Self {
+            spinner_color,
+            ..self
+        }
     }
 
     async fn wait_for_condition(
         &self,
         condition: impl Fn(&Info) -> bool,
-        failure_msg: &str,
+        wait_message: &str,
+        failure_message: &str,
     ) -> Result<CommandOutput, io::Error> {
+        #[cfg(windows)]
+        colored::control::set_virtual_terminal(true).unwrap();
+
+        println!();
+        let sp = Spinner::new(
+            self.spinner_type.clone(),
+            wait_message.dimmed().to_string(),
+            self.spinner_color,
+        );
+
         // State changes can be asynchronous, wait for the desired state
         // Starting a service can take a while on certain platforms so we'll be conservative with the timeout here
         let max_attempts = 10;
         for _ in 0..max_attempts {
             let info = self.manager.info().await?;
             if condition(&info) {
+                sp.stop();
+                println!();
                 return Ok(CommandOutput::handled(info.pretty_print()));
             }
-            println!("{}", "Waiting for desired state...\n".dimmed());
             sleep(Duration::from_secs(1)).await;
         }
-        Ok(CommandOutput::handled(failure_msg.red().to_string()))
+        sp.stop();
+        println!();
+        Ok(CommandOutput::handled(failure_message.red().to_string()))
     }
 }
 
@@ -127,7 +164,8 @@ impl CommandProvider for ClientCliProvider {
                     return Ok(self
                         .wait_for_condition(
                             |info| info.state != State::NotInstalled,
-                            "Failed to install service",
+                            "Installing...",
+                            "Failed to install",
                         )
                         .await?);
                 }
@@ -136,7 +174,8 @@ impl CommandProvider for ClientCliProvider {
                     return Ok(self
                         .wait_for_condition(
                             |info| info.state == State::NotInstalled,
-                            "Failed to uninstall service",
+                            "Uninstalling...",
+                            "Failed to uninstall",
                         )
                         .await?);
                 }
@@ -149,7 +188,8 @@ impl CommandProvider for ClientCliProvider {
                     return Ok(self
                         .wait_for_condition(
                             |info| info.state == State::Started,
-                            "Failed to start service",
+                            "Starting...",
+                            "Failed to start",
                         )
                         .await?);
                 }
@@ -158,7 +198,8 @@ impl CommandProvider for ClientCliProvider {
                     return Ok(self
                         .wait_for_condition(
                             |info| info.state == State::Stopped,
-                            "Failed to stop service",
+                            "Stopping...",
+                            "Failed to stop",
                         )
                         .await?);
                 }
@@ -167,7 +208,8 @@ impl CommandProvider for ClientCliProvider {
                     return Ok(self
                         .wait_for_condition(
                             |info| info.state == State::Started,
-                            "Failed to restart service",
+                            "Restarting...",
+                            "Failed to restart",
                         )
                         .await?);
                 }
@@ -177,6 +219,7 @@ impl CommandProvider for ClientCliProvider {
                     return Ok(self
                         .wait_for_condition(
                             |info| info.autostart == Some(true),
+                            "Enabling autostart...",
                             "Failed to enable autostart",
                         )
                         .await?);
@@ -186,6 +229,7 @@ impl CommandProvider for ClientCliProvider {
                     return Ok(self
                         .wait_for_condition(
                             |info| info.autostart == Some(false),
+                            "Disabling autostart...",
                             "Failed to disable autostart",
                         )
                         .await?);
