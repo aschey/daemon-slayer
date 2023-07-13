@@ -1,0 +1,20 @@
+[package]
+name = "daemon-slayer-build-info"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+daemon-slayer-core = { path = "../daemon-slayer-core" }
+vergen = { version = "8.2.4", optional = true }
+vergen-pretty = { version = "0.3.0", features = ["color"], optional = true }
+
+[features]
+build = ["vergen/build"]
+cargo = ["vergen/cargo"]
+git = ["vergen/git", "vergen/gix"]
+gix = ["vergen/gix"]
+rustc = ["vergen/rustc"]
+si = ["vergen/si"]
+cli = ["daemon-slayer-core/cli", "vergen-pretty"]

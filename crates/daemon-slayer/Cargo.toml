@@ -23,7 +23,12 @@ server-standard = [
   "error-handler",
   "signals",
 ]
-
+build-info = ["daemon-slayer-build-info"]
+build-info-build = ["daemon-slayer-build-info/build"]
+build-info-cargo = ["daemon-slayer-build-info/cargo"]
+build-info-git = ["daemon-slayer-build-info/git"]
+build-info-rustc = ["daemon-slayer-build-info/rustc"]
+build-info-si = ["daemon-slayer-build-info/si"]
 cli = [
   "daemon-slayer-cli",
   "daemon-slayer-logging?/cli",
@@ -35,6 +40,7 @@ cli = [
   "daemon-slayer-config?/cli",
   "daemon-slayer-process?/cli",
   "daemon-slayer-notify?/cli",
+  "daemon-slayer-build-info?/cli",
 ]
 client = ["daemon-slayer-client"]
 config = [
@@ -92,3 +98,4 @@ daemon-slayer-signals = { path = "../daemon-slayer-signals", optional = true }
 daemon-slayer-task-queue = { path = "../daemon-slayer-task-queue", optional = true }
 daemon-slayer-tray = { path = "../daemon-slayer-tray", optional = true }
 daemon-slayer-notify = { path = "../daemon-slayer-notify", optional = true }
+daemon-slayer-build-info = { path = "../daemon-slayer-build-info", optional = true }
