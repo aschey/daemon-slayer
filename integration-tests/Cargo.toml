@@ -5,20 +5,20 @@ publish = false
 version = "0.1.0"
 
 [dependencies]
-async-trait = "0.1.68"
-axum = "0.6.15"
+async-trait = "0.1.71"
+axum = "0.6.19"
 cargo_metadata = "0.15.4"
-confique = "0.2.3"
+confique = "0.2.4"
 daemon-slayer = { path = "../crates/daemon-slayer", features = [
     "server-standard",
     "client-standard",
     "extras",
 ] }
 futures = "0.3.28"
-reqwest = { version = "0.11.16" }
-serde = "1.0.160"
-tokio = { version = "1.27.0", features = ["rt-multi-thread"] }
+reqwest = { version = "0.11.18" }
+serde = "1.0.173"
+tokio = { version = "1.29.1", features = ["rt-multi-thread"] }
 tracing = "0.1.37"
 
 [dev-dependencies]
-assert_cmd = "2.0.11"
+assert_cmd = "2.0.12"
