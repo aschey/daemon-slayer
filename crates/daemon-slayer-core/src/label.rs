@@ -1,12 +1,19 @@
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Eq, PartialEq, Debug, Default, Serialize, Deserialize)]
 pub struct Label {
     pub qualifier: String,
     pub organization: String,
     pub application: String,
+}
+
+impl Display for Label {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.qualified_name())
+    }
 }
 
 impl Label {

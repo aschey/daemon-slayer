@@ -25,6 +25,16 @@ impl Builder {
     }
 
     pub fn with_provider(mut self, provider: impl CommandProvider + 'static) -> Self {
+        if self
+            .providers
+            .iter()
+            .any(|p| p.type_id() == provider.type_id())
+        {
+            panic!(
+                "Provider with type {:?} is already registered",
+                provider.type_id()
+            );
+        }
         self.providers.push(Box::new(provider));
         self
     }

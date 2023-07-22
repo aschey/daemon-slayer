@@ -9,7 +9,7 @@ use daemon_slayer_core::{
 
 use crate::ProcessManager;
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Clone, Debug)]
 enum ProcessSubcommands {
     /// Show process info
     Info,
@@ -17,7 +17,7 @@ enum ProcessSubcommands {
     Kill,
 }
 
-#[derive(Args)]
+#[derive(Args, Clone, Debug)]
 struct ProcessArgs {
     #[command(subcommand)]
     commands: ProcessSubcommands,
@@ -32,11 +32,15 @@ enum CliCommands {
 #[derive(Clone, Debug)]
 pub struct ProcessCliProvider {
     pid: Option<u32>,
+    matched_args: Option<ProcessArgs>,
 }
 
 impl ProcessCliProvider {
     pub fn new(pid: Option<u32>) -> Self {
-        Self { pid }
+        Self {
+            pid,
+            matched_args: None,
+        }
     }
 }
 
@@ -46,21 +50,19 @@ impl CommandProvider for ProcessCliProvider {
         CliCommands::augment_subcommands(command)
     }
 
-    fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
-        CliCommands::from_arg_matches(matches).ok()?;
+    fn matches(&mut self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
+        let command = CliCommands::from_arg_matches(matches).ok()?;
+        let CliCommands::Process(args) = command;
+        self.matched_args = Some(args);
         Some(CommandMatch {
             action_type: ActionType::Client,
             action: None,
         })
     }
 
-    async fn handle_input(
-        mut self: Box<Self>,
-        matches: &clap::ArgMatches,
-        _matched_command: &Option<CommandMatch>,
-    ) -> Result<CommandOutput, BoxedError> {
+    async fn handle_input(mut self: Box<Self>) -> Result<CommandOutput, BoxedError> {
         let pid = self.pid.as_ref();
-        let Ok(CliCommands::Process(args)) = CliCommands::from_arg_matches(matches) else {
+        let Some(args) = self.matched_args else {
             return Ok(CommandOutput::unhandled());
         };
         let Some(pid) = pid else {

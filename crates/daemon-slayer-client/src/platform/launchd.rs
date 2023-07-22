@@ -249,6 +249,7 @@ impl Manager for LaunchdServiceManager {
         let plist_path = self.get_plist_path()?;
         if !plist_path.exists() {
             return Ok(Info {
+                label: self.config.label.clone(),
                 state: State::NotInstalled,
                 autostart: None,
                 pid: None,
@@ -263,6 +264,7 @@ impl Manager for LaunchdServiceManager {
             .await?;
         if output.contains("could not find service") {
             return Ok(Info {
+                label: self.config.label.clone(),
                 state: State::NotInstalled,
                 autostart: None,
                 pid: None,
@@ -290,6 +292,7 @@ impl Manager for LaunchdServiceManager {
             .map(|code| code.parse::<i32>().unwrap_or(0));
 
         Ok(Info {
+            label: self.config.label.clone(),
             state,
             pid,
             id: None,

@@ -312,6 +312,7 @@ impl Manager for SystemdServiceManager {
         };
 
         Ok(Info {
+            label: self.config.label.clone(),
             pid,
             state,
             autostart,

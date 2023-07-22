@@ -48,14 +48,14 @@ impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
         command
     }
 
-    fn matches(&self, _matches: &clap::ArgMatches) -> Option<CommandMatch> {
+    fn matches(&mut self, _matches: &clap::ArgMatches) -> Option<CommandMatch> {
         None
     }
 
     fn initialize(
         &mut self,
         _matches: &clap::ArgMatches,
-        matched_command: &Option<CommandMatch>,
+        matched_command: Option<&CommandMatch>,
     ) -> Result<(), BoxedError> {
         if let Some(CommandMatch {
             action: Some(Action::Server(ServerAction::Run)),
@@ -81,11 +81,7 @@ impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
         Ok(())
     }
 
-    async fn handle_input(
-        mut self: Box<Self>,
-        _matches: &clap::ArgMatches,
-        _matched_command: &Option<CommandMatch>,
-    ) -> Result<CommandOutput, BoxedError> {
+    async fn handle_input(mut self: Box<Self>) -> Result<CommandOutput, BoxedError> {
         Ok(CommandOutput::unhandled())
     }
 }

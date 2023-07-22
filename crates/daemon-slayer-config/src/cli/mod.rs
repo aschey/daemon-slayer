@@ -13,14 +13,14 @@ use derivative::Derivative;
 use tap::TapFallible;
 use tracing::error;
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug, Clone)]
 enum ConfigCommands {
     Path,
     Edit,
     Validate,
 }
 
-#[derive(Args)]
+#[derive(Args, Debug, Clone)]
 struct ConfigArgs {
     #[command(subcommand)]
     command: Option<ConfigCommands>,
@@ -32,7 +32,7 @@ struct ConfigArgs {
     color: bool,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug, Clone)]
 enum CliCommands {
     Config(ConfigArgs),
 }
@@ -43,6 +43,7 @@ pub struct ConfigCliProvider<T: Configurable> {
     config: AppConfig<T>,
     #[derivative(Debug = "ignore")]
     watchers: Vec<Box<dyn ConfigWatcher>>,
+    matched_args: Option<ConfigArgs>,
 }
 
 impl<T: Configurable> ConfigCliProvider<T> {
@@ -50,6 +51,7 @@ impl<T: Configurable> ConfigCliProvider<T> {
         Self {
             config,
             watchers: vec![],
+            matched_args: None,
         }
     }
 
@@ -65,21 +67,19 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
         CliCommands::augment_subcommands(command)
     }
 
-    fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
-        CliCommands::from_arg_matches(matches).ok()?;
+    fn matches(&mut self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
+        let command_match = CliCommands::from_arg_matches(matches).ok()?;
+        let CliCommands::Config(args) = command_match;
+        self.matched_args = Some(args);
         Some(CommandMatch {
             action_type: ActionType::Client,
             action: None,
         })
     }
 
-    async fn handle_input(
-        mut self: Box<Self>,
-        matches: &clap::ArgMatches,
-        _matched_command: &Option<CommandMatch>,
-    ) -> Result<CommandOutput, BoxedError> {
-        if let Ok(CliCommands::Config(cmd)) = CliCommands::from_arg_matches(matches) {
-            return Ok(match cmd.command {
+    async fn handle_input(mut self: Box<Self>) -> Result<CommandOutput, BoxedError> {
+        if let Some(args) = &self.matched_args {
+            return Ok(match args.command {
                 Some(ConfigCommands::Path) => {
                     CommandOutput::handled(self.config.full_path().to_string_lossy().to_string())
                 }
@@ -103,11 +103,11 @@ impl<T: Configurable> CommandProvider for ConfigCliProvider<T> {
                 None => {
                     #[cfg(feature = "pretty-print")]
                     {
-                        if cmd.plain {
+                        if args.plain {
                             CommandOutput::handled(self.config.contents()?)
                         } else {
                             self.config
-                                .pretty_print(crate::PrettyPrintOptions { color: cmd.color })?;
+                                .pretty_print(crate::PrettyPrintOptions { color: args.color })?;
                             CommandOutput::handled(None)
                         }
                     }

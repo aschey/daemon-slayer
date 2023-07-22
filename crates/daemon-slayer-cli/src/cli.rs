@@ -1,3 +1,5 @@
+use std::any::TypeId;
+
 use crate::Builder;
 use clap::builder::StyledStr;
 use daemon_slayer_core::{
@@ -9,7 +11,7 @@ pub struct Cli {
     providers: Vec<Box<dyn CommandProvider>>,
     matches: clap::ArgMatches,
     help: StyledStr,
-    matched_command: Option<CommandMatch>,
+    matched_command: Option<(CommandMatch, TypeId)>,
 }
 
 impl Cli {
@@ -22,15 +24,18 @@ impl Cli {
         help: StyledStr,
         matches: clap::ArgMatches,
     ) -> Result<Self, BoxedError> {
-        let mut matched_command: Option<CommandMatch> = None;
-        for provider in &providers {
+        let mut matched_command: Option<(CommandMatch, TypeId)> = None;
+
+        for provider in &mut providers {
             if let Some(command_match) = provider.matches(&matches) {
-                matched_command = Some(command_match);
+                matched_command = Some((command_match, provider.type_id()));
+
+                break;
             }
         }
 
         for provider in &mut providers {
-            provider.initialize(&matches, &matched_command)?;
+            provider.initialize(&matches, matched_command.as_ref().map(|(cmd, _)| cmd))?;
         }
         Ok(Self {
             providers,
@@ -41,8 +46,8 @@ impl Cli {
     }
 
     pub fn action_type(&self) -> ActionType {
-        if let Some(matched) = &self.matched_command {
-            matched.action_type.clone()
+        if let Some((cmd, _)) = &self.matched_command {
+            cmd.action_type.clone()
         } else {
             ActionType::Unknown
         }
@@ -86,13 +91,18 @@ impl Cli {
     }
 
     pub async fn handle_input_with_writer(
-        self,
+        mut self,
         mut writer: impl std::io::Write + Send + Sync,
     ) -> Result<(InputState, clap::ArgMatches), BoxedError> {
-        for provider in self.providers {
-            let handler_result = provider
-                .handle_input(&self.matches, &self.matched_command)
-                .await?;
+        if let Some((_, provider_type)) = self.matched_command {
+            let provider_index = self
+                .providers
+                .iter()
+                .position(|p| p.type_id() == provider_type)
+                .unwrap();
+            let provider = self.providers.remove(provider_index);
+            let handler_result = provider.handle_input().await?;
+
             if let Some(output) = handler_result.output {
                 writeln!(writer, "{output}")?;
             }

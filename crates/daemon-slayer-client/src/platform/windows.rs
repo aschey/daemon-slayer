@@ -46,6 +46,7 @@ impl WindowsServiceManager {
             .is_none()
         {
             return Ok(Info {
+                label: self.config.label.clone(),
                 state: State::NotInstalled,
                 autostart: None,
                 pid: None,
@@ -57,6 +58,7 @@ impl WindowsServiceManager {
         // Service might've been uninstalled as we were querying it
         let Ok(service) = self.open_service(service_name, ServiceAccessMode::Read) else {
             return Ok(Info {
+                label: self.config.label.clone(),
                 state: State::NotInstalled,
                 autostart: None,
                 pid: None,
@@ -93,6 +95,7 @@ impl WindowsServiceManager {
             .start_type
             == ServiceStartType::AutoStart;
         Ok(Info {
+            label: self.config.label.clone(),
             state,
             autostart: Some(autostart),
             pid: service_status.process_id,
@@ -515,6 +518,7 @@ impl Manager for WindowsServiceManager {
             Some(service) => service,
             None => {
                 return Ok(Info {
+                    label: self.config.label.clone(),
                     state: State::NotInstalled,
                     autostart: None,
                     pid: None,

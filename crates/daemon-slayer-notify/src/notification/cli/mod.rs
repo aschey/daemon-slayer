@@ -32,11 +32,12 @@ struct NotifyArgs {
 
 pub struct NotifyCliProvider {
     label: Label,
+    args: Option<NotifyArgs>,
 }
 
 impl NotifyCliProvider {
     pub fn new(label: Label) -> Self {
-        Self { label }
+        Self { label, args: None }
     }
 }
 
@@ -46,20 +47,18 @@ impl CommandProvider for NotifyCliProvider {
         NotifyCommand::augment_subcommands(command)
     }
 
-    fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
-        NotifyCommand::from_arg_matches(matches).ok()?;
+    fn matches(&mut self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
+        let command = NotifyCommand::from_arg_matches(matches).ok()?;
+        let NotifyCommand::Notify(args) = command;
+        self.args = Some(args);
         Some(CommandMatch {
             action_type: ActionType::Other,
             action: None,
         })
     }
 
-    async fn handle_input(
-        mut self: Box<Self>,
-        matches: &clap::ArgMatches,
-        _matched_command: &Option<CommandMatch>,
-    ) -> Result<CommandOutput, BoxedError> {
-        let Ok(NotifyCommand::Notify(args)) = NotifyCommand::from_arg_matches(matches) else {
+    async fn handle_input(mut self: Box<Self>) -> Result<CommandOutput, BoxedError> {
+        let Some(args) = self.args else {
             return Ok(CommandOutput::unhandled());
         };
 

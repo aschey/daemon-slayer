@@ -50,14 +50,14 @@ impl CommandProvider for LoggingCliProvider {
         command
     }
 
-    fn matches(&self, _matches: &clap::ArgMatches) -> Option<CommandMatch> {
+    fn matches(&mut self, _matches: &clap::ArgMatches) -> Option<CommandMatch> {
         None
     }
 
     fn initialize(
         &mut self,
         _matches: &clap::ArgMatches,
-        matched_command: &Option<CommandMatch>,
+        matched_command: Option<&CommandMatch>,
     ) -> Result<(), BoxedError> {
         if let Some(current_builder) = self.builder.take() {
             if let Some(matched) = matched_command {
@@ -92,11 +92,7 @@ impl CommandProvider for LoggingCliProvider {
         Ok(())
     }
 
-    async fn handle_input(
-        mut self: Box<Self>,
-        _matches: &clap::ArgMatches,
-        _matched_command: &Option<CommandMatch>,
-    ) -> Result<CommandOutput, BoxedError> {
+    async fn handle_input(mut self: Box<Self>) -> Result<CommandOutput, BoxedError> {
         Ok(CommandOutput::unhandled())
     }
 }

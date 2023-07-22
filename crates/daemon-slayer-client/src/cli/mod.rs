@@ -20,9 +20,10 @@ pub struct ClientCliProvider {
     manager: ServiceManager,
     spinner_type: spinners::SpinnerFrames,
     spinner_color: Color,
+    matched_command: Option<CliCommands>,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, PartialEq, Eq, Clone, Debug)]
 enum CliCommands {
     /// Install the service using the system's service manager
     Install,
@@ -52,6 +53,7 @@ impl ClientCliProvider {
             manager,
             spinner_type: spinners::Dots.into(),
             spinner_color: Color::Cyan,
+            matched_command: None,
         }
     }
 
@@ -109,8 +111,9 @@ impl CommandProvider for ClientCliProvider {
         CliCommands::augment_subcommands(command)
     }
 
-    fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
+    fn matches(&mut self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
         let cmd = CliCommands::from_arg_matches(matches).ok()?;
+        self.matched_command = Some(cmd.clone());
         Some(CommandMatch {
             action_type: ActionType::Client,
             action: Some(Action::Client(match cmd {
@@ -128,21 +131,13 @@ impl CommandProvider for ClientCliProvider {
         })
     }
 
-    async fn handle_input(
-        mut self: Box<Self>,
-        _matches: &clap::ArgMatches,
-        matched_command: &Option<CommandMatch>,
-    ) -> Result<CommandOutput, BoxedError> {
-        if let Some(CommandMatch {
-            action: Some(Action::Client(action)),
-            ..
-        }) = matched_command
-        {
+    async fn handle_input(mut self: Box<Self>) -> Result<CommandOutput, BoxedError> {
+        if let Some(matched_command) = &self.matched_command {
             let state = self.manager.info().await?.state;
             if state == State::NotInstalled
-                && *action != ClientAction::Install
-                && *action != ClientAction::Uninstall
-                && *action != ClientAction::Info
+                && *matched_command != CliCommands::Install
+                && *matched_command != CliCommands::Uninstall
+                && *matched_command != CliCommands::Info
             {
                 return Ok(CommandOutput::handled(
                     "Cannot complete action because service is not installed"
@@ -150,8 +145,9 @@ impl CommandProvider for ClientCliProvider {
                         .to_string(),
                 ));
             }
-            match action {
-                ClientAction::Install => {
+
+            match matched_command {
+                CliCommands::Install => {
                     self.manager.install().await?;
 
                     #[cfg(windows)]
@@ -169,7 +165,7 @@ impl CommandProvider for ClientCliProvider {
                         )
                         .await?);
                 }
-                ClientAction::Uninstall => {
+                CliCommands::Uninstall => {
                     self.manager.uninstall().await?;
                     return Ok(self
                         .wait_for_condition(
@@ -179,11 +175,11 @@ impl CommandProvider for ClientCliProvider {
                         )
                         .await?);
                 }
-                ClientAction::Info => {
+                CliCommands::Info => {
                     let info = self.manager.info().await?;
                     return Ok(CommandOutput::handled(info.pretty_print()));
                 }
-                ClientAction::Start => {
+                CliCommands::Start => {
                     self.manager.start().await?;
                     return Ok(self
                         .wait_for_condition(
@@ -193,7 +189,7 @@ impl CommandProvider for ClientCliProvider {
                         )
                         .await?);
                 }
-                ClientAction::Stop => {
+                CliCommands::Stop => {
                     self.manager.stop().await?;
                     return Ok(self
                         .wait_for_condition(
@@ -203,7 +199,7 @@ impl CommandProvider for ClientCliProvider {
                         )
                         .await?);
                 }
-                ClientAction::Restart => {
+                CliCommands::Restart => {
                     self.manager.restart().await?;
                     return Ok(self
                         .wait_for_condition(
@@ -213,8 +209,8 @@ impl CommandProvider for ClientCliProvider {
                         )
                         .await?);
                 }
-                ClientAction::Reload => self.manager.reload_config().await?,
-                ClientAction::Enable => {
+                CliCommands::Reload => self.manager.reload_config().await?,
+                CliCommands::Enable => {
                     self.manager.enable_autostart().await?;
                     return Ok(self
                         .wait_for_condition(
@@ -224,7 +220,7 @@ impl CommandProvider for ClientCliProvider {
                         )
                         .await?);
                 }
-                ClientAction::Disable => {
+                CliCommands::Disable => {
                     self.manager.disable_autostart().await?;
                     return Ok(self
                         .wait_for_condition(
@@ -234,7 +230,7 @@ impl CommandProvider for ClientCliProvider {
                         )
                         .await?);
                 }
-                ClientAction::Pid => {
+                CliCommands::Pid => {
                     let pid = self.manager.info().await?.pid;
                     return Ok(CommandOutput::handled(
                         pid.map(|p| p.to_string())

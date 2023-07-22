@@ -39,11 +39,15 @@ fn message_type_parser(val: &str) -> Result<MessageType, String> {
 
 pub struct DialogCliProvider {
     label: Label,
+    matched_command: Option<DialogCommand>,
 }
 
 impl DialogCliProvider {
     pub fn new(label: Label) -> Self {
-        Self { label }
+        Self {
+            label,
+            matched_command: None,
+        }
     }
 }
 
@@ -53,30 +57,27 @@ impl CommandProvider for DialogCliProvider {
         DialogCommand::augment_subcommands(command)
     }
 
-    fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
-        DialogCommand::from_arg_matches(matches).ok()?;
+    fn matches(&mut self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
+        let matched_command = DialogCommand::from_arg_matches(matches).ok()?;
+        self.matched_command = Some(matched_command);
         Some(CommandMatch {
             action_type: ActionType::Other,
             action: None,
         })
     }
 
-    async fn handle_input(
-        mut self: Box<Self>,
-        matches: &clap::ArgMatches,
-        _matched_command: &Option<CommandMatch>,
-    ) -> Result<CommandOutput, BoxedError> {
-        let Ok(command) = DialogCommand::from_arg_matches(matches) else {
+    async fn handle_input(mut self: Box<Self>) -> Result<CommandOutput, BoxedError> {
+        let Some(command) = &self.matched_command else {
             return Ok(CommandOutput::unhandled());
         };
 
         match command {
             DialogCommand::Alert(args) => {
                 let mut dialog = MessageDialog::<Alert>::new(self.label);
-                if let Some(title) = args.title {
+                if let Some(title) = &args.title {
                     dialog = dialog.with_title(title);
                 }
-                dialog = dialog.with_text(args.text);
+                dialog = dialog.with_text(&args.text);
 
                 dialog
                     .show_blocking()
@@ -86,10 +87,10 @@ impl CommandProvider for DialogCliProvider {
             }
             DialogCommand::Confirm(args) => {
                 let mut dialog = MessageDialog::<Confirm>::new(self.label);
-                if let Some(title) = args.title {
+                if let Some(title) = &args.title {
                     dialog = dialog.with_title(title);
                 }
-                dialog = dialog.with_text(args.text);
+                dialog = dialog.with_text(&args.text);
 
                 let result = dialog.show_blocking();
                 Ok(CommandOutput::handled(

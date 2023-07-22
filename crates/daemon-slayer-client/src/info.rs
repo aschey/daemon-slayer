@@ -1,9 +1,11 @@
 use crate::State;
+use daemon_slayer_core::Label;
 use owo_colors::OwoColorize;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Info {
+    pub label: Label,
     pub state: State,
     pub autostart: Option<bool>,
     pub pid: Option<u32>,
@@ -28,6 +30,7 @@ impl Info {
         }
         printer
             .with_line("Exit Code", self.pretty_print_exit_code())
+            .with_line("Label", self.label.qualified_name())
             .print()
     }
 

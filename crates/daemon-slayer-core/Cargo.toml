@@ -23,6 +23,7 @@ tokio = { version = "1", features = ["sync"] }
 tokio-stream = { version = "0.1", features = ["sync"], optional = true }
 tokio-util = { version = "0.7" }
 tracing = "0.1"
+serde = { version = "1", features = ["derive"] }
 unicode-width = { version = "0.1", optional = true }
 notify-rust = { version = "4", optional = true, features = ["async"] }
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "563f413a206c50c7cc1a003cf6a9d3b227b0b04d" }

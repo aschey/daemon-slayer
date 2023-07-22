@@ -16,11 +16,15 @@ enum CliCommands {
 #[derive(Clone)]
 pub struct HealthCheckCliProvider<H: HealthCheck + Clone + Send> {
     health_check: H,
+    matched: bool,
 }
 
 impl<H: daemon_slayer_core::health_check::HealthCheck + Clone + Send> HealthCheckCliProvider<H> {
     pub fn new(health_check: H) -> Self {
-        Self { health_check }
+        Self {
+            health_check,
+            matched: false,
+        }
     }
 }
 
@@ -30,20 +34,17 @@ impl<H: HealthCheck + Clone + Send + 'static> CommandProvider for HealthCheckCli
         CliCommands::augment_subcommands(command)
     }
 
-    fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
+    fn matches(&mut self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
         CliCommands::from_arg_matches(matches).ok()?;
+        self.matched = true;
         Some(CommandMatch {
             action_type: ActionType::Client,
             action: None,
         })
     }
 
-    async fn handle_input(
-        mut self: Box<Self>,
-        matches: &clap::ArgMatches,
-        _matched_command: &Option<CommandMatch>,
-    ) -> Result<CommandOutput, BoxedError> {
-        if let Ok(CliCommands::Health) = CliCommands::from_arg_matches(matches) {
+    async fn handle_input(mut self: Box<Self>) -> Result<CommandOutput, BoxedError> {
+        if self.matched {
             Ok(match self.health_check.invoke().await {
                 Ok(()) => CommandOutput::handled("Healthy".to_owned()),
                 Err(e) => CommandOutput::handled(format!("Unhealthy: {e:?}")),

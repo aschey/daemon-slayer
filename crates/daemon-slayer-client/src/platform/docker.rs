@@ -236,6 +236,7 @@ impl Manager for DockerServiceManager {
             };
 
             let info = Info {
+                label: self.config.label.clone(),
                 state,
                 autostart,
                 pid: container_state.pid.map(|p| p as u32),
@@ -246,6 +247,7 @@ impl Manager for DockerServiceManager {
             return Ok(info);
         }
         let info = Info {
+            label: self.config.label.clone(),
             state: State::NotInstalled,
             autostart: None,
             pid: None,

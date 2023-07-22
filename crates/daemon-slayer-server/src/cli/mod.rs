@@ -10,11 +10,20 @@ use daemon_slayer_core::{
 use std::marker::PhantomData;
 
 const RUN_ID: &str = "run";
+const LABEL_ID: &str = "label";
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
+enum ServerCommand {
+    Run,
+    Direct,
+    Label,
+}
+
+#[derive(Clone, Debug)]
 pub struct ServerCliProvider<S: Service> {
     input_data: Option<S::InputData>,
     run_command: CommandArg,
+    matched_command: Option<ServerCommand>,
     _phantom: PhantomData<S>,
 }
 
@@ -24,6 +33,7 @@ impl<S: Service> ServerCliProvider<S> {
             run_command: run_command.to_owned(),
             input_data: Default::default(),
             _phantom: Default::default(),
+            matched_command: None,
         }
     }
 
@@ -36,7 +46,7 @@ impl<S: Service> ServerCliProvider<S> {
 impl<S: Service> CommandProvider for ServerCliProvider<S> {
     fn get_commands(&self, cmd: clap::Command) -> clap::Command {
         let cmd = cmd.arg_required_else_help(false);
-        match &self.run_command {
+        let cmd = match &self.run_command {
             CommandArg::Subcommand(sub) => cmd.subcommand(clap::Command::new(sub)),
             CommandArg::ShortArg(arg) => cmd.arg(
                 clap::Arg::new(RUN_ID)
@@ -46,55 +56,65 @@ impl<S: Service> CommandProvider for ServerCliProvider<S> {
             CommandArg::LongArg(arg) => {
                 cmd.arg(clap::Arg::new(RUN_ID).long(arg).action(ArgAction::SetTrue))
             }
-        }
+        };
+        cmd.arg(
+            clap::Arg::new(LABEL_ID)
+                .long(LABEL_ID)
+                .action(ArgAction::SetTrue),
+        )
     }
 
-    fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
+    fn matches(&mut self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
         let has_flags = matches
             .ids()
             .any(|i| matches.value_source(i.as_str()) != Some(ValueSource::DefaultValue));
+
         match &self.run_command {
-            CommandArg::Subcommand(sub) if matches!(matches.subcommand(), Some((sub_name, _)) if sub_name == sub) => {
+            CommandArg::Subcommand(sub) if matches!(matches.subcommand(), Some((sub_name, _)) if sub_name == sub) =>
+            {
+                self.matched_command = Some(ServerCommand::Run);
                 Some(CommandMatch {
                     action_type: ActionType::Server,
                     action: Some(Action::Server(ServerAction::Run)),
                 })
             }
             CommandArg::LongArg(_) | CommandArg::ShortArg(_) if matches.get_flag(RUN_ID) => {
+                self.matched_command = Some(ServerCommand::Run);
                 Some(CommandMatch {
                     action_type: ActionType::Server,
                     action: Some(Action::Server(ServerAction::Run)),
                 })
             }
-            _ if matches.subcommand().is_none() && !has_flags => Some(CommandMatch {
-                action_type: ActionType::Server,
-                action: Some(Action::Server(ServerAction::Direct)),
-            }),
+            _ if matches.get_flag(LABEL_ID) => {
+                self.matched_command = Some(ServerCommand::Label);
+                Some(CommandMatch {
+                    action_type: ActionType::Other,
+                    action: None,
+                })
+            }
+            _ if matches.subcommand().is_none() && !has_flags => {
+                self.matched_command = Some(ServerCommand::Direct);
+                Some(CommandMatch {
+                    action_type: ActionType::Server,
+                    action: Some(Action::Server(ServerAction::Direct)),
+                })
+            }
             _ => None,
         }
     }
 
-    async fn handle_input(
-        mut self: Box<Self>,
-        _matches: &clap::ArgMatches,
-        matched_command: &Option<CommandMatch>,
-    ) -> Result<CommandOutput, BoxedError> {
-        match matched_command {
-            Some(CommandMatch {
-                action: Some(Action::Server(ServerAction::Direct)),
-                ..
-            }) => {
+    async fn handle_input(mut self: Box<Self>) -> Result<CommandOutput, BoxedError> {
+        match self.matched_command {
+            Some(ServerCommand::Direct) => {
                 S::run_directly(self.input_data).await?;
                 Ok(CommandOutput::handled(None))
             }
-            Some(CommandMatch {
-                action: Some(Action::Server(ServerAction::Run)),
-                ..
-            }) => {
+            Some(ServerCommand::Run) => {
                 S::run_as_service(self.input_data).await?;
                 Ok(CommandOutput::handled(None))
             }
-            _ => Ok(CommandOutput::unhandled()),
+            Some(ServerCommand::Label) => Ok(CommandOutput::handled(S::label().qualified_name())),
+            None => Ok(CommandOutput::unhandled()),
         }
     }
 }

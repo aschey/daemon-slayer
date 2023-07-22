@@ -30,13 +30,15 @@ fn test_initialize() {
 #[tokio::test]
 async fn test_input_handled_default() {
     let default_bool = Arc::new(AtomicBool::new(false));
+    let mut provider = TestProvider::new(
+        default_bool.clone(),
+        Arc::new(AtomicBool::new(false)),
+        Arc::new(AtomicBool::new(false)),
+    );
+    provider.match_on_default = true;
     let cli = Cli::builder()
         .with_base_command(clap::Command::new("cli_test"))
-        .with_provider(TestProvider::new(
-            default_bool.clone(),
-            Arc::new(AtomicBool::new(false)),
-            Arc::new(AtomicBool::new(false)),
-        ))
+        .with_provider(provider)
         .initialize_from(["cli_test"])
         .unwrap();
     let (input_state, _) = cli.handle_input().await.unwrap();
@@ -159,6 +161,8 @@ struct TestProvider {
     default_matched: Arc<AtomicBool>,
     subcommand_matched: Arc<AtomicBool>,
     arg_matched: Arc<AtomicBool>,
+    matches: Option<clap::ArgMatches>,
+    match_on_default: bool,
 }
 
 impl TestProvider {
@@ -172,6 +176,8 @@ impl TestProvider {
             default_matched,
             subcommand_matched,
             arg_matched,
+            matches: None,
+            match_on_default: false,
         }
     }
 }
@@ -183,22 +189,19 @@ impl CommandProvider for TestProvider {
         TestArgs::augment_args(command)
     }
 
-    async fn handle_input(
-        self: Box<Self>,
-        matches: &clap::ArgMatches,
-        _matched_command: &Option<CommandMatch>,
-    ) -> Result<CommandOutput, BoxedError> {
+    async fn handle_input(self: Box<Self>) -> Result<CommandOutput, BoxedError> {
+        let matches = self.matches.unwrap();
         if matches.subcommand().is_none() && !matches.args_present() {
             self.default_matched.store(true, Ordering::Relaxed);
             return Ok(CommandOutput::handled(None));
         }
-        if TestCommands::from_arg_matches(matches).is_ok() {
+        if TestCommands::from_arg_matches(&matches).is_ok() {
             self.subcommand_matched.store(true, Ordering::Relaxed);
             return Ok(CommandOutput::handled("subcommand".to_owned()));
         }
 
         if matches!(
-            TestArgs::from_arg_matches(matches),
+            TestArgs::from_arg_matches(&matches),
             Ok(TestArgs { test_arg: Some(_) })
         ) {
             self.arg_matched.store(true, Ordering::Relaxed);
@@ -208,13 +211,14 @@ impl CommandProvider for TestProvider {
         Ok(CommandOutput::unhandled())
     }
 
-    fn matches(&self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
+    fn matches(&mut self, matches: &clap::ArgMatches) -> Option<CommandMatch> {
         let arg_match = matches!(
             TestArgs::from_arg_matches(matches),
             Ok(TestArgs { test_arg: Some(_) })
         );
         let cmd_match = TestCommands::from_arg_matches(matches).is_ok();
-        if arg_match || cmd_match {
+        if arg_match || cmd_match || self.match_on_default {
+            self.matches = Some(matches.clone());
             Some(CommandMatch {
                 action_type: ActionType::Client,
                 action: None,
@@ -227,7 +231,7 @@ impl CommandProvider for TestProvider {
     fn initialize(
         &mut self,
         _matches: &clap::ArgMatches,
-        _matched_command: &Option<CommandMatch>,
+        _matched_command: Option<&CommandMatch>,
     ) -> Result<(), BoxedError> {
         self.initialized = true;
         Ok(())
