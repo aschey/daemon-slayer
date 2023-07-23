@@ -12,7 +12,7 @@ pub struct ErrorHandlerCliProvider {
     #[cfg(feature = "notify")]
     notification: Option<
         std::sync::Arc<
-            Box<dyn daemon_slayer_core::notify::AsyncNotification<Output = ()> + Send + Sync>,
+            dyn daemon_slayer_core::notify::AsyncNotification<Output = ()> + Send + Sync,
         >,
     >,
 }
@@ -37,7 +37,7 @@ impl ErrorHandlerCliProvider {
         N: daemon_slayer_core::notify::AsyncNotification<Output = ()> + Send + Sync + 'static,
     {
         Self {
-            notification: Some(std::sync::Arc::new(Box::new(notification))),
+            notification: Some(std::sync::Arc::new(notification)),
         }
     }
 }
@@ -70,7 +70,7 @@ impl daemon_slayer_core::cli::CommandProvider for ErrorHandlerCliProvider {
                 .with_log(true);
             #[cfg(feature = "notify")]
             if let Some(notification) = self.notification.clone() {
-                handler = handler.with_boxed_notification(notification);
+                handler = handler.with_dyn_notification(notification);
             }
 
             handler.install()?;

@@ -39,13 +39,13 @@ pub trait Mergeable {
 #[derivative(Debug)]
 pub struct CachedConfig<T: Mergeable + Clone + Default + 'static> {
     #[derivative(Debug = "ignore")]
-    inner: Option<Arc<Box<dyn DynAccess<T> + Send + Sync>>>,
+    inner: Option<Arc<dyn DynAccess<T> + Send + Sync>>,
     cache: Option<T>,
     explicit: T,
 }
 
 impl<T: Mergeable + Clone + Default> CachedConfig<T> {
-    fn new(inner: Box<dyn DynAccess<T> + Send + Sync>) -> Self {
+    fn new(inner: impl DynAccess<T> + Send + Sync + 'static) -> Self {
         Self {
             cache: Some(inner.load().clone()),
             inner: Some(Arc::new(inner)),

@@ -27,7 +27,7 @@ pub struct ErrorHandler {
     #[cfg(feature = "notify")]
     notification: Option<
         std::sync::Arc<
-            Box<dyn daemon_slayer_core::notify::AsyncNotification<Output = ()> + Send + Sync>,
+            dyn daemon_slayer_core::notify::AsyncNotification<Output = ()> + Send + Sync + 'static,
         >,
     >,
 }
@@ -78,21 +78,16 @@ impl ErrorHandler {
         N: daemon_slayer_core::notify::AsyncNotification<Output = ()> + Send + Sync + 'static,
     {
         Self {
-            notification: Some(std::sync::Arc::new(Box::new(notification))),
+            notification: Some(std::sync::Arc::new(notification)),
             ..self
         }
     }
 
     #[cfg(feature = "notify")]
-    pub(crate) fn with_boxed_notification(
+    pub(crate) fn with_dyn_notification(
         self,
         notification: std::sync::Arc<
-            Box<
-                dyn daemon_slayer_core::notify::AsyncNotification<Output = ()>
-                    + Send
-                    + Sync
-                    + 'static,
-            >,
+            dyn daemon_slayer_core::notify::AsyncNotification<Output = ()> + Send + Sync + 'static,
         >,
     ) -> Self {
         Self {

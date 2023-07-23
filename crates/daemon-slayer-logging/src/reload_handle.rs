@@ -2,15 +2,13 @@ use std::sync::Arc;
 
 use tracing::metadata::LevelFilter;
 
-type ReloadFn = Box<dyn Fn(LevelFilter) + Send + Sync>;
-
 #[derive(Clone)]
 pub struct ReloadHandle {
-    reload_fn: Arc<ReloadFn>,
+    reload_fn: Arc<dyn Fn(LevelFilter) + Send + Sync>,
 }
 
 impl ReloadHandle {
-    pub(crate) fn new(reload_fn: ReloadFn) -> Self {
+    pub(crate) fn new(reload_fn: impl Fn(LevelFilter) + Send + Sync + 'static) -> Self {
         Self {
             reload_fn: Arc::new(reload_fn),
         }
