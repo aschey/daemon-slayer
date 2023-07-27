@@ -32,15 +32,11 @@ pub struct WindowsServiceManager {
 }
 
 impl WindowsServiceManager {
-    pub(crate) fn from_builder(builder: Builder) -> Result<Self, io::Error> {
+    pub(crate) fn from_builder(builder: Builder) -> io::Result<Self> {
         Ok(Self { config: builder })
     }
 
-    async fn query_info(
-        &self,
-        service_name: &str,
-        service_type: ServiceType,
-    ) -> Result<Info, io::Error> {
+    async fn query_info(&self, service_name: &str, service_type: ServiceType) -> io::Result<Info> {
         if self
             .find_service(service_type, ServiceAccessMode::Read)?
             .is_none()
@@ -108,7 +104,7 @@ impl WindowsServiceManager {
         &self,
         service_type: ServiceType,
         mode: ServiceAccessMode,
-    ) -> Result<Option<ServiceEntry>, io::Error> {
+    ) -> io::Result<Option<ServiceEntry>> {
         let re_text = if service_type == ServiceType::USER_OWN_PROCESS {
             // User services have a random id called a LUID appended to the end like this: some_service_name_18dcf87g.
             // The id changes every login so we have to search for it.
@@ -129,7 +125,7 @@ impl WindowsServiceManager {
         Ok(user_service)
     }
 
-    fn current_service_name(&self) -> Result<Option<String>, io::Error> {
+    fn current_service_name(&self) -> io::Result<Option<String>> {
         let service = match &self.config.service_level {
             Level::System => self.name(),
             Level::User => {
@@ -146,7 +142,7 @@ impl WindowsServiceManager {
         Ok(Some(service))
     }
 
-    fn open_service(&self, service: &str, mode: ServiceAccessMode) -> Result<Service, io::Error> {
+    fn open_service(&self, service: &str, mode: ServiceAccessMode) -> io::Result<Service> {
         let service = self
             .get_manager(mode.clone())?
             .open_service(
@@ -173,7 +169,7 @@ impl WindowsServiceManager {
         Ok(service)
     }
 
-    fn open_current_service(&self, mode: ServiceAccessMode) -> Result<Service, io::Error> {
+    fn open_current_service(&self, mode: ServiceAccessMode) -> io::Result<Service> {
         let name = match self.current_service_name()? {
             Some(name) => name,
             None => {
@@ -186,7 +182,7 @@ impl WindowsServiceManager {
         self.open_service(&name, mode)
     }
 
-    fn open_base_service(&self, mode: ServiceAccessMode) -> Result<Service, io::Error> {
+    fn open_base_service(&self, mode: ServiceAccessMode) -> io::Result<Service> {
         self.open_service(&self.name(), mode)
     }
 
@@ -194,7 +190,7 @@ impl WindowsServiceManager {
         &self,
         service_name: &str,
         service_type: ServiceType,
-    ) -> Result<(), io::Error> {
+    ) -> io::Result<()> {
         // For user-level services, the service won't show up in the service list so we have to
         // attempt to open it to see if it exists
         if self.config.service_level == Level::User && service_type == ServiceType::OWN_PROCESS {
@@ -216,7 +212,7 @@ impl WindowsServiceManager {
         Ok(())
     }
 
-    fn get_manager(&self, mode: ServiceAccessMode) -> Result<ServiceManager, io::Error> {
+    fn get_manager(&self, mode: ServiceAccessMode) -> io::Result<ServiceManager> {
         let service_manager = ServiceManager::local_computer(
             None::<&str>,
             match mode {
@@ -250,7 +246,7 @@ impl WindowsServiceManager {
         }
     }
 
-    async fn wait_for_state(&self, desired_state: State) -> Result<(), io::Error> {
+    async fn wait_for_state(&self, desired_state: State) -> io::Result<()> {
         let attempts = 5;
         for _ in 0..attempts {
             if self.info().await?.state == desired_state {
@@ -264,7 +260,7 @@ impl WindowsServiceManager {
         ))
     }
 
-    fn set_autostart_enabled(&mut self, enabled: bool) -> Result<(), io::Error> {
+    fn set_autostart_enabled(&mut self, enabled: bool) -> io::Result<()> {
         let service = self.open_base_service(ServiceAccessMode::ChangeConfig)?;
         let mut config = service
             .query_config()
@@ -316,7 +312,7 @@ impl WindowsServiceManager {
         format!(r"SYSTEM\CurrentControlSet\Services\{}", self.name())
     }
 
-    fn add_environment_variables(&self) -> Result<(), io::Error> {
+    fn add_environment_variables(&self) -> io::Result<()> {
         let env_vars = self.config.environment_variables();
         if env_vars.is_empty() {
             return Ok(());
@@ -362,7 +358,7 @@ impl Manager for WindowsServiceManager {
         self.config.clone().into()
     }
 
-    async fn reload_config(&mut self) -> Result<(), io::Error> {
+    async fn reload_config(&mut self) -> io::Result<()> {
         let current_state = self.info().await?.state;
         self.config.user_config.reload();
         self.stop().await?;
@@ -373,7 +369,7 @@ impl Manager for WindowsServiceManager {
         Ok(())
     }
 
-    async fn on_config_changed(&mut self) -> Result<(), io::Error> {
+    async fn on_config_changed(&mut self) -> io::Result<()> {
         let snapshot = self.config.user_config.snapshot();
         self.config.user_config.reload();
         let current = self.config.user_config.load();
@@ -383,7 +379,7 @@ impl Manager for WindowsServiceManager {
         Ok(())
     }
 
-    async fn install(&self) -> Result<(), io::Error> {
+    async fn install(&self) -> io::Result<()> {
         if self.open_base_service(ServiceAccessMode::Write).is_err() {
             let service_info = self.get_service_info();
             let manager = self.get_manager(ServiceAccessMode::Write)?;
@@ -451,7 +447,7 @@ impl Manager for WindowsServiceManager {
         Ok(())
     }
 
-    async fn uninstall(&self) -> Result<(), io::Error> {
+    async fn uninstall(&self) -> io::Result<()> {
         if self.info().await?.state == State::Started {
             // Make sure we stop the service before attempting to uninstall, otherwise the uninstall can hang
             self.stop().await?;
@@ -471,7 +467,7 @@ impl Manager for WindowsServiceManager {
         Ok(())
     }
 
-    async fn start(&self) -> Result<(), io::Error> {
+    async fn start(&self) -> io::Result<()> {
         if self.info().await?.state == State::Started {
             return Ok(());
         }
@@ -483,7 +479,7 @@ impl Manager for WindowsServiceManager {
         Ok(())
     }
 
-    async fn stop(&self) -> Result<(), io::Error> {
+    async fn stop(&self) -> io::Result<()> {
         if self.info().await?.state != State::Started {
             return Ok(());
         }
@@ -494,7 +490,7 @@ impl Manager for WindowsServiceManager {
         Ok(())
     }
 
-    async fn restart(&self) -> Result<(), io::Error> {
+    async fn restart(&self) -> io::Result<()> {
         if self.info().await?.state == State::Started {
             self.stop().await?;
             self.wait_for_state(State::Stopped).await?;
@@ -503,17 +499,17 @@ impl Manager for WindowsServiceManager {
         self.wait_for_state(State::Started).await
     }
 
-    async fn enable_autostart(&mut self) -> Result<(), io::Error> {
+    async fn enable_autostart(&mut self) -> io::Result<()> {
         self.set_autostart_enabled(true)?;
         Ok(())
     }
 
-    async fn disable_autostart(&mut self) -> Result<(), io::Error> {
+    async fn disable_autostart(&mut self) -> io::Result<()> {
         self.set_autostart_enabled(false)?;
         Ok(())
     }
 
-    async fn info(&self) -> Result<Info, io::Error> {
+    async fn info(&self) -> io::Result<Info> {
         let service = match self.current_service_name()? {
             Some(service) => service,
             None => {

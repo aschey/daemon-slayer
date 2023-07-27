@@ -78,7 +78,7 @@ impl ClientCliProvider {
         condition: impl Fn(&Info) -> bool,
         wait_message: &str,
         failure_message: &str,
-    ) -> Result<CommandOutput, io::Error> {
+    ) -> io::Result<CommandOutput> {
         #[cfg(windows)]
         colored::control::set_virtual_terminal(true).unwrap();
 
@@ -141,6 +141,7 @@ impl CommandProvider for ClientCliProvider {
                 && *matched_command != CliCommands::Install
                 && *matched_command != CliCommands::Uninstall
                 && *matched_command != CliCommands::Info
+                && *matched_command != CliCommands::Status
             {
                 return Ok(CommandOutput::handled(
                     "Cannot complete action because service is not installed"
@@ -241,7 +242,7 @@ impl CommandProvider for ClientCliProvider {
                     ));
                 }
                 CliCommands::Status => {
-                    let status_command = self.manager.status_command();
+                    let status_command = self.manager.status_command().await?;
                     Command::new(status_command.program)
                         .args(status_command.args)
                         .stdin(Stdio::inherit())

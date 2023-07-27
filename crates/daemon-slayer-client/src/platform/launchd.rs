@@ -30,15 +30,15 @@ pub struct LaunchdServiceManager {
 }
 
 impl LaunchdServiceManager {
-    pub(crate) fn from_builder(builder: Builder) -> Result<Self, io::Error> {
+    pub(crate) fn from_builder(builder: Builder) -> io::Result<Self> {
         Ok(Self { config: builder })
     }
 
-    async fn run_launchctl(&self, arguments: Vec<&str>) -> Result<String, io::Error> {
+    async fn run_launchctl(&self, arguments: Vec<&str>) -> io::Result<String> {
         self.run_cmd("launchctl", arguments).await
     }
 
-    async fn run_cmd(&self, command: &str, arguments: Vec<&str>) -> Result<String, io::Error> {
+    async fn run_cmd(&self, command: &str, arguments: Vec<&str>) -> io::Result<String> {
         let output = Command::new(command)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
@@ -49,28 +49,43 @@ impl LaunchdServiceManager {
             .map_err(|e| {
                 io::Error::new(
                     e.kind(),
-                    format!("Error running launchd command \"{command} {arguments:#?}\": {e:?}"),
+                    format!("Error running launchd command \"{command} {arguments:?}\": {e:?}"),
                 )
             })?;
 
-        let out_bytes = if output.status.success() {
-            output.stdout
-        } else {
-            output.stderr
-        };
-        let out = String::from_utf8(out_bytes)
-            .map_err(|e| {
-                io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    format!("Error decoding output from launchd command \"{command} {arguments:#?}\": {e:?}"),
-                )
-            })?
-            .trim()
+        if !output.status.success() {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!(
+                    "Error running launchd command \"{command} {arguments:?}\": {}",
+                    self.decode_output(output.stderr, command, &arguments)?
+                ),
+            ));
+        }
+
+        let out = self
+            .decode_output(output.stdout, command, &arguments)?
             .to_ascii_lowercase();
         Ok(out)
     }
 
-    async fn service_target(&self) -> Result<String, io::Error> {
+    fn decode_output(
+        &self,
+        out_bytes: Vec<u8>,
+        command: &str,
+        arguments: &Vec<&str>,
+    ) -> io::Result<String> {
+        Ok(String::from_utf8(out_bytes)
+            .map_err(|e| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("Error decoding output from launchd command \"{command} {arguments:?}\": {e:?}"),
+                )
+            })?
+            .trim().to_owned())
+    }
+
+    async fn service_target(&self) -> io::Result<String> {
         match self.config.service_level {
             Level::System => Ok(format!("system/{}", self.name())),
             Level::User => {
@@ -80,7 +95,7 @@ impl LaunchdServiceManager {
         }
     }
 
-    fn user_agent_dir(&self) -> Result<PathBuf, io::Error> {
+    fn user_agent_dir(&self) -> io::Result<PathBuf> {
         let user_dirs = directories::UserDirs::new().ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::NotFound,
@@ -91,7 +106,7 @@ impl LaunchdServiceManager {
         Ok(home_dir.join("Library").join("LaunchAgents"))
     }
 
-    fn get_plist_path(&self) -> Result<PathBuf, io::Error> {
+    fn get_plist_path(&self) -> io::Result<PathBuf> {
         let path = match self.config.service_level {
             Level::System => PathBuf::from("/Library/LaunchDaemons"),
             Level::User => self.user_agent_dir()?,
@@ -114,7 +129,7 @@ impl LaunchdServiceManager {
         Some(str_cap)
     }
 
-    async fn update_autostart(&mut self) -> Result<(), io::Error> {
+    async fn update_autostart(&mut self) -> io::Result<()> {
         let was_started = self.info().await?.state == State::Started;
         if was_started {
             self.stop().await?;
@@ -148,7 +163,7 @@ impl LaunchdServiceManager {
 
 #[async_trait]
 impl Manager for LaunchdServiceManager {
-    async fn on_config_changed(&mut self) -> Result<(), io::Error> {
+    async fn on_config_changed(&mut self) -> io::Result<()> {
         let snapshot = self.config.user_config.snapshot();
         self.config.user_config.reload();
         let current = self.config.user_config.load();
@@ -158,7 +173,7 @@ impl Manager for LaunchdServiceManager {
         Ok(())
     }
 
-    async fn reload_config(&mut self) -> Result<(), io::Error> {
+    async fn reload_config(&mut self) -> io::Result<()> {
         let current_state = self.info().await?.state;
         self.config.user_config.reload();
         self.stop().await?;
@@ -172,7 +187,7 @@ impl Manager for LaunchdServiceManager {
         Ok(())
     }
 
-    async fn install(&self) -> Result<(), io::Error> {
+    async fn install(&self) -> io::Result<()> {
         let mut file = Launchd::new(self.name(), self.config.program.full_name())
             .map_err(|e| from_launchd_error(self.config.program.full_name(), e))?
             .with_program_arguments(
@@ -204,7 +219,7 @@ impl Manager for LaunchdServiceManager {
         Ok(())
     }
 
-    async fn uninstall(&self) -> Result<(), io::Error> {
+    async fn uninstall(&self) -> io::Result<()> {
         let path = self.get_plist_path()?;
         self.run_launchctl(vec!["unload", &path.to_string_lossy()])
             .await?;
@@ -217,35 +232,35 @@ impl Manager for LaunchdServiceManager {
         Ok(())
     }
 
-    async fn start(&self) -> Result<(), io::Error> {
+    async fn start(&self) -> io::Result<()> {
         self.run_launchctl(vec!["start", &self.name()]).await?;
         Ok(())
     }
 
-    async fn stop(&self) -> Result<(), io::Error> {
+    async fn stop(&self) -> io::Result<()> {
         self.run_launchctl(vec!["stop", &self.name()]).await?;
         Ok(())
     }
 
-    async fn enable_autostart(&mut self) -> Result<(), io::Error> {
+    async fn enable_autostart(&mut self) -> io::Result<()> {
         self.config.autostart = true;
         self.update_autostart().await?;
         Ok(())
     }
 
-    async fn disable_autostart(&mut self) -> Result<(), io::Error> {
+    async fn disable_autostart(&mut self) -> io::Result<()> {
         self.config.autostart = false;
         self.update_autostart().await?;
         Ok(())
     }
 
-    async fn restart(&self) -> Result<(), io::Error> {
+    async fn restart(&self) -> io::Result<()> {
         self.run_launchctl(vec!["kickstart", "-k", &self.service_target().await?])
             .await?;
         Ok(())
     }
 
-    async fn info(&self) -> Result<Info, io::Error> {
+    async fn info(&self) -> io::Result<Info> {
         let plist_path = self.get_plist_path()?;
         if !plist_path.exists() {
             return Ok(Info {
@@ -323,6 +338,14 @@ impl Manager for LaunchdServiceManager {
 
     fn description(&self) -> &str {
         &self.config.description
+    }
+
+    async fn status_command(&self) -> io::Result<crate::Command> {
+        let target = self.service_target().await?;
+        Ok(crate::Command {
+            program: "launchctl".to_owned(),
+            args: vec!["print".to_owned(), target],
+        })
     }
 }
 

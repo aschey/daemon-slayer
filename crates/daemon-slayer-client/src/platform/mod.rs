@@ -25,7 +25,7 @@ pub fn builder(label: Label, program: Program) -> Builder {
     Builder::new(label, program)
 }
 
-pub(crate) async fn get_manager(builder: Builder) -> Result<ServiceManager, io::Error> {
+pub(crate) async fn get_manager(builder: Builder) -> io::Result<ServiceManager> {
     if builder.service_type == ServiceType::Container {
         return Ok(ServiceManager::new(
             DockerServiceManager::from_builder(builder).await?,

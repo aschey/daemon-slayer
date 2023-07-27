@@ -28,7 +28,7 @@ use windows_sys::Win32::{
 // Largely ported from the C# implementation here https://github.com/murrayju/CreateProcessAsUser
 // and the examples here https://stackoverflow.com/questions/35969730/how-to-read-output-from-cmd-exe-using-createprocess-and-createpipe
 
-fn get_session_user_token() -> Result<isize, io::Error> {
+fn get_session_user_token() -> io::Result<isize> {
     unsafe {
         let session_id = get_active_session_id()?;
         let mut phtoken: Foundation::HANDLE = 0;
@@ -51,7 +51,7 @@ fn get_session_user_token() -> Result<isize, io::Error> {
     }
 }
 
-fn get_active_session_id() -> Result<u32, io::Error> {
+fn get_active_session_id() -> io::Result<u32> {
     unsafe {
         let mut p_session_info = ptr::null_mut();
         let mut count = 0u32;

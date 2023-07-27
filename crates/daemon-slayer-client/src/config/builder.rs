@@ -193,7 +193,7 @@ impl Builder {
         self
     }
 
-    pub async fn build(self) -> Result<ServiceManager, io::Error> {
+    pub async fn build(self) -> io::Result<ServiceManager> {
         get_manager(self).await
     }
 

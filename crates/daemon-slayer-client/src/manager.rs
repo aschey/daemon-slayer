@@ -12,17 +12,17 @@ pub(crate) trait Manager: std::fmt::Debug + Clone + Send + Sync + 'static {
     fn description(&self) -> &str;
     fn arguments(&self) -> &Vec<String>;
     fn config(&self) -> Config;
-    fn status_command(&self) -> Command;
-    async fn reload_config(&mut self) -> Result<(), io::Error>;
-    async fn on_config_changed(&mut self) -> Result<(), io::Error>;
-    async fn install(&self) -> Result<(), io::Error>;
-    async fn uninstall(&self) -> Result<(), io::Error>;
-    async fn start(&self) -> Result<(), io::Error>;
-    async fn stop(&self) -> Result<(), io::Error>;
-    async fn restart(&self) -> Result<(), io::Error>;
-    async fn enable_autostart(&mut self) -> Result<(), io::Error>;
-    async fn disable_autostart(&mut self) -> Result<(), io::Error>;
-    async fn info(&self) -> Result<Info, io::Error>;
+    async fn status_command(&self) -> io::Result<Command>;
+    async fn reload_config(&mut self) -> io::Result<()>;
+    async fn on_config_changed(&mut self) -> io::Result<()>;
+    async fn install(&self) -> io::Result<()>;
+    async fn uninstall(&self) -> io::Result<()>;
+    async fn start(&self) -> io::Result<()>;
+    async fn stop(&self) -> io::Result<()>;
+    async fn restart(&self) -> io::Result<()>;
+    async fn enable_autostart(&mut self) -> io::Result<()>;
+    async fn disable_autostart(&mut self) -> io::Result<()>;
+    async fn info(&self) -> io::Result<Info>;
 }
 
 pub struct Command {
@@ -65,50 +65,50 @@ impl ServiceManager {
         self.inner.arguments()
     }
 
-    pub fn status_command(&self) -> Command {
-        self.inner.status_command()
+    pub async fn status_command(&self) -> io::Result<Command> {
+        self.inner.status_command().await
     }
 
-    pub async fn reload_config(&mut self) -> Result<(), io::Error> {
+    pub async fn reload_config(&mut self) -> io::Result<()> {
         self.inner.reload_config().await
     }
 
-    pub async fn install(&self) -> Result<(), io::Error> {
+    pub async fn install(&self) -> io::Result<()> {
         self.inner.install().await
     }
 
-    pub async fn uninstall(&self) -> Result<(), io::Error> {
+    pub async fn uninstall(&self) -> io::Result<()> {
         self.inner.uninstall().await
     }
 
-    pub async fn start(&self) -> Result<(), io::Error> {
+    pub async fn start(&self) -> io::Result<()> {
         self.inner.start().await
     }
 
-    pub async fn stop(&self) -> Result<(), io::Error> {
+    pub async fn stop(&self) -> io::Result<()> {
         self.inner.stop().await
     }
 
-    pub async fn restart(&self) -> Result<(), io::Error> {
+    pub async fn restart(&self) -> io::Result<()> {
         self.inner.restart().await
     }
 
-    pub async fn enable_autostart(&mut self) -> Result<(), io::Error> {
+    pub async fn enable_autostart(&mut self) -> io::Result<()> {
         self.inner.enable_autostart().await
     }
 
-    pub async fn disable_autostart(&mut self) -> Result<(), io::Error> {
+    pub async fn disable_autostart(&mut self) -> io::Result<()> {
         self.inner.disable_autostart().await
     }
 
-    pub async fn info(&self) -> Result<Info, io::Error> {
+    pub async fn info(&self) -> io::Result<Info> {
         self.inner.info().await
     }
 }
 
 #[async_trait]
 impl ConfigWatcher for ServiceManager {
-    async fn on_config_changed(&mut self) -> Result<(), io::Error> {
+    async fn on_config_changed(&mut self) -> io::Result<()> {
         self.inner.on_config_changed().await
     }
 }

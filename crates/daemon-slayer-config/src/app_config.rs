@@ -65,7 +65,7 @@ impl<T: Configurable> AppConfig<T> {
         Ok(instance)
     }
 
-    pub fn ensure_created(&self) -> Result<(), io::Error> {
+    pub fn ensure_created(&self) -> io::Result<()> {
         let full_path = self.full_path();
         if full_path.exists() {
             debug!("Not creating config file {full_path:#?} because it already exists");
@@ -98,13 +98,13 @@ impl<T: Configurable> AppConfig<T> {
         Ok(())
     }
 
-    pub fn contents(&self) -> Result<String, io::Error> {
+    pub fn contents(&self) -> io::Result<String> {
         let full_path = self.full_path();
         std::fs::read_to_string(&full_path)
             .map_err(|e| io_error(&format!("Error reading config file {full_path:#?}"), e))
     }
 
-    pub fn overwrite_config_file(&self) -> Result<(), io::Error> {
+    pub fn overwrite_config_file(&self) -> io::Result<()> {
         create_dir_all(&self.config_dir).map_err(|e| {
             io_error(
                 &format!("Error creating config dir {:#?}", self.config_dir),

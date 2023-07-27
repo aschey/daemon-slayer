@@ -84,7 +84,7 @@ impl<T: Mergeable + Clone + Default> CachedConfig<T> {
 #[clonable]
 #[async_trait]
 pub trait ConfigWatcher: Clone + Send + Sync + 'static {
-    async fn on_config_changed(&mut self) -> Result<(), io::Error>;
+    async fn on_config_changed(&mut self) -> io::Result<()>;
 }
 
 #[async_trait]
@@ -92,7 +92,7 @@ impl<T> ConfigWatcher for Box<T>
 where
     T: ConfigWatcher + Clone + Send + Sync + 'static,
 {
-    async fn on_config_changed(&mut self) -> Result<(), io::Error> {
+    async fn on_config_changed(&mut self) -> io::Result<()> {
         (**self).on_config_changed().await
     }
 }

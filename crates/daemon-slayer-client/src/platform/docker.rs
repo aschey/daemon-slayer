@@ -22,7 +22,7 @@ pub struct DockerServiceManager {
 }
 
 impl DockerServiceManager {
-    pub(crate) async fn from_builder(config: Builder) -> std::result::Result<Self, io::Error> {
+    pub(crate) async fn from_builder(config: Builder) -> io::Result<Self> {
         let docker = Docker::connect_with_local_defaults().unwrap();
         docker
             .ping()
@@ -58,18 +58,18 @@ impl Manager for DockerServiceManager {
         &self.config.description
     }
 
-    fn status_command(&self) -> Command {
-        Command {
+    async fn status_command(&self) -> io::Result<Command> {
+        Ok(Command {
             program: "docker".to_owned(),
             args: vec![
                 "ps".to_owned(),
                 "-f".to_owned(),
                 format!("name={}", self.config.label.application),
             ],
-        }
+        })
     }
 
-    async fn reload_config(&mut self) -> Result<(), io::Error> {
+    async fn reload_config(&mut self) -> io::Result<()> {
         let current_state = self.info().await?.state;
         self.config.user_config.reload();
         self.uninstall().await?;
@@ -80,7 +80,7 @@ impl Manager for DockerServiceManager {
         Ok(())
     }
 
-    async fn on_config_changed(&mut self) -> Result<(), io::Error> {
+    async fn on_config_changed(&mut self) -> io::Result<()> {
         let snapshot = self.config.user_config.snapshot();
         self.config.user_config.reload();
         let current = self.config.user_config.load();
@@ -90,7 +90,7 @@ impl Manager for DockerServiceManager {
         Ok(())
     }
 
-    async fn install(&self) -> Result<(), io::Error> {
+    async fn install(&self) -> io::Result<()> {
         let mut config = bollard::container::Config {
             image: Some(self.config.program.name().to_owned()),
             env: Some(
@@ -121,7 +121,7 @@ impl Manager for DockerServiceManager {
         Ok(())
     }
 
-    async fn uninstall(&self) -> Result<(), io::Error> {
+    async fn uninstall(&self) -> io::Result<()> {
         self.stop().await.unwrap();
         self.docker
             .remove_container(
@@ -137,7 +137,7 @@ impl Manager for DockerServiceManager {
         Ok(())
     }
 
-    async fn start(&self) -> Result<(), io::Error> {
+    async fn start(&self) -> io::Result<()> {
         self.docker
             .start_container::<&str>(&self.name(), None)
             .await
@@ -146,7 +146,7 @@ impl Manager for DockerServiceManager {
         Ok(())
     }
 
-    async fn stop(&self) -> Result<(), io::Error> {
+    async fn stop(&self) -> io::Result<()> {
         self.docker
             .stop_container(&self.name(), None)
             .await
@@ -154,7 +154,7 @@ impl Manager for DockerServiceManager {
         Ok(())
     }
 
-    async fn restart(&self) -> Result<(), io::Error> {
+    async fn restart(&self) -> io::Result<()> {
         self.docker
             .restart_container(&self.name(), None)
             .await
@@ -162,7 +162,7 @@ impl Manager for DockerServiceManager {
         Ok(())
     }
 
-    async fn enable_autostart(&mut self) -> Result<(), io::Error> {
+    async fn enable_autostart(&mut self) -> io::Result<()> {
         self.docker
             .update_container::<&str>(
                 &self.name(),
@@ -179,7 +179,7 @@ impl Manager for DockerServiceManager {
         Ok(())
     }
 
-    async fn disable_autostart(&mut self) -> Result<(), io::Error> {
+    async fn disable_autostart(&mut self) -> io::Result<()> {
         self.docker
             .update_container::<&str>(
                 &self.name(),
@@ -196,7 +196,7 @@ impl Manager for DockerServiceManager {
         Ok(())
     }
 
-    async fn info(&self) -> Result<Info, io::Error> {
+    async fn info(&self) -> io::Result<Info> {
         let containers = self
             .docker
             .list_containers(Some(ListContainersOptions::<&str> {
