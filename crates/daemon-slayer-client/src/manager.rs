@@ -1,7 +1,7 @@
 use crate::{config::Config, Info};
 use daemon_slayer_core::{async_trait, config::ConfigWatcher, Label};
 use dyn_clonable::clonable;
-use std::{io, result::Result};
+use std::io;
 
 #[clonable]
 #[async_trait]
