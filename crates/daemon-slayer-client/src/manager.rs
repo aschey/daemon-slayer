@@ -12,6 +12,7 @@ pub(crate) trait Manager: std::fmt::Debug + Clone + Send + Sync + 'static {
     fn description(&self) -> &str;
     fn arguments(&self) -> &Vec<String>;
     fn config(&self) -> Config;
+    fn status_command(&self) -> Command;
     async fn reload_config(&mut self) -> Result<(), io::Error>;
     async fn on_config_changed(&mut self) -> Result<(), io::Error>;
     async fn install(&self) -> Result<(), io::Error>;
@@ -22,6 +23,11 @@ pub(crate) trait Manager: std::fmt::Debug + Clone + Send + Sync + 'static {
     async fn enable_autostart(&mut self) -> Result<(), io::Error>;
     async fn disable_autostart(&mut self) -> Result<(), io::Error>;
     async fn info(&self) -> Result<Info, io::Error>;
+}
+
+pub struct Command {
+    pub program: String,
+    pub args: Vec<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -57,6 +63,10 @@ impl ServiceManager {
 
     pub fn arguments(&self) -> &Vec<String> {
         self.inner.arguments()
+    }
+
+    pub fn status_command(&self) -> Command {
+        self.inner.status_command()
     }
 
     pub async fn reload_config(&mut self) -> Result<(), io::Error> {

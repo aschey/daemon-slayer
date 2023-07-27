@@ -1,6 +1,6 @@
 use crate::{
     config::{Builder, Config},
-    Info, Manager, State,
+    Command, Info, Manager, State,
 };
 use daemon_slayer_core::{async_trait, Label};
 use std::io;
@@ -343,6 +343,21 @@ impl Manager for SystemdServiceManager {
 
     fn description(&self) -> &str {
         &self.config.description
+    }
+
+    fn status_command(&self) -> Command {
+        let service = format!("{}.service", self.config.label.application);
+        if self.config.is_user() {
+            Command {
+                program: "systemctl".to_owned(),
+                args: vec!["status".to_owned(), "--user".to_owned(), service],
+            }
+        } else {
+            Command {
+                program: "systemctl".to_owned(),
+                args: vec!["status".to_owned(), service],
+            }
+        }
     }
 }
 

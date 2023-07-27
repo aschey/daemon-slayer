@@ -12,7 +12,7 @@ use daemon_slayer_core::{async_trait, Label};
 
 use crate::{
     config::{Builder, Config},
-    Info, Manager, State,
+    Command, Info, Manager, State,
 };
 
 #[derive(Debug, Clone)]
@@ -56,6 +56,17 @@ impl Manager for DockerServiceManager {
 
     fn description(&self) -> &str {
         &self.config.description
+    }
+
+    fn status_command(&self) -> Command {
+        Command {
+            program: "docker".to_owned(),
+            args: vec![
+                "ps".to_owned(),
+                "-f".to_owned(),
+                format!("name={}", self.config.label.application),
+            ],
+        }
     }
 
     async fn reload_config(&mut self) -> Result<(), io::Error> {

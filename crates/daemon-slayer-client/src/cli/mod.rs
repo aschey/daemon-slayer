@@ -9,8 +9,8 @@ use daemon_slayer_core::{
 };
 use owo_colors::OwoColorize;
 use spinoff::Spinner;
-use std::{io, time::Duration};
-use tokio::time::sleep;
+use std::{io, process::Stdio, time::Duration};
+use tokio::{process::Command, time::sleep};
 
 pub use spinoff::spinners;
 pub use spinoff::Color;
@@ -45,6 +45,8 @@ enum CliCommands {
     Enable,
     /// Disable autostart
     Disable,
+    /// Get the service status from the native service manager
+    Status,
 }
 
 impl ClientCliProvider {
@@ -127,6 +129,7 @@ impl CommandProvider for ClientCliProvider {
                 CliCommands::Reload => ClientAction::Reload,
                 CliCommands::Enable => ClientAction::Enable,
                 CliCommands::Disable => ClientAction::Disable,
+                CliCommands::Status => ClientAction::Status,
             })),
         })
     }
@@ -236,6 +239,17 @@ impl CommandProvider for ClientCliProvider {
                         pid.map(|p| p.to_string())
                             .unwrap_or_else(|| "Not running".to_owned()),
                     ));
+                }
+                CliCommands::Status => {
+                    let status_command = self.manager.status_command();
+                    Command::new(status_command.program)
+                        .args(status_command.args)
+                        .stdin(Stdio::inherit())
+                        .stdout(Stdio::inherit())
+                        .stderr(Stdio::inherit())
+                        .spawn()?
+                        .wait()
+                        .await?;
                 }
             }
 
