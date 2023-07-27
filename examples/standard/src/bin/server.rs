@@ -1,5 +1,9 @@
 use confique::Config;
 use daemon_slayer::{
+    build_info::{
+        cli::BuildInfoCliProvider,
+        vergen_pretty::{self, vergen_pretty_env, Style},
+    },
     cli::Cli,
     config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir},
     core::{BoxedError, Label},
@@ -45,7 +49,12 @@ async fn run() -> Result<(), BoxedError> {
 
     let logger_builder =
         LoggerBuilder::new(ServiceHandler::label()).with_config(app_config.clone());
-
+    let pretty = vergen_pretty::PrettyBuilder::default()
+        .env(vergen_pretty::vergen_pretty_env!())
+        .category(false)
+        .key_style(Style::new().bold().cyan())
+        .value_style(Style::new())
+        .build()?;
     let mut cli = Cli::builder()
         .with_provider(ServerCliProvider::<ServiceHandler>::new(
             &standard::run_argument(),
@@ -53,6 +62,7 @@ async fn run() -> Result<(), BoxedError> {
         .with_provider(LoggingCliProvider::new(logger_builder))
         .with_provider(ErrorHandlerCliProvider::default())
         .with_provider(ConfigCliProvider::new(app_config.clone()))
+        .with_provider(BuildInfoCliProvider::new(pretty))
         .initialize()?;
 
     let (logger, reload_handle) = cli.take_provider::<LoggingCliProvider>().get_logger()?;

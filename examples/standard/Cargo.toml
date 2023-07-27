@@ -9,6 +9,7 @@ daemon-slayer = { path = "../../crates/daemon-slayer", features = [
     "client-standard",
     "server-standard",
     "tray",
+    "build-info",
 ] }
 daemon-slayer-logging = { path = "../../crates/daemon-slayer-logging", features = [
     "system",
@@ -28,3 +29,13 @@ path = "src/bin/client.rs"
 [[bin]]
 name = "standard-server"
 path = "src/bin/server.rs"
+
+[build-dependencies]
+daemon-slayer = { path = "../../crates/daemon-slayer", features = [
+    "build-info",
+    "build-info-build",
+    "build-info-cargo",
+    "build-info-git",
+    "build-info-rustc",
+    "build-info-si",
+] }

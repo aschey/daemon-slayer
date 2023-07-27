@@ -1,6 +1,6 @@
 use crate::{
     config::{windows::Trustee, Builder, Config, Level},
-    Info, Manager, State,
+    Command, Info, Manager, State,
 };
 use daemon_slayer_core::{async_trait, Label};
 use regex::Regex;
@@ -358,6 +358,17 @@ impl Manager for WindowsServiceManager {
         self.config.clone().into()
     }
 
+    async fn status_command(&self) -> io::Result<Command> {
+        let name = self.current_service_name()?;
+        let Some(name) = name else {
+            return Err(io::Error::new(io::ErrorKind::NotFound, "Service not found"));
+        };
+        Ok(Command {
+            program: "sc.exe".to_owned(),
+            args: vec!["query".to_owned(), name],
+        })
+    }
+
     async fn reload_config(&mut self) -> io::Result<()> {
         let current_state = self.info().await?.state;
         self.config.user_config.reload();
@@ -390,7 +401,7 @@ impl Manager for WindowsServiceManager {
                 )
                 .map_err(|e| {
                     io_error(format!(
-                        "Error creating service {:#?}: {e:?}",
+                        "Error creating service {:?}: {e:?}",
                         service_info.name
                     ))
                 })?;
