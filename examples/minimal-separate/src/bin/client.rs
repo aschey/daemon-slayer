@@ -19,7 +19,7 @@ enum Arg {
     /// Uninstall the service
     Uninstall,
     /// Retrieve information about the service status
-    Info,
+    Status,
     /// Start the service
     Start,
     /// Stop the service
@@ -65,8 +65,8 @@ pub async fn main() -> Result<(), BoxedError> {
         Arg::Uninstall => {
             manager.uninstall().await?;
         }
-        Arg::Info => {
-            println!("{}", manager.info().await?.pretty_print());
+        Arg::Status => {
+            println!("{}", manager.status().await?.pretty_print());
         }
         Arg::Start => {
             manager.start().await?;

@@ -1,4 +1,4 @@
-use crate::{config::Config, Info};
+use crate::{config::Config, Status};
 use daemon_slayer_core::{async_trait, config::ConfigWatcher, Label};
 use dyn_clonable::clonable;
 use std::io;
@@ -22,7 +22,7 @@ pub(crate) trait Manager: std::fmt::Debug + Clone + Send + Sync + 'static {
     async fn restart(&self) -> io::Result<()>;
     async fn enable_autostart(&mut self) -> io::Result<()>;
     async fn disable_autostart(&mut self) -> io::Result<()>;
-    async fn info(&self) -> io::Result<Info>;
+    async fn status(&self) -> io::Result<Status>;
 }
 
 pub struct Command {
@@ -101,8 +101,8 @@ impl ServiceManager {
         self.inner.disable_autostart().await
     }
 
-    pub async fn info(&self) -> io::Result<Info> {
-        self.inner.info().await
+    pub async fn status(&self) -> io::Result<Status> {
+        self.inner.status().await
     }
 }
 

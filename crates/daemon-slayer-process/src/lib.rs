@@ -18,7 +18,7 @@ pub struct DiskUsage {
     pub read_bytes: ByteSize,
 }
 
-#[derive(Clone, Debug, Serialize, strum_macros::Display)]
+#[derive(Clone, Debug, Serialize, strum::Display)]
 pub enum ProcessStatus {
     Idle,
     Running,

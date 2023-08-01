@@ -6,7 +6,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use daemon_slayer_client::{Info, ServiceManager, State};
+use daemon_slayer_client::{ServiceManager, State, Status};
 use daemon_slayer_core::{
     async_trait,
     config::{Accessor, CachedConfig},
@@ -108,7 +108,7 @@ pub enum LogSource {
 
 pub struct Console {
     manager: ServiceManager,
-    info: Info,
+    info: Status,
     logs: LogView<'static>,
     button_index: usize,
     is_healthy: Option<bool>,
@@ -120,7 +120,7 @@ pub struct Console {
 
 impl Console {
     pub async fn new(manager: ServiceManager, log_source: LogSource) -> Self {
-        let info = manager.info().await.unwrap();
+        let info = manager.status().await.unwrap();
         let name = manager.label().application.to_owned();
         Self {
             manager,
@@ -214,7 +214,7 @@ impl Console {
         let mut last_update = Instant::now();
         loop {
             if Instant::now().duration_since(last_update) > Duration::from_secs(1) {
-                self.info = self.manager.info().await.unwrap();
+                self.info = self.manager.status().await.unwrap();
                 last_update = Instant::now();
             }
 

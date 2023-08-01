@@ -27,7 +27,7 @@ where
     T: Mergeable + Clone + Default + 'static,
 {
     fn access(&self) -> CachedConfig<T> {
-        CachedConfig::nonreloadable(self.clone())
+        CachedConfig::non_reloadable(self.clone())
     }
 }
 
@@ -53,7 +53,7 @@ impl<T: Mergeable + Clone + Default> CachedConfig<T> {
         }
     }
 
-    fn nonreloadable(inner: T) -> Self {
+    fn non_reloadable(inner: T) -> Self {
         Self {
             cache: Some(inner.clone()),
             inner: None,

@@ -1,6 +1,6 @@
 use crate::{
     config::{Builder, Config, Level},
-    Info, Manager, State,
+    Manager, State, Status,
 };
 use daemon_slayer_core::{async_trait, Label};
 use launchd::Launchd;
@@ -130,7 +130,7 @@ impl LaunchdServiceManager {
     }
 
     async fn update_autostart(&mut self) -> io::Result<()> {
-        let was_started = self.info().await?.state == State::Started;
+        let was_started = self.status().await?.state == State::Started;
         if was_started {
             self.stop().await?;
         }
@@ -174,7 +174,7 @@ impl Manager for LaunchdServiceManager {
     }
 
     async fn reload_config(&mut self) -> io::Result<()> {
-        let current_state = self.info().await?.state;
+        let current_state = self.status().await?.state;
         self.config.user_config.reload();
         self.stop().await?;
         let path = self.get_plist_path()?;
@@ -260,11 +260,10 @@ impl Manager for LaunchdServiceManager {
         Ok(())
     }
 
-    async fn info(&self) -> io::Result<Info> {
+    async fn status(&self) -> io::Result<Status> {
         let plist_path = self.get_plist_path()?;
         if !plist_path.exists() {
-            return Ok(Info {
-                label: self.config.label.clone(),
+            return Ok(Status {
                 state: State::NotInstalled,
                 autostart: None,
                 pid: None,
@@ -278,8 +277,7 @@ impl Manager for LaunchdServiceManager {
             .run_launchctl(vec!["print", &self.service_target().await?])
             .await?;
         if output.contains("could not find service") {
-            return Ok(Info {
-                label: self.config.label.clone(),
+            return Ok(Status {
                 state: State::NotInstalled,
                 autostart: None,
                 pid: None,
@@ -306,8 +304,7 @@ impl Manager for LaunchdServiceManager {
             .get_match_or_default(&EXIT_CODE_RE, &output)
             .map(|code| code.parse::<i32>().unwrap_or(0));
 
-        Ok(Info {
-            label: self.config.label.clone(),
+        Ok(Status {
             state,
             pid,
             id: None,

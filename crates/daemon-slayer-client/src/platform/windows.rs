@@ -1,6 +1,6 @@
 use crate::{
     config::{windows::Trustee, Builder, Config, Level},
-    Command, Info, Manager, State,
+    Command, Manager, State, Status,
 };
 use daemon_slayer_core::{async_trait, Label};
 use regex::Regex;
@@ -36,13 +36,16 @@ impl WindowsServiceManager {
         Ok(Self { config: builder })
     }
 
-    async fn query_info(&self, service_name: &str, service_type: ServiceType) -> io::Result<Info> {
+    async fn query_info(
+        &self,
+        service_name: &str,
+        service_type: ServiceType,
+    ) -> io::Result<Status> {
         if self
             .find_service(service_type, ServiceAccessMode::Read)?
             .is_none()
         {
-            return Ok(Info {
-                label: self.config.label.clone(),
+            return Ok(Status {
                 state: State::NotInstalled,
                 autostart: None,
                 pid: None,
@@ -53,8 +56,7 @@ impl WindowsServiceManager {
 
         // Service might've been uninstalled as we were querying it
         let Ok(service) = self.open_service(service_name, ServiceAccessMode::Read) else {
-            return Ok(Info {
-                label: self.config.label.clone(),
+            return Ok(Status {
                 state: State::NotInstalled,
                 autostart: None,
                 pid: None,
@@ -90,8 +92,7 @@ impl WindowsServiceManager {
             .map_err(|e| io_error(format!("Error querying service config: {e:?}")))?
             .start_type
             == ServiceStartType::AutoStart;
-        Ok(Info {
-            label: self.config.label.clone(),
+        Ok(Status {
             state,
             autostart: Some(autostart),
             pid: service_status.process_id,
@@ -249,7 +250,7 @@ impl WindowsServiceManager {
     async fn wait_for_state(&self, desired_state: State) -> io::Result<()> {
         let attempts = 5;
         for _ in 0..attempts {
-            if self.info().await?.state == desired_state {
+            if self.status().await?.state == desired_state {
                 return Ok(());
             }
             tokio::time::sleep(Duration::from_millis(1000)).await;
@@ -370,7 +371,7 @@ impl Manager for WindowsServiceManager {
     }
 
     async fn reload_config(&mut self) -> io::Result<()> {
-        let current_state = self.info().await?.state;
+        let current_state = self.status().await?.state;
         self.config.user_config.reload();
         self.stop().await?;
         self.add_environment_variables()?;
@@ -415,7 +416,7 @@ impl Manager for WindowsServiceManager {
                     ))
                 })?;
 
-            if let Some((trustee, access)) = &self.config.windows_config.additional_access {
+            for (trustee, access) in &self.config.windows_config.additional_access {
                 let trustee = match trustee {
                     Trustee::CurrentUser => windows_service::service::Trustee::CurrentUser,
                     Trustee::Name(name) => windows_service::service::Trustee::Name(name.clone()),
@@ -459,7 +460,7 @@ impl Manager for WindowsServiceManager {
     }
 
     async fn uninstall(&self) -> io::Result<()> {
-        if self.info().await?.state == State::Started {
+        if self.status().await?.state == State::Started {
             // Make sure we stop the service before attempting to uninstall, otherwise the uninstall can hang
             self.stop().await?;
             self.wait_for_state(State::Stopped).await?;
@@ -479,7 +480,7 @@ impl Manager for WindowsServiceManager {
     }
 
     async fn start(&self) -> io::Result<()> {
-        if self.info().await?.state == State::Started {
+        if self.status().await?.state == State::Started {
             return Ok(());
         }
 
@@ -491,7 +492,7 @@ impl Manager for WindowsServiceManager {
     }
 
     async fn stop(&self) -> io::Result<()> {
-        if self.info().await?.state != State::Started {
+        if self.status().await?.state != State::Started {
             return Ok(());
         }
         let service = self.open_current_service(ServiceAccessMode::Execute)?;
@@ -502,7 +503,7 @@ impl Manager for WindowsServiceManager {
     }
 
     async fn restart(&self) -> io::Result<()> {
-        if self.info().await?.state == State::Started {
+        if self.status().await?.state == State::Started {
             self.stop().await?;
             self.wait_for_state(State::Stopped).await?;
         }
@@ -520,12 +521,11 @@ impl Manager for WindowsServiceManager {
         Ok(())
     }
 
-    async fn info(&self) -> io::Result<Info> {
+    async fn status(&self) -> io::Result<Status> {
         let service = match self.current_service_name()? {
             Some(service) => service,
             None => {
-                return Ok(Info {
-                    label: self.config.label.clone(),
+                return Ok(Status {
                     state: State::NotInstalled,
                     autostart: None,
                     pid: None,

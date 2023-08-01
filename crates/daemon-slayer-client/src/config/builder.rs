@@ -176,7 +176,12 @@ impl Builder {
         mut self,
         config: impl Accessor<UserConfig> + Send + Sync + 'static,
     ) -> Self {
+        let current_config = self.user_config.load();
         self.user_config = config.access();
+        // re-add any vars that were already added
+        for var in current_config.environment_variables {
+            self = self.with_environment_variable(var.name, var.value);
+        }
         self
     }
 

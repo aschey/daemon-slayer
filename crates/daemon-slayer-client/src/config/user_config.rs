@@ -21,3 +21,22 @@ impl Mergeable for UserConfig {
         }
     }
 }
+
+impl UserConfig {
+    #[cfg(feature = "cli")]
+    pub fn pretty_printer(&self) -> daemon_slayer_core::cli::Printer {
+        use owo_colors::OwoColorize;
+
+        daemon_slayer_core::cli::Printer::default().with_multi_line(
+            "Environment".cyan().to_string(),
+            if self.environment_variables.is_empty() {
+                vec!["N/A".dimmed().to_string()]
+            } else {
+                self.environment_variables
+                    .iter()
+                    .map(|e| format!("{}={}", e.name, e.value.bold()))
+                    .collect()
+            },
+        )
+    }
+}

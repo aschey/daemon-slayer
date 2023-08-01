@@ -2,7 +2,7 @@ use std::sync::RwLock;
 use std::{env::args, sync::Arc, time::Duration};
 
 use daemon_slayer_client::config::Level;
-use daemon_slayer_client::{Info, ServiceManager};
+use daemon_slayer_client::{ServiceManager, Status};
 use daemon_slayer_health_check::HealthCheck;
 use daemon_slayer_health_check::{HttpHealthCheck, HttpRequestType};
 use std::path::PathBuf;
@@ -20,8 +20,8 @@ struct ManagerWrapper {
 }
 
 impl ManagerWrapper {
-    fn get_service_info(&self) -> Info {
-        self.manager.info().unwrap()
+    fn get_service_info(&self) -> Status {
+        self.manager.status().unwrap()
     }
 
     fn get_start_stop_text(&self) -> &str {

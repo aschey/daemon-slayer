@@ -1,4 +1,4 @@
-use strum_macros::{Display, EnumString};
+use strum::{Display, EnumString};
 
 #[derive(Display, Clone, PartialEq, Eq, Hash, Debug)]
 #[strum(serialize_all = "kebab-case")]
@@ -19,6 +19,7 @@ pub enum ServerAction {
 pub enum ClientAction {
     Install,
     Uninstall,
+    Status,
     Info,
     Start,
     Stop,
@@ -27,5 +28,4 @@ pub enum ClientAction {
     Enable,
     Disable,
     Pid,
-    Status,
 }

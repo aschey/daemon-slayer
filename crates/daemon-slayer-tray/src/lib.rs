@@ -33,7 +33,7 @@ pub struct DefaultMenuHandler {
 #[async_trait]
 impl MenuHandler for DefaultMenuHandler {
     async fn refresh_state(&mut self) {
-        self.current_state = self.manager.info().await.unwrap().state;
+        self.current_state = self.manager.status().await.unwrap().state;
     }
 
     fn build_menu(&mut self) -> Menu {

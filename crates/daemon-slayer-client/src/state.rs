@@ -3,14 +3,7 @@ use serde::{Deserialize, Serialize};
 use strum::EnumProperty;
 
 #[derive(
-    strum_macros::Display,
-    strum_macros::EnumProperty,
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    Serialize,
-    Deserialize,
+    strum::Display, strum::EnumProperty, Debug, Clone, PartialEq, Eq, Serialize, Deserialize,
 )]
 pub enum State {
     #[strum(props(color = "green"))]

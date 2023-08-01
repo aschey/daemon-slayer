@@ -1,6 +1,6 @@
 use crate::{
     config::{Builder, Config},
-    Command, Info, Manager, State,
+    Command, Manager, State, Status,
 };
 use daemon_slayer_core::{async_trait, Label};
 use std::io;
@@ -91,7 +91,7 @@ impl Manager for SystemdServiceManager {
     }
 
     async fn reload_config(&mut self) -> io::Result<()> {
-        let current_state = self.info().await?.state;
+        let current_state = self.status().await?.state;
         self.config.user_config.reload();
         self.stop().await?;
         self.install().await?;
@@ -186,7 +186,7 @@ impl Manager for SystemdServiceManager {
     }
 
     async fn stop(&self) -> io::Result<()> {
-        if self.info().await?.state == State::Started {
+        if self.status().await?.state == State::Started {
             self.client
                 .stop_unit(&self.service_file_name(), "replace")
                 .await
@@ -202,7 +202,7 @@ impl Manager for SystemdServiceManager {
     }
 
     async fn restart(&self) -> io::Result<()> {
-        if self.info().await?.state == State::Started {
+        if self.status().await?.state == State::Started {
             self.client
                 .restart_unit(&self.service_file_name(), "replace")
                 .await
@@ -228,7 +228,7 @@ impl Manager for SystemdServiceManager {
         Ok(())
     }
 
-    async fn info(&self) -> io::Result<Info> {
+    async fn status(&self) -> io::Result<Status> {
         self.client
             .reload()
             .await
@@ -311,8 +311,7 @@ impl Manager for SystemdServiceManager {
             Some(service_props.exec_main_status)
         };
 
-        Ok(Info {
-            label: self.config.label.clone(),
+        Ok(Status {
             pid,
             state,
             autostart,

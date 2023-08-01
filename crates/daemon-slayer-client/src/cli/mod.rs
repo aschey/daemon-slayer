@@ -1,4 +1,4 @@
-use crate::{Info, ServiceManager, State};
+use crate::{ServiceManager, State, Status};
 use daemon_slayer_core::{
     async_trait,
     cli::{
@@ -36,6 +36,10 @@ enum CliCommands {
     /// Restart the service
     Restart,
     /// Get the service's current status
+    Status {
+        #[arg(long)]
+        native: bool,
+    },
     Info,
     /// Get the service's current PID
     Pid,
@@ -45,8 +49,6 @@ enum CliCommands {
     Enable,
     /// Disable autostart
     Disable,
-    /// Get the service status from the native service manager
-    Status,
 }
 
 impl ClientCliProvider {
@@ -75,7 +77,7 @@ impl ClientCliProvider {
 
     async fn wait_for_condition(
         &self,
-        condition: impl Fn(&Info) -> bool,
+        condition: impl Fn(&Status) -> bool,
         wait_message: &str,
         failure_message: &str,
     ) -> io::Result<CommandOutput> {
@@ -93,7 +95,7 @@ impl ClientCliProvider {
         // Starting a service can take a while on certain platforms so we'll be conservative with the timeout here
         let max_attempts = 10;
         for _ in 0..max_attempts {
-            let info = self.manager.info().await?;
+            let info = self.manager.status().await?;
             if condition(&info) {
                 sp.stop();
                 println!();
@@ -124,24 +126,23 @@ impl CommandProvider for ClientCliProvider {
                 CliCommands::Start => ClientAction::Start,
                 CliCommands::Stop => ClientAction::Stop,
                 CliCommands::Restart => ClientAction::Restart,
+                CliCommands::Status { .. } => ClientAction::Status,
                 CliCommands::Info => ClientAction::Info,
                 CliCommands::Pid => ClientAction::Pid,
                 CliCommands::Reload => ClientAction::Reload,
                 CliCommands::Enable => ClientAction::Enable,
                 CliCommands::Disable => ClientAction::Disable,
-                CliCommands::Status => ClientAction::Status,
             })),
         })
     }
 
     async fn handle_input(mut self: Box<Self>) -> Result<CommandOutput, BoxedError> {
         if let Some(matched_command) = &self.matched_command {
-            let state = self.manager.info().await?.state;
+            let state = self.manager.status().await?.state;
             if state == State::NotInstalled
                 && *matched_command != CliCommands::Install
                 && *matched_command != CliCommands::Uninstall
-                && *matched_command != CliCommands::Info
-                && *matched_command != CliCommands::Status
+                && !matches!(matched_command, CliCommands::Status { .. })
             {
                 return Ok(CommandOutput::handled(
                     "Cannot complete action because service is not installed"
@@ -179,9 +180,24 @@ impl CommandProvider for ClientCliProvider {
                         )
                         .await?);
                 }
+                CliCommands::Status { native: true } => {
+                    let status_command = self.manager.status_command().await?;
+                    Command::new(status_command.program)
+                        .args(status_command.args)
+                        .stdin(Stdio::inherit())
+                        .stdout(Stdio::inherit())
+                        .stderr(Stdio::inherit())
+                        .spawn()?
+                        .wait()
+                        .await?;
+                }
+                CliCommands::Status { native: false } => {
+                    let status = self.manager.status().await?;
+                    return Ok(CommandOutput::handled(status.pretty_print()));
+                }
                 CliCommands::Info => {
-                    let info = self.manager.info().await?;
-                    return Ok(CommandOutput::handled(info.pretty_print()));
+                    let config = self.manager.config();
+                    return Ok(CommandOutput::handled(config.pretty_print()));
                 }
                 CliCommands::Start => {
                     self.manager.start().await?;
@@ -235,22 +251,11 @@ impl CommandProvider for ClientCliProvider {
                         .await?);
                 }
                 CliCommands::Pid => {
-                    let pid = self.manager.info().await?.pid;
+                    let pid = self.manager.status().await?.pid;
                     return Ok(CommandOutput::handled(
                         pid.map(|p| p.to_string())
                             .unwrap_or_else(|| "Not running".to_owned()),
                     ));
-                }
-                CliCommands::Status => {
-                    let status_command = self.manager.status_command().await?;
-                    Command::new(status_command.program)
-                        .args(status_command.args)
-                        .stdin(Stdio::inherit())
-                        .stdout(Stdio::inherit())
-                        .stderr(Stdio::inherit())
-                        .spawn()?
-                        .wait()
-                        .await?;
                 }
             }
 

@@ -12,7 +12,7 @@ use daemon_slayer_core::{async_trait, Label};
 
 use crate::{
     config::{Builder, Config},
-    Command, Info, Manager, State,
+    Command, Manager, State, Status,
 };
 
 #[derive(Debug, Clone)]
@@ -70,7 +70,7 @@ impl Manager for DockerServiceManager {
     }
 
     async fn reload_config(&mut self) -> io::Result<()> {
-        let current_state = self.info().await?.state;
+        let current_state = self.status().await?.state;
         self.config.user_config.reload();
         self.uninstall().await?;
         self.install().await?;
@@ -196,7 +196,7 @@ impl Manager for DockerServiceManager {
         Ok(())
     }
 
-    async fn info(&self) -> io::Result<Info> {
+    async fn status(&self) -> io::Result<Status> {
         let containers = self
             .docker
             .list_containers(Some(ListContainersOptions::<&str> {
@@ -246,8 +246,7 @@ impl Manager for DockerServiceManager {
                 Some(false)
             };
 
-            let info = Info {
-                label: self.config.label.clone(),
+            let info = Status {
                 state,
                 autostart,
                 pid: container_state.pid.map(|p| p as u32),
@@ -257,8 +256,7 @@ impl Manager for DockerServiceManager {
 
             return Ok(info);
         }
-        let info = Info {
-            label: self.config.label.clone(),
+        let info = Status {
             state: State::NotInstalled,
             autostart: None,
             pid: None,
