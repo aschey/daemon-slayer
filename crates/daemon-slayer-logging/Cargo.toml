@@ -33,7 +33,7 @@ tracing-subscriber = { version = "0.3", features = [
     "local-time",
     "env-filter",
 ] }
-tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "4314c2f8b2e49c6ad48138bbacf581f83c5f084e", optional = true, features = [
+tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "5fb89bf01e346bd09b48757a80479763f7d34cdd", optional = true, features = [
     "client",
     "server",
     "ipc",

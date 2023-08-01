@@ -20,7 +20,7 @@ tilia-widget = { git = "https://github.com/aschey/tilia", rev = "688251dbbc8331b
 ] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 ratatui = { version = "0.22" }
-tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "4314c2f8b2e49c6ad48138bbacf581f83c5f084e", features = [
+tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "5fb89bf01e346bd09b48757a80479763f7d34cdd", features = [
     "client",
     "server",
     "ipc",
