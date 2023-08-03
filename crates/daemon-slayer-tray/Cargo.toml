@@ -9,4 +9,4 @@ daemon-slayer-client = { path = "../daemon-slayer-client" }
 image = "0.24"
 tao = { git = "https://github.com/tauri-apps/tao", branch = "muda" }
 tokio = { version = "1", features = ["sync", "macros", "time"] }
-tray-icon = "0.5"
+tray-icon = "0.7"

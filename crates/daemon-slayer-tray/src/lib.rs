@@ -8,7 +8,7 @@ use tao::event_loop::{ControlFlow, EventLoopBuilder};
 use tray_icon::{
     icon::Icon,
     menu::{Menu, MenuEvent, MenuItem},
-    TrayEvent, TrayIcon, TrayIconBuilder,
+    TrayIcon, TrayIconBuilder, TrayIconEvent,
 };
 
 #[async_trait]
@@ -18,7 +18,7 @@ pub trait MenuHandler: Send + Sync {
     fn build_tray(&mut self, menu: &Menu) -> TrayIcon;
     fn update_menu(&self, menu: &Menu);
     async fn handle_menu_event(&mut self, event: MenuEvent) -> ControlFlow;
-    async fn handle_tray_event(&mut self, event: TrayEvent) -> ControlFlow;
+    async fn handle_tray_event(&mut self, event: TrayIconEvent) -> ControlFlow;
 }
 
 pub struct DefaultMenuHandler {
@@ -45,7 +45,7 @@ impl MenuHandler for DefaultMenuHandler {
         self.restart_id = restart.id();
         let quit = MenuItem::new("Quit", true, None);
         self.quit_id = quit.id();
-        menu.append_items(&[&start_stop, &restart, &quit]);
+        menu.append_items(&[&start_stop, &restart, &quit]).unwrap();
         menu
     }
 
@@ -59,9 +59,7 @@ impl MenuHandler for DefaultMenuHandler {
 
     fn update_menu(&self, menu: &Menu) {
         menu.items()[0]
-            .as_any()
-            .downcast_ref::<MenuItem>()
-            .unwrap()
+            .as_menuitem_unchecked()
             .set_text(get_start_stop_text(&self.current_state));
     }
 
@@ -86,7 +84,7 @@ impl MenuHandler for DefaultMenuHandler {
         ControlFlow::Poll
     }
 
-    async fn handle_tray_event(&mut self, _event: TrayEvent) -> ControlFlow {
+    async fn handle_tray_event(&mut self, _event: TrayIconEvent) -> ControlFlow {
         ControlFlow::Poll
     }
 }
@@ -121,7 +119,7 @@ impl<T: MenuHandler> Tray<T> {
         let mut tray_icon = Some(self.menu_handler.build_tray(&menu));
 
         let menu_channel = MenuEvent::receiver();
-        let tray_channel = TrayEvent::receiver();
+        let tray_channel = TrayIconEvent::receiver();
 
         let mut last_update_time = Instant::now();
         event_loop.run(move |_event, _, control_flow| {
