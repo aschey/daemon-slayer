@@ -1,5 +1,6 @@
-use notify::RecursiveMode;
 use std::path::PathBuf;
+
+use notify::RecursiveMode;
 use tap::TapFallible;
 use tokio::sync::mpsc;
 use tracing::warn;

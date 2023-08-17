@@ -1,15 +1,16 @@
-use crate::{AppConfig, Configurable};
-use daemon_slayer_core::{
-    async_trait,
-    server::{BackgroundService, BroadcastEventStore, EventStore, ServiceContext},
-    BoxedError, FutureExt,
+use std::sync::Arc;
+
+use daemon_slayer_core::server::{
+    BackgroundService, BroadcastEventStore, EventStore, ServiceContext,
 };
+use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
 use daemon_slayer_file_watcher::FileWatcher;
 use futures::stream::StreamExt;
-use std::sync::Arc;
 use tap::TapFallible;
 use tokio::sync::broadcast;
 use tracing::error;
+
+use crate::{AppConfig, Configurable};
 
 pub struct ConfigService<T>
 where

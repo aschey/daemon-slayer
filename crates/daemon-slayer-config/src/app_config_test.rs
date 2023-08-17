@@ -1,8 +1,9 @@
-use crate::{AppConfig, ConfigDir, ConfigFileType};
 use confique::Config;
 use daemon_slayer_core::config::Accessor;
 use daemon_slayer_core::Mergeable;
 use tempfile::tempdir;
+
+use crate::{AppConfig, ConfigDir, ConfigFileType};
 
 #[test]
 fn test_initial_load() {

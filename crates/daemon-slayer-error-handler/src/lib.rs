@@ -1,7 +1,5 @@
-use std::{
-    fmt::{Debug, Display},
-    sync::OnceLock,
-};
+use std::fmt::{Debug, Display};
+use std::sync::OnceLock;
 
 pub use color_eyre::config::Theme;
 use color_eyre::Report;

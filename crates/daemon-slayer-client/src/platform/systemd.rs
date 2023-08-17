@@ -1,17 +1,17 @@
-use crate::{
-    config::{Builder, Config},
-    Command, Manager, State, Status,
-};
-use daemon_slayer_core::{async_trait, Label};
 use std::io;
+
+use daemon_slayer_core::{async_trait, Label};
+use systemd_client::manager::{self, SystemdManagerProxy};
 use systemd_client::{
     create_unit_configuration_file, create_user_unit_configuration_file,
-    delete_unit_configuration_file, delete_user_unit_configuration_file,
-    manager::{self, SystemdManagerProxy},
-    service, unit, InstallConfiguration, NotifyAccess, ServiceConfiguration, ServiceType,
+    delete_unit_configuration_file, delete_user_unit_configuration_file, service, unit,
+    InstallConfiguration, NotifyAccess, ServiceConfiguration, ServiceType,
     ServiceUnitConfiguration, UnitActiveStateType, UnitConfiguration, UnitFileState,
     UnitLoadStateType, UnitSubStateType,
 };
+
+use crate::config::{Builder, Config};
+use crate::{Command, Manager, State, Status};
 
 #[derive(Clone, Debug)]
 pub struct SystemdServiceManager {

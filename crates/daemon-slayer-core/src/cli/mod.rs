@@ -11,6 +11,5 @@ mod action;
 pub use action::*;
 
 mod printer;
-pub use printer::*;
-
 pub use clap;
+pub use printer::*;

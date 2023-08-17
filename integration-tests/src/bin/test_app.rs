@@ -3,11 +3,12 @@ use axum::Router;
 use daemon_slayer::cli::Cli;
 use daemon_slayer::core::{BoxedError, Label};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
+use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
-use daemon_slayer::logging::{cli::LoggingCliProvider, LoggerBuilder};
+use daemon_slayer::logging::LoggerBuilder;
+use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::{
-    cli::ServerCliProvider, BroadcastEventStore, EventStore, Handler, ServiceContext, Signal,
-    SignalHandler,
+    BroadcastEventStore, EventStore, Handler, ServiceContext, Signal, SignalHandler,
 };
 use daemon_slayer::signals::SignalListener;
 use futures::StreamExt;

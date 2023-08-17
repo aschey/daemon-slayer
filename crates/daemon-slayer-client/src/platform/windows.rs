@@ -1,22 +1,21 @@
-use crate::{
-    config::{windows::Trustee, Builder, Config, Level},
-    Command, Manager, State, Status,
-};
+use std::io;
+use std::time::Duration;
+
 use daemon_slayer_core::{async_trait, Label};
 use regex::Regex;
 use registry::{Data, Hive, Security};
-use std::io;
-use std::time::Duration;
 use utfx::U16CString;
-use windows_service::{
-    service::{
-        Service, ServiceAccess, ServiceErrorControl, ServiceExitCode, ServiceInfo,
-        ServiceStartType, ServiceState, ServiceType,
-    },
-    service_manager::{
-        ListServiceType, ServiceActiveState, ServiceEntry, ServiceManager, ServiceManagerAccess,
-    },
+use windows_service::service::{
+    Service, ServiceAccess, ServiceErrorControl, ServiceExitCode, ServiceInfo, ServiceStartType,
+    ServiceState, ServiceType,
 };
+use windows_service::service_manager::{
+    ListServiceType, ServiceActiveState, ServiceEntry, ServiceManager, ServiceManagerAccess,
+};
+
+use crate::config::windows::Trustee;
+use crate::config::{Builder, Config, Level};
+use crate::{Command, Manager, State, Status};
 
 #[derive(Clone)]
 enum ServiceAccessMode {
@@ -107,9 +106,10 @@ impl WindowsServiceManager {
         mode: ServiceAccessMode,
     ) -> io::Result<Option<ServiceEntry>> {
         let re_text = if service_type == ServiceType::USER_OWN_PROCESS {
-            // User services have a random id called a LUID appended to the end like this: some_service_name_18dcf87g.
-            // The id changes every login so we have to search for it.
-            // There does not seem to be any API we can use to get the LUID in a cleaner way.
+            // User services have a random id called a LUID appended to the end like this:
+            // some_service_name_18dcf87g. The id changes every login so we have to
+            // search for it. There does not seem to be any API we can use to get the
+            // LUID in a cleaner way.
             format!(r"^{}_[a-z\d]+$", self.name())
         } else {
             format!("^{}$", self.name())
@@ -461,7 +461,8 @@ impl Manager for WindowsServiceManager {
 
     async fn uninstall(&self) -> io::Result<()> {
         if self.status().await?.state == State::Started {
-            // Make sure we stop the service before attempting to uninstall, otherwise the uninstall can hang
+            // Make sure we stop the service before attempting to uninstall, otherwise the uninstall
+            // can hang
             self.stop().await?;
             self.wait_for_state(State::Stopped).await?;
         }
@@ -531,7 +532,7 @@ impl Manager for WindowsServiceManager {
                     pid: None,
                     id: None,
                     last_exit_code: None,
-                })
+                });
             }
         };
 

@@ -43,6 +43,7 @@ cli = [
   "daemon-slayer-build-info?/cli",
 ]
 client = ["daemon-slayer-client"]
+docker = ["daemon-slayer-client?/docker"]
 config = [
   "daemon-slayer-config",
   "daemon-slayer-client?/config",

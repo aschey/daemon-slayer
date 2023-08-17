@@ -1,19 +1,19 @@
-use crate::{ServiceManager, State, Status};
-use daemon_slayer_core::{
-    async_trait,
-    cli::{
-        clap::{self, FromArgMatches, Subcommand},
-        Action, ActionType, ClientAction, CommandMatch, CommandOutput, CommandProvider,
-    },
-    BoxedError,
+use std::io;
+use std::process::Stdio;
+use std::time::Duration;
+
+use daemon_slayer_core::cli::clap::{self, FromArgMatches, Subcommand};
+use daemon_slayer_core::cli::{
+    Action, ActionType, ClientAction, CommandMatch, CommandOutput, CommandProvider,
 };
+use daemon_slayer_core::{async_trait, BoxedError};
 use owo_colors::OwoColorize;
 use spinoff::Spinner;
-use std::{io, process::Stdio, time::Duration};
-use tokio::{process::Command, time::sleep};
+pub use spinoff::{spinners, Color};
+use tokio::process::Command;
+use tokio::time::sleep;
 
-pub use spinoff::spinners;
-pub use spinoff::Color;
+use crate::{ServiceManager, State, Status};
 
 #[derive(Clone, Debug)]
 pub struct ClientCliProvider {
@@ -92,7 +92,8 @@ impl ClientCliProvider {
         );
 
         // State changes can be asynchronous, wait for the desired state
-        // Starting a service can take a while on certain platforms so we'll be conservative with the timeout here
+        // Starting a service can take a while on certain platforms so we'll be conservative with
+        // the timeout here
         let max_attempts = 10;
         for _ in 0..max_attempts {
             let info = self.manager.status().await?;

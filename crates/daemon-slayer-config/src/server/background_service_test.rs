@@ -1,16 +1,13 @@
 use std::time::Duration;
 
 use confique::Config;
-use daemon_slayer_core::{
-    server::{BackgroundServiceManager, EventStore},
-    CancellationToken,
-};
+use daemon_slayer_core::server::{BackgroundServiceManager, EventStore};
+use daemon_slayer_core::CancellationToken;
 use futures::StreamExt;
 use tempfile::tempdir;
 
-use crate::{AppConfig, ConfigDir};
-
 use super::ConfigService;
+use crate::{AppConfig, ConfigDir};
 
 #[tokio::test]
 async fn test_serivce() {

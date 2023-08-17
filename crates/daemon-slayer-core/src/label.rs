@@ -1,4 +1,5 @@
-use std::{fmt::Display, str::FromStr};
+use std::fmt::Display;
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -27,7 +28,10 @@ impl Label {
 
 #[derive(Error, Debug)]
 pub enum ParseError {
-    #[error("Identifier {0} was not in the correct format. Identifiers should be formatted as '{{qualifier}}.{{organization}}.{{application}}'.")]
+    #[error(
+        "Identifier {0} was not in the correct format. Identifiers should be formatted as \
+         '{{qualifier}}.{{organization}}.{{application}}'."
+    )]
     InvalidIdentifier(String),
 }
 

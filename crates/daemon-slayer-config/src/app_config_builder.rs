@@ -1,4 +1,5 @@
-use std::{marker::PhantomData, path::PathBuf};
+use std::marker::PhantomData;
+use std::path::PathBuf;
 
 use daemon_slayer_core::Label;
 

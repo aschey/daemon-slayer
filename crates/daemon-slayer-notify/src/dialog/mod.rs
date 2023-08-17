@@ -1,12 +1,12 @@
-use std::{
-    env::{self, current_exe},
-    io,
-    marker::PhantomData,
-};
+use std::env::{self, current_exe};
+use std::io;
+use std::marker::PhantomData;
+
+use daemon_slayer_core::notify::BlockingNotification;
+use daemon_slayer_core::{async_trait, process, Label};
+use native_dialog::MessageType;
 
 use super::AsyncNotification;
-use daemon_slayer_core::{async_trait, notify::BlockingNotification, process, Label};
-use native_dialog::MessageType;
 
 #[cfg(feature = "cli")]
 pub mod cli;

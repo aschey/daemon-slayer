@@ -1,21 +1,19 @@
-use crate::{
-    config::{Builder, Config, Level},
-    Manager, State, Status,
-};
+use std::fs::{self, File};
+use std::io;
+use std::path::{Path, PathBuf};
+use std::process::Stdio;
+
 use daemon_slayer_core::{async_trait, Label};
 use launchd::Launchd;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::{
-    fs::{self, File},
-    io,
-    path::{Path, PathBuf},
-    process::Stdio,
-};
 use tokio::process::Command;
 
+use crate::config::{Builder, Config, Level};
+use crate::{Manager, State, Status};
+
 macro_rules! regex {
-    ($name: ident, $re:literal $(,)?) => {
+    ($name:ident, $re:literal $(,)?) => {
         static $name: Lazy<Regex> = Lazy::new(|| Regex::new($re).unwrap());
     };
 }
@@ -79,10 +77,14 @@ impl LaunchdServiceManager {
             .map_err(|e| {
                 io::Error::new(
                     io::ErrorKind::InvalidData,
-                    format!("Error decoding output from launchd command \"{command} {arguments:?}\": {e:?}"),
+                    format!(
+                        "Error decoding output from launchd command \"{command} {arguments:?}\": \
+                         {e:?}"
+                    ),
                 )
             })?
-            .trim().to_owned())
+            .trim()
+            .to_owned())
     }
 
     async fn service_target(&self) -> io::Result<String> {
@@ -295,9 +297,9 @@ impl Manager for LaunchdServiceManager {
             .map(|pid| pid.parse::<u32>().unwrap_or(0));
 
         // We get the autostart status from the plist file instead of the print command because
-        // the format changed sometime between Mac OS 11 and 12 so it seems that it's not very stable.
-        // Unfortunately this means we can't detect if the version of the plist file that's actually loaded
-        // has autostart or not.
+        // the format changed sometime between Mac OS 11 and 12 so it seems that it's not very
+        // stable. Unfortunately this means we can't detect if the version of the plist file
+        // that's actually loaded has autostart or not.
         let autostart = plist.run_at_load;
 
         let last_exit_code = self

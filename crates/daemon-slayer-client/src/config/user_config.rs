@@ -1,5 +1,6 @@
-use super::EnvironmentVariable;
 use daemon_slayer_core::config::Mergeable;
+
+use super::EnvironmentVariable;
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "config", derive(confique::Config))]

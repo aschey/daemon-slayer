@@ -1,20 +1,19 @@
-use super::systemd::SystemdConfig;
-use super::windows::WindowsConfig;
-use super::EnvironmentVariable;
-use super::Level;
-use super::UserConfig;
-use crate::get_manager;
-use crate::ServiceManager;
-use daemon_slayer_core::config::Accessor;
-use daemon_slayer_core::config::CachedConfig;
-use daemon_slayer_core::process::get_admin_var;
-use daemon_slayer_core::CommandArg;
-use daemon_slayer_core::Label;
-use derivative::Derivative;
 use std::env::consts::EXE_EXTENSION;
 use std::io;
 use std::path::PathBuf;
 use std::sync::Arc;
+
+#[cfg(feature = "docker")]
+use bollard::container;
+use daemon_slayer_core::config::{Accessor, CachedConfig};
+use daemon_slayer_core::process::get_admin_var;
+use daemon_slayer_core::{CommandArg, Label};
+use derivative::Derivative;
+
+use super::systemd::SystemdConfig;
+use super::windows::WindowsConfig;
+use super::{EnvironmentVariable, Level, UserConfig};
+use crate::{get_manager, ServiceManager};
 
 #[derive(thiserror::Error, Debug)]
 pub enum IntoProgramError {
@@ -74,7 +73,8 @@ pub enum ServiceType {
     Container,
 }
 
-pub type ContainerConfigFn = dyn Fn(&mut bollard::container::Config<String>) + Send + Sync;
+#[cfg(feature = "docker")]
+pub type ContainerConfigFn = dyn Fn(&mut container::Config<String>) + Send + Sync;
 
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
@@ -94,6 +94,7 @@ pub struct Builder {
     pub(crate) windows_config: WindowsConfig,
     pub(crate) user_config: CachedConfig<UserConfig>,
     pub(crate) service_type: ServiceType,
+    #[cfg(feature = "docker")]
     #[derivative(Debug = "ignore")]
     pub(crate) configure_container: Option<Arc<Box<ContainerConfigFn>>>,
 }
@@ -112,6 +113,7 @@ impl Builder {
             windows_config: Default::default(),
             user_config: Default::default(),
             service_type: ServiceType::Native,
+            #[cfg(feature = "docker")]
             configure_container: None,
         }
     }
@@ -178,6 +180,7 @@ impl Builder {
     ) -> Self {
         let current_config = self.user_config.load();
         self.user_config = config.access();
+
         // re-add any vars that were already added
         for var in current_config.environment_variables {
             self = self.with_environment_variable(var.name, var.value);
@@ -190,9 +193,10 @@ impl Builder {
         self
     }
 
+    #[cfg(feature = "docker")]
     pub fn with_configure_container(
         mut self,
-        configure_container: impl Fn(&mut bollard::container::Config<String>) + Send + Sync + 'static,
+        configure_container: impl Fn(&mut container::Config<String>) + Send + Sync + 'static,
     ) -> Self {
         self.configure_container = Some(Arc::new(Box::new(configure_container)));
         self

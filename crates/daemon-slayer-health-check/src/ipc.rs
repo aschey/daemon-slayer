@@ -1,4 +1,5 @@
-use daemon_slayer_core::{async_trait, health_check::HealthCheck, BoxedError};
+use daemon_slayer_core::health_check::HealthCheck;
+use daemon_slayer_core::{async_trait, BoxedError};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[derive(Clone)]

@@ -1,18 +1,18 @@
-use crate::{
-    io_error, AppConfigBuilder, ConfigDir, ConfigEditError, ConfigFileType,
-    ConfigInitializationError, ConfigLoadError,
-};
+use std::fs::{create_dir_all, File};
+use std::io::{self, Write};
+use std::path::PathBuf;
+use std::sync::Arc;
+
 use arc_swap::ArcSwap;
 use confique::{json5, toml, yaml, Config};
 use daemon_slayer_core::config::{Accessor, CachedConfig, Mergeable};
 use directories::ProjectDirs;
-use std::{
-    fs::{create_dir_all, File},
-    io::{self, Write},
-    path::PathBuf,
-    sync::Arc,
-};
 use tracing::{debug, error};
+
+use crate::{
+    io_error, AppConfigBuilder, ConfigDir, ConfigEditError, ConfigFileType,
+    ConfigInitializationError, ConfigLoadError,
+};
 
 pub trait Configurable: Config + Default + Send + Sync + Clone + 'static {}
 

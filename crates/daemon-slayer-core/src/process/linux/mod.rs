@@ -1,8 +1,12 @@
-use crate::Label;
-use std::{env, io, process::Stdio};
+use std::process::Stdio;
+use std::{env, io};
+
 use tokio::process::Command;
 use tracing::{info, warn};
-use zbus::{dbus_proxy, zvariant::OwnedObjectPath, Connection};
+use zbus::zvariant::OwnedObjectPath;
+use zbus::{dbus_proxy, Connection};
+
+use crate::Label;
 
 #[dbus_proxy(
     interface = "org.freedesktop.login1.Manager",
@@ -46,13 +50,17 @@ pub async fn run_process_as_current_user(
 
     // We assume that we're using the standard DBUS paths here under /run
     // since we don't have access to the user's DBUS_SESSION_BUS_ADDRESS variable
-    // TODO: maybe we need to do something fancy here to detect if they're using nonstandard dbus config
+    // TODO: maybe we need to do something fancy here to detect if they're using nonstandard dbus
+    // config
     let output = Command::new("runuser")
         .args([
             "-l",
             username,
             "-c",
-            &format!("DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/{user_id}/bus DISPLAY={display} {cmd}",),
+            &format!(
+                "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/{user_id}/bus DISPLAY={display} \
+                 {cmd}",
+            ),
         ])
         .stdout(Stdio::null())
         .stdin(Stdio::null())

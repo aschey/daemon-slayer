@@ -1,13 +1,13 @@
-use crate::Service;
-use daemon_slayer_core::{
-    async_trait,
-    cli::{
-        clap::{self, parser::ValueSource, ArgAction},
-        Action, ActionType, CommandMatch, CommandOutput, CommandProvider, ServerAction,
-    },
-    BoxedError, CommandArg,
-};
 use std::marker::PhantomData;
+
+use daemon_slayer_core::cli::clap::parser::ValueSource;
+use daemon_slayer_core::cli::clap::{self, ArgAction};
+use daemon_slayer_core::cli::{
+    Action, ActionType, CommandMatch, CommandOutput, CommandProvider, ServerAction,
+};
+use daemon_slayer_core::{async_trait, BoxedError, CommandArg};
+
+use crate::Service;
 
 const RUN_ID: &str = "run";
 const LABEL_ID: &str = "label";
@@ -70,7 +70,9 @@ impl<S: Service> CommandProvider for ServerCliProvider<S> {
             .any(|i| matches.value_source(i.as_str()) != Some(ValueSource::DefaultValue));
 
         match &self.run_command {
-            CommandArg::Subcommand(sub) if matches!(matches.subcommand(), Some((sub_name, _)) if sub_name == sub) =>
+            CommandArg::Subcommand(sub)
+                if matches!(
+                    matches.subcommand(), Some((sub_name, _)) if sub_name == sub) =>
             {
                 self.matched_command = Some(ServerCommand::Run);
                 Some(CommandMatch {

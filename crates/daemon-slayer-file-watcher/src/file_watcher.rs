@@ -1,15 +1,17 @@
-use super::file_watcher_client::FileWatcherClient;
-use crate::{file_watcher_builder::FileWatcherBuilder, file_watcher_command::FileWatcherCommand};
-use daemon_slayer_core::{
-    server::{BroadcastEventStore, ServiceContext},
-    BoxedError, FutureExt,
-};
+use std::path::PathBuf;
+use std::time::Duration;
+
+use daemon_slayer_core::server::{BroadcastEventStore, ServiceContext};
+use daemon_slayer_core::{BoxedError, FutureExt};
 use notify::RecommendedWatcher;
 use notify_debouncer_mini::{new_debouncer, DebouncedEvent, Debouncer};
-use std::{path::PathBuf, time::Duration};
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
 use tracing::{error, info, warn};
+
+use super::file_watcher_client::FileWatcherClient;
+use crate::file_watcher_builder::FileWatcherBuilder;
+use crate::file_watcher_command::FileWatcherCommand;
 
 pub struct FileWatcher {
     file_tx: broadcast::Sender<Vec<PathBuf>>,

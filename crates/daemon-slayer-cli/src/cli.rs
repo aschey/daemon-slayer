@@ -1,11 +1,10 @@
 use std::any::TypeId;
 
-use crate::Builder;
 use clap::builder::StyledStr;
-use daemon_slayer_core::{
-    cli::{ActionType, CommandMatch, CommandProvider, InputState},
-    BoxedError,
-};
+use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandProvider, InputState};
+use daemon_slayer_core::BoxedError;
+
+use crate::Builder;
 
 pub struct Cli {
     providers: Vec<Box<dyn CommandProvider>>,

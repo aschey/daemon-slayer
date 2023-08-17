@@ -12,19 +12,16 @@ pub mod platform;
 #[cfg(feature = "cli")]
 pub mod cli;
 
+pub use daemon_slayer_core::server::{
+    BackgroundService, BroadcastEventStore, EventStore, ServiceContext,
+};
+pub use daemon_slayer_core::signal::{
+    Client as SignalHandlerClient, Handler as SignalHandler, Signal,
+};
+pub use daemon_slayer_core::{async_trait, AsAny};
+pub use daemon_slayer_macros::*;
 #[cfg(target_os = "linux")]
 pub use sd_notify;
-
 #[cfg(windows)]
 pub use windows_service;
-
-pub use daemon_slayer_core::{
-    async_trait,
-    server::{BackgroundService, BroadcastEventStore, EventStore, ServiceContext},
-    signal::{Client as SignalHandlerClient, Handler as SignalHandler, Signal},
-    AsAny,
-};
-pub use futures;
-
-pub use daemon_slayer_macros::*;
-pub use tokio;
+pub use {futures, tokio};

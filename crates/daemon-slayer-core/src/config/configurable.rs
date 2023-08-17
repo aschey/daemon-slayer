@@ -1,11 +1,11 @@
-use arc_swap::{
-    access::{DynAccess, Map},
-    ArcSwap,
-};
+use std::io;
+use std::sync::Arc;
+
+use arc_swap::access::{DynAccess, Map};
+use arc_swap::ArcSwap;
 use async_trait::async_trait;
 use derivative::Derivative;
 use dyn_clonable::clonable;
-use std::{io, sync::Arc};
 
 pub trait Accessor<T: Mergeable + Clone + Default> {
     fn access(&self) -> CachedConfig<T>;

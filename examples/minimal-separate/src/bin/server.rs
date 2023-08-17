@@ -1,12 +1,11 @@
-use daemon_slayer::{
-    core::{BoxedError, Label},
-    server::{
-        futures::StreamExt, BroadcastEventStore, EventStore, Handler, Service, ServiceContext,
-        Signal, SignalHandler,
-    },
-    signals::SignalListener,
-};
 use std::time::{Duration, Instant};
+
+use daemon_slayer::core::{BoxedError, Label};
+use daemon_slayer::server::futures::StreamExt;
+use daemon_slayer::server::{
+    BroadcastEventStore, EventStore, Handler, Service, ServiceContext, Signal, SignalHandler,
+};
+use daemon_slayer::signals::SignalListener;
 
 #[tokio::main]
 pub async fn main() -> Result<(), BoxedError> {

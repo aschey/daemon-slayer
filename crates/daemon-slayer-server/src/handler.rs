@@ -1,5 +1,8 @@
-use daemon_slayer_core::{async_trait, server::ServiceContext, Label};
-use std::{fmt, time::Duration};
+use std::fmt;
+use std::time::Duration;
+
+use daemon_slayer_core::server::ServiceContext;
+use daemon_slayer_core::{async_trait, Label};
 
 #[async_trait]
 pub trait Handler: Sized + Send + Sync + 'static {

@@ -1,4 +1,5 @@
-use std::{io, path::PathBuf};
+use std::io;
+use std::path::PathBuf;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ConfigInitializationError {

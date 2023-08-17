@@ -1,31 +1,27 @@
-use super::{logger_guard::LoggerGuard, timezone::Timezone};
-use crate::ReloadHandle;
-use daemon_slayer_core::{
-    config::{Accessor, CachedConfig},
-    BoxedError, Label, Mergeable,
-};
-use std::{
-    collections::HashMap,
-    io::{self, stderr, stdout},
-    ops::Deref,
-    str::FromStr,
-    sync::OnceLock,
-};
-use time::{
-    format_description::well_known::{self, Rfc3339},
-    UtcOffset,
-};
-use tracing::{debug, metadata::LevelFilter, Level, Subscriber};
+use std::collections::HashMap;
+use std::io::{self, stderr, stdout};
+use std::ops::Deref;
+use std::str::FromStr;
+use std::sync::OnceLock;
+
+use daemon_slayer_core::config::{Accessor, CachedConfig};
+use daemon_slayer_core::{BoxedError, Label, Mergeable};
+use time::format_description::well_known::{self, Rfc3339};
+use time::UtcOffset;
+use tracing::metadata::LevelFilter;
+use tracing::{debug, Level, Subscriber};
 use tracing_appender::non_blocking::NonBlockingBuilder;
-use tracing_subscriber::{
-    filter::Directive,
-    fmt::{time::OffsetTime, Layer},
-    prelude::*,
-    registry::LookupSpan,
-    reload,
-    util::SubscriberInitExt,
-    EnvFilter, Layer as SubscriberLayer,
-};
+use tracing_subscriber::filter::Directive;
+use tracing_subscriber::fmt::time::OffsetTime;
+use tracing_subscriber::fmt::Layer;
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::registry::LookupSpan;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{reload, EnvFilter, Layer as SubscriberLayer};
+
+use super::logger_guard::LoggerGuard;
+use super::timezone::Timezone;
+use crate::ReloadHandle;
 
 static LOGGER_GUARD: OnceLock<Option<LoggerGuard>> = OnceLock::new();
 
@@ -142,7 +138,8 @@ impl LoggerBuilder {
             file_rotation_period: tracing_appender::rolling::Rotation::HOURLY,
             timezone: Timezone::Local,
             // The default number of buffered lines is quite large and uses a ton of memory
-            // We aren't logging a ton of messages so setting this value somewhat low is fine in order to conserve memory
+            // We aren't logging a ton of messages so setting this value somewhat low is fine in
+            // order to conserve memory
             output_buffer_limit: 256,
             user_config: Default::default(),
             log_to_stdout: false,
@@ -343,10 +340,8 @@ impl LoggerBuilder {
 
         #[cfg(feature = "ipc")]
         let (ipc_writer, ipc_guard) = {
-            use tower_rpc::{
-                transport::{ipc, CodecTransport},
-                LengthDelimitedCodec,
-            };
+            use tower_rpc::transport::{ipc, CodecTransport};
+            use tower_rpc::LengthDelimitedCodec;
             let name = self.label.application.to_owned() + "_logger";
             let make_transport = move || {
                 let name = name.to_owned();

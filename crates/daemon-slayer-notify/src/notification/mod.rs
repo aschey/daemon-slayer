@@ -1,7 +1,5 @@
-use std::{
-    env::{self, current_exe},
-    io,
-};
+use std::env::{self, current_exe};
+use std::io;
 
 use daemon_slayer_core::{async_trait, process, Label};
 use notify_rust::{Hint, Timeout, Urgency};

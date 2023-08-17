@@ -1,5 +1,6 @@
-use daemon_slayer::build_info::vergen::EmitBuilder;
 use std::error::Error;
+
+use daemon_slayer::build_info::vergen::EmitBuilder;
 
 fn main() -> Result<(), Box<dyn Error>> {
     EmitBuilder::builder()

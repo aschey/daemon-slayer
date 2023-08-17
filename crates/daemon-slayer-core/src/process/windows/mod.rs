@@ -1,32 +1,34 @@
-use crate::Label;
 use core::ffi;
 use std::{io, ptr, slice};
+
 use widestring::U16CString;
-use windows_sys::Win32::{
-    Foundation::{
-        self, CloseHandle, SetHandleInformation, HANDLE, HANDLE_FLAG_INHERIT, WAIT_FAILED,
-    },
-    Security::{DuplicateTokenEx, SecurityImpersonation, TokenPrimary, SECURITY_ATTRIBUTES},
-    Storage::FileSystem::ReadFile,
-    System::{
-        Console::{GetStdHandle, STD_INPUT_HANDLE},
-        Environment::{CreateEnvironmentBlock, DestroyEnvironmentBlock},
-        Pipes::CreatePipe,
-        RemoteDesktop::{
-            WTSActive, WTSEnumerateSessionsW, WTSFreeMemory, WTSGetActiveConsoleSessionId,
-            WTSQueryUserToken, WTS_CURRENT_SERVER_HANDLE,
-        },
-        Threading::{
-            CreateProcessAsUserW, GetExitCodeProcess, WaitForSingleObject, CREATE_NEW_CONSOLE,
-            CREATE_NO_WINDOW, CREATE_UNICODE_ENVIRONMENT, INFINITE, PROCESS_INFORMATION,
-            STARTF_USESTDHANDLES, STARTUPINFOW,
-        },
-    },
-    UI::WindowsAndMessaging::{SW_HIDE, SW_SHOW},
+use windows_sys::Win32::Foundation::{
+    self, CloseHandle, SetHandleInformation, HANDLE, HANDLE_FLAG_INHERIT, WAIT_FAILED,
 };
+use windows_sys::Win32::Security::{
+    DuplicateTokenEx, SecurityImpersonation, TokenPrimary, SECURITY_ATTRIBUTES,
+};
+use windows_sys::Win32::Storage::FileSystem::ReadFile;
+use windows_sys::Win32::System::Console::{GetStdHandle, STD_INPUT_HANDLE};
+use windows_sys::Win32::System::Environment::{CreateEnvironmentBlock, DestroyEnvironmentBlock};
+use windows_sys::Win32::System::Pipes::CreatePipe;
+use windows_sys::Win32::System::RemoteDesktop::{
+    WTSActive, WTSEnumerateSessionsW, WTSFreeMemory, WTSGetActiveConsoleSessionId,
+    WTSQueryUserToken, WTS_CURRENT_SERVER_HANDLE,
+};
+use windows_sys::Win32::System::Threading::{
+    CreateProcessAsUserW, GetExitCodeProcess, WaitForSingleObject, CREATE_NEW_CONSOLE,
+    CREATE_NO_WINDOW, CREATE_UNICODE_ENVIRONMENT, INFINITE, PROCESS_INFORMATION,
+    STARTF_USESTDHANDLES, STARTUPINFOW,
+};
+use windows_sys::Win32::UI::WindowsAndMessaging::{SW_HIDE, SW_SHOW};
+
+use crate::Label;
 
 // Largely ported from the C# implementation here https://github.com/murrayju/CreateProcessAsUser
-// and the examples here https://stackoverflow.com/questions/35969730/how-to-read-output-from-cmd-exe-using-createprocess-and-createpipe
+// and the examples here
+// https://stackoverflow.com/questions/35969730/how-to-read-output-from-cmd-exe-using-createprocess-
+//and-createpipe
 
 fn get_session_user_token() -> io::Result<isize> {
     unsafe {

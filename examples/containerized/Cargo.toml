@@ -15,6 +15,7 @@ daemon-slayer = { path = "../../crates/daemon-slayer", features = [
     "logging",
     "signals",
     "server",
+    "docker",
 ] }
 # daemon-slayer-logging = { path = "../../crates/daemon-slayer-logging", features = [
 #     "system",

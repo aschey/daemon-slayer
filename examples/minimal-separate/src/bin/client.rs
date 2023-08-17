@@ -1,16 +1,10 @@
 use std::env::current_exe;
 
 use clap::Parser;
-use daemon_slayer::{
-    client::{
-        self,
-        config::{
-            windows::{ServiceAccess, Trustee, WindowsConfig},
-            Level,
-        },
-    },
-    core::BoxedError,
-};
+use daemon_slayer::client::config::windows::{ServiceAccess, Trustee, WindowsConfig};
+use daemon_slayer::client::config::Level;
+use daemon_slayer::client::{self};
+use daemon_slayer::core::BoxedError;
 
 #[derive(clap::Parser, Debug)]
 enum Arg {

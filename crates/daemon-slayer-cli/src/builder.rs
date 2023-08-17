@@ -1,7 +1,9 @@
 use std::ffi::OsString;
 
+use daemon_slayer_core::cli::CommandProvider;
+use daemon_slayer_core::BoxedError;
+
 use crate::Cli;
-use daemon_slayer_core::{cli::CommandProvider, BoxedError};
 
 pub struct Builder {
     pub(crate) base_command: clap::Command,

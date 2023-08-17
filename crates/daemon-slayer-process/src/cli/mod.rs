@@ -1,11 +1,6 @@
-use daemon_slayer_core::{
-    async_trait,
-    cli::{
-        clap::{self, Args, FromArgMatches, Subcommand},
-        ActionType, CommandMatch, CommandOutput, CommandProvider,
-    },
-    BoxedError,
-};
+use daemon_slayer_core::cli::clap::{self, Args, FromArgMatches, Subcommand};
+use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandOutput, CommandProvider};
+use daemon_slayer_core::{async_trait, BoxedError};
 
 use crate::ProcessManager;
 
@@ -66,7 +61,9 @@ impl CommandProvider for ProcessCliProvider {
             return Ok(CommandOutput::unhandled());
         };
         let Some(pid) = pid else {
-            return Ok(CommandOutput::handled("Error: process is not running".to_owned()));
+            return Ok(CommandOutput::handled(
+                "Error: process is not running".to_owned(),
+            ));
         };
         return Ok(match args.commands {
             ProcessSubcommands::Info => CommandOutput::handled(

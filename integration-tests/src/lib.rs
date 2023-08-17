@@ -1,10 +1,8 @@
 use std::net::SocketAddr;
 
 use confique::Config;
-use daemon_slayer::{
-    client,
-    core::{CommandArg, Label},
-};
+use daemon_slayer::client;
+use daemon_slayer::core::{CommandArg, Label};
 
 #[derive(Debug, Config, Default, Clone)]
 pub struct TestConfig {

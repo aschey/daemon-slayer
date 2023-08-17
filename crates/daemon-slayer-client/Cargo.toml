@@ -5,7 +5,7 @@ version = "0.1.0"
 
 [dependencies]
 arc-swap = { version = "1" }
-bollard = "0.14"
+bollard = { version = "0.14", optional = true }
 confique = { version = ">= 0.2.2", optional = true }
 daemon-slayer-core = { path = "../daemon-slayer-core", features = [
     "config",
@@ -43,3 +43,4 @@ tokio = { version = "1", features = ["time", "process"] }
 [features]
 cli = ["daemon-slayer-core/cli", "spinoff", "colored"]
 config = ["confique"]
+docker = ["bollard"]

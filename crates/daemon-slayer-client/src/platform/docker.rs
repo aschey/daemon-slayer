@@ -1,19 +1,15 @@
-use std::{collections::HashMap, io};
+use std::collections::HashMap;
+use std::io;
 
-use bollard::{
-    container::{
-        CreateContainerOptions, ListContainersOptions, RemoveContainerOptions,
-        UpdateContainerOptions,
-    },
-    service::{ContainerState, HostConfig, RestartPolicy, RestartPolicyNameEnum},
-    Docker,
+use bollard::container::{
+    CreateContainerOptions, ListContainersOptions, RemoveContainerOptions, UpdateContainerOptions,
 };
+use bollard::service::{ContainerState, HostConfig, RestartPolicy, RestartPolicyNameEnum};
+use bollard::Docker;
 use daemon_slayer_core::{async_trait, Label};
 
-use crate::{
-    config::{Builder, Config},
-    Command, Manager, State, Status,
-};
+use crate::config::{Builder, Config};
+use crate::{Command, Manager, State, Status};
 
 #[derive(Debug, Clone)]
 pub struct DockerServiceManager {

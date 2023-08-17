@@ -12,20 +12,21 @@ use systemd::*;
 mod windows;
 #[cfg(windows)]
 use windows::*;
+#[cfg(feature = "docker")]
 mod docker;
 use daemon_slayer_core::Label;
+#[cfg(feature = "docker")]
 use docker::*;
 
-use crate::{
-    config::{Builder, Program, ServiceType},
-    ServiceManager,
-};
+use crate::config::{Builder, Program, ServiceType};
+use crate::ServiceManager;
 
 pub fn builder(label: Label, program: Program) -> Builder {
     Builder::new(label, program)
 }
 
 pub(crate) async fn get_manager(builder: Builder) -> io::Result<ServiceManager> {
+    #[cfg(feature = "docker")]
     if builder.service_type == ServiceType::Container {
         return Ok(ServiceManager::new(
             DockerServiceManager::from_builder(builder).await?,

@@ -16,13 +16,16 @@ pub mod signal;
 pub use futures_cancel::*;
 
 mod label;
-pub use async_trait::async_trait;
-pub use label::*;
-use std::{any::Any, error::Error, fmt::Display, str::FromStr};
-pub use tokio_util::sync::CancellationToken;
+use std::any::Any;
+use std::error::Error;
+use std::fmt::Display;
+use std::str::FromStr;
 
+pub use async_trait::async_trait;
 #[cfg(feature = "daemon-slayer-macros")]
 pub use daemon_slayer_macros::*;
+pub use label::*;
+pub use tokio_util::sync::CancellationToken;
 
 pub trait AsAny {
     fn as_any(&self) -> &dyn Any;

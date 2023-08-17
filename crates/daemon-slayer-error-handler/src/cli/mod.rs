@@ -1,9 +1,6 @@
 use color_eyre::config::Theme;
-use daemon_slayer_core::{
-    async_trait,
-    cli::{clap, Action, CommandMatch, CommandOutput, ServerAction},
-    BoxedError,
-};
+use daemon_slayer_core::cli::{clap, Action, CommandMatch, CommandOutput, ServerAction};
+use daemon_slayer_core::{async_trait, BoxedError};
 
 use crate::ErrorHandler;
 

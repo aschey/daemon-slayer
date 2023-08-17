@@ -1,13 +1,11 @@
-use super::SignalListenerClient;
-use daemon_slayer_core::{
-    async_trait,
-    server::{BroadcastEventStore, ServiceContext},
-    signal::{self, Signal},
-    BoxedError,
-};
+use daemon_slayer_core::server::{BroadcastEventStore, ServiceContext};
+use daemon_slayer_core::signal::{self, Signal};
+use daemon_slayer_core::{async_trait, BoxedError};
 use tap::TapFallible;
 use tokio::sync::broadcast;
 use tracing::{info, warn};
+
+use super::SignalListenerClient;
 
 pub struct SignalListener {
     signal_tx: broadcast::Sender<Signal>,
@@ -59,26 +57,32 @@ impl daemon_slayer_core::server::BackgroundService for SignalListener {
         tokio::select! {
             _ = ctrl_c_stream.recv() => {
                 info!("Received ctrl+c signal");
-                self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok();
+                self.signal_tx.send(Signal::SIGINT)
+                    .tap_err(|_| warn!("Failed to send signal")).ok();
             }
             _ = ctrl_break_stream.recv() => {
-                self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok();
+                self.signal_tx.send(Signal::SIGINT)
+                    .tap_err(|_| warn!("Failed to send signal")).ok();
             }
             _ = ctrl_shutdown_stream.recv() => {
-                self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok();
+                self.signal_tx.send(Signal::SIGINT)
+                    .tap_err(|_| warn!("Failed to send signal")).ok();
             }
             _ = ctrl_logoff_stream.recv() => {
-                self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok();
+                self.signal_tx.send(Signal::SIGINT)
+                    .tap_err(|_| warn!("Failed to send signal")).ok();
             }
             _ = ctrl_close_stream.recv() => {
-                self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok();
+                self.signal_tx.send(Signal::SIGINT)
+                    .tap_err(|_| warn!("Failed to send signal")).ok();
             }
             _ = signal_rx.recv() => {
                 info!("Received signal from channel");
             }
             _ = cancellation_token.cancelled() => {
                 info!("Shutdown requested. Stopping signal handler.");
-                self.signal_tx.send(Signal::SIGINT).tap_err(|_| warn!("Failed to send signal")).ok();
+                self.signal_tx.send(Signal::SIGINT)
+                    .tap_err(|_| warn!("Failed to send signal")).ok();
                 return Ok(());
             }
         };

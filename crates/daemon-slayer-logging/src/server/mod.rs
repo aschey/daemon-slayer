@@ -1,12 +1,13 @@
-use crate::{ReloadHandle, UserConfig};
-use daemon_slayer_core::{
-    async_trait,
-    server::{
-        tokio_stream::StreamExt, BackgroundService, BroadcastEventStore, EventStore, ServiceContext,
-    },
-    BoxedError, FutureExt,
+use std::ops::Deref;
+use std::sync::Arc;
+
+use daemon_slayer_core::server::tokio_stream::StreamExt;
+use daemon_slayer_core::server::{
+    BackgroundService, BroadcastEventStore, EventStore, ServiceContext,
 };
-use std::{ops::Deref, sync::Arc};
+use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
+
+use crate::{ReloadHandle, UserConfig};
 
 pub trait LoggingConfig: AsRef<UserConfig> + Send + Sync + 'static {}
 impl<T> LoggingConfig for T where T: AsRef<UserConfig> + Send + Sync + 'static {}

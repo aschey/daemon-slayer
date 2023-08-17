@@ -1,11 +1,12 @@
-use crate::{LoggerBuilder, LoggerCreationError, ReloadHandle};
-use daemon_slayer_core::{
-    async_trait,
-    cli::{clap, Action, ActionType, ClientAction, CommandMatch, CommandOutput, CommandProvider},
-    BoxedError,
+use daemon_slayer_core::cli::{
+    clap, Action, ActionType, ClientAction, CommandMatch, CommandOutput, CommandProvider,
 };
+use daemon_slayer_core::{async_trait, BoxedError};
 use tracing::Subscriber;
-use tracing_subscriber::{registry::LookupSpan, util::SubscriberInitExt};
+use tracing_subscriber::registry::LookupSpan;
+use tracing_subscriber::util::SubscriberInitExt;
+
+use crate::{LoggerBuilder, LoggerCreationError, ReloadHandle};
 
 #[derive(thiserror::Error, Debug)]
 pub enum LoggerInitializationError {

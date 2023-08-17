@@ -1,11 +1,9 @@
 use std::time::Duration;
 
-use daemon_slayer_core::{
-    async_trait,
-    notify::AsyncNotification,
-    server::{tokio_stream::StreamExt, BackgroundService, EventStore, ServiceContext},
-    BoxedError, FutureExt,
-};
+use daemon_slayer_core::notify::AsyncNotification;
+use daemon_slayer_core::server::tokio_stream::StreamExt;
+use daemon_slayer_core::server::{BackgroundService, EventStore, ServiceContext};
+use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
 use tap::TapFallible;
 use tracing::error;
 

@@ -1,8 +1,10 @@
-use daemon_slayer_core::{async_trait, health_check::HealthCheck, BoxedError};
 use std::error::Error;
-use tonic_health::pb::{
-    health_check_response::ServingStatus, health_client::HealthClient, HealthCheckRequest,
-};
+
+use daemon_slayer_core::health_check::HealthCheck;
+use daemon_slayer_core::{async_trait, BoxedError};
+use tonic_health::pb::health_check_response::ServingStatus;
+use tonic_health::pb::health_client::HealthClient;
+use tonic_health::pb::HealthCheckRequest;
 
 #[derive(Clone)]
 pub struct GrpcHealthCheck {

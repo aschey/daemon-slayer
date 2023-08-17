@@ -1,12 +1,13 @@
-use daemon_slayer::client::State;
-use daemon_slayer::client::{self, config::Level};
+use std::time::Duration;
+
+use daemon_slayer::client::config::Level;
+use daemon_slayer::client::{self, State};
 use daemon_slayer::config::server::ConfigService;
 use daemon_slayer::config::{AppConfig, ConfigDir};
 use daemon_slayer::core::server::{BackgroundServiceManager, CancellationToken};
 use daemon_slayer::server::EventStore;
 use futures::{Future, StreamExt};
 use integration_tests::TestConfig;
-use std::time::Duration;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn run() {

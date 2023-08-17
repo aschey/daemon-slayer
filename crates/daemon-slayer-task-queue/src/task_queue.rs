@@ -1,9 +1,10 @@
-use crate::TaskQueueBuilder;
 use aide_de_camp::prelude::{Duration, JobRunner};
 use aide_de_camp_sqlite::{SqliteQueue, MIGRATOR};
 use daemon_slayer_core::CancellationToken;
 use sqlx::SqlitePool;
 use tracing::info;
+
+use crate::TaskQueueBuilder;
 
 pub struct TaskQueue {
     queue: SqliteQueue,

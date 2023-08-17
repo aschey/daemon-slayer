@@ -1,8 +1,13 @@
-use crate::{process::get_admin_var, Label};
+use std::process::Stdio;
+use std::{env, io};
+
 use regex::Regex;
-use std::{env, io, process::Stdio};
-use tokio::{io::AsyncWriteExt, process::Command};
+use tokio::io::AsyncWriteExt;
+use tokio::process::Command;
 use tracing::info;
+
+use crate::process::get_admin_var;
+use crate::Label;
 
 // from https://scriptingosx.com/2020/02/getting-the-current-user-in-macos-update/
 

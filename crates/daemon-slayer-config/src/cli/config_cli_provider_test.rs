@@ -1,12 +1,12 @@
 use confique::Config;
 use daemon_slayer_cli::Cli;
-use daemon_slayer_core::{async_trait, config::ConfigWatcher};
+use daemon_slayer_core::async_trait;
+use daemon_slayer_core::config::ConfigWatcher;
 use tempfile::tempdir;
 use tokio::sync::mpsc;
 
-use crate::{AppConfig, ConfigDir};
-
 use super::ConfigCliProvider;
+use crate::{AppConfig, ConfigDir};
 
 #[tokio::test]
 async fn test_config_path() {

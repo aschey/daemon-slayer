@@ -1,23 +1,19 @@
-use crate::{Handler, ServiceError};
-use daemon_slayer_core::{
-    server::BackgroundServiceManager,
-    signal::{self, Signal},
-    CancellationToken,
-};
-use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+use daemon_slayer_core::server::BackgroundServiceManager;
+use daemon_slayer_core::signal::{self, Signal};
+use daemon_slayer_core::CancellationToken;
 use tap::TapFallible;
-use tokio::{runtime::Runtime, sync::broadcast};
+use tokio::runtime::Runtime;
+use tokio::sync::broadcast;
 use tracing::{error, info};
-use windows_service::{
-    service::{
-        ServiceControl, ServiceControlAccept, ServiceExitCode, ServiceState, ServiceStatus,
-        ServiceType,
-    },
-    service_control_handler::{self, ServiceControlHandlerResult},
+use windows_service::service::{
+    ServiceControl, ServiceControlAccept, ServiceExitCode, ServiceState, ServiceStatus, ServiceType,
 };
+use windows_service::service_control_handler::{self, ServiceControlHandlerResult};
+
+use crate::{Handler, ServiceError};
 
 // From https://helgeklein.com/blog/per-user-services-in-windows-info-and-configuration
 const USER_OWN_PROCESS_TEMPLATE: u32 = 0x50;
@@ -152,7 +148,8 @@ fn set_env_vars<T: Handler>() {
         ))
     );
 
-    // User services don't copy over the environment variables from the template so we need to inject them manually
+    // User services don't copy over the environment variables from the template so we need to
+    // inject them manually
     if is_user_service {
         if let Ok(registry::Data::MultiString(environment_vars)) = services_key.value("Environment")
         {

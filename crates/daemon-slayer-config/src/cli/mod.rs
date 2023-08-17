@@ -1,17 +1,14 @@
-use crate::{AppConfig, ConfigLoadError, Configurable};
-use daemon_slayer_core::cli::clap::{Args, FromArgMatches, Subcommand};
-use daemon_slayer_core::{
-    async_trait,
-    cli::{
-        clap::{self},
-        ActionType, CommandMatch, CommandOutput, CommandProvider,
-    },
-    config::ConfigWatcher,
-    BoxedError,
+use daemon_slayer_core::cli::clap::{
+    Args, FromArgMatches, Subcommand, {self},
 };
+use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandOutput, CommandProvider};
+use daemon_slayer_core::config::ConfigWatcher;
+use daemon_slayer_core::{async_trait, BoxedError};
 use derivative::Derivative;
 use tap::TapFallible;
 use tracing::error;
+
+use crate::{AppConfig, ConfigLoadError, Configurable};
 
 #[derive(Subcommand, Debug, Clone)]
 enum ConfigCommands {

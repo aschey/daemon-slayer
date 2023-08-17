@@ -1,12 +1,7 @@
-use daemon_slayer_core::{
-    async_trait,
-    cli::{
-        clap::{self, Args, FromArgMatches, Subcommand},
-        ActionType, CommandMatch, CommandOutput, CommandProvider,
-    },
-    notify::AsyncNotification,
-    BoxedError, Label,
-};
+use daemon_slayer_core::cli::clap::{self, Args, FromArgMatches, Subcommand};
+use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandOutput, CommandProvider};
+use daemon_slayer_core::notify::AsyncNotification;
+use daemon_slayer_core::{async_trait, BoxedError, Label};
 
 use crate::notification::Notification;
 

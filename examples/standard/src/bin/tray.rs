@@ -1,10 +1,10 @@
-use std::{env::current_exe, path::PathBuf};
+use std::env::current_exe;
+use std::path::PathBuf;
 
-use daemon_slayer::{
-    client::{self, config::Level},
-    core::BoxedError,
-    tray::Tray,
-};
+use daemon_slayer::client::config::Level;
+use daemon_slayer::client::{self};
+use daemon_slayer::core::BoxedError;
+use daemon_slayer::tray::Tray;
 
 pub fn main() -> Result<(), BoxedError> {
     let rt = tokio::runtime::Builder::new_multi_thread()

@@ -7,10 +7,12 @@ pub use level::*;
 mod environment_variable;
 pub use environment_variable::*;
 mod user_config;
+use daemon_slayer_core::config::CachedConfig;
+use daemon_slayer_core::Label;
 pub use user_config::*;
 
-use self::{systemd::SystemdConfig, windows::WindowsConfig};
-use daemon_slayer_core::{config::CachedConfig, Label};
+use self::systemd::SystemdConfig;
+use self::windows::WindowsConfig;
 
 #[derive(Clone, Debug)]
 pub struct Config {

@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+use std::path::PathBuf;
+
 use bytesize::ByteSize;
 use chrono::{DateTime, Duration, Local, TimeZone, Utc};
 use daemon_slayer_core::cli::Printer;
 use serde::Serialize;
-use std::{collections::HashMap, path::PathBuf};
 use sysinfo::{
     Pid, PidExt, Process, ProcessExt, ProcessRefreshKind, RefreshKind, Signal, System, SystemExt,
 };

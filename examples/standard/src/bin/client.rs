@@ -1,24 +1,23 @@
 use std::env::current_exe;
 
-use daemon_slayer::{
-    cli::Cli,
-    client::{
-        self,
-        cli::ClientCliProvider,
-        config::{
-            windows::{ServiceAccess, Trustee, WindowsConfig},
-            Level,
-        },
-    },
-    config::{cli::ConfigCliProvider, server::ConfigService, AppConfig, ConfigDir},
-    console::{self, cli::ConsoleCliProvider, Console, LogSource},
-    core::BoxedError,
-    error_handler::{cli::ErrorHandlerCliProvider, color_eyre::eyre, ErrorSink},
-    logging::{
-        self, cli::LoggingCliProvider, tracing_subscriber::util::SubscriberInitExt, LoggerBuilder,
-    },
-    process::cli::ProcessCliProvider,
-};
+use daemon_slayer::cli::Cli;
+use daemon_slayer::client::cli::ClientCliProvider;
+use daemon_slayer::client::config::windows::{ServiceAccess, Trustee, WindowsConfig};
+use daemon_slayer::client::config::Level;
+use daemon_slayer::client::{self};
+use daemon_slayer::config::cli::ConfigCliProvider;
+use daemon_slayer::config::server::ConfigService;
+use daemon_slayer::config::{AppConfig, ConfigDir};
+use daemon_slayer::console::cli::ConsoleCliProvider;
+use daemon_slayer::console::{self, Console, LogSource};
+use daemon_slayer::core::BoxedError;
+use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
+use daemon_slayer::error_handler::color_eyre::eyre;
+use daemon_slayer::error_handler::ErrorSink;
+use daemon_slayer::logging::cli::LoggingCliProvider;
+use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
+use daemon_slayer::logging::{self, LoggerBuilder};
+use daemon_slayer::process::cli::ProcessCliProvider;
 use derive_more::AsRef;
 
 #[derive(Debug, confique::Config, AsRef, Default, Clone)]

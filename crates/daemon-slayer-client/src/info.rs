@@ -1,6 +1,7 @@
-use crate::State;
 use owo_colors::OwoColorize;
 use serde::{Deserialize, Serialize};
+
+use crate::State;
 
 #[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Status {
