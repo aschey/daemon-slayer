@@ -1,15 +1,11 @@
+use std::path::PathBuf;
+use std::time::{Duration, Instant};
+
 use async_trait::async_trait;
 use daemon_slayer_client::{ServiceManager, State};
-use std::{
-    path::PathBuf,
-    time::{Duration, Instant},
-};
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
-use tray_icon::{
-    icon::Icon,
-    menu::{Menu, MenuEvent, MenuItem},
-    TrayIcon, TrayIconBuilder, TrayIconEvent,
-};
+use tray_icon::menu::{Menu, MenuEvent, MenuId, MenuItem};
+use tray_icon::{Icon, TrayIcon, TrayIconBuilder, TrayIconEvent};
 
 #[async_trait]
 pub trait MenuHandler: Send + Sync {
@@ -25,9 +21,9 @@ pub struct DefaultMenuHandler {
     manager: ServiceManager,
     icon_path: std::path::PathBuf,
     current_state: State,
-    start_stop_id: u32,
-    restart_id: u32,
-    quit_id: u32,
+    start_stop_id: MenuId,
+    restart_id: MenuId,
+    quit_id: MenuId,
 }
 
 #[async_trait]
@@ -40,11 +36,11 @@ impl MenuHandler for DefaultMenuHandler {
         let menu = Menu::new();
         let start_stop_text = get_start_stop_text(&self.current_state);
         let start_stop = MenuItem::new(start_stop_text, true, None);
-        self.start_stop_id = start_stop.id();
+        self.start_stop_id = start_stop.id().clone();
         let restart = MenuItem::new("Restart", true, None);
-        self.restart_id = restart.id();
+        self.restart_id = restart.id().clone();
         let quit = MenuItem::new("Quit", true, None);
-        self.quit_id = quit.id();
+        self.quit_id = quit.id().clone();
         menu.append_items(&[&start_stop, &restart, &quit]).unwrap();
         menu
     }
@@ -64,21 +60,16 @@ impl MenuHandler for DefaultMenuHandler {
     }
 
     async fn handle_menu_event(&mut self, event: MenuEvent) -> ControlFlow {
-        match event.id {
-            id if id == self.start_stop_id => {
-                if self.current_state == State::Started {
-                    self.manager.stop().await.unwrap();
-                } else {
-                    self.manager.start().await.unwrap();
-                }
+        if event.id == self.start_stop_id {
+            if self.current_state == State::Started {
+                self.manager.stop().await.unwrap();
+            } else {
+                self.manager.start().await.unwrap();
             }
-            id if id == self.restart_id => {
-                self.manager.restart().await.unwrap();
-            }
-            id if id == self.quit_id => {
-                return ControlFlow::Exit;
-            }
-            _ => {}
+        } else if event.id == self.restart_id {
+            self.manager.restart().await.unwrap();
+        } else if event.id == self.quit_id {
+            return ControlFlow::Exit;
         }
 
         ControlFlow::Poll
@@ -100,9 +91,9 @@ impl Tray<DefaultMenuHandler> {
                 manager,
                 icon_path: icon_path.into(),
                 current_state: State::NotInstalled,
-                start_stop_id: 0,
-                restart_id: 0,
-                quit_id: 0,
+                start_stop_id: MenuId::default(),
+                restart_id: MenuId::default(),
+                quit_id: MenuId::default(),
             },
         }
     }
