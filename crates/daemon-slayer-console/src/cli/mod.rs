@@ -1,12 +1,8 @@
+use daemon_slayer_core::cli::clap::{self, FromArgMatches, Subcommand};
+use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandOutput};
+use daemon_slayer_core::{async_trait, BoxedError};
+
 use crate::Console;
-use daemon_slayer_core::{
-    async_trait,
-    cli::{
-        clap::{self, FromArgMatches, Subcommand},
-        ActionType, CommandMatch, CommandOutput,
-    },
-    BoxedError,
-};
 
 #[derive(Subcommand)]
 enum CliCommands {

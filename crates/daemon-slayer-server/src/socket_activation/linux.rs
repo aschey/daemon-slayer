@@ -1,6 +1,5 @@
 use std::os::fd::OwnedFd;
 use std::os::unix::net::UnixListener;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 use daemon_slayer_core::socket_activation::{ActivationSocketConfig, SocketType};
 use parity_tokio_ipc::{Endpoint, IpcEndpoint, IpcSecurity, IpcStream, SecurityAttributes};

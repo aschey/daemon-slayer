@@ -1,37 +1,30 @@
-use crossterm::{
-    event::{
-        DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyEventKind,
-        KeyModifiers,
-    },
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+use std::io::{self, Stdout};
+use std::rc::Rc;
+use std::time::{Duration, Instant};
+
+use crossterm::event::{
+    DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyEventKind,
+    KeyModifiers,
+};
+use crossterm::execute;
+use crossterm::terminal::{
+    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use daemon_slayer_client::{ServiceManager, State, Status};
-use daemon_slayer_core::{
-    async_trait,
-    config::{Accessor, CachedConfig},
-    health_check::HealthCheck,
-    server::{BackgroundService, BackgroundServiceManager, ServiceContext},
-    BoxedError, CancellationToken, FutureExt,
-};
+use daemon_slayer_core::config::{Accessor, CachedConfig};
+use daemon_slayer_core::health_check::HealthCheck;
+use daemon_slayer_core::server::{BackgroundService, BackgroundServiceManager, ServiceContext};
+use daemon_slayer_core::{async_trait, BoxedError, CancellationToken, FutureExt};
 use futures::StreamExt;
-use ratatui::{
-    backend::CrosstermBackend,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Paragraph},
-    Frame, Terminal,
-};
-use std::{
-    io::{self, Stdout},
-    rc::Rc,
-    time::{Duration, Instant},
-};
-use tilia_widget::{
-    transport::{docker::docker_client, ipc_client},
-    LogView,
-};
+use ratatui::backend::CrosstermBackend;
+use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
+use ratatui::{Frame, Terminal};
+use tilia_widget::transport::docker::docker_client;
+use tilia_widget::transport::ipc_client;
+use tilia_widget::LogView;
 use tokio::sync::mpsc;
 
 #[derive(daemon_slayer_core::Mergeable, Debug, Clone, Default, PartialEq, Eq)]
@@ -317,6 +310,7 @@ impl Console {
         let state_label = get_label("State:");
         let state_value = match self.info.state {
             State::Started => get_label_value("Started", Color::Green),
+            State::Listening => get_label_value("Listening", Color::Cyan),
             State::Stopped => get_label_value("Stopped", Color::Red),
             State::NotInstalled => get_label_value("Not Installed", Color::Blue),
         };

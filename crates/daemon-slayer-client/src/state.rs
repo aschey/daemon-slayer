@@ -8,6 +8,8 @@ use strum::EnumProperty;
 pub enum State {
     #[strum(props(color = "green"))]
     Started,
+    #[strum(props(color = "cyan"))]
+    Listening,
     #[strum(props(color = "red"))]
     Stopped,
     #[strum(props(color = "blue"), serialize = "Not Installed")]
