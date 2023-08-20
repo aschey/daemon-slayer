@@ -28,7 +28,7 @@ impl ActivationSockets {
             .iter()
             .map(|s| raunch::activate_socket(s.name()).unwrap())
             .flatten()
-            .map(OwnedFd::from_raw_fd)
+            .map(|r| unsafe { OwnedFd::from_raw_fd(r) })
             .collect();
 
         Self {
