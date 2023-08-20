@@ -1,10 +1,12 @@
 use std::fs::{self, File};
 use std::io;
+use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
-use daemon_slayer_core::{async_trait, Label};
-use launchd::Launchd;
+use daemon_slayer_core::{async_trait, socket_activation, Label};
+use launchd::sockets::SocketFamily;
+use launchd::{Launchd, SocketOptions, Sockets};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use tokio::process::Command;
@@ -52,12 +54,16 @@ impl LaunchdServiceManager {
             })?;
 
         if !output.status.success() {
+            let output = self.decode_output(output.stderr, command, &arguments)?;
+            if output
+                .to_ascii_lowercase()
+                .contains("could not find service")
+            {
+                return Ok(output);
+            }
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!(
-                    "Error running launchd command \"{command} {arguments:?}\": {}",
-                    self.decode_output(output.stderr, command, &arguments)?
-                ),
+                format!("Error running launchd command \"{command} {arguments:?}\": {output}"),
             ));
         }
 
@@ -190,7 +196,8 @@ impl Manager for LaunchdServiceManager {
     }
 
     async fn install(&self) -> io::Result<()> {
-        let mut file = Launchd::new(self.name(), self.config.program.full_name())
+        let vars = self.config.environment_variables().into_iter().collect();
+        let file = Launchd::new(self.name(), self.config.program.full_name())
             .map_err(|e| from_launchd_error(self.config.program.full_name(), e))?
             .with_program_arguments(
                 self.config
@@ -198,12 +205,33 @@ impl Manager for LaunchdServiceManager {
                     .map(|a| a.to_owned())
                     .collect(),
             )
-            .with_run_at_load(self.config.autostart);
-
-        let vars: Vec<(String, String)> = self.config.environment_variables();
-        for (key, value) in vars {
-            file = file.with_environment_variable(key, value);
-        }
+            .with_run_at_load(self.config.autostart)
+            .with_environment_variables(vars)
+            .with_socket(Sockets::Dictionary(
+                self.config
+                    .activation_socket_config
+                    .iter()
+                    .map(|c| {
+                        let mut options = SocketOptions::new();
+                        let socket_type = c.socket_type();
+                        if socket_type == socket_activation::SocketType::Ipc {
+                            options = options
+                                .with_family(SocketFamily::Unix)
+                                .with_path_name(c.addr())
+                                .unwrap();
+                        } else {
+                            let addr: SocketAddr = c.addr().parse().unwrap();
+                            options = options
+                                .with_node_name(addr.ip().to_string())
+                                .with_service_name(addr.port().to_string());
+                        }
+                        if socket_type == socket_activation::SocketType::Udp {
+                            options = options.with_type(launchd::sockets::SocketType::Dgram);
+                        }
+                        (c.name().to_owned(), options)
+                    })
+                    .collect(),
+            ));
 
         let path = self.get_plist_path()?;
         let created_file = File::create(&path).map_err(|e| {
@@ -235,12 +263,23 @@ impl Manager for LaunchdServiceManager {
     }
 
     async fn start(&self) -> io::Result<()> {
-        self.run_launchctl(vec!["start", &self.name()]).await?;
+        if self.config.has_sockets() {
+            self.run_launchctl(vec!["load", &self.get_plist_path()?.to_string_lossy()])
+                .await?;
+        } else {
+            self.run_launchctl(vec!["start", &self.name()]).await?;
+        }
+
         Ok(())
     }
 
     async fn stop(&self) -> io::Result<()> {
         self.run_launchctl(vec!["stop", &self.name()]).await?;
+        if self.config.has_sockets() {
+            self.run_launchctl(vec!["unload", &self.get_plist_path()?.to_string_lossy()])
+                .await?;
+        }
+
         Ok(())
     }
 

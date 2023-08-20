@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use confique::Config;
 use daemon_slayer::build_info::cli::BuildInfoCliProvider;
-use daemon_slayer::build_info::vergen_pretty::{self, vergen_pretty_env, Style};
+use daemon_slayer::build_info::vergen_pretty::{self, Style};
 use daemon_slayer::cli::Cli;
 use daemon_slayer::config::cli::ConfigCliProvider;
 use daemon_slayer::config::server::ConfigService;

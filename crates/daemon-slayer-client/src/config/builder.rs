@@ -255,4 +255,8 @@ impl Builder {
     pub(crate) fn full_arguments_iter(&self) -> impl Iterator<Item = &String> {
         std::iter::once(&self.program.full_name).chain(self.arguments_iter())
     }
+
+    pub(crate) fn has_sockets(&self) -> bool {
+        !self.activation_socket_config.is_empty()
+    }
 }

@@ -43,7 +43,7 @@ sd-notify = "0.4"
 sd-listen-fds = "0.1.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-launchd = "0.3"
+raunch = "1"
 
 [features]
 cli = ["daemon-slayer-core/cli"]
