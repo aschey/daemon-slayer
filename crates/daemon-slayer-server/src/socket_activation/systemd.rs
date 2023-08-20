@@ -2,8 +2,10 @@ use std::os::fd::OwnedFd;
 use std::os::unix::net::UnixListener;
 
 use daemon_slayer_core::socket_activation::{ActivationSocketConfig, SocketType};
-use parity_tokio_ipc::{Endpoint, IpcEndpoint, IpcSecurity, IpcStream, SecurityAttributes};
+use parity_tokio_ipc::{Endpoint, IpcEndpoint, IpcSecurity, SecurityAttributes};
 use tokio::net::{TcpListener, UdpSocket};
+
+use super::SocketResult;
 
 pub struct ActivationSockets {
     fds: Vec<(Option<String>, OwnedFd)>,

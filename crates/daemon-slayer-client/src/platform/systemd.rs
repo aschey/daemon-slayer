@@ -28,13 +28,13 @@ macro_rules! systemd_run {
             .map_err(|e| io_error(format!("{}: {e:?}", $err_msg)))?;
         }
 
-        if $self.config.activation_socket_config.is_empty()
+        if !$self.config.has_sockets()
             || $run_mode == RunMode::Service
             || $run_mode == RunMode::Both
         {
             $f(
                 $self.service_file_name.as_str(),
-                &[$self.socket_file_name.as_str()],
+                &[$self.service_file_name.as_str()],
             )
             .await
             .map_err(|e| io_error(format!("{}: {e:?}", $err_msg)))?;
