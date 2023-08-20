@@ -15,7 +15,7 @@ futures = { version = "0.3" }
 tap = "1"
 thiserror = "1"
 tracing = "0.1"
-parity-tokio-ipc = { path = "../../../parity-tokio-ipc" }
+parity-tokio-ipc = { git = "https://github.com/aschey/parity-tokio-ipc", rev = "9212a8a920ae7344dd8375f1dec820306f2097ce" }
 
 [target.'cfg(windows)'.dependencies]
 registry = "1"
