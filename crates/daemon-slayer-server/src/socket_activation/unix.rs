@@ -26,7 +26,7 @@ impl ActivationSockets {
         #[cfg(target_os = "macos")]
         let fds = socket_config
             .iter()
-            .map(|s| raunch::activate_socket(s.name()).unwrap())
+            .filter_map(|s| raunch::activate_socket(s.name()).ok())
             .flatten()
             .map(|r| unsafe { OwnedFd::from_raw_fd(r) })
             .collect();
