@@ -3,12 +3,13 @@ use std::io;
 use daemon_slayer_core::socket_activation::SocketType;
 use daemon_slayer_core::{async_trait, Label};
 use systemd_client::manager::{self, SystemdManagerProxy};
+use systemd_client::service::SystemdServiceProxy;
 use systemd_client::{
     create_unit_configuration_file, create_user_unit_configuration_file,
     delete_unit_configuration_file, delete_user_unit_configuration_file, service, unit,
-    InstallConfiguration, NotifyAccess, ServiceConfiguration, ServiceType,
-    ServiceUnitConfiguration, SocketConfiguration, UnitActiveStateType, UnitConfiguration,
-    UnitFileState, UnitLoadStateType, UnitSubStateType,
+    InstallConfiguration, NotifyAccess, OwnedObjectPath, ServiceConfiguration, ServiceType,
+    ServiceUnitConfiguration, SocketConfiguration, SystemdUnitProxy, UnitActiveStateType,
+    UnitConfiguration, UnitFileState, UnitLoadStateType, UnitProps, UnitSubStateType,
 };
 
 use crate::config::systemd::SocketActivationBehavior;
@@ -112,6 +113,57 @@ impl SystemdServiceManager {
             );
         }
         Ok(())
+    }
+
+    async fn get_unit_path(&self, name: &str) -> io::Result<OwnedObjectPath> {
+        self.client.load_unit(name).await.map_err(|e| {
+            io_error(format!(
+                "Error loading systemd unit {}: {e:?}",
+                self.service_file_name
+            ))
+        })
+    }
+
+    async fn get_unit_client(
+        &self,
+        svc_unit_path: OwnedObjectPath,
+    ) -> io::Result<SystemdUnitProxy> {
+        if self.config.is_user() {
+            unit::build_nonblock_user_proxy(svc_unit_path.clone()).await
+        } else {
+            unit::build_nonblock_proxy(svc_unit_path.clone()).await
+        }
+        .map_err(|e| {
+            io_error(format!(
+                "Error creating unit client {}: {e:?}",
+                svc_unit_path.as_str()
+            ))
+        })
+    }
+
+    async fn get_service_client(
+        &self,
+        svc_unit_path: OwnedObjectPath,
+    ) -> io::Result<SystemdServiceProxy> {
+        if self.config.is_user() {
+            service::build_nonblock_user_proxy(svc_unit_path).await
+        } else {
+            service::build_nonblock_proxy(svc_unit_path).await
+        }
+        .map_err(|e| io_error(format!("Error creating unit proxy: {e:?}")))
+    }
+
+    async fn get_socket_state(&self) -> io::Result<Option<UnitProps>> {
+        if !self.config.has_sockets() {
+            return Ok(None);
+        }
+        let socket_unit_path = self.get_unit_path(&self.socket_file_name).await?;
+        let socket_unit_client = self.get_unit_client(socket_unit_path).await?;
+        socket_unit_client
+            .get_properties()
+            .await
+            .map_err(|e| io_error(format!("Error getting unit properties: {e:?}")))
+            .map(Some)
     }
 }
 
@@ -291,11 +343,7 @@ impl Manager for SystemdServiceManager {
         if self.status().await?.state == State::Started {
             systemd_run!(
                 self,
-                if self.is_enable_all() {
-                    RunMode::Both
-                } else {
-                    RunMode::Socket
-                },
+                RunMode::Both,
                 "Error restarting systemd unit",
                 |file, _| self.client.restart_unit(file, "replace")
             );
@@ -326,34 +374,15 @@ impl Manager for SystemdServiceManager {
             .await
             .map_err(|e| io_error(format!("Error resetting failed unit state: {e:?}")))?;
 
-        let svc_unit_path = self
-            .client
-            .load_unit(&self.service_file_name)
-            .await
-            .map_err(|e| {
-                io_error(format!(
-                    "Error loading systemd unit {}: {e:?}",
-                    self.service_file_name
-                ))
-            })?;
+        let svc_unit_path = self.get_unit_path(&self.service_file_name).await?;
 
-        let unit_client = if self.config.is_user() {
-            unit::build_nonblock_user_proxy(svc_unit_path.clone()).await
-        } else {
-            unit::build_nonblock_proxy(svc_unit_path.clone()).await
-        }
-        .map_err(|e| {
-            io_error(format!(
-                "Error creating unit client {}: {e:?}",
-                svc_unit_path.as_str()
-            ))
-        })?;
-
+        let unit_client = self.get_unit_client(svc_unit_path.clone()).await?;
         let unit_props = unit_client
             .get_properties()
             .await
             .map_err(|e| io_error(format!("Error getting unit properties: {e:?}")))?;
 
+        let socket_state = self.get_socket_state().await?;
         let state = match (
             unit_props.load_state,
             unit_props.active_state,
@@ -363,15 +392,31 @@ impl Manager for SystemdServiceManager {
                 State::Started
             }
             (UnitLoadStateType::NotFound, _, _) => State::NotInstalled,
-            _ => State::Stopped,
+            _ => {
+                if let Some(socket_state) = socket_state.clone() {
+                    if matches!(
+                        (
+                            socket_state.load_state,
+                            socket_state.active_state,
+                            socket_state.sub_state
+                        ),
+                        (
+                            UnitLoadStateType::Loaded,
+                            UnitActiveStateType::Active,
+                            UnitSubStateType::Listening
+                        )
+                    ) {
+                        State::Listening
+                    } else {
+                        State::Stopped
+                    }
+                } else {
+                    State::Stopped
+                }
+            }
         };
 
-        let service_client = if self.config.is_user() {
-            service::build_nonblock_user_proxy(svc_unit_path).await
-        } else {
-            service::build_nonblock_proxy(svc_unit_path).await
-        }
-        .map_err(|e| io_error(format!("Error creating unit proxy: {e:?}")))?;
+        let service_client = self.get_service_client(svc_unit_path).await?;
 
         let service_props = service_client
             .get_properties()
@@ -383,7 +428,22 @@ impl Manager for SystemdServiceManager {
             (_, UnitFileState::Enabled | UnitFileState::EnabledRuntime | UnitFileState::Static) => {
                 Some(true)
             }
-            _ => Some(false),
+            _ => {
+                if let Some(socket_state) = socket_state {
+                    if matches!(
+                        socket_state.unit_file_state,
+                        UnitFileState::Enabled
+                            | UnitFileState::EnabledRuntime
+                            | UnitFileState::Static
+                    ) {
+                        Some(true)
+                    } else {
+                        Some(false)
+                    }
+                } else {
+                    Some(false)
+                }
+            }
         };
 
         let pid = if state == State::Started {

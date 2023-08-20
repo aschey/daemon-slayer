@@ -1,14 +1,14 @@
-#[cfg(target_os = "macos")]
-mod launchd;
-#[cfg(target_os = "linux")]
-mod systemd;
+#[cfg(unix)]
+mod unix;
+#[cfg(windows)]
+mod windows;
 
-#[cfg(target_os = "macos")]
-pub use launchd::*;
 use parity_tokio_ipc::IpcStream;
-#[cfg(target_os = "linux")]
-pub use systemd::*;
 use tokio::net::{TcpListener, UdpSocket};
+#[cfg(unix)]
+pub use unix::*;
+#[cfg(windows)]
+pub use windows;
 
 pub enum SocketResult {
     Ipc(IpcStream),
