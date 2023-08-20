@@ -1,23 +1,24 @@
-#[cfg(target_os = "macos")]
-mod launchd;
-use std::io;
-
-#[cfg(target_os = "macos")]
-use self::launchd::*;
-#[cfg(target_os = "linux")]
-mod systemd;
-#[cfg(target_os = "linux")]
-use systemd::*;
-#[cfg(windows)]
-mod windows;
-#[cfg(windows)]
-use windows::*;
 #[cfg(feature = "docker")]
 mod docker;
+#[cfg(target_os = "macos")]
+mod launchd;
+#[cfg(target_os = "linux")]
+mod systemd;
+#[cfg(windows)]
+mod windows;
+
+use std::io;
+
 use daemon_slayer_core::Label;
 #[cfg(feature = "docker")]
 use docker::*;
+#[cfg(target_os = "linux")]
+use systemd::*;
+#[cfg(windows)]
+use windows::*;
 
+#[cfg(target_os = "macos")]
+use self::launchd::*;
 use crate::config::{Builder, Program, ServiceType};
 use crate::ServiceManager;
 

@@ -1,8 +1,9 @@
-use enumflags2::BitFlags;
 mod service_access;
+mod trustee;
+
+use enumflags2::BitFlags;
 use owo_colors::OwoColorize;
 pub use service_access::*;
-mod trustee;
 pub use trustee::*;
 
 #[derive(Default, Clone, Debug)]

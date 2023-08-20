@@ -1,8 +1,8 @@
-mod handler;
-pub use handler::*;
-
 mod client;
+mod handler;
+
 pub use client::*;
+pub use handler::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Signal {

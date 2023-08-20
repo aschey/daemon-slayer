@@ -1,14 +1,14 @@
+#[cfg(feature = "cli")]
+pub mod cli;
+
 use std::fmt::{Debug, Display};
 use std::sync::OnceLock;
 
+pub use color_eyre;
 pub use color_eyre::config::Theme;
 use color_eyre::Report;
 use tap::TapFallible;
 use tracing::error;
-#[cfg(feature = "cli")]
-pub mod cli;
-
-pub use color_eyre;
 
 static HANDLER: OnceLock<ErrorHandler> = OnceLock::new();
 

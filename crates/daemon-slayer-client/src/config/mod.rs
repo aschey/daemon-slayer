@@ -1,14 +1,15 @@
 mod builder;
-pub use builder::*;
+mod environment_variable;
 mod level;
 pub mod systemd;
-pub mod windows;
-pub use level::*;
-mod environment_variable;
-pub use environment_variable::*;
 mod user_config;
+pub mod windows;
+
+pub use builder::*;
 use daemon_slayer_core::config::CachedConfig;
 use daemon_slayer_core::Label;
+pub use environment_variable::*;
+pub use level::*;
 pub use user_config::*;
 
 use self::systemd::SystemdConfig;

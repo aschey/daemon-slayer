@@ -1,3 +1,6 @@
+#[cfg(feature = "cli")]
+pub mod cli;
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -8,8 +11,6 @@ use serde::Serialize;
 use sysinfo::{
     Pid, PidExt, Process, ProcessExt, ProcessRefreshKind, RefreshKind, Signal, System, SystemExt,
 };
-#[cfg(feature = "cli")]
-pub mod cli;
 
 #[derive(Clone, Debug, Serialize)]
 #[readonly::make]

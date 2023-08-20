@@ -1,4 +1,6 @@
-use std::os::fd::{FromRawFd, OwnedFd};
+#[cfg(target_os = "macos")]
+use std::os::fd::FromRawFd;
+use std::os::fd::OwnedFd;
 use std::os::unix::net::UnixListener;
 
 use daemon_slayer_core::socket_activation::{ActivationSocketConfig, SocketType};
@@ -28,6 +30,7 @@ impl ActivationSockets {
             .flatten()
             .map(OwnedFd::from_raw_fd)
             .collect();
+
         Self {
             fds,
             pos: 0,

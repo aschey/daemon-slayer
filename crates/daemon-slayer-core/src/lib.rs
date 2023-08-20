@@ -4,6 +4,7 @@ pub mod cli;
 pub mod config;
 #[cfg(feature = "health-check")]
 pub mod health_check;
+mod label;
 #[cfg(feature = "notify")]
 pub mod notify;
 #[cfg(feature = "process")]
@@ -14,9 +15,6 @@ pub mod server;
 pub mod signal;
 pub mod socket_activation;
 
-pub use futures_cancel::*;
-
-mod label;
 use std::any::Any;
 use std::error::Error;
 use std::fmt::Display;
@@ -25,6 +23,7 @@ use std::str::FromStr;
 pub use async_trait::async_trait;
 #[cfg(feature = "daemon-slayer-macros")]
 pub use daemon_slayer_macros::*;
+pub use futures_cancel::*;
 pub use label::*;
 pub use tokio_util::sync::CancellationToken;
 
