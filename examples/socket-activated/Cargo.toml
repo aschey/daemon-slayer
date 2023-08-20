@@ -4,6 +4,7 @@ name = "socket-activated"
 version = "0.1.0"
 
 [dependencies]
+axum = "0.6.20"
 confique = "0.2.4"
 daemon-slayer = { path = "../../crates/daemon-slayer", features = [
     "client-standard",
@@ -20,6 +21,7 @@ derive_more = { version = "0.99.17", default-features = false, features = [
 ] }
 serde = "1.0.180"
 tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
+tower-http = { version = "0.4.3", features = ["trace"] }
 tracing = "0.1.37"
 
 [[bin]]

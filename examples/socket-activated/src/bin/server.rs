@@ -1,5 +1,6 @@
-use std::time::{Duration, Instant};
-
+use axum::extract::Path;
+use axum::routing::get;
+use axum::Router;
 use confique::Config;
 use daemon_slayer::build_info::cli::BuildInfoCliProvider;
 use daemon_slayer::build_info::vergen_pretty::{self, Style};
@@ -23,6 +24,7 @@ use daemon_slayer::server::{
 };
 use daemon_slayer::signals::SignalListener;
 use derive_more::AsRef;
+use tower_http::trace::TraceLayer;
 use tracing::info;
 
 #[derive(Debug, Config, AsRef, Default, Clone)]
@@ -123,25 +125,35 @@ impl Handler for ServiceHandler {
 
         let mut sockets = ActivationSockets::get(socket_activated::sockets());
         let socket = sockets.next().await.unwrap();
-        let SocketResult::Tcp(mut listener) = socket else {
+        let SocketResult::Tcp(listener) = socket else {
             panic!()
         };
 
-        let mut signal_rx = self.signal_store.subscribe_events();
-        let start_time = Instant::now();
-        loop {
-            match tokio::time::timeout(Duration::from_secs(1), signal_rx.next()).await {
-                Ok(_) => {
-                    info!("stopping service");
-                    return Ok(());
-                }
-                Err(_) => {
-                    info!(
-                        "Run time: {} seconds",
-                        Instant::now().duration_since(start_time).as_secs()
-                    )
-                }
-            }
-        }
+        let app = Router::new()
+            .route("/hello/:name", get(greeter))
+            // .route("/task", get(start_task))
+            .route("/health", get(health))
+            .layer(TraceLayer::new_for_http());
+
+        let mut signals = self.signal_store.subscribe_events();
+        axum::Server::from_tcp(listener.into_std().unwrap())
+            .unwrap()
+            .serve(app.into_make_service())
+            .with_graceful_shutdown(async {
+                signals.next().await;
+                info!("Got shutdown request");
+            })
+            .await?;
+        info!("Server terminated");
+
+        Ok(())
     }
+}
+
+async fn greeter(Path(name): Path<String>) -> String {
+    format!("Hello {name}")
+}
+
+async fn health() -> &'static str {
+    "healthy"
 }
