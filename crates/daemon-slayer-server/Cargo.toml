@@ -12,9 +12,11 @@ daemon-slayer-macros = { path = "../daemon-slayer-macros", features = [
     "server",
 ] }
 futures = { version = "0.3" }
+sd-listen-fds = "0.1.0"
 tap = "1"
 thiserror = "1"
 tracing = "0.1"
+parity-tokio-ipc = { path = "../../../parity-tokio-ipc" }
 
 [target.'cfg(windows)'.dependencies]
 registry = "1"

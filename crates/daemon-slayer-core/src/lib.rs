@@ -12,6 +12,7 @@ pub mod process;
 pub mod server;
 #[cfg(feature = "signal")]
 pub mod signal;
+pub mod socket_activation;
 
 pub use futures_cancel::*;
 

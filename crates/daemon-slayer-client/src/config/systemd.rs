@@ -1,11 +1,29 @@
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SocketActivationBehavior {
+    EnableAll,
+    EnableSocket,
+}
+
+impl Default for SocketActivationBehavior {
+    fn default() -> Self {
+        Self::EnableSocket
+    }
+}
+
 #[derive(Default, Clone, Debug)]
 pub struct SystemdConfig {
     pub(crate) after: Vec<String>,
+    pub(crate) socket_activation_behavior: SocketActivationBehavior,
 }
 
 impl SystemdConfig {
     pub fn with_after_target(mut self, after: impl Into<String>) -> Self {
         self.after.push(after.into());
+        self
+    }
+
+    pub fn with_socket_activation_behavior(mut self, behavior: SocketActivationBehavior) -> Self {
+        self.socket_activation_behavior = behavior;
         self
     }
 

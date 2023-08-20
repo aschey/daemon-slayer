@@ -85,7 +85,7 @@ impl ClientCliProvider {
         colored::control::set_virtual_terminal(true).unwrap();
 
         println!();
-        let sp = Spinner::new(
+        let mut sp = Spinner::new(
             self.spinner_type.clone(),
             wait_message.dimmed().to_string(),
             self.spinner_color,

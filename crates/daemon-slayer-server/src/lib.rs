@@ -9,6 +9,8 @@ pub use service_error::*;
 
 pub mod platform;
 
+pub mod socket_activation;
+
 #[cfg(feature = "cli")]
 pub mod cli;
 

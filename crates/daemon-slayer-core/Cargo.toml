@@ -14,7 +14,7 @@ downcast-rs = { version = "1", optional = true }
 dyn-clonable = { version = "0.9", optional = true }
 futures = { version = "0.3" }
 owo-colors = { version = "3", optional = true }
-pin-project-lite = "0.2.10"
+pin-project-lite = "0.2"
 strum = { version = "0.25", features = ["derive"], optional = true }
 tap = "1"
 thiserror = "1"
@@ -24,9 +24,9 @@ tokio-util = { version = "0.7" }
 tracing = "0.1"
 serde = { version = "1", features = ["derive"] }
 unicode-width = { version = "0.1", optional = true }
-notify-rust = { version = "4", optional = true, features = ["async"] }
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "563f413a206c50c7cc1a003cf6a9d3b227b0b04d" }
-strip-ansi-escapes = { version = "0.1", optional = true }
+strip-ansi-escapes = { version = "0.2", optional = true }
+parity-tokio-ipc = { git = "https://github.com/aschey/parity-tokio-ipc", rev = "9212a8a920ae7344dd8375f1dec820306f2097ce" }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.48", optional = true, features = [

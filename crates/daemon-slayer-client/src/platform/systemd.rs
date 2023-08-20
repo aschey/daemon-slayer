@@ -1,22 +1,53 @@
 use std::io;
 
+use daemon_slayer_core::socket_activation::SocketType;
 use daemon_slayer_core::{async_trait, Label};
 use systemd_client::manager::{self, SystemdManagerProxy};
 use systemd_client::{
     create_unit_configuration_file, create_user_unit_configuration_file,
     delete_unit_configuration_file, delete_user_unit_configuration_file, service, unit,
     InstallConfiguration, NotifyAccess, ServiceConfiguration, ServiceType,
-    ServiceUnitConfiguration, UnitActiveStateType, UnitConfiguration, UnitFileState,
-    UnitLoadStateType, UnitSubStateType,
+    ServiceUnitConfiguration, SocketConfiguration, UnitActiveStateType, UnitConfiguration,
+    UnitFileState, UnitLoadStateType, UnitSubStateType,
 };
 
+use crate::config::systemd::SocketActivationBehavior;
 use crate::config::{Builder, Config};
 use crate::{Command, Manager, State, Status};
+
+macro_rules! systemd_run {
+    ($self:ident, $run_mode:expr, $err_msg:expr, $f:expr) => {
+        if !$self.config.activation_socket_config.is_empty()
+            && ($run_mode == RunMode::Socket || $run_mode == RunMode::Both)
+        {
+            $f(
+                $self.socket_file_name.as_str(),
+                &[$self.socket_file_name.as_str()],
+            )
+            .await
+            .map_err(|e| io_error(format!("{}: {e:?}", $err_msg)))?;
+        }
+
+        if $self.config.activation_socket_config.is_empty()
+            || $run_mode == RunMode::Service
+            || $run_mode == RunMode::Both
+        {
+            $f(
+                $self.service_file_name.as_str(),
+                &[$self.socket_file_name.as_str()],
+            )
+            .await
+            .map_err(|e| io_error(format!("{}: {e:?}", $err_msg)))?;
+        }
+    };
+}
 
 #[derive(Clone, Debug)]
 pub struct SystemdServiceManager {
     config: Builder,
     client: SystemdManagerProxy<'static>,
+    service_file_name: String,
+    socket_file_name: String,
 }
 
 impl SystemdServiceManager {
@@ -36,14 +67,18 @@ impl SystemdServiceManager {
                 )
             })
         }?;
+        let service_file_name = format!("{}.service", builder.label.application);
+        let socket_file_name = format!("{}.socket", builder.label.application);
         Ok(Self {
             config: builder,
             client,
+            service_file_name,
+            socket_file_name,
         })
     }
 
-    fn service_file_name(&self) -> String {
-        format!("{}.service", self.name())
+    fn is_enable_all(&self) -> bool {
+        self.config.systemd_config.socket_activation_behavior == SocketActivationBehavior::EnableAll
     }
 
     async fn set_autostart_enabled(&mut self, enabled: bool) -> io::Result<()> {
@@ -54,28 +89,37 @@ impl SystemdServiceManager {
 
     async fn update_autostart(&self) -> io::Result<()> {
         if self.config.autostart {
-            self.client
-                .enable_unit_files(&[&self.service_file_name()], false, true)
-                .await
-                .map_err(|e| {
-                    io_error(format!(
-                        "Error enabling systemd unit file {}: {e:?}",
-                        self.service_file_name()
-                    ))
-                })?;
+            systemd_run!(
+                self,
+                if self.is_enable_all() {
+                    RunMode::Both
+                } else {
+                    RunMode::Socket
+                },
+                "Error enabling systemd unit file",
+                |_, files| self.client.enable_unit_files(files, false, true)
+            );
         } else {
-            self.client
-                .disable_unit_files(&[&self.service_file_name()], false)
-                .await
-                .map_err(|e| {
-                    io_error(format!(
-                        "Error disabling systemd unit file {}: {e:?}",
-                        self.service_file_name()
-                    ))
-                })?;
+            systemd_run!(
+                self,
+                if self.is_enable_all() {
+                    RunMode::Both
+                } else {
+                    RunMode::Socket
+                },
+                "Error disabling systemd unit file",
+                |_, files| self.client.disable_unit_files(files, false)
+            );
         }
         Ok(())
     }
+}
+
+#[derive(PartialEq, Eq)]
+enum RunMode {
+    Service,
+    Socket,
+    Both,
 }
 
 #[async_trait]
@@ -131,26 +175,67 @@ impl Manager for SystemdServiceManager {
             .service(service_config);
 
         if self.config.is_user() {
-            svc_unit_builder = svc_unit_builder
-                .install(InstallConfiguration::builder().wanted_by("default.target"));
+            svc_unit_builder = svc_unit_builder.install(
+                InstallConfiguration::builder()
+                    .wanted_by("default.target")
+                    .wanted_by("multi-user.target"),
+            );
         }
 
-        let svc_unit_literal = format!("{}", svc_unit_builder.build());
+        let svc_unit_literal = svc_unit_builder.build().to_string();
 
         if self.config.is_user() {
             create_user_unit_configuration_file(
-                &self.service_file_name(),
+                &self.service_file_name,
                 svc_unit_literal.as_bytes(),
             )
         } else {
-            create_unit_configuration_file(&self.service_file_name(), svc_unit_literal.as_bytes())
+            create_unit_configuration_file(&self.service_file_name, svc_unit_literal.as_bytes())
         }
         .map_err(|e| {
             io_error(format!(
                 "Error creating unit config file {}: {e:?}",
-                self.service_file_name()
+                self.service_file_name
             ))
         })?;
+
+        if !self.config.activation_socket_config.is_empty() {
+            let mut socket_builder = SocketConfiguration::builder()
+                .install(InstallConfiguration::builder().wanted_by("sockets.target"));
+            for socket in &self.config.activation_socket_config {
+                match socket.socket_type() {
+                    SocketType::Ipc => {
+                        socket_builder = socket_builder.listen_stream(socket.addr());
+                    }
+                    SocketType::Tcp => {
+                        socket_builder = socket_builder.listen_stream(socket.addr());
+                    }
+                    SocketType::Udp => {
+                        socket_builder = socket_builder.listen_datagram(socket.addr());
+                    }
+                }
+            }
+
+            let socket_unit_literal = socket_builder.build().to_string();
+
+            if self.config.is_user() {
+                create_user_unit_configuration_file(
+                    &self.socket_file_name,
+                    socket_unit_literal.as_bytes(),
+                )
+            } else {
+                create_unit_configuration_file(
+                    &self.socket_file_name,
+                    socket_unit_literal.as_bytes(),
+                )
+            }
+            .map_err(|e| {
+                io_error(format!(
+                    "Error creating unit config file {}: {e:?}",
+                    self.socket_file_name
+                ))
+            })?
+        }
 
         self.update_autostart().await?;
 
@@ -159,43 +244,44 @@ impl Manager for SystemdServiceManager {
 
     async fn uninstall(&self) -> io::Result<()> {
         if self.config.is_user() {
-            delete_user_unit_configuration_file(&self.service_file_name())
+            delete_user_unit_configuration_file(&self.service_file_name).unwrap();
+            delete_user_unit_configuration_file(&self.socket_file_name)
         } else {
-            delete_unit_configuration_file(&self.service_file_name())
+            delete_unit_configuration_file(&self.service_file_name).unwrap();
+            delete_unit_configuration_file(&self.socket_file_name)
         }
         .map_err(|e| {
             io_error(format!(
                 "Error removing systemd config file {:?}: {e:?}",
-                &self.service_file_name()
+                &self.service_file_name
             ))
         })?;
         Ok(())
     }
 
     async fn start(&self) -> io::Result<()> {
-        self.client
-            .start_unit(&self.service_file_name(), "replace")
-            .await
-            .map_err(|e| {
-                io_error(format!(
-                    "Error starting systemd unit {}: {e:?}",
-                    self.service_file_name()
-                ))
-            })?;
+        systemd_run!(
+            self,
+            if self.is_enable_all() {
+                RunMode::Both
+            } else {
+                RunMode::Socket
+            },
+            "Error starting systemd unit",
+            |file, _| self.client.start_unit(file, "replace")
+        );
+
         Ok(())
     }
 
     async fn stop(&self) -> io::Result<()> {
         if self.status().await?.state == State::Started {
-            self.client
-                .stop_unit(&self.service_file_name(), "replace")
-                .await
-                .map_err(|e| {
-                    io_error(format!(
-                        "Error stopping systemd unit {}: {e:?}",
-                        self.service_file_name()
-                    ))
-                })?;
+            systemd_run!(
+                self,
+                RunMode::Both,
+                "Error stopping systemd unit",
+                |file, _| { self.client.stop_unit(file, "replace") }
+            );
         }
 
         Ok(())
@@ -203,15 +289,16 @@ impl Manager for SystemdServiceManager {
 
     async fn restart(&self) -> io::Result<()> {
         if self.status().await?.state == State::Started {
-            self.client
-                .restart_unit(&self.service_file_name(), "replace")
-                .await
-                .map_err(|e| {
-                    io_error(format!(
-                        "Error restarting systemd unit {}: {e:?}",
-                        self.service_file_name()
-                    ))
-                })?;
+            systemd_run!(
+                self,
+                if self.is_enable_all() {
+                    RunMode::Both
+                } else {
+                    RunMode::Socket
+                },
+                "Error restarting systemd unit",
+                |file, _| self.client.restart_unit(file, "replace")
+            );
         } else {
             self.start().await?;
         }
@@ -241,12 +328,12 @@ impl Manager for SystemdServiceManager {
 
         let svc_unit_path = self
             .client
-            .load_unit(&self.service_file_name())
+            .load_unit(&self.service_file_name)
             .await
             .map_err(|e| {
                 io_error(format!(
                     "Error loading systemd unit {}: {e:?}",
-                    self.service_file_name()
+                    self.service_file_name
                 ))
             })?;
 

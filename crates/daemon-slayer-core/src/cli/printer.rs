@@ -25,7 +25,7 @@ impl Printer {
     ) -> Self {
         let label: String = label.into();
 
-        let label_width = std::str::from_utf8(&strip_ansi_escapes::strip(&label).unwrap())
+        let label_width = std::str::from_utf8(&strip_ansi_escapes::strip(&label))
             .unwrap()
             .width();
 
