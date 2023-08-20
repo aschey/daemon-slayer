@@ -5,7 +5,11 @@ use std::os::unix::net::UnixListener;
 
 use daemon_slayer_core::socket_activation::{ActivationSocketConfig, SocketType};
 use parity_tokio_ipc::{Endpoint, IpcEndpoint, IpcSecurity, SecurityAttributes};
+#[cfg(target_os = "macos")]
+use tap::TapFallible;
 use tokio::net::{TcpListener, UdpSocket};
+#[cfg(target_os = "macos")]
+use tracing::warn;
 
 use super::SocketResult;
 
@@ -26,7 +30,17 @@ impl ActivationSockets {
         #[cfg(target_os = "macos")]
         let fds = socket_config
             .iter()
-            .filter_map(|s| raunch::activate_socket(s.name()).ok())
+            .filter_map(|s| {
+                raunch::activate_socket(s.name())
+                    .tap_err(|e| {
+                        warn!(
+                            "unable to retrieve socket info for {} from launchd: {e:?}. This is \
+                             expected if the process is not running under launchd.",
+                            s.name()
+                        )
+                    })
+                    .ok()
+            })
             .flatten()
             .map(|r| unsafe { OwnedFd::from_raw_fd(r) })
             .collect();
