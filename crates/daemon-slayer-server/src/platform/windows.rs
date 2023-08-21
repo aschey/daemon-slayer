@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use daemon_slayer_core::server::BackgroundServiceManager;
+use daemon_slayer_core::server::background_service::BackgroundServiceManager;
 use daemon_slayer_core::signal::{self, Signal};
 use daemon_slayer_core::CancellationToken;
 use tap::TapFallible;
@@ -33,7 +33,8 @@ async fn get_service_main_impl<T: Handler>(
     let (signal_tx, _) = broadcast::channel(32);
     signal::set_sender(signal_tx.clone());
 
-    let manager = BackgroundServiceManager::new(CancellationToken::new());
+    let manager =
+        BackgroundServiceManager::new(CancellationToken::new(), T::background_service_settings());
     let handler = T::new(manager.get_context(), input_data)
         .await
         .map_err(|e| ServiceError::ExecutionFailure(e, None))?;

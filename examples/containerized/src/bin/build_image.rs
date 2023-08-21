@@ -5,7 +5,7 @@ use bollard::image::{BuildImageOptions, BuilderVersion};
 use bollard::service::BuildInfoAux;
 use bollard::Docker;
 use daemon_slayer::core::server::tokio_stream::StreamExt;
-use ignore::{Walk, WalkBuilder};
+use ignore::Walk;
 
 #[tokio::main]
 async fn main() {

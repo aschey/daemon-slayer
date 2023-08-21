@@ -1,6 +1,6 @@
 use std::fmt;
 
-use daemon_slayer_core::server::error::BackgroundServiceErrors;
+use daemon_slayer_core::server::background_service::error::BackgroundServiceErrors;
 use daemon_slayer_core::BoxedError;
 
 #[derive(thiserror::Error, Debug)]

@@ -1,6 +1,7 @@
 use std::ffi::c_int;
 
-use daemon_slayer_core::server::{BroadcastEventStore, ServiceContext};
+use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
+use daemon_slayer_core::server::BroadcastEventStore;
 use daemon_slayer_core::signal::{self, Signal};
 use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
 use futures::stream::StreamExt;
@@ -55,7 +56,7 @@ impl signal::Handler for SignalListener {
 }
 
 #[async_trait]
-impl daemon_slayer_core::server::BackgroundService for SignalListener {
+impl BackgroundService for SignalListener {
     fn name(&self) -> &str {
         "signal_listener_service"
     }

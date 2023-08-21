@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use daemon_slayer_core::server::{BroadcastEventStore, ServiceContext};
+use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
+use daemon_slayer_core::server::BroadcastEventStore;
 use daemon_slayer_core::{BoxedError, FutureExt};
 use notify::RecommendedWatcher;
 use notify_debouncer_mini::{new_debouncer, DebouncedEvent, Debouncer};
@@ -74,7 +75,7 @@ impl FileWatcher {
 }
 
 #[async_trait::async_trait]
-impl daemon_slayer_core::server::BackgroundService for FileWatcher {
+impl BackgroundService for FileWatcher {
     fn name(&self) -> &str {
         "file_watcher_service"
     }

@@ -5,7 +5,7 @@ pub use aide_de_camp::prelude::{
     CancellationToken, Decode, Encode, JobError, JobProcessor, RunnerOptions, RunnerRouter, Xid,
 };
 pub use aide_de_camp_sqlite::SqliteQueue;
-use daemon_slayer_core::server::{BackgroundService, ServiceContext};
+use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::{async_trait, BoxedError};
 pub use sqlx::sqlite::SqliteConnectOptions;
 pub use task_queue::*;

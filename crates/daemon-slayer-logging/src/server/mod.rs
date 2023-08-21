@@ -1,10 +1,9 @@
 use std::ops::Deref;
 use std::sync::Arc;
 
+use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::tokio_stream::StreamExt;
-use daemon_slayer_core::server::{
-    BackgroundService, BroadcastEventStore, EventStore, ServiceContext,
-};
+use daemon_slayer_core::server::{BroadcastEventStore, EventStore};
 use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
 
 use crate::{ReloadHandle, UserConfig};

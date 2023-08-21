@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use bollard::service::HostConfig;
 use daemon_slayer::cli::Cli;
 use daemon_slayer::client::cli::ClientCliProvider;

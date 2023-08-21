@@ -6,7 +6,7 @@ version = "0.1.0"
 [dependencies]
 arc-swap = { version = "1", optional = true }
 async-trait = "0.1"
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "135e57f8fc812337e83570f839796cd5d6c9018e", optional = true }
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "a2ad6a6d0c792e54ae7d6ab9fe36953ab4ce4e1c", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
 daemon-slayer-macros = { path = "../daemon-slayer-macros", optional = true }
 derivative = "2"

@@ -13,7 +13,9 @@ use crossterm::terminal::{
 use daemon_slayer_client::{ServiceManager, State, Status};
 use daemon_slayer_core::config::{Accessor, CachedConfig};
 use daemon_slayer_core::health_check::HealthCheck;
-use daemon_slayer_core::server::{BackgroundService, BackgroundServiceManager, ServiceContext};
+use daemon_slayer_core::server::background_service::{
+    self, BackgroundService, BackgroundServiceManager, ServiceContext,
+};
 use daemon_slayer_core::{async_trait, BoxedError, CancellationToken, FutureExt};
 use futures::StreamExt;
 use ratatui::backend::CrosstermBackend;
@@ -189,7 +191,10 @@ impl Console {
         terminal: &mut Terminal<CrosstermBackend<Stdout>>,
         cancellation_token: CancellationToken,
     ) -> Result<(), BoxedError> {
-        let manager = BackgroundServiceManager::new(cancellation_token.child_token());
+        let manager = BackgroundServiceManager::new(
+            cancellation_token.child_token(),
+            background_service::Settings::default(),
+        );
         let context = manager.get_context();
         if let Some(event_fn) = self.event_fn.take() {
             event_fn(context);
