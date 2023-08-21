@@ -4,8 +4,9 @@ use daemon_slayer::client::config::Level;
 use daemon_slayer::client::{self, State};
 use daemon_slayer::config::server::ConfigService;
 use daemon_slayer::config::{AppConfig, ConfigDir};
-use daemon_slayer::core::server::{BackgroundServiceManager, CancellationToken};
+use daemon_slayer::core::server::background_service::{self, BackgroundServiceManager};
 use daemon_slayer::server::EventStore;
+use daemon_slayer::task_queue::CancellationToken;
 use futures::{Future, StreamExt};
 use integration_tests::TestConfig;
 
@@ -86,7 +87,10 @@ async fn run_tests(is_user_service: bool) {
     app_config.overwrite_config_file().unwrap();
 
     // Don't start file watcher until after we reset the config
-    let background_services = BackgroundServiceManager::new(CancellationToken::new());
+    let background_services = BackgroundServiceManager::new(
+        CancellationToken::new(),
+        background_service::Settings::default(),
+    );
     background_services
         .get_context()
         .add_service(config_service);
