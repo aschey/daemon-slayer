@@ -22,7 +22,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
 use ratatui::{Frame, Terminal};
-use tilia::tower_rpc::transport::ipc::ConnectionId;
+use tilia::tower_rpc::transport::ipc::ServerId;
 use tilia_widget::transport::docker::docker_client;
 use tilia_widget::transport::ipc_client;
 use tilia_widget::LogView;
@@ -120,7 +120,7 @@ impl Console {
             manager,
             info,
             logs: match log_source {
-                LogSource::Ipc => LogView::new(ipc_client(ConnectionId(name + "_logger"))),
+                LogSource::Ipc => LogView::new(ipc_client(ServerId(name + "_logger"))),
                 LogSource::Container => LogView::new(docker_client(name)),
             },
             button_index: 0,

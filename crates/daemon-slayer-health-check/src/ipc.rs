@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use daemon_slayer_core::health_check::HealthCheck;
 use daemon_slayer_core::{async_trait, BoxedError};
-use parity_tokio_ipc::{ConnectionId, Endpoint, IntoIpcPath, IpcEndpoint};
+use parity_tokio_ipc::{Endpoint, IntoIpcPath, IpcEndpoint, ServerId};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[derive(Clone)]
@@ -13,7 +13,7 @@ pub struct IpcHealthCheck {
 
 impl IpcHealthCheck {
     pub fn new(app_name: impl Into<String>) -> Self {
-        let sock_path = ConnectionId(format!("{}_health", app_name.into())).into_ipc_path();
+        let sock_path = ServerId(format!("{}_health", app_name.into())).into_ipc_path();
 
         Self {
             sock_path,
@@ -25,7 +25,7 @@ impl IpcHealthCheck {
 #[async_trait]
 impl HealthCheck for IpcHealthCheck {
     async fn invoke(&mut self) -> Result<(), BoxedError> {
-        let mut client = Endpoint::connect(&self.sock_path).await?;
+        let mut client = Endpoint::connect(self.sock_path.clone()).await?;
         let _ = client.write_u8(0).await?;
 
         let _ = client.read(&mut self.read_buf).await?;

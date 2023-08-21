@@ -2,6 +2,7 @@
 use std::os::fd::FromRawFd;
 use std::os::fd::OwnedFd;
 use std::os::unix::net::UnixListener;
+use std::path::PathBuf;
 
 use daemon_slayer_core::socket_activation::{ActivationSocketConfig, SocketType};
 use parity_tokio_ipc::{Endpoint, IpcEndpoint, IpcSecurity, OnConflict, SecurityAttributes};
@@ -64,7 +65,8 @@ impl ActivationSockets {
                     ));
                 }
                 (SocketType::Ipc, None) => {
-                    let mut endpoint = Endpoint::new(config.addr(), OnConflict::Overwrite).unwrap();
+                    let mut endpoint =
+                        Endpoint::new(PathBuf::from(config.addr()), OnConflict::Overwrite).unwrap();
                     endpoint.set_security_attributes(
                         SecurityAttributes::allow_everyone_create().unwrap(),
                     );

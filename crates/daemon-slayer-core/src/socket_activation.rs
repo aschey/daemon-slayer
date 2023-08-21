@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use parity_tokio_ipc::{ConnectionId, IntoIpcPath};
+use parity_tokio_ipc::{IntoIpcPath, ServerId};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SocketType {
@@ -20,7 +20,7 @@ impl ActivationSocketConfig {
     pub fn new_ipc(name: impl Into<String>, id: impl Into<String>) -> Self {
         Self {
             name: name.into(),
-            addr: ConnectionId(id.into())
+            addr: ServerId(id.into())
                 .into_ipc_path()
                 .to_string_lossy()
                 .to_string(),

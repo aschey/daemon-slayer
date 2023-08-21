@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use daemon_slayer_core::socket_activation::{ActivationSocketConfig, SocketType};
 use parity_tokio_ipc::{Endpoint, IpcEndpoint, IpcSecurity, SecurityAttributes};
 use tokio::net::{TcpListener, UdpSocket};
@@ -23,7 +25,7 @@ impl ActivationSockets {
         if let Some(config) = self.socket_config.get(current_pos) {
             match config.socket_type() {
                 SocketType::Ipc => {
-                    let mut endpoint = Endpoint::new(config.addr()).unwrap();
+                    let mut endpoint = Endpoint::new(PathBuf::from(config.addr())).unwrap();
                     endpoint.set_security_attributes(
                         SecurityAttributes::allow_everyone_create().unwrap(),
                     );
