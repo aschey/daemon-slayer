@@ -4,7 +4,7 @@ use std::os::fd::OwnedFd;
 use std::os::unix::net::UnixListener;
 
 use daemon_slayer_core::socket_activation::{ActivationSocketConfig, SocketType};
-use parity_tokio_ipc::{Endpoint, IpcEndpoint, IpcSecurity, SecurityAttributes};
+use parity_tokio_ipc::{Endpoint, IpcEndpoint, IpcSecurity, OnConflict, SecurityAttributes};
 #[cfg(target_os = "macos")]
 use tap::TapFallible;
 use tokio::net::{TcpListener, UdpSocket};
@@ -64,7 +64,7 @@ impl ActivationSockets {
                     ));
                 }
                 (SocketType::Ipc, None) => {
-                    let mut endpoint = Endpoint::new(config.addr());
+                    let mut endpoint = Endpoint::new(config.addr(), OnConflict::Overwrite).unwrap();
                     endpoint.set_security_attributes(
                         SecurityAttributes::allow_everyone_create().unwrap(),
                     );

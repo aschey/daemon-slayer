@@ -14,7 +14,11 @@ daemon-slayer-core = { path = "../daemon-slayer-core", features = [
 ], optional = true }
 futures = { version = "0.3" }
 serde = { version = "1", optional = true }
-tilia-widget = { git = "https://github.com/aschey/tilia", rev = "688251dbbc8331b170cab143dfb989466a2cd40e", features = [
+tilia-widget = { git = "https://github.com/aschey/tilia", rev = "e9923c54fc1ec169d42a62ee9db99ed07e275662", features = [
+    "ipc",
+    "docker",
+] }
+tilia = { git = "https://github.com/aschey/tilia", rev = "e9923c54fc1ec169d42a62ee9db99ed07e275662", features = [
     "ipc",
     "docker",
 ] }

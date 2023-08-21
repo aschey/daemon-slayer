@@ -7,7 +7,7 @@ version = "0.1.0"
 cli = ["daemon-slayer-core/cli"]
 config = ["confique", "serde"]
 file = ["directories"]
-ipc = ["tilia", "tower-rpc"]
+ipc = ["tilia"]
 linux-journald = ["tracing-journald"]
 mac-oslog = ["tracing-oslog"]
 server = ["daemon-slayer-core/server"]
@@ -24,7 +24,9 @@ once_cell = "1"
 serde = { version = "1", optional = true }
 tap = "1"
 thiserror = "1"
-tilia = { git = "https://github.com/aschey/tilia", rev = "688251dbbc8331b170cab143dfb989466a2cd40e", optional = true }
+tilia = { git = "https://github.com/aschey/tilia", rev = "e9923c54fc1ec169d42a62ee9db99ed07e275662", features = [
+    "ipc",
+], optional = true }
 time = "0.3"
 tracing = "0.1"
 tracing-appender = { version = "0.2" }
@@ -32,11 +34,6 @@ tracing-error = { version = "0.2" }
 tracing-subscriber = { version = "0.3", features = [
     "local-time",
     "env-filter",
-] }
-tower-rpc = { git = "https://github.com/aschey/tower-rpc", rev = "5fb89bf01e346bd09b48757a80479763f7d34cdd", optional = true, features = [
-    "client",
-    "server",
-    "ipc",
 ] }
 
 

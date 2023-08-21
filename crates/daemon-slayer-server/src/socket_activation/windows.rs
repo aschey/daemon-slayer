@@ -23,7 +23,7 @@ impl ActivationSockets {
         if let Some(config) = self.socket_config.get(current_pos) {
             match config.socket_type() {
                 SocketType::Ipc => {
-                    let mut endpoint = Endpoint::new(config.addr());
+                    let mut endpoint = Endpoint::new(config.addr()).unwrap();
                     endpoint.set_security_attributes(
                         SecurityAttributes::allow_everyone_create().unwrap(),
                     );
