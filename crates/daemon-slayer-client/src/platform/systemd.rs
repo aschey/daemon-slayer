@@ -222,19 +222,18 @@ impl Manager for SystemdServiceManager {
             service_config = service_config.env(key, value);
         }
 
-        let mut svc_unit_builder = ServiceUnitConfiguration::builder()
+        let svc_unit_builder = ServiceUnitConfiguration::builder()
             .unit(unit_config)
             .service(service_config);
 
+        // https://unix.stackexchange.com/questions/404667/systemd-service-what-is-multi-user-target
+        let mut install_config = InstallConfiguration::builder().wanted_by("multi-user.target");
         if self.config.is_user() {
-            svc_unit_builder = svc_unit_builder.install(
-                InstallConfiguration::builder()
-                    .wanted_by("default.target")
-                    .wanted_by("multi-user.target"),
-            );
+            // default.target either points to graphical.target or multi-user.target
+            install_config = install_config.wanted_by("default.target");
         }
 
-        let svc_unit_literal = svc_unit_builder.build().to_string();
+        let svc_unit_literal = svc_unit_builder.install(install_config).build().to_string();
 
         if self.config.is_user() {
             create_user_unit_configuration_file(
