@@ -20,6 +20,8 @@ macro_rules! regex {
     };
 }
 
+static NOT_FOUND: &str = "could not find service";
+
 regex!(STATE_RE, r"state = (\w+)");
 regex!(PID_RE, r"pid = (\w+)");
 regex!(EXIT_CODE_RE, r"last exit code = (\w+)");
@@ -55,11 +57,9 @@ impl LaunchdServiceManager {
 
         if !output.status.success() {
             let output = self.decode_output(output.stderr, command, &arguments)?;
-            if output
-                .to_ascii_lowercase()
-                .contains("could not find service")
-            {
-                return Ok(output);
+            let output_lower = output.to_ascii_lowercase();
+            if output_lower.contains(NOT_FOUND) {
+                return Ok(output_lower);
             }
             return Err(io::Error::new(
                 io::ErrorKind::Other,
@@ -317,7 +317,9 @@ impl Manager for LaunchdServiceManager {
         let output = self
             .run_launchctl(vec!["print", &self.service_target().await?])
             .await?;
-        if output.contains("could not find service") {
+
+        let found = !output.contains(NOT_FOUND);
+        if !found && !self.config.has_sockets() {
             return Ok(Status {
                 state: State::NotInstalled,
                 autostart: None,
@@ -328,7 +330,13 @@ impl Manager for LaunchdServiceManager {
         }
         let state = match self.get_match_or_default(&STATE_RE, &output) {
             Some("running") => State::Started,
-            _ => State::Stopped,
+            _ => {
+                if self.config.has_sockets() && found {
+                    State::Listening
+                } else {
+                    State::Stopped
+                }
+            }
         };
 
         let pid = self
