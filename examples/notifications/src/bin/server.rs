@@ -20,7 +20,7 @@ use daemon_slayer::notify::notification::cli::NotifyCliProvider;
 use daemon_slayer::notify::notification::Notification;
 use daemon_slayer::notify::NotificationService;
 use daemon_slayer::server::cli::ServerCliProvider;
-use daemon_slayer::server::{Handler, ServiceContext, Signal, SignalHandler};
+use daemon_slayer::server::{Handler, ServiceContext, SignalHandler};
 use daemon_slayer::signals::SignalListener;
 use derive_more::AsRef;
 use tracing::{error, info};
@@ -99,18 +99,17 @@ impl Handler for ServiceHandler {
         input_data: Option<Self::InputData>,
     ) -> Result<Self, Self::Error> {
         let input_data = input_data.unwrap();
-        let signal_listener = SignalListener::all();
+        let signal_listener = SignalListener::termination();
         let signal_store = signal_listener.get_event_store();
 
         context.add_service(signal_listener);
         context.add_service(
             NotificationService::new(signal_store, |signal| {
                 if let Ok(signal) = signal {
-                    if signal != Signal::SIGCHLD {
-                        return Some(Notification::new(Self::label()).summary("Signal received"));
-                    } else {
-                        return None;
-                    }
+                    return Some(
+                        Notification::new(Self::label())
+                            .summary(format!("Signal received: {signal:?}")),
+                    );
                 }
 
                 Some(Notification::new(Self::label()).summary("Signal received"))

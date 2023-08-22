@@ -37,6 +37,10 @@ impl signal::Handler for SignalListener {
     fn all() -> Self {
         Self::default()
     }
+
+    fn termination() -> Self {
+        Self::default()
+    }
 }
 
 #[async_trait]

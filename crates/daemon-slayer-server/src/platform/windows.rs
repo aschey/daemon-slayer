@@ -166,7 +166,8 @@ fn set_env_vars<T: Handler>() {
 pub async fn get_direct_handler<T: Handler>(
     input_data: Option<T::InputData>,
 ) -> Result<(), ServiceError<T::Error>> {
-    let manager = BackgroundServiceManager::new(CancellationToken::new());
+    let manager =
+        BackgroundServiceManager::new(CancellationToken::new(), T::background_service_settings());
     let handler = T::new(manager.get_context(), input_data)
         .await
         .map_err(|e| ServiceError::ExecutionFailure(e, None))?;

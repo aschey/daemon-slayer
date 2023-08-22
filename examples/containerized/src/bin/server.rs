@@ -93,7 +93,7 @@ impl Handler for ServiceHandler {
         input_data: Option<Self::InputData>,
     ) -> Result<Self, Self::Error> {
         let input_data = input_data.unwrap();
-        let signal_listener = SignalListener::all();
+        let signal_listener = SignalListener::termination();
         let signal_store = signal_listener.get_event_store();
         context.add_service(signal_listener);
 

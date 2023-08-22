@@ -21,4 +21,5 @@ pub fn get_sender() -> Option<broadcast::Sender<Signal>> {
 
 pub trait Handler: Default {
     fn all() -> Self;
+    fn termination() -> Self;
 }

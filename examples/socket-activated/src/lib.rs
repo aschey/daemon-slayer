@@ -13,9 +13,10 @@ pub fn run_argument() -> CommandArg {
     "run".parse().expect("Should parse the run argument")
 }
 
+pub const SOCKET_NAME: &str = "test_socket";
 pub fn sockets() -> Vec<ActivationSocketConfig> {
     vec![ActivationSocketConfig::new_tcp(
-        "test_socket",
+        SOCKET_NAME,
         "127.0.0.1:9000".parse::<SocketAddr>().unwrap(),
     )]
 }

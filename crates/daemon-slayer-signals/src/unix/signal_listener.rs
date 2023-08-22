@@ -53,6 +53,20 @@ impl signal::Handler for SignalListener {
             ..Self::default()
         }
     }
+
+    fn termination() -> Self {
+        let signals = signal_hook_tokio::Signals::new([
+            signal_hook::consts::signal::SIGTERM,
+            signal_hook::consts::signal::SIGINT,
+            signal_hook::consts::signal::SIGQUIT,
+            signal_hook::consts::signal::SIGTSTP,
+        ])
+        .unwrap();
+        Self {
+            signals,
+            ..Self::default()
+        }
+    }
 }
 
 #[async_trait]

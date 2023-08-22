@@ -1,6 +1,13 @@
-use axum::extract::Path;
+use std::future::Future;
+use std::pin::Pin;
+use std::sync::Arc;
+use std::task::{Context, Poll};
+use std::time::{Duration, Instant};
+
+use axum::extract::{Path, State};
+use axum::middleware::Next;
 use axum::routing::get;
-use axum::Router;
+use axum::{middleware, Router};
 use confique::Config;
 use daemon_slayer::build_info::cli::BuildInfoCliProvider;
 use daemon_slayer::build_info::vergen_pretty::{self, Style};
@@ -8,6 +15,7 @@ use daemon_slayer::cli::Cli;
 use daemon_slayer::config::cli::ConfigCliProvider;
 use daemon_slayer::config::server::ConfigService;
 use daemon_slayer::config::{AppConfig, ConfigDir};
+use daemon_slayer::core::config::arc_swap::ArcSwap;
 use daemon_slayer::core::{BoxedError, Label};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::color_eyre::eyre;
@@ -18,12 +26,16 @@ use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{self, LoggerBuilder, ReloadHandle};
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::futures::StreamExt;
-use daemon_slayer::server::socket_activation::{ActivationSockets, SocketResult};
+use daemon_slayer::server::socket_activation::{get_activation_sockets, SocketResult};
 use daemon_slayer::server::{
     BroadcastEventStore, EventStore, Handler, ServiceContext, Signal, SignalHandler,
 };
 use daemon_slayer::signals::SignalListener;
 use derive_more::AsRef;
+use socket_activated::SOCKET_NAME;
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::Sender;
+use tokio::time::{sleep_until, timeout, Sleep};
 use tower_http::trace::TraceLayer;
 use tracing::info;
 
@@ -104,7 +116,7 @@ impl Handler for ServiceHandler {
         input_data: Option<Self::InputData>,
     ) -> Result<Self, Self::Error> {
         let input_data = input_data.unwrap();
-        let signal_listener = SignalListener::all();
+        let signal_listener = SignalListener::termination();
         let signal_store = signal_listener.get_event_store();
         context.add_service(signal_listener);
 
@@ -123,25 +135,60 @@ impl Handler for ServiceHandler {
         info!("running service");
         notify_ready();
 
-        let mut sockets = ActivationSockets::get(socket_activated::sockets());
-        let socket = sockets.next().await.unwrap();
+        let mut socket_result = get_activation_sockets(socket_activated::sockets()).await;
+        let is_activated = socket_result.is_activated;
+
+        let mut sockets = socket_result.sockets.remove(SOCKET_NAME).unwrap();
+        let socket = sockets.remove(0);
+
         let SocketResult::Tcp(listener) = socket else {
             panic!()
         };
 
-        let app = Router::new()
+        let (refresh_tx, mut refresh_rx) = tokio::sync::mpsc::channel(32);
+
+        let mut app = Router::new()
             .route("/hello/:name", get(greeter))
-            // .route("/task", get(start_task))
             .route("/health", get(health))
             .layer(TraceLayer::new_for_http());
+        if is_activated {
+            app = app.layer(middleware::from_fn_with_state(
+                refresh_tx,
+                |State(tx): State<Sender<()>>, request, next: Next<_>| async move {
+                    tx.try_send(()).unwrap();
+                    next.run(request).await
+                },
+            ));
+        }
 
         let mut signals = self.signal_store.subscribe_events();
         axum::Server::from_tcp(listener.into_std().unwrap())
             .unwrap()
             .serve(app.into_make_service())
             .with_graceful_shutdown(async {
-                signals.next().await;
-                info!("Got shutdown request");
+                if is_activated {
+                    loop {
+                        let timeout = tokio::time::sleep(Duration::from_secs(10));
+                        tokio::select! {
+                            _ = signals.next() => {
+                                info!("Got shutdown signal");
+                                return;
+                            },
+                            _ = timeout => {
+                                info!("Terminating due to timeout");
+                                return;
+                            }
+                            res = refresh_rx.recv() => {
+                                if res.is_none() {
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    signals.next().await;
+                    info!("Got shutdown signal");
+                }
             })
             .await?;
         info!("Server terminated");

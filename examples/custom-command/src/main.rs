@@ -78,7 +78,7 @@ impl Handler for ServiceHandler {
         mut context: ServiceContext,
         _: Option<Self::InputData>,
     ) -> Result<Self, Self::Error> {
-        let signal_listener = SignalListener::all();
+        let signal_listener = SignalListener::termination();
         let signal_store = signal_listener.get_event_store();
         context.add_service(signal_listener);
 
