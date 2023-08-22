@@ -135,14 +135,17 @@ impl Handler for ServiceHandler {
         info!("running service");
         notify_ready();
 
-        let mut socket_result = get_activation_sockets(socket_activated::sockets()).await;
+        let mut socket_result = get_activation_sockets(socket_activated::sockets()).await?;
         let is_activated = socket_result.is_activated;
 
-        let mut sockets = socket_result.sockets.remove(SOCKET_NAME).unwrap();
-        let socket = sockets.remove(0);
+        let mut socket = socket_result
+            .sockets
+            .remove(SOCKET_NAME)
+            .ok_or("missing socket")?
+            .remove(0);
 
         let SocketResult::Tcp(listener) = socket else {
-            panic!()
+            return Err("invalid socket config")?;
         };
 
         let (refresh_tx, mut refresh_rx) = tokio::sync::mpsc::channel(32);
