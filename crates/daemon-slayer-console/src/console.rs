@@ -404,12 +404,12 @@ impl Console {
                 ),
                 Span::raw(" "),
                 get_button(
-                    if self.info.state == State::Started {
+                    if self.info.state == State::Started || self.info.state == State::Listening {
                         "stop "
                     } else {
                         "start"
                     },
-                    if self.info.state == State::Started {
+                    if self.info.state == State::Started || self.info.state == State::Listening {
                         Color::Red
                     } else {
                         Color::Green
