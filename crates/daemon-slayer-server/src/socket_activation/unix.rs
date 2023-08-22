@@ -24,7 +24,7 @@ pub async fn get_activation_sockets(
         .map(|r| r.1)
         .collect();
     #[cfg(target_os = "macos")]
-    let fds = socket_config
+    let fds: Vec<_> = socket_config
         .iter()
         .filter_map(|s| {
             raunch::activate_socket(s.name())
