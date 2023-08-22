@@ -326,7 +326,10 @@ impl Manager for SystemdServiceManager {
     }
 
     async fn stop(&self) -> io::Result<()> {
-        if self.status().await?.state == State::Started {
+        if matches!(
+            self.status().await?.state,
+            State::Started | State::Listening
+        ) {
             systemd_run!(
                 self,
                 RunMode::Both,
@@ -339,16 +342,29 @@ impl Manager for SystemdServiceManager {
     }
 
     async fn restart(&self) -> io::Result<()> {
-        if self.status().await?.state == State::Started {
-            systemd_run!(
-                self,
-                RunMode::Both,
-                "Error restarting systemd unit",
-                |file, _| self.client.restart_unit(file, "replace")
-            );
-        } else {
-            self.start().await?;
+        let state = self.status().await?.state;
+        match state {
+            State::Started => {
+                systemd_run!(
+                    self,
+                    RunMode::Both,
+                    "Error restarting systemd unit",
+                    |file, _| self.client.restart_unit(file, "replace")
+                );
+            }
+            State::Listening => {
+                systemd_run!(
+                    self,
+                    RunMode::Socket,
+                    "Error restarting systemd unit",
+                    |file, _| self.client.restart_unit(file, "replace")
+                );
+            }
+            _ => {
+                self.start().await?;
+            }
         }
+
         Ok(())
     }
 
