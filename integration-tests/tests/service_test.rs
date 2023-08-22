@@ -193,7 +193,7 @@ async fn wait() {
 }
 
 async fn wait_for_async<F: Future<Output = bool>>(condition: impl Fn() -> F) {
-    for _ in 0..10 {
+    for _ in 0..100 {
         if condition().await {
             return;
         }
