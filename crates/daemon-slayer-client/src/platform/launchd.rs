@@ -296,8 +296,17 @@ impl Manager for LaunchdServiceManager {
     }
 
     async fn restart(&self) -> io::Result<()> {
-        self.run_launchctl(vec!["kickstart", "-k", &self.service_target().await?])
-            .await?;
+        match self.status().await?.state {
+            State::Started => {
+                self.run_launchctl(vec!["kickstart", "-k", &self.service_target().await?])
+                    .await?;
+            }
+            State::Listening => {}
+            _ => {
+                self.start().await?;
+            }
+        }
+
         Ok(())
     }
 
