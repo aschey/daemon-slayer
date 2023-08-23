@@ -6,11 +6,7 @@ use std::os::unix::net::UnixListener;
 use daemon_slayer_core::socket_activation::{ActivationSocketConfig, SocketType};
 use futures::future;
 use parity_tokio_ipc::Endpoint;
-#[cfg(target_os = "macos")]
-use tap::TapFallible;
 use tokio::net::{TcpListener, UdpSocket};
-#[cfg(target_os = "macos")]
-use tracing::warn;
 
 use super::{
     create_sockets, to_hash_map, SocketActivationError, SocketActivationResult, SocketResult,
@@ -25,23 +21,23 @@ pub async fn get_activation_sockets(
         .into_iter()
         .map(|r| r.1)
         .collect();
+
     #[cfg(target_os = "macos")]
-    let fds: Vec<_> = socket_config
+    let fds: Result<Vec<_>, _> = socket_config
         .iter()
-        .filter_map(|s| {
-            raunch::activate_socket(s.name())
-                .tap_err(|e| {
-                    warn!(
-                        "unable to retrieve socket info for {} from launchd: {e:?}. This is \
-                         expected if the process is not running under launchd.",
-                        s.name()
-                    )
-                })
-                .ok()
+        .filter_map(|s| match raunch::activate_socket(s.name()) {
+            Ok(fds) => Some(Ok(fds)),
+            Err(raunch::Error::NotManaged) => None,
+            Err(e) => Some(Err(SocketActivationError::UnableToLoad(e.to_string()))),
         })
-        .flatten()
-        .map(|r| unsafe { OwnedFd::from_raw_fd(r) })
         .collect();
+    #[cfg(target_os = "macos")]
+    let fds: Vec<_> = fds?
+        .into_iter()
+        .flatten()
+        .map(|fd| unsafe { OwnedFd::from_raw_fd(fd) })
+        .collect();
+
     let activated = !fds.is_empty();
     let supplied = socket_config.len();
     let returned = fds.len();

@@ -1,8 +1,4 @@
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
-use std::task::{Context, Poll};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use axum::extract::{Path, State};
 use axum::middleware::Next;
@@ -15,7 +11,6 @@ use daemon_slayer::cli::Cli;
 use daemon_slayer::config::cli::ConfigCliProvider;
 use daemon_slayer::config::server::ConfigService;
 use daemon_slayer::config::{AppConfig, ConfigDir};
-use daemon_slayer::core::config::arc_swap::ArcSwap;
 use daemon_slayer::core::{BoxedError, Label};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::color_eyre::eyre;
@@ -33,9 +28,7 @@ use daemon_slayer::server::{
 use daemon_slayer::signals::SignalListener;
 use derive_more::AsRef;
 use socket_activated::SOCKET_NAME;
-use tokio::sync::mpsc;
 use tokio::sync::mpsc::Sender;
-use tokio::time::{sleep_until, timeout, Sleep};
 use tower_http::trace::TraceLayer;
 use tracing::info;
 
@@ -138,7 +131,7 @@ impl Handler for ServiceHandler {
         let mut socket_result = get_activation_sockets(socket_activated::sockets()).await?;
         let is_activated = socket_result.is_activated;
 
-        let mut socket = socket_result
+        let socket = socket_result
             .sockets
             .remove(SOCKET_NAME)
             .ok_or("missing socket")?

@@ -204,7 +204,7 @@ impl CommandProvider for ClientCliProvider {
                     self.manager.start().await?;
                     return Ok(self
                         .wait_for_condition(
-                            |info| info.state == State::Started,
+                            |info| info.state == State::Started || info.state == State::Listening,
                             "Starting...",
                             "Failed to start",
                         )
@@ -224,7 +224,7 @@ impl CommandProvider for ClientCliProvider {
                     self.manager.restart().await?;
                     return Ok(self
                         .wait_for_condition(
-                            |info| info.state == State::Started,
+                            |info| info.state == State::Started || info.state == State::Listening,
                             "Restarting...",
                             "Failed to restart",
                         )
