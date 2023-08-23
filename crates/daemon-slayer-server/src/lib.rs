@@ -4,6 +4,7 @@ mod handler;
 pub mod platform;
 mod service;
 mod service_error;
+#[cfg(feature = "socket-activation")]
 pub mod socket_activation;
 
 pub use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};

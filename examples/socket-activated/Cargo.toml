@@ -11,6 +11,7 @@ daemon-slayer = { path = "../../crates/daemon-slayer", features = [
     "server-standard",
     "tray",
     "build-info",
+    "socket-activation",
 ] }
 daemon-slayer-logging = { path = "../../crates/daemon-slayer-logging", features = [
     "system",

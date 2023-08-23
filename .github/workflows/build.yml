@@ -8,25 +8,18 @@ jobs:
       matrix:
         include:
           - os: macos-12
-            protoc-target: osx-x86_64
             test: sudo cargo make test-admin
           - os: macos-12
-            protoc-target: osx-x86_64
             test: cargo make test
           - os: macos-11
-            protoc-target: osx-x86_64
             test: sudo cargo make test-admin
           - os: macos-11
-            protoc-target: osx-x86_64
             test: cargo make test
           - os: ubuntu-latest
-            protoc-target: linux-x86_64
             test: sudo -E env PATH="$PATH" cargo make test-admin
           - os: ubuntu-latest
-            protoc-target: linux-x86_64
             test: cargo make test
           - os: windows-latest
-            protoc-target: win64
             test: cargo make test-admin
       fail-fast: false
     name: Run ${{ matrix.test }} on ${{ matrix.os }}
@@ -43,11 +36,7 @@ jobs:
       - name: clippy
         run: cargo clippy --all-features
       - name: test
-        env:
-          PROTOC: ${{ github.workspace }}/protoc/bin/protoc
         run: |
-          curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.19.4/protoc-3.19.4-${{ matrix.protoc-target }}.zip
-          unzip protoc-3.19.4-${{ matrix.protoc-target }}.zip -d "${{ github.workspace }}/protoc"
           cargo install cargo-make
           cargo make build-all
           ${{ matrix.test }}

@@ -256,6 +256,7 @@ impl Builder {
         std::iter::once(&self.program.full_name).chain(self.arguments_iter())
     }
 
+    #[cfg_attr(windows, allow(unused))]
     pub(crate) fn has_sockets(&self) -> bool {
         !self.activation_socket_config.is_empty()
     }

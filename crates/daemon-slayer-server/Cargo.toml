@@ -40,10 +40,11 @@ tokio = { version = "1", features = [
 
 [target.'cfg(target_os="linux")'.dependencies]
 sd-notify = "0.4"
-sd-listen-fds = "0.1.0"
+sd-listen-fds = { version = "0.1.0", optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-raunch = "1"
+raunch = { version = "1", optional = true }
 
 [features]
 cli = ["daemon-slayer-core/cli"]
+socket-activation = ["sd-listen-fds", "raunch"]
