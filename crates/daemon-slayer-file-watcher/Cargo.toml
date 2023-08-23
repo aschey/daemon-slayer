@@ -11,7 +11,7 @@ notify = { version = "6", default-features = false, features = [
     "fsevent-sys",
     "macos_fsevent",
 ] }
-notify-debouncer-mini = { version = "0.3", default-features = false }
+notify-debouncer-mini = { version = "0.4", default-features = false }
 tap = "1"
 tokio = { version = "1", features = [
     "rt-multi-thread",

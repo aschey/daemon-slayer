@@ -32,8 +32,7 @@ impl FileWatcher {
 
         let mut debouncer = new_debouncer(
             Duration::from_secs(builder.debounce_seconds),
-            None,
-            move |events: Result<Vec<DebouncedEvent>, Vec<notify::Error>>| {
+            move |events: Result<Vec<DebouncedEvent>, notify::Error>| {
                 if let Ok(events) = events.tap_err(|e| error!("File watch error: {e:?}")) {
                     let paths = events.into_iter().map(|e| e.path).collect();
                     file_tx_
@@ -102,7 +101,7 @@ impl BackgroundService for FileWatcher {
                     .ok(),
             };
         }
-        self.debouncer.stop();
+
         Ok(())
     }
 }

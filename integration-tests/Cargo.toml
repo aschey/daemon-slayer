@@ -5,8 +5,8 @@ publish = false
 version = "0.1.0"
 
 [dependencies]
-async-trait = "0.1.72"
-axum = "0.6.19"
+async-trait = "0.1.73"
+axum = "0.6.20"
 cargo_metadata = "0.17.0"
 confique = "0.2.4"
 daemon-slayer = { path = "../crates/daemon-slayer", features = [
@@ -15,9 +15,9 @@ daemon-slayer = { path = "../crates/daemon-slayer", features = [
     "extras",
 ] }
 futures = "0.3.28"
-reqwest = { version = "0.11.18" }
-serde = "1.0.180"
-tokio = { version = "1.29.1", features = ["rt-multi-thread"] }
+reqwest = { version = "0.11.19" }
+serde = "1.0.185"
+tokio = { version = "1.32.0", features = ["rt-multi-thread"] }
 tracing = "0.1.37"
 
 [dev-dependencies]

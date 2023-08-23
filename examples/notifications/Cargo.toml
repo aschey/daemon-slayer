@@ -19,8 +19,8 @@ daemon-slayer-logging = { path = "../../crates/daemon-slayer-logging", features 
 derive_more = { version = "0.99.17", default-features = false, features = [
     "as_ref",
 ] }
-serde = "1.0.180"
-tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
+serde = "1.0.185"
+tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.37"
 
 [[bin]]
