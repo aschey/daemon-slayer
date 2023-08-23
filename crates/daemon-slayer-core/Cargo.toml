@@ -24,7 +24,7 @@ tokio-util = { version = "0.7" }
 tracing = "0.1"
 serde = { version = "1", features = ["derive"] }
 unicode-width = { version = "0.1", optional = true }
-futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "40760850d131f0f172d135170aae01d99714f717" }
+futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
 strip-ansi-escapes = { version = "0.2", optional = true }
 parity-tokio-ipc = { git = "https://github.com/aschey/parity-tokio-ipc", rev = "588198a0abb32a79f6f3e656ff0472008e4ba9b8" }
 

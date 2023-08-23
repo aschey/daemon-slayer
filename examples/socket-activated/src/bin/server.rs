@@ -11,7 +11,7 @@ use daemon_slayer::cli::Cli;
 use daemon_slayer::config::cli::ConfigCliProvider;
 use daemon_slayer::config::server::ConfigService;
 use daemon_slayer::config::{AppConfig, ConfigDir};
-use daemon_slayer::core::{BoxedError, Label};
+use daemon_slayer::core::{BoxedError, FutureExt, Label};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::color_eyre::eyre;
 use daemon_slayer::error_handler::ErrorSink;
@@ -163,41 +163,41 @@ impl Handler for ServiceHandler {
 
         let mut signals = self.signal_store.subscribe_events();
 
-        self.context
-            .add_service(("server".to_owned(), move |_| async move {
-                axum::Server::from_tcp(listener.into_std().unwrap())
-                    .unwrap()
-                    .serve(app.into_make_service())
-                    .with_graceful_shutdown(async {
-                        if is_activated {
-                            loop {
-                                let timeout = tokio::time::sleep(Duration::from_secs(10));
-                                tokio::select! {
-                                    _ = signals.next() => {
-                                        info!("Got shutdown signal");
-                                        return;
-                                    },
-                                    _ = timeout => {
-                                        info!("Terminating due to timeout");
-                                        return;
-                                    }
-                                    res = refresh_rx.recv() => {
-                                        if res.is_none() {
-                                            return;
-                                        }
-                                    }
+        if let Ok(res) = axum::Server::from_tcp(listener.into_std()?)
+            .unwrap()
+            .serve(app.into_make_service())
+            .with_graceful_shutdown(async {
+                if is_activated {
+                    loop {
+                        let timeout = tokio::time::sleep(Duration::from_secs(10));
+                        tokio::select! {
+                            _ = signals.next() => {
+                                info!("Got shutdown signal");
+                            },
+                            _ = timeout => {
+                                info!("Terminating due to timeout");
+                            }
+                            res = refresh_rx.recv() => {
+                                if res.is_some() {
+                                    continue;
                                 }
                             }
-                        } else {
-                            signals.next().await;
-                            info!("Got shutdown signal");
                         }
-                    })
-                    .await?;
-                Ok(())
-            }));
+                    }
+                } else {
+                    signals.next().await;
+                    info!("Got shutdown signal");
+                }
+            })
+            .cancel_on_shutdown_with_timeout(
+                &self.context.cancellation_token(),
+                Duration::from_secs(2),
+            )
+            .await
+        {
+            res?;
+        }
 
-        self.context.cancellation_token().cancelled().await;
         info!("Server terminated");
 
         Ok(())
