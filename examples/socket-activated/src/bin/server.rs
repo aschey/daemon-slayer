@@ -183,6 +183,7 @@ impl Handler for ServiceHandler {
                                 }
                             }
                         }
+                        return;
                     }
                 } else {
                     signals.next().await;
