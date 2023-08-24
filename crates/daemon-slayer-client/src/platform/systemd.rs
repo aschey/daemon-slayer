@@ -21,6 +21,7 @@ macro_rules! systemd_run {
         if !$self.config.activation_socket_config.is_empty()
             && ($run_mode == RunMode::Socket || $run_mode == RunMode::Both)
         {
+            #[allow(clippy::redundant_closure_call)]
             $f(
                 $self.socket_file_name.as_str(),
                 &[$self.socket_file_name.as_str()],
@@ -33,6 +34,7 @@ macro_rules! systemd_run {
             || $run_mode == RunMode::Service
             || $run_mode == RunMode::Both
         {
+            #[allow(clippy::redundant_closure_call)]
             $f(
                 $self.service_file_name.as_str(),
                 &[$self.service_file_name.as_str()],
