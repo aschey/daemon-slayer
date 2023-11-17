@@ -83,6 +83,7 @@ tray = ["daemon-slayer-tray", "client"]
 notify = ["daemon-slayer-notify", "daemon-slayer-error-handler?/notify"]
 native-notification = ["notify", "daemon-slayer-notify/native-notification"]
 dialog = ["notify", "daemon-slayer-notify/dialog"]
+network = ["daemon-slayer-network"]
 
 [dependencies]
 daemon-slayer-cli = { path = "../daemon-slayer-cli", optional = true }
@@ -101,3 +102,4 @@ daemon-slayer-task-queue = { path = "../daemon-slayer-task-queue", optional = tr
 daemon-slayer-tray = { path = "../daemon-slayer-tray", optional = true }
 daemon-slayer-notify = { path = "../daemon-slayer-notify", optional = true }
 daemon-slayer-build-info = { path = "../daemon-slayer-build-info", optional = true }
+daemon-slayer-network = { path = "../daemon-slayer-network", optional = true }

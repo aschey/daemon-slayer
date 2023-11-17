@@ -33,10 +33,6 @@ pub mod health_check {
 pub mod tray {
     pub use daemon_slayer_tray::*;
 }
-#[cfg(feature = "ipc")]
-pub mod ipc {
-    pub use daemon_slayer_ipc::*;
-}
 #[cfg(feature = "config")]
 pub mod config {
     pub use daemon_slayer_config::*;
@@ -64,4 +60,8 @@ pub mod notify {
 #[cfg(feature = "build-info")]
 pub mod build_info {
     pub use daemon_slayer_build_info::*;
+}
+#[cfg(feature = "network")]
+pub mod network {
+    pub use daemon_slayer_network::*;
 }
