@@ -1,11 +1,11 @@
 #[cfg(target_os = "macos")]
 use std::os::fd::FromRawFd;
+use std::os::fd::OwnedFd;
 use std::os::unix::net::UnixListener;
 
 use daemon_slayer_core::socket_activation::{ActivationSocketConfig, SocketType};
 use futures::future;
 use parity_tokio_ipc::Endpoint;
-use sd_listen_fds::OwnedFd;
 use tokio::net::{TcpListener, UdpSocket};
 
 use super::{
@@ -19,7 +19,7 @@ pub async fn get_activation_sockets(
     let fds: Vec<_> = sd_listen_fds::get()
         .map_err(|e| SocketActivationError::UnableToLoad(e.to_string()))?
         .into_iter()
-        .map(|r| r.1)
+        .map(|r| r.1.into_std())
         .collect();
 
     #[cfg(target_os = "macos")]

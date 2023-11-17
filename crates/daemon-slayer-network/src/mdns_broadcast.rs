@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::IpAddr;
 use std::time::Duration;
 
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
