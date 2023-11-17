@@ -6,6 +6,7 @@ use daemon_slayer_core::server::background_service::{BackgroundService, ServiceC
 use daemon_slayer_core::server::BroadcastEventStore;
 use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
 use gethostname::gethostname;
+use if_addrs::IfAddr;
 use mdns_sd::{DaemonEvent, ServiceDaemon, ServiceInfo, UnregisterStatus};
 use recap::Recap;
 use serde::{Deserialize, Serialize};
@@ -86,6 +87,45 @@ impl MdnsBroadcastService {
     }
 }
 
+// TODO: is this the best way to do this?
+fn is_address_in_route(ifaddr: &IfAddr, default_route: &IpAddr) -> bool {
+    match (ifaddr, default_route) {
+        (IfAddr::V4(v4addr), IpAddr::V4(default_addr)) => {
+            if let Some(broadcast) = v4addr.broadcast {
+                let mask = v4addr
+                    .netmask
+                    .octets()
+                    .into_iter()
+                    .take_while(|i| *i == 255)
+                    .count()
+                    * 8;
+                if let Ok(net) = ipnet::Ipv4Net::new(*default_addr, mask as u8) {
+                    return net.broadcast() == broadcast;
+                }
+            }
+        }
+        (IfAddr::V6(v6addr), IpAddr::V6(default_addr)) => {
+            // TODO: not sure if this is correct for IPV6
+            if let Some(broadcast) = v6addr.broadcast {
+                let mask = v6addr
+                    .netmask
+                    .octets()
+                    .into_iter()
+                    .take_while(|i| *i == 255)
+                    .count()
+                    * 8;
+                if let Ok(net) = ipnet::Ipv6Net::new(*default_addr, mask as u8) {
+                    return net.broadcast() == broadcast;
+                }
+            }
+        }
+        _ => {
+            return false;
+        }
+    }
+    false
+}
+
 #[async_trait]
 impl BackgroundService for MdnsBroadcastService {
     fn shutdown_timeout() -> Duration {
@@ -98,23 +138,35 @@ impl BackgroundService for MdnsBroadcastService {
 
     async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
         let net_handle = net_route::Handle::new()?;
+
         let default_route = net_handle
             .default_route()
             .await?
-            .and_then(|r| r.gateway)
-            .map(|g| g.to_string())
-            .unwrap_or(String::new());
+            .clone()
+            .and_then(|r| r.gateway);
+
+        let mut address = String::default();
+        if let Some(default_route) = default_route {
+            // Try to find the address that matches the default route
+            // so we don't accidentally broadcast an internal IP
+            for iface in if_addrs::get_if_addrs()? {
+                if is_address_in_route(&iface.addr, &default_route) {
+                    address = iface.addr.ip().to_string();
+                }
+            }
+        }
 
         let mdns = ServiceDaemon::new()?;
         let mut service_info = ServiceInfo::new(
             &self.service_name.service_type(),
             self.service_name.instance_name(),
             &self.host_name,
-            default_route.clone(),
+            &address,
             3456,
             None,
         )?;
-        if default_route.is_empty() {
+
+        if address.is_empty() {
             service_info = service_info.enable_addr_auto();
         }
 
