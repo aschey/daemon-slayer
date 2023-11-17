@@ -24,12 +24,12 @@ daemon-slayer = { path = "../../crates/daemon-slayer", features = [
 derive_more = { version = "0.99.17", default-features = false, features = [
     "as_ref",
 ] }
-serde = "1.0.185"
+serde = "1.0.192"
 tar = "0.4.40"
-tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
-tracing = "0.1.37"
+tokio = { version = "1.34.0", features = ["macros", "rt-multi-thread"] }
+tracing = "0.1.40"
 bollard = { version = "0.15.0", features = ["buildkit"] }
-flate2 = "1.0.27"
+flate2 = "1.0.28"
 ignore = "0.4.20"
 
 [[bin]]
