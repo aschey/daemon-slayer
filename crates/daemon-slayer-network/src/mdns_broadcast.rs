@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::Display;
 use std::net::IpAddr;
 use std::time::Duration;
@@ -12,28 +13,37 @@ use recap::Recap;
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
-use crate::ServiceProtocol;
+use crate::{ServiceMetadata, ServiceProtocol};
 
 #[derive(Deserialize, Serialize, Debug, Recap)]
 #[recap(
-    regex = r"^(?P<instance_name>[a-zA-Z0-9_-]+)._(?P<type_name>[a-zA-Z0-9_-]+)\._(?P<service_protocol>(?:tcp)|(?:udp))\.local\.$"
+    regex = r"^(?P<instance_name>[a-zA-Z0-9_-]+)\.((?P<subdomain>[a-zA-Z0-9_-]+)\._sub.)?_(?P<type_name>[a-zA-Z0-9_-]+)\._(?P<service_protocol>(?:tcp)|(?:udp))\.local\.$"
 )]
 pub struct MdnsBroadcastName {
     instance_name: String,
+    subdomain: Option<String>,
     type_name: String,
     service_protocol: ServiceProtocol,
 }
 
 impl MdnsBroadcastName {
     pub fn new(
-        instance_name: String,
-        type_name: String,
+        instance_name: impl Into<String>,
+        type_name: impl Into<String>,
         service_protocol: ServiceProtocol,
     ) -> Self {
         Self {
-            instance_name,
-            type_name,
+            subdomain: None,
+            instance_name: instance_name.into(),
+            type_name: type_name.into(),
             service_protocol,
+        }
+    }
+
+    pub fn with_subdomain(self, subdomain: impl Into<String>) -> Self {
+        Self {
+            subdomain: Some(subdomain.into()),
+            ..self
         }
     }
 
@@ -42,7 +52,12 @@ impl MdnsBroadcastName {
     }
 
     pub fn service_type(&self) -> String {
-        format!("_{}._{}.local.", self.type_name, self.service_protocol)
+        let service_type = format!("_{}._{}.local.", self.type_name, self.service_protocol);
+        if let Some(subdomain) = &self.subdomain {
+            format!("{subdomain}._sub.{service_type}")
+        } else {
+            service_type
+        }
     }
 }
 
@@ -70,15 +85,17 @@ pub struct MdnsBroadcastService {
     service_name: MdnsBroadcastName,
     host_name: String,
     event_tx: broadcast::Sender<MdnsBroadcastEvent>,
+    broadcast_data: HashMap<String, String>,
 }
 
 impl MdnsBroadcastService {
-    pub fn new(service_name: MdnsBroadcastName) -> Self {
+    pub fn new(service_name: MdnsBroadcastName, broadcast_data: impl ServiceMetadata) -> Self {
         let (event_tx, _) = broadcast::channel(32);
         Self {
             service_name,
             host_name: gethostname().to_string_lossy().to_string(),
             event_tx,
+            broadcast_data: broadcast_data.metadata(),
         }
     }
 
@@ -163,7 +180,7 @@ impl BackgroundService for MdnsBroadcastService {
             &self.host_name,
             &address,
             3456,
-            None,
+            self.broadcast_data,
         )?;
 
         if address.is_empty() {

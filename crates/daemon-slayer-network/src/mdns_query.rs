@@ -13,28 +13,39 @@ use crate::ServiceProtocol;
 
 #[derive(Deserialize, Serialize, Debug, Recap)]
 #[recap(
-    regex = r"^_(?P<type_name>[a-zA-Z0-9_-]+)\._(?P<service_protocol>(?:tcp)|(?:udp))\.local\.$"
+    regex = r"^((?P<subdomain>[a-zA-Z0-9_-]+)\._sub.)?_(?P<type_name>[a-zA-Z0-9_-]+)\._(?P<service_protocol>(?:tcp)|(?:udp))\.local\.$"
 )]
 pub struct MdnsQueryName {
+    subdomain: Option<String>,
     type_name: String,
     service_protocol: ServiceProtocol,
 }
 
 impl MdnsQueryName {
-    pub fn new(type_name: String, service_protocol: ServiceProtocol) -> Self {
+    pub fn new(type_name: impl Into<String>, service_protocol: ServiceProtocol) -> Self {
         Self {
-            type_name,
+            subdomain: None,
+            type_name: type_name.into(),
             service_protocol,
+        }
+    }
+
+    pub fn with_subdomain(self, subdomain: impl Into<String>) -> Self {
+        Self {
+            subdomain: Some(subdomain.into()),
+            ..self
         }
     }
 }
 
 impl Display for MdnsQueryName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&format!(
-            "_{}._{}.local.",
-            self.type_name, self.service_protocol
-        ))
+        let name = format!("_{}._{}.local.", self.type_name, self.service_protocol);
+        if let Some(subdomain) = &self.subdomain {
+            f.write_str(&format!("{subdomain}._sub.{name}"))
+        } else {
+            f.write_str(&name)
+        }
     }
 }
 

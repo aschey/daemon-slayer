@@ -45,3 +45,13 @@ impl ServiceMetadata for HashMap<String, String> {
         metadata
     }
 }
+
+impl ServiceMetadata for Option<HashMap<String, String>> {
+    fn metadata(&self) -> HashMap<String, String> {
+        HashMap::default()
+    }
+
+    fn from_metadata(metadata: HashMap<String, String>) -> Self {
+        Some(metadata)
+    }
+}

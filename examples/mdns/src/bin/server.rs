@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::Duration;
 
 use axum::extract::{Path, State};
@@ -126,11 +127,24 @@ impl Handler for ServiceHandler {
             file_events,
         ));
 
-        context.add_service(MdnsBroadcastService::new(MdnsBroadcastName::new(
-            "test1".to_owned(),
-            "mdnstest".to_owned(),
-            ServiceProtocol::Tcp,
-        )));
+        context.add_service(MdnsBroadcastService::new(
+            MdnsBroadcastName::new(
+                "test1".to_owned(),
+                "mdnstest".to_owned(),
+                ServiceProtocol::Tcp,
+            )
+            .with_subdomain("sub1".to_owned()),
+            HashMap::from_iter([("test".to_owned(), "true".to_owned())]),
+        ));
+
+        context.add_service(MdnsBroadcastService::new(
+            MdnsBroadcastName::new(
+                "test2".to_owned(),
+                "mdnstest".to_owned(),
+                ServiceProtocol::Tcp,
+            ),
+            HashMap::from_iter([("test2".to_owned(), "true".to_owned())]),
+        ));
 
         let mdns_query_service = MdnsQueryService::new(MdnsQueryName::new(
             "mdnstest".to_owned(),
@@ -148,6 +162,7 @@ impl Handler for ServiceHandler {
                 .await
             {
                 if let MdnsReceiverEvent::ServiceResolved(info) = event {
+                    info!("{info:?}");
                     for addr in info.get_addresses() {
                         let response = reqwest::Client::new()
                             .get(format!("http://{addr}:9000/health"))
