@@ -23,7 +23,7 @@ tauri = { version = "1.1", features = ["api-all", "system-tray"] }
 tauri-plugin-positioner = { git = "https://github.com/aschey/tauri-plugin-positioner", features = [
     "system-tray",
 ] }
-tilia = { git = "https://github.com/aschey/tilia", rev = "1bbb4151b8f16df98775dc2c4367b2da884dce47" }
+tilia = { git = "https://github.com/aschey/tilia", rev = "85bb95aa16974ea5994bb7da722d6077c1242105" }
 tokio = { version = "1.21.2", features = ["time"] }
 
 [features]

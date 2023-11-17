@@ -293,7 +293,7 @@ impl Console {
         }
     }
 
-    fn ui(&mut self, f: &mut Frame<CrosstermBackend<Stdout>>) {
+    fn ui(&mut self, f: &mut Frame) {
         let size = f.size();
 
         // Main border

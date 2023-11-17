@@ -1,11 +1,11 @@
 #[cfg(target_os = "macos")]
 use std::os::fd::FromRawFd;
-use std::os::fd::OwnedFd;
 use std::os::unix::net::UnixListener;
 
 use daemon_slayer_core::socket_activation::{ActivationSocketConfig, SocketType};
 use futures::future;
 use parity_tokio_ipc::Endpoint;
+use sd_listen_fds::OwnedFd;
 use tokio::net::{TcpListener, UdpSocket};
 
 use super::{

@@ -8,8 +8,8 @@ edition = "2021"
 [dependencies]
 console = { version = "0.15", optional = true }
 daemon-slayer-core = { path = "../daemon-slayer-core" }
-vergen = { version = "8.2.4", optional = true }
-vergen-pretty = { version = "0.3.0", features = ["color"], optional = true }
+vergen = { version = "8", optional = true }
+vergen-pretty = { version = "0.3", features = ["color"], optional = true }
 
 [features]
 build = ["vergen/build"]

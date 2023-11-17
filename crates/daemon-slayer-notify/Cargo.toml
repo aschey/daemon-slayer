@@ -14,7 +14,7 @@ daemon-slayer-core = { path = "../daemon-slayer-core", features = [
 tokio = { version = "1", features = ["time"] }
 tracing = "0.1"
 notify-rust = { version = "4", optional = true, features = ["async"] }
-native-dialog = { version = "0.6", features = [
+native-dialog = { version = "0.7", features = [
     "windows_dpi_awareness",
     "windows_visual_styles",
 ], optional = true }
