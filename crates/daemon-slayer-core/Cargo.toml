@@ -31,6 +31,13 @@ parity-tokio-ipc = { git = "https://github.com/aschey/parity-tokio-ipc", rev = "
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.52", optional = true, features = [
     "Win32_Foundation",
+    "Win32_Storage",
+    "Win32_Storage_FileSystem",
+    "Win32_Security",
+    "Win32_System_IO",
+    "Win32_System_Console",
+    "Win32_System_Pipes",
+    "Win32_System_Threading",
     "Win32_System_RemoteDesktop",
     "Win32_System_Environment",
     "Win32_UI_WindowsAndMessaging",

@@ -179,7 +179,7 @@ fn run_process_as_current_user_(cmd: &str, visible: bool) -> io::Result<String> 
             if let Err(e) = check_err(|| {
                 ReadFile(
                     h_out_read_pipe,
-                    ch_buf.as_mut_ptr() as *mut ffi::c_void,
+                    ch_buf.as_mut_ptr(),
                     BUF_SIZE as u32,
                     &mut bytes_read,
                     ptr::null_mut(),
