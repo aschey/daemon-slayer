@@ -13,7 +13,7 @@ use recap::Recap;
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
-use crate::{ServiceMetadata, ServiceProtocol};
+use crate::{get_default_ip, ServiceMetadata, ServiceProtocol};
 
 #[derive(Deserialize, Serialize, Debug, Recap)]
 #[recap(
@@ -83,64 +83,29 @@ pub enum MdnsBroadcastEvent {
 
 pub struct MdnsBroadcastService {
     service_name: MdnsBroadcastName,
-    host_name: String,
     event_tx: broadcast::Sender<MdnsBroadcastEvent>,
     broadcast_data: HashMap<String, String>,
+    port: u16,
 }
 
 impl MdnsBroadcastService {
-    pub fn new(service_name: MdnsBroadcastName, broadcast_data: impl ServiceMetadata) -> Self {
+    pub fn new(
+        service_name: MdnsBroadcastName,
+        port: u16,
+        broadcast_data: impl ServiceMetadata,
+    ) -> Self {
         let (event_tx, _) = broadcast::channel(32);
         Self {
             service_name,
-            host_name: gethostname().to_string_lossy().to_string(),
             event_tx,
             broadcast_data: broadcast_data.metadata(),
+            port,
         }
     }
 
     pub fn get_event_store(&self) -> BroadcastEventStore<MdnsBroadcastEvent> {
         BroadcastEventStore::new(self.event_tx.clone())
     }
-}
-
-// TODO: is this the best way to do this?
-fn is_address_in_route(ifaddr: &IfAddr, default_route: &IpAddr) -> bool {
-    match (ifaddr, default_route) {
-        (IfAddr::V4(v4addr), IpAddr::V4(default_addr)) => {
-            if let Some(broadcast) = v4addr.broadcast {
-                let mask = v4addr
-                    .netmask
-                    .octets()
-                    .into_iter()
-                    .take_while(|i| *i == 255)
-                    .count()
-                    * 8;
-                if let Ok(net) = ipnet::Ipv4Net::new(*default_addr, mask as u8) {
-                    return net.broadcast() == broadcast;
-                }
-            }
-        }
-        (IfAddr::V6(v6addr), IpAddr::V6(default_addr)) => {
-            // TODO: not sure if this is correct for IPV6
-            if let Some(broadcast) = v6addr.broadcast {
-                let mask = v6addr
-                    .netmask
-                    .octets()
-                    .into_iter()
-                    .take_while(|i| *i == 255)
-                    .count()
-                    * 8;
-                if let Ok(net) = ipnet::Ipv6Net::new(*default_addr, mask as u8) {
-                    return net.broadcast() == broadcast;
-                }
-            }
-        }
-        _ => {
-            return false;
-        }
-    }
-    false
 }
 
 #[async_trait]
@@ -154,32 +119,19 @@ impl BackgroundService for MdnsBroadcastService {
     }
 
     async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
-        let net_handle = net_route::Handle::new()?;
-
-        let default_route = net_handle
-            .default_route()
+        let address = get_default_ip()
             .await?
-            .clone()
-            .and_then(|r| r.gateway);
+            .map(|ip| ip.to_string())
+            .unwrap_or_default();
 
-        let mut address = String::default();
-        if let Some(default_route) = default_route {
-            // Try to find the address that matches the default route
-            // so we don't accidentally broadcast an internal IP
-            for iface in if_addrs::get_if_addrs()? {
-                if is_address_in_route(&iface.addr, &default_route) {
-                    address = iface.addr.ip().to_string();
-                }
-            }
-        }
-
+        let hostname = gethostname().to_string_lossy().to_string();
         let mdns = ServiceDaemon::new()?;
         let mut service_info = ServiceInfo::new(
             &self.service_name.service_type(),
             self.service_name.instance_name(),
-            &self.host_name,
+            &hostname,
             &address,
-            3456,
+            self.port,
             self.broadcast_data,
         )?;
 

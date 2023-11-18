@@ -94,7 +94,7 @@ impl BackgroundService for MdnsQueryService {
     }
 
     async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
-        let mdns = ServiceDaemon::new().unwrap();
+        let mdns = ServiceDaemon::new()?;
         let receiver = mdns.browse(&self.service_name.to_string()).unwrap();
 
         while let Ok(Ok(event)) = receiver

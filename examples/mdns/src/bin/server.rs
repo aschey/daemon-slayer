@@ -20,10 +20,11 @@ use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::server::LoggingUpdateService;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{self, LoggerBuilder, ReloadHandle};
-use daemon_slayer::network::{
+use daemon_slayer::network::mdns::{
     MdnsBroadcastName, MdnsBroadcastService, MdnsQueryName, MdnsQueryService, MdnsReceiverEvent,
-    ServiceProtocol,
 };
+use daemon_slayer::network::udp::{UdpBroadcastService, UdpQueryService};
+use daemon_slayer::network::ServiceProtocol;
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::futures::StreamExt;
 use daemon_slayer::server::socket_activation::{get_activation_sockets, SocketResult};
@@ -128,21 +129,21 @@ impl Handler for ServiceHandler {
         ));
 
         context.add_service(MdnsBroadcastService::new(
-            MdnsBroadcastName::new(
-                "test1".to_owned(),
-                "mdnstest".to_owned(),
-                ServiceProtocol::Tcp,
-            )
-            .with_subdomain("sub1".to_owned()),
+            MdnsBroadcastName::new("test1", "mdnstest", ServiceProtocol::Tcp)
+                .with_subdomain("sub1".to_owned()),
+            9000,
             HashMap::from_iter([("test".to_owned(), "true".to_owned())]),
         ));
 
         context.add_service(MdnsBroadcastService::new(
-            MdnsBroadcastName::new(
-                "test2".to_owned(),
-                "mdnstest".to_owned(),
-                ServiceProtocol::Tcp,
-            ),
+            MdnsBroadcastName::new("test2", "mdnstest", ServiceProtocol::Tcp),
+            9000,
+            HashMap::from_iter([("test2".to_owned(), "true".to_owned())]),
+        ));
+
+        context.add_service(UdpBroadcastService::new(
+            "test3",
+            9000,
             HashMap::from_iter([("test2".to_owned(), "true".to_owned())]),
         ));
 
@@ -150,9 +151,14 @@ impl Handler for ServiceHandler {
             "mdnstest".to_owned(),
             ServiceProtocol::Tcp,
         ));
+        let udp_query_service = UdpQueryService::new(9999);
 
         let mdns_query_store = mdns_query_service.get_event_store();
+        let udp_query_store = udp_query_service.get_event_store();
+
         context.add_service(mdns_query_service);
+        context.add_service(udp_query_service);
+
         context.add_service(("mdns_checker", move |context: ServiceContext| async move {
             let mut mdns_events = mdns_query_store.subscribe_events();
             tokio::time::sleep(Duration::from_secs(3)).await;
@@ -165,12 +171,25 @@ impl Handler for ServiceHandler {
                     info!("{info:?}");
                     for addr in info.get_addresses() {
                         let response = reqwest::Client::new()
-                            .get(format!("http://{addr}:9000/health"))
+                            .get(format!("http://{addr}:{}/health", info.get_port()))
                             .send()
                             .await;
                         info!("HTTP response {response:?}");
                     }
                 }
+            }
+            Ok(())
+        }));
+
+        context.add_service(("udp_checker", move |context: ServiceContext| async move {
+            let mut udp_events = udp_query_store.subscribe_events();
+            tokio::time::sleep(Duration::from_secs(3)).await;
+            while let Ok(Some(Ok(event))) = udp_events
+                .next()
+                .cancel_on_shutdown(&context.cancellation_token())
+                .await
+            {
+                info!("UDP event {event:?}");
             }
             Ok(())
         }));

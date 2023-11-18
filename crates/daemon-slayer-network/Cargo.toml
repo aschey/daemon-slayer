@@ -17,6 +17,8 @@ net-route = "0.2"
 serde_json = "1"
 tokio-util = { version = "0.7", features = ["net", "codec"] }
 futures = "0.3"
-bytes = "1"
+bytes = { version = "1", features = ["serde"] }
 if-addrs = "0.10"
 ipnet = "2"
+tap = "1"
+tracing = "0.1.40"
