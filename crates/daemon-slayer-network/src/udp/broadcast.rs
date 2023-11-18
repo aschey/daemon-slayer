@@ -15,10 +15,11 @@ use tokio_util::udp::UdpFramed;
 use tracing::error;
 
 use super::{ServiceInfo, DEFAULT_BROADCAST_PORT};
-use crate::{get_default_ip, ServiceMetadata};
+use crate::{get_default_ip, BroadcastServiceName, ServiceMetadata, ServiceProtocol};
 
 pub struct UdpBroadcastService {
-    service_name: String,
+    service_name: BroadcastServiceName,
+    service_protocol: ServiceProtocol,
     port: u16,
     broadcast_data: HashMap<String, String>,
     broadcast_interval: Duration,
@@ -27,12 +28,14 @@ pub struct UdpBroadcastService {
 
 impl UdpBroadcastService {
     pub fn new(
-        service_name: impl Into<String>,
+        service_name: BroadcastServiceName,
+        service_protocol: ServiceProtocol,
         port: u16,
         broadcast_data: impl ServiceMetadata,
     ) -> Self {
         Self {
-            service_name: service_name.into(),
+            service_name,
+            service_protocol,
             port,
             broadcast_data: broadcast_data.metadata(),
             broadcast_interval: Duration::from_millis(5000),
@@ -54,10 +57,6 @@ impl UdpBroadcastService {
 
 #[async_trait]
 impl BackgroundService for UdpBroadcastService {
-    fn shutdown_timeout() -> Duration {
-        Duration::from_secs(1)
-    }
-
     fn name(&self) -> &str {
         "udp_broadcast_service"
     }
@@ -81,6 +80,7 @@ impl BackgroundService for UdpBroadcastService {
         let service_info = ServiceInfo {
             host_name: gethostname().to_string_lossy().to_string(),
             service_name: self.service_name,
+            service_protocol: self.service_protocol,
             port: self.port,
             ip_addresses: ips,
             broadcast_data: self.broadcast_data,

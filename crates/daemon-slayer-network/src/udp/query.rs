@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::BroadcastEventStore;
 use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
@@ -50,10 +48,6 @@ impl UdpQueryService {
 
 #[async_trait]
 impl BackgroundService for UdpQueryService {
-    fn shutdown_timeout() -> Duration {
-        Duration::from_secs(1)
-    }
-
     fn name(&self) -> &str {
         "udp_broadcast_service"
     }

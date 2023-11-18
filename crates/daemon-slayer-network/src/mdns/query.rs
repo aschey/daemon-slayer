@@ -1,5 +1,4 @@
 use std::fmt::Display;
-use std::time::Duration;
 
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::BroadcastEventStore;
@@ -85,10 +84,6 @@ impl MdnsQueryService {
 
 #[async_trait]
 impl BackgroundService for MdnsQueryService {
-    fn shutdown_timeout() -> Duration {
-        Duration::from_secs(1)
-    }
-
     fn name(&self) -> &str {
         "mdns_service"
     }

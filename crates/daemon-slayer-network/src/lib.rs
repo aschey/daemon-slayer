@@ -4,16 +4,19 @@ use std::net::IpAddr;
 
 use daemon_slayer_core::BoxedError;
 use if_addrs::IfAddr;
+use ipnet::{Ipv4Net, Ipv6Net};
 use recap::Recap;
 use serde::{Deserialize, Serialize};
 
+pub mod discovery;
 pub mod mdns;
 pub mod udp;
 pub use {bytes, futures, serde_json, tokio_util};
 
-#[derive(Deserialize, Serialize, Debug, Recap)]
+#[derive(Deserialize, Serialize, Debug, Recap, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ServiceProtocol {
     #[recap(regex = r"^tcp$")]
+    #[default]
     Tcp,
     #[recap(regex = r"^udp$")]
     Udp,
@@ -65,9 +68,9 @@ pub(crate) async fn get_default_ip() -> Result<Option<IpAddr>, BoxedError> {
     if let Some(default_route) = default_route {
         // Try to find the address that matches the default route
         // so we don't accidentally broadcast an internal IP
-        for iface in if_addrs::get_if_addrs()? {
-            if is_address_in_route(&iface.addr, &default_route) {
-                return Ok(Some(iface.addr.ip()));
+        for interface in if_addrs::get_if_addrs()? {
+            if is_address_in_route(&interface.addr, &default_route) {
+                return Ok(Some(interface.addr.ip()));
             }
         }
     }
@@ -76,8 +79,8 @@ pub(crate) async fn get_default_ip() -> Result<Option<IpAddr>, BoxedError> {
 }
 
 // TODO: is this the best way to do this?
-fn is_address_in_route(ifaddr: &IfAddr, default_route: &IpAddr) -> bool {
-    match (ifaddr, default_route) {
+fn is_address_in_route(if_addr: &IfAddr, default_route: &IpAddr) -> bool {
+    match (if_addr, default_route) {
         (IfAddr::V4(v4addr), IpAddr::V4(default_addr)) => {
             if let Some(broadcast) = v4addr.broadcast {
                 let mask = v4addr
@@ -87,7 +90,7 @@ fn is_address_in_route(ifaddr: &IfAddr, default_route: &IpAddr) -> bool {
                     .take_while(|i| *i == 255)
                     .count()
                     * 8;
-                if let Ok(net) = ipnet::Ipv4Net::new(*default_addr, mask as u8) {
+                if let Ok(net) = Ipv4Net::new(*default_addr, mask as u8) {
                     return net.broadcast() == broadcast;
                 }
             }
@@ -102,7 +105,7 @@ fn is_address_in_route(ifaddr: &IfAddr, default_route: &IpAddr) -> bool {
                     .take_while(|i| *i == 255)
                     .count()
                     * 8;
-                if let Ok(net) = ipnet::Ipv6Net::new(*default_addr, mask as u8) {
+                if let Ok(net) = Ipv6Net::new(*default_addr, mask as u8) {
                     return net.broadcast() == broadcast;
                 }
             }
@@ -112,4 +115,43 @@ fn is_address_in_route(ifaddr: &IfAddr, default_route: &IpAddr) -> bool {
         }
     }
     false
+}
+
+#[derive(Deserialize, Serialize, Debug, Default, PartialEq, Eq, Recap, Clone)]
+#[recap(
+    regex = r"^(?P<instance_name>[a-zA-Z0-9_-]+)\.((?P<subdomain>[a-zA-Z0-9_-]+)\.)?(?P<type_name>[a-zA-Z0-9_-]+)$"
+)]
+pub struct BroadcastServiceName {
+    instance_name: String,
+    subdomain: Option<String>,
+    type_name: String,
+}
+
+impl BroadcastServiceName {
+    pub fn new(instance_name: impl Into<String>, type_name: impl Into<String>) -> Self {
+        Self {
+            subdomain: None,
+            instance_name: instance_name.into(),
+            type_name: type_name.into(),
+        }
+    }
+
+    pub fn with_subdomain(self, subdomain: impl Into<String>) -> Self {
+        Self {
+            subdomain: Some(subdomain.into()),
+            ..self
+        }
+    }
+
+    pub fn instance_name(&self) -> &str {
+        &self.instance_name
+    }
+
+    pub fn subdomain(&self) -> Option<&str> {
+        self.subdomain.as_deref()
+    }
+
+    pub fn type_name(&self) -> &str {
+        &self.type_name
+    }
 }

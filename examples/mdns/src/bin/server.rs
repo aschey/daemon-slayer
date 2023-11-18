@@ -24,7 +24,7 @@ use daemon_slayer::network::mdns::{
     MdnsBroadcastName, MdnsBroadcastService, MdnsQueryName, MdnsQueryService, MdnsReceiverEvent,
 };
 use daemon_slayer::network::udp::{UdpBroadcastService, UdpQueryService};
-use daemon_slayer::network::ServiceProtocol;
+use daemon_slayer::network::{BroadcastServiceName, ServiceProtocol};
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::futures::StreamExt;
 use daemon_slayer::server::socket_activation::{get_activation_sockets, SocketResult};
@@ -142,7 +142,8 @@ impl Handler for ServiceHandler {
         ));
 
         context.add_service(UdpBroadcastService::new(
-            "udptest",
+            BroadcastServiceName::new("test3", "udptest"),
+            ServiceProtocol::Tcp,
             9000,
             HashMap::from_iter([("test2".to_owned(), "true".to_owned())]),
         ));

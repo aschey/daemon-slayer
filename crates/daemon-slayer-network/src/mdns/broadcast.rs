@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::net::IpAddr;
-use std::time::Duration;
 
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::BroadcastEventStore;
@@ -11,10 +10,11 @@ use mdns_sd::{DaemonEvent, ServiceDaemon, ServiceInfo, UnregisterStatus};
 use recap::Recap;
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
+use tracing::info;
 
 use crate::{get_default_ip, ServiceMetadata, ServiceProtocol};
 
-#[derive(Deserialize, Serialize, Debug, Recap)]
+#[derive(Deserialize, Serialize, Debug, Recap, Clone)]
 #[recap(
     regex = r"^(?P<instance_name>[a-zA-Z0-9_-]+)\.((?P<subdomain>[a-zA-Z0-9_-]+)\._sub.)?_(?P<type_name>[a-zA-Z0-9_-]+)\._(?P<service_protocol>(?:tcp)|(?:udp))\.local\.$"
 )]
@@ -105,19 +105,8 @@ impl MdnsBroadcastService {
     pub fn get_event_store(&self) -> BroadcastEventStore<MdnsBroadcastEvent> {
         BroadcastEventStore::new(self.event_tx.clone())
     }
-}
 
-#[async_trait]
-impl BackgroundService for MdnsBroadcastService {
-    fn shutdown_timeout() -> Duration {
-        Duration::from_secs(1)
-    }
-
-    fn name(&self) -> &str {
-        "mdns_broadcast_service"
-    }
-
-    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
+    pub(crate) async fn get_monitor(&self) -> Result<(ServiceDaemon, String), BoxedError> {
         let address = get_default_ip()
             .await?
             .map(|ip| ip.to_string())
@@ -131,23 +120,36 @@ impl BackgroundService for MdnsBroadcastService {
             &hostname,
             &address,
             self.port,
-            self.broadcast_data,
+            self.broadcast_data.clone(),
         )?;
 
         if address.is_empty() {
             service_info = service_info.enable_addr_auto();
         }
-
-        let monitor = mdns.monitor().unwrap();
         let service_fullname = service_info.get_fullname().to_owned();
         mdns.register(service_info)
             .expect("Failed to register mDNS service");
+
+        Ok((mdns, service_fullname))
+    }
+}
+
+#[async_trait]
+impl BackgroundService for MdnsBroadcastService {
+    fn name(&self) -> &str {
+        "mdns_broadcast_service"
+    }
+
+    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
+        let (mdns, service_fullname) = self.get_monitor().await?;
+        let monitor = mdns.monitor().unwrap();
 
         while let Ok(Ok(event)) = monitor
             .recv_async()
             .cancel_on_shutdown(&context.cancellation_token())
             .await
         {
+            info!("mdns register event: {event:?}");
             match event {
                 DaemonEvent::Announce(service_name, addresses) => {
                     self.event_tx
@@ -177,6 +179,7 @@ impl BackgroundService for MdnsBroadcastService {
 
         let receiver = mdns.unregister(&service_fullname).unwrap();
         while let Ok(event) = receiver.recv_async().await {
+            info!("mdns unregister event: {event:?}");
             match event {
                 UnregisterStatus::OK => {
                     self.event_tx.send(MdnsBroadcastEvent::Unregistered).ok();
