@@ -16,3 +16,5 @@ pub struct ServiceInfo {
     ip_addresses: Vec<IpAddr>,
     broadcast_data: HashMap<String, String>,
 }
+
+const DEFAULT_BROADCAST_PORT: u16 = 3535;

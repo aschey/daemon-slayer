@@ -1,54 +1,48 @@
-use std::collections::HashMap;
-use std::net::SocketAddr;
 use std::time::Duration;
 
-use bytes::Bytes;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::BroadcastEventStore;
 use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
-use futures::{SinkExt, StreamExt};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use futures::StreamExt;
+use serde::Deserialize;
 use tokio::net::UdpSocket;
 use tokio::sync::broadcast;
 use tokio_util::codec::BytesCodec;
 use tokio_util::udp::UdpFramed;
 
-use super::ServiceInfo;
-use crate::ServiceMetadata;
-
-async fn test<M: ServiceMetadata>(metadata: M) {
-    let sender = UdpSocket::bind("0.0.0.0:0").await.unwrap();
-    let dest: SocketAddr = "0.0.0.0:34254".parse().unwrap();
-    sender.set_broadcast(true).unwrap();
-    let metadata = metadata.metadata();
-    let mut framed = UdpFramed::new(sender, BytesCodec::new());
-    let json_data = serde_json::to_string(&metadata).unwrap();
-    framed.send((Bytes::from(json_data), dest)).await.unwrap();
-}
-
-async fn test2<M: ServiceMetadata>() {
-    let recv = UdpSocket::bind("0.0.0.0:34254").await.unwrap();
-    recv.set_broadcast(true).unwrap();
-    let mut framed = UdpFramed::new(recv, BytesCodec::new());
-    let (data, sender_addr) = framed.next().await.unwrap().unwrap();
-
-    let metadata: HashMap<String, String> = serde_json::from_slice(&data).unwrap();
-    let data = M::from_metadata(metadata);
-}
+use super::{ServiceInfo, DEFAULT_BROADCAST_PORT};
 
 pub struct UdpQueryService {
     broadcast_port: u16,
     event_tx: broadcast::Sender<ServiceInfo>,
 }
 
+impl Default for UdpQueryService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl UdpQueryService {
-    pub fn new(broadcast_port: u16) -> Self {
+    pub fn new() -> Self {
         let (event_tx, _) = broadcast::channel(32);
         Self {
-            broadcast_port,
+            broadcast_port: DEFAULT_BROADCAST_PORT,
             event_tx,
         }
     }
+
+    pub fn with_broadcast_port(self, broadcast_port: u16) -> Self {
+        Self {
+            broadcast_port,
+            ..self
+        }
+    }
+
+    pub fn get_broadcast_port(&self) -> u16 {
+        self.broadcast_port
+    }
+
     pub fn get_event_store(&self) -> BroadcastEventStore<ServiceInfo> {
         BroadcastEventStore::new(self.event_tx.clone())
     }
@@ -80,6 +74,7 @@ impl BackgroundService for UdpQueryService {
         {
             let mut deserializer = serde_json::Deserializer::from_slice(&data);
             let service_info = ServiceInfo::deserialize(&mut deserializer).unwrap();
+
             if service_info != last_result {
                 self.event_tx.send(service_info.clone()).unwrap();
                 last_result = service_info;

@@ -1,20 +1,20 @@
 use std::collections::HashMap;
-use std::net::{IpAddr, SocketAddr};
+use std::net::SocketAddr;
 use std::time::Duration;
 
-use bytes::{Bytes, BytesMut};
+use bytes::Bytes;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::{async_trait, BoxedError};
 use futures::SinkExt;
 use gethostname::gethostname;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tap::TapFallible;
 use tokio::net::UdpSocket;
 use tokio_util::codec::BytesCodec;
 use tokio_util::udp::UdpFramed;
 use tracing::error;
 
-use super::ServiceInfo;
+use super::{ServiceInfo, DEFAULT_BROADCAST_PORT};
 use crate::{get_default_ip, ServiceMetadata};
 
 pub struct UdpBroadcastService {
@@ -36,8 +36,19 @@ impl UdpBroadcastService {
             port,
             broadcast_data: broadcast_data.metadata(),
             broadcast_interval: Duration::from_millis(5000),
-            broadcast_port: 9999,
+            broadcast_port: DEFAULT_BROADCAST_PORT,
         }
+    }
+
+    pub fn with_broadcast_port(self, broadcast_port: u16) -> Self {
+        Self {
+            broadcast_port,
+            ..self
+        }
+    }
+
+    pub fn get_broadcast_port(&self) -> u16 {
+        self.broadcast_port
     }
 }
 

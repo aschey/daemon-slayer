@@ -7,7 +7,6 @@ use daemon_slayer_core::server::background_service::{BackgroundService, ServiceC
 use daemon_slayer_core::server::BroadcastEventStore;
 use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
 use gethostname::gethostname;
-use if_addrs::IfAddr;
 use mdns_sd::{DaemonEvent, ServiceDaemon, ServiceInfo, UnregisterStatus};
 use recap::Recap;
 use serde::{Deserialize, Serialize};

@@ -142,7 +142,7 @@ impl Handler for ServiceHandler {
         ));
 
         context.add_service(UdpBroadcastService::new(
-            "test3",
+            "udptest",
             9000,
             HashMap::from_iter([("test2".to_owned(), "true".to_owned())]),
         ));
@@ -151,7 +151,7 @@ impl Handler for ServiceHandler {
             "mdnstest".to_owned(),
             ServiceProtocol::Tcp,
         ));
-        let udp_query_service = UdpQueryService::new(9999);
+        let udp_query_service = UdpQueryService::new();
 
         let mdns_query_store = mdns_query_service.get_event_store();
         let udp_query_store = udp_query_service.get_event_store();
