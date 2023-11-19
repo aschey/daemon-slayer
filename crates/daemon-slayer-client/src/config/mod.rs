@@ -55,13 +55,9 @@ impl Config {
 
         let printer = daemon_slayer_core::cli::Printer::default()
             .with_line("Label".cyan().to_string(), self.label.qualified_name())
-            .with_line(
+            .with_optional_line(
                 "Display Name".cyan().to_string(),
-                if let Some(display_name) = &self.display_name {
-                    display_name.to_owned()
-                } else {
-                    "N/A".dimmed().to_string()
-                },
+                self.display_name.to_owned(),
             )
             .with_line("Description".cyan().to_string(), &self.description)
             .with_line("Program".cyan().to_string(), self.program.full_name())

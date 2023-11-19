@@ -227,12 +227,7 @@ impl ProcessInfo {
             .with_line("Memory", self.memory.to_string())
             .with_line("Memory Percent", self.memory_percent(2))
             .with_line("Virtual Memory", self.virtual_memory.to_string())
-            .with_line(
-                "Parent PID",
-                self.parent_pid
-                    .map(|p| p.to_string())
-                    .unwrap_or_else(|| "N/A".to_owned()),
-            )
+            .with_optional_line("Parent PID", self.parent_pid.map(|p| p.to_string()))
             //.with_line("Disk Usage", self.disk_usage.map(|d| d.total_read_bytes))
             .with_line("Status", self.status.to_string())
             .with_line("Start Time", self.format_start_time())

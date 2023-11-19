@@ -18,6 +18,15 @@ impl Printer {
         self.with_multi_line(label, vec![text])
     }
 
+    pub fn with_optional_line(
+        self,
+        label: impl Into<String>,
+        text: impl Into<Option<String>>,
+    ) -> Self {
+        let text: String = text.into().unwrap_or_else(|| "N/A".dimmed().to_string());
+        self.with_multi_line(label, vec![text])
+    }
+
     pub fn with_multi_line<T: Into<String>>(
         mut self,
         label: impl Into<String>,

@@ -5,9 +5,12 @@ use std::net::IpAddr;
 use daemon_slayer_core::BoxedError;
 use if_addrs::IfAddr;
 use ipnet::{Ipv4Net, Ipv6Net};
+use net_route::Route;
 use recap::Recap;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "cli")]
+pub mod cli;
 pub mod discovery;
 pub mod mdns;
 pub mod udp;
@@ -57,16 +60,22 @@ impl ServiceMetadata for Option<HashMap<String, String>> {
     }
 }
 
-pub(crate) async fn get_default_ip() -> Result<Option<IpAddr>, BoxedError> {
+pub(crate) async fn get_default_route() -> Result<Option<Route>, std::io::Error> {
     let net_handle = net_route::Handle::new()?;
+    net_handle.default_route().await
+}
 
-    let default_route = net_handle
-        .default_route()
-        .await?
-        .clone()
-        .and_then(|r| r.gateway);
+pub(crate) async fn get_default_ip() -> Result<Option<IpAddr>, BoxedError> {
+    let route = get_default_route().await?;
+    if let Some(route) = route {
+        get_default_ip_from_route(&route)
+    } else {
+        Ok(None)
+    }
+}
 
-    if let Some(default_route) = default_route {
+pub(crate) fn get_default_ip_from_route(route: &Route) -> Result<Option<IpAddr>, BoxedError> {
+    if let Some(default_route) = route.gateway {
         // Try to find the address that matches the default route
         // so we don't accidentally broadcast an internal IP
         for interface in if_addrs::get_if_addrs()? {

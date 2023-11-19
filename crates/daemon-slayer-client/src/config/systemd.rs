@@ -31,12 +31,12 @@ impl SystemdConfig {
     pub fn pretty_printer(&self) -> daemon_slayer_core::cli::Printer {
         use owo_colors::OwoColorize;
 
-        daemon_slayer_core::cli::Printer::default().with_line(
+        daemon_slayer_core::cli::Printer::default().with_optional_line(
             "After Targets".cyan().to_string(),
             if self.after.is_empty() {
-                "N/A".dimmed().to_string()
+                None
             } else {
-                self.after.join(",")
+                Some(self.after.join(","))
             },
         )
     }

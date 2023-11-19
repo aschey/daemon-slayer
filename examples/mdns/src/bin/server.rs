@@ -20,6 +20,7 @@ use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::server::LoggingUpdateService;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{self, LoggerBuilder, ReloadHandle};
+use daemon_slayer::network::cli::NetworkCliProvider;
 use daemon_slayer::network::discovery::{
     DiscoveryBroadcastService, DiscoveryProtocol, DiscoveryQueryService,
 };
@@ -82,6 +83,7 @@ async fn run() -> Result<(), BoxedError> {
         .with_provider(ErrorHandlerCliProvider::default())
         .with_provider(ConfigCliProvider::new(app_config.clone()))
         .with_provider(BuildInfoCliProvider::new(pretty))
+        .with_provider(NetworkCliProvider::default())
         .initialize()?;
 
     let (logger, reload_handle) = cli.take_provider::<LoggingCliProvider>().get_logger()?;

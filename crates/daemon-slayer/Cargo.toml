@@ -41,6 +41,7 @@ cli = [
   "daemon-slayer-process?/cli",
   "daemon-slayer-notify?/cli",
   "daemon-slayer-build-info?/cli",
+  "daemon-slayer-network?/cli",
 ]
 client = ["daemon-slayer-client"]
 docker = ["daemon-slayer-client?/docker"]

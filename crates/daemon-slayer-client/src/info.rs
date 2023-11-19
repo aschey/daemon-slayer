@@ -17,34 +17,29 @@ impl Status {
     pub fn pretty_print(&self) -> String {
         let mut printer = daemon_slayer_core::cli::Printer::default()
             .with_line("State", self.state.pretty_print())
-            .with_line("Autostart", self.pretty_print_autostart())
-            .with_line(
-                "PID",
-                self.pid
-                    .map(|p| p.to_string())
-                    .unwrap_or_else(|| "N/A".to_string()),
-            );
+            .with_optional_line("Autostart", self.pretty_print_autostart())
+            .with_optional_line("PID", self.pid.map(|p| p.to_string()));
         if let Some(id) = &self.id {
             printer = printer.with_line("ID", id);
         }
         printer
-            .with_line("Exit Code", self.pretty_print_exit_code())
+            .with_optional_line("Exit Code", self.pretty_print_exit_code())
             .print()
     }
 
-    fn pretty_print_autostart(&self) -> String {
+    fn pretty_print_autostart(&self) -> Option<String> {
         match self.autostart {
-            Some(true) => "Enabled".blue().to_string(),
-            Some(false) => "Disabled".yellow().to_string(),
-            None => "N/A".to_string(),
+            Some(true) => Some("Enabled".blue().to_string()),
+            Some(false) => Some("Disabled".yellow().to_string()),
+            None => None,
         }
     }
 
-    fn pretty_print_exit_code(&self) -> String {
+    fn pretty_print_exit_code(&self) -> Option<String> {
         match self.last_exit_code {
-            Some(0) => "0".green().to_string(),
-            Some(val) => val.to_string().yellow().to_string(),
-            None => "N/A".to_string(),
+            Some(0) => Some("0".green().to_string()),
+            Some(val) => Some(val.to_string().yellow().to_string()),
+            None => None,
         }
     }
 }

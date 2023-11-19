@@ -22,3 +22,6 @@ if-addrs = "0.10"
 ipnet = "2"
 tap = "1"
 tracing = "0.1.40"
+
+[features]
+cli = ["daemon-slayer-core/cli"]
