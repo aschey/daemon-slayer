@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::net::SocketAddr;
 use std::time::Duration;
 
@@ -14,8 +14,8 @@ use tokio_util::codec::BytesCodec;
 use tokio_util::udp::UdpFramed;
 use tracing::error;
 
-use super::{ServiceInfo, DEFAULT_BROADCAST_PORT};
-use crate::{get_default_ip, BroadcastServiceName, ServiceMetadata, ServiceProtocol};
+use super::DEFAULT_BROADCAST_PORT;
+use crate::{get_default_ip, BroadcastServiceName, ServiceInfo, ServiceMetadata, ServiceProtocol};
 
 pub struct UdpBroadcastService {
     service_name: BroadcastServiceName,
@@ -71,7 +71,7 @@ impl BackgroundService for UdpBroadcastService {
 
         let cancellation_token = context.cancellation_token();
         let ips = match get_default_ip().await? {
-            Some(ip) => vec![ip],
+            Some(ip) => HashSet::from_iter([ip]),
             None => if_addrs::get_if_addrs()?
                 .into_iter()
                 .map(|addr| addr.ip())

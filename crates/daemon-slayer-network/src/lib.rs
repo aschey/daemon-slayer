@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::net::IpAddr;
 
@@ -14,6 +14,7 @@ pub mod udp;
 pub use {bytes, futures, serde_json, tokio_util};
 
 #[derive(Deserialize, Serialize, Debug, Recap, Clone, Copy, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
 pub enum ServiceProtocol {
     #[recap(regex = r"^tcp$")]
     #[default]
@@ -154,4 +155,45 @@ impl BroadcastServiceName {
     pub fn type_name(&self) -> &str {
         &self.type_name
     }
+}
+
+#[derive(Deserialize, Serialize, Debug, Default, PartialEq, Eq, Recap, Clone)]
+#[recap(regex = r"^((?P<subdomain>[a-zA-Z0-9_-]+))?(?P<type_name>[a-zA-Z0-9_-]+)$")]
+pub struct QueryServiceName {
+    subdomain: Option<String>,
+    type_name: String,
+}
+
+impl QueryServiceName {
+    pub fn new(type_name: impl Into<String>) -> Self {
+        Self {
+            type_name: type_name.into(),
+            subdomain: None,
+        }
+    }
+
+    pub fn with_subdomain(self, subdomain: impl Into<String>) -> Self {
+        Self {
+            subdomain: Some(subdomain.into()),
+            ..self
+        }
+    }
+
+    pub fn subdomain(&self) -> Option<&str> {
+        self.subdomain.as_deref()
+    }
+
+    pub fn type_name(&self) -> &str {
+        &self.type_name
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ServiceInfo {
+    host_name: String,
+    service_name: BroadcastServiceName,
+    service_protocol: ServiceProtocol,
+    port: u16,
+    ip_addresses: HashSet<IpAddr>,
+    broadcast_data: HashMap<String, String>,
 }

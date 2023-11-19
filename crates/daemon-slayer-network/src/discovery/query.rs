@@ -1,0 +1,190 @@
+use std::collections::HashMap;
+
+use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
+use daemon_slayer_core::server::tokio_stream::wrappers::errors::BroadcastStreamRecvError;
+use daemon_slayer_core::server::{BroadcastEventStore, DedupeEventStore, EventStore};
+use daemon_slayer_core::{async_trait, BoxedError, CancellationToken, FutureExt};
+use futures::StreamExt;
+use mdns_sd::{ServiceDaemon, ServiceEvent};
+use tokio::sync::broadcast;
+use tracing::info;
+
+use super::DiscoveryProtocol;
+use crate::mdns::{MdnsBroadcastName, MdnsQueryName};
+use crate::udp::UdpQueryService;
+use crate::{BroadcastServiceName, QueryServiceName, ServiceInfo, ServiceProtocol};
+
+enum DiscoveryImpl {
+    Mdns(MdnsQueryName),
+    Udp(UdpQueryService),
+    Both(MdnsQueryName, UdpQueryService),
+}
+
+pub struct DiscoveryQueryService {
+    event_tx: broadcast::Sender<ServiceInfo>,
+    service_name: QueryServiceName,
+    discovery_impl: DiscoveryImpl,
+    service_protocol: ServiceProtocol,
+}
+
+impl DiscoveryQueryService {
+    pub fn new(
+        discovery_protocol: DiscoveryProtocol,
+        service_name: QueryServiceName,
+        service_protocol: ServiceProtocol,
+    ) -> Self {
+        let (event_tx, _) = broadcast::channel(32);
+        let mut mdns_name = MdnsQueryName::new(service_name.type_name(), service_protocol);
+        if let Some(subdomain) = service_name.subdomain() {
+            mdns_name = mdns_name.with_subdomain(subdomain);
+        }
+        Self {
+            service_name,
+            event_tx,
+            service_protocol,
+            discovery_impl: match discovery_protocol {
+                DiscoveryProtocol::Mdns => DiscoveryImpl::Mdns(mdns_name),
+                DiscoveryProtocol::Udp => DiscoveryImpl::Udp(UdpQueryService::new()),
+                DiscoveryProtocol::Both => DiscoveryImpl::Both(mdns_name, UdpQueryService::new()),
+            },
+        }
+    }
+
+    pub fn get_event_store(
+        &self,
+    ) -> impl EventStore<Item = Result<ServiceInfo, BroadcastStreamRecvError>> {
+        DedupeEventStore::new(BroadcastEventStore::new(self.event_tx.clone()))
+    }
+}
+
+async fn run_mdns(
+    sender: broadcast::Sender<ServiceInfo>,
+    mdns_name: MdnsQueryName,
+    cancellation_token: CancellationToken,
+) -> Result<(), BoxedError> {
+    let mdns = ServiceDaemon::new()?;
+    let receiver = mdns.browse(&mdns_name.to_string()).unwrap();
+
+    while let Ok(Ok(event)) = receiver
+        .recv_async()
+        .cancel_on_shutdown(&cancellation_token)
+        .await
+    {
+        info!("mdns receiver event: {event:?}");
+        if let ServiceEvent::ServiceResolved(info) = event {
+            let mdns_broadcast_name: MdnsBroadcastName = info.get_fullname().parse().unwrap();
+            let mut broadcast_service_name = BroadcastServiceName::new(
+                mdns_broadcast_name.instance_name(),
+                mdns_broadcast_name.type_name(),
+            );
+            if let Some(subdomain) = mdns_broadcast_name.subdomain() {
+                broadcast_service_name = broadcast_service_name.with_subdomain(subdomain);
+            }
+            sender
+                .send(ServiceInfo {
+                    host_name: info.get_hostname().trim_end_matches('.').to_string(),
+                    service_name: broadcast_service_name,
+                    service_protocol: mdns_broadcast_name.service_protocol(),
+                    port: info.get_port(),
+                    ip_addresses: info.get_addresses().to_owned(),
+                    broadcast_data: HashMap::from_iter(
+                        info.get_properties()
+                            .iter()
+                            .map(|p| (p.key().to_owned(), p.val_str().to_owned())),
+                    ),
+                })
+                .unwrap();
+        }
+    }
+
+    Ok(())
+}
+
+async fn run_udp(
+    sender: broadcast::Sender<ServiceInfo>,
+    udp_query_service: UdpQueryService,
+    search_service_name: QueryServiceName,
+    service_protocol: ServiceProtocol,
+    cancellation_token: CancellationToken,
+) -> Result<(), BoxedError> {
+    let mut framed = udp_query_service.get_framed().await;
+
+    let mut last_result = ServiceInfo::default();
+    while let Ok(Some(Ok(service_info))) =
+        framed.next().cancel_on_shutdown(&cancellation_token).await
+    {
+        let subdomain_matches = match (
+            service_info.service_name.subdomain(),
+            search_service_name.subdomain(),
+        ) {
+            (Some(current_sub), Some(search_sub)) => current_sub == search_sub,
+            (None, Some(_)) => false,
+            _ => true,
+        };
+        if service_info != last_result
+            && service_info.service_name.type_name == search_service_name.type_name()
+            && service_info.service_protocol == service_protocol
+            && subdomain_matches
+        {
+            sender.send(service_info.clone()).unwrap();
+            last_result = service_info;
+        }
+    }
+
+    Ok(())
+}
+
+#[async_trait]
+impl BackgroundService for DiscoveryQueryService {
+    fn name(&self) -> &str {
+        "discovery_query_service"
+    }
+
+    async fn run(mut self, mut context: ServiceContext) -> Result<(), BoxedError> {
+        let sender = self.event_tx.clone();
+        let cancellation_token = context.cancellation_token();
+        match self.discovery_impl {
+            DiscoveryImpl::Mdns(mdns_name) => {
+                run_mdns(sender, mdns_name, cancellation_token).await?;
+            }
+            DiscoveryImpl::Udp(udp_service) => {
+                run_udp(
+                    sender,
+                    udp_service,
+                    self.service_name,
+                    self.service_protocol,
+                    cancellation_token,
+                )
+                .await?
+            }
+            DiscoveryImpl::Both(mdns_name, udp_service) => {
+                let sender_ = sender.clone();
+
+                context.add_service((
+                    "discovery_mdns_service",
+                    move |context: ServiceContext| async move {
+                        run_mdns(sender_, mdns_name, context.cancellation_token()).await?;
+                        Ok(())
+                    },
+                ));
+                let service_name = self.service_name;
+                let service_protocol = self.service_protocol;
+                context.add_service((
+                    "discovery_udp_service",
+                    move |context: ServiceContext| async move {
+                        run_udp(
+                            sender,
+                            udp_service,
+                            service_name,
+                            service_protocol,
+                            context.cancellation_token(),
+                        )
+                        .await?;
+                        Ok(())
+                    },
+                ));
+            }
+        }
+        Ok(())
+    }
+}

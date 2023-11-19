@@ -10,7 +10,7 @@ use tokio::sync::broadcast;
 
 use crate::ServiceProtocol;
 
-#[derive(Deserialize, Serialize, Debug, Recap)]
+#[derive(Deserialize, Serialize, Debug, Recap, Clone, PartialEq, Eq)]
 #[recap(
     regex = r"^((?P<subdomain>[a-zA-Z0-9_-]+)\._sub.)?_(?P<type_name>[a-zA-Z0-9_-]+)\._(?P<service_protocol>(?:tcp)|(?:udp))\.local\.$"
 )]
@@ -85,7 +85,7 @@ impl MdnsQueryService {
 #[async_trait]
 impl BackgroundService for MdnsQueryService {
     fn name(&self) -> &str {
-        "mdns_service"
+        "mdns_query_service"
     }
 
     async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {

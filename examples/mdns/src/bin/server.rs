@@ -20,11 +20,14 @@ use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::server::LoggingUpdateService;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{self, LoggerBuilder, ReloadHandle};
+use daemon_slayer::network::discovery::{
+    DiscoveryBroadcastService, DiscoveryProtocol, DiscoveryQueryService,
+};
 use daemon_slayer::network::mdns::{
     MdnsBroadcastName, MdnsBroadcastService, MdnsQueryName, MdnsQueryService, MdnsReceiverEvent,
 };
 use daemon_slayer::network::udp::{UdpBroadcastService, UdpQueryService};
-use daemon_slayer::network::{BroadcastServiceName, ServiceProtocol};
+use daemon_slayer::network::{BroadcastServiceName, QueryServiceName, ServiceProtocol};
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::futures::StreamExt;
 use daemon_slayer::server::socket_activation::{get_activation_sockets, SocketResult};
@@ -141,8 +144,16 @@ impl Handler for ServiceHandler {
             HashMap::from_iter([("test2".to_owned(), "true".to_owned())]),
         ));
 
-        context.add_service(UdpBroadcastService::new(
-            BroadcastServiceName::new("test3", "udptest"),
+        // context.add_service(UdpBroadcastService::new(
+        //     BroadcastServiceName::new("test3", "udptest"),
+        //     ServiceProtocol::Tcp,
+        //     9000,
+        //     HashMap::from_iter([("test2".to_owned(), "true".to_owned())]),
+        // ));
+
+        context.add_service(DiscoveryBroadcastService::new(
+            DiscoveryProtocol::Both,
+            BroadcastServiceName::new("test4", "discoverytest"),
             ServiceProtocol::Tcp,
             9000,
             HashMap::from_iter([("test2".to_owned(), "true".to_owned())]),
@@ -153,12 +164,19 @@ impl Handler for ServiceHandler {
             ServiceProtocol::Tcp,
         ));
         let udp_query_service = UdpQueryService::new();
+        let discovery_query_service = DiscoveryQueryService::new(
+            DiscoveryProtocol::Both,
+            QueryServiceName::new("discoverytest"),
+            ServiceProtocol::Tcp,
+        );
 
         let mdns_query_store = mdns_query_service.get_event_store();
         let udp_query_store = udp_query_service.get_event_store();
+        let discovery_query_store = discovery_query_service.get_event_store();
 
         context.add_service(mdns_query_service);
-        context.add_service(udp_query_service);
+        // context.add_service(udp_query_service);
+        context.add_service(discovery_query_service);
 
         context.add_service(("mdns_checker", move |context: ServiceContext| async move {
             let mut mdns_events = mdns_query_store.subscribe_events();
@@ -182,18 +200,34 @@ impl Handler for ServiceHandler {
             Ok(())
         }));
 
-        context.add_service(("udp_checker", move |context: ServiceContext| async move {
-            let mut udp_events = udp_query_store.subscribe_events();
-            tokio::time::sleep(Duration::from_secs(3)).await;
-            while let Ok(Some(Ok(event))) = udp_events
-                .next()
-                .cancel_on_shutdown(&context.cancellation_token())
-                .await
-            {
-                info!("UDP event {event:?}");
-            }
-            Ok(())
-        }));
+        // context.add_service(("udp_checker", move |context: ServiceContext| async move {
+        //     let mut udp_events = udp_query_store.subscribe_events();
+        //     tokio::time::sleep(Duration::from_secs(3)).await;
+        //     while let Ok(Some(Ok(event))) = udp_events
+        //         .next()
+        //         .cancel_on_shutdown(&context.cancellation_token())
+        //         .await
+        //     {
+        //         info!("UDP event {event:?}");
+        //     }
+        //     Ok(())
+        // }));
+
+        context.add_service((
+            "discovery_checker",
+            move |context: ServiceContext| async move {
+                let mut discovery_events = discovery_query_store.subscribe_events();
+                tokio::time::sleep(Duration::from_secs(3)).await;
+                while let Ok(Some(Ok(event))) = discovery_events
+                    .next()
+                    .cancel_on_shutdown(&context.cancellation_token())
+                    .await
+                {
+                    info!("Discovery event {event:?}");
+                }
+                Ok(())
+            },
+        ));
 
         Ok(Self {
             signal_store,

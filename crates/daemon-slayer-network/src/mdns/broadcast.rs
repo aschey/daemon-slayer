@@ -46,8 +46,20 @@ impl MdnsBroadcastName {
         }
     }
 
+    pub fn subdomain(&self) -> Option<&str> {
+        self.subdomain.as_deref()
+    }
+
     pub fn instance_name(&self) -> &str {
         &self.instance_name
+    }
+
+    pub fn type_name(&self) -> &str {
+        &self.type_name
+    }
+
+    pub fn service_protocol(&self) -> ServiceProtocol {
+        self.service_protocol
     }
 
     pub fn service_type(&self) -> String {

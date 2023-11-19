@@ -1,14 +1,17 @@
+use std::io;
+
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::BroadcastEventStore;
 use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
-use futures::StreamExt;
+use futures::{Stream, StreamExt};
 use serde::Deserialize;
 use tokio::net::UdpSocket;
 use tokio::sync::broadcast;
 use tokio_util::codec::BytesCodec;
 use tokio_util::udp::UdpFramed;
 
-use super::{ServiceInfo, DEFAULT_BROADCAST_PORT};
+use super::DEFAULT_BROADCAST_PORT;
+use crate::ServiceInfo;
 
 pub struct UdpQueryService {
     broadcast_port: u16,
@@ -44,31 +47,36 @@ impl UdpQueryService {
     pub fn get_event_store(&self) -> BroadcastEventStore<ServiceInfo> {
         BroadcastEventStore::new(self.event_tx.clone())
     }
-}
 
-#[async_trait]
-impl BackgroundService for UdpQueryService {
-    fn name(&self) -> &str {
-        "udp_broadcast_service"
-    }
-
-    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
+    pub(crate) async fn get_framed(&self) -> impl Stream<Item = Result<ServiceInfo, io::Error>> {
         let receiver = UdpSocket::bind(format!("0.0.0.0:{}", self.broadcast_port))
             .await
             .unwrap();
         receiver.set_broadcast(true).unwrap();
 
-        let mut framed = UdpFramed::new(receiver, BytesCodec::new());
+        UdpFramed::new(receiver, BytesCodec::new()).map(|item| {
+            let (data, _) = item?;
+            let mut deserializer = serde_json::Deserializer::from_slice(&data);
+            Ok(ServiceInfo::deserialize(&mut deserializer).unwrap())
+        })
+    }
+}
+
+#[async_trait]
+impl BackgroundService for UdpQueryService {
+    fn name(&self) -> &str {
+        "udp_query_service"
+    }
+
+    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
+        let mut framed = self.get_framed().await;
 
         let mut last_result = ServiceInfo::default();
-        while let Ok(Some(Ok((data, _)))) = framed
+        while let Ok(Some(Ok(service_info))) = framed
             .next()
             .cancel_on_shutdown(&context.cancellation_token())
             .await
         {
-            let mut deserializer = serde_json::Deserializer::from_slice(&data);
-            let service_info = ServiceInfo::deserialize(&mut deserializer).unwrap();
-
             if service_info != last_result {
                 self.event_tx.send(service_info.clone()).unwrap();
                 last_result = service_info;
