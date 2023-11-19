@@ -133,18 +133,18 @@ impl Handler for ServiceHandler {
             file_events,
         ));
 
-        context.add_service(MdnsBroadcastService::new(
-            MdnsBroadcastName::new("test1", "mdnstest", ServiceProtocol::Tcp)
-                .with_subdomain("sub1".to_owned()),
-            9000,
-            HashMap::from_iter([("test".to_owned(), "true".to_owned())]),
-        ));
+        // context.add_service(MdnsBroadcastService::new(
+        //     MdnsBroadcastName::new("test1", "mdnstest", ServiceProtocol::Tcp)
+        //         .with_subdomain("sub1".to_owned()),
+        //     9000,
+        //     HashMap::from_iter([("test".to_owned(), "true".to_owned())]),
+        // ));
 
-        context.add_service(MdnsBroadcastService::new(
-            MdnsBroadcastName::new("test2", "mdnstest", ServiceProtocol::Tcp),
-            9000,
-            HashMap::from_iter([("test2".to_owned(), "true".to_owned())]),
-        ));
+        // context.add_service(MdnsBroadcastService::new(
+        //     MdnsBroadcastName::new("test2", "mdnstest", ServiceProtocol::Tcp),
+        //     9000,
+        //     HashMap::from_iter([("test2".to_owned(), "true".to_owned())]),
+        // ));
 
         // context.add_service(UdpBroadcastService::new(
         //     BroadcastServiceName::new("test3", "udptest"),
@@ -161,46 +161,46 @@ impl Handler for ServiceHandler {
             HashMap::from_iter([("test2".to_owned(), "true".to_owned())]),
         ));
 
-        let mdns_query_service = MdnsQueryService::new(MdnsQueryName::new(
-            "mdnstest".to_owned(),
-            ServiceProtocol::Tcp,
-        ));
-        let udp_query_service = UdpQueryService::new();
+        // let mdns_query_service = MdnsQueryService::new(MdnsQueryName::new(
+        //     "mdnstest".to_owned(),
+        //     ServiceProtocol::Tcp,
+        // ));
+        // let udp_query_service = UdpQueryService::new();
         let discovery_query_service = DiscoveryQueryService::new(
             DiscoveryProtocol::Both,
             QueryServiceName::new("discoverytest"),
             ServiceProtocol::Tcp,
         );
 
-        let mdns_query_store = mdns_query_service.get_event_store();
-        let udp_query_store = udp_query_service.get_event_store();
+        // let mdns_query_store = mdns_query_service.get_event_store();
+        // let udp_query_store = udp_query_service.get_event_store();
         let discovery_query_store = discovery_query_service.get_event_store();
 
-        context.add_service(mdns_query_service);
+        // context.add_service(mdns_query_service);
         // context.add_service(udp_query_service);
         context.add_service(discovery_query_service);
 
-        context.add_service(("mdns_checker", move |context: ServiceContext| async move {
-            let mut mdns_events = mdns_query_store.subscribe_events();
-            tokio::time::sleep(Duration::from_secs(3)).await;
-            while let Ok(Some(Ok(event))) = mdns_events
-                .next()
-                .cancel_on_shutdown(&context.cancellation_token())
-                .await
-            {
-                if let MdnsReceiverEvent::ServiceResolved(info) = event {
-                    info!("{info:?}");
-                    for addr in info.get_addresses() {
-                        let response = reqwest::Client::new()
-                            .get(format!("http://{addr}:{}/health", info.get_port()))
-                            .send()
-                            .await;
-                        info!("HTTP response {response:?}");
-                    }
-                }
-            }
-            Ok(())
-        }));
+        // context.add_service(("mdns_checker", move |context: ServiceContext| async move {
+        //     let mut mdns_events = mdns_query_store.subscribe_events();
+        //     tokio::time::sleep(Duration::from_secs(3)).await;
+        //     while let Ok(Some(Ok(event))) = mdns_events
+        //         .next()
+        //         .cancel_on_shutdown(&context.cancellation_token())
+        //         .await
+        //     {
+        //         if let MdnsReceiverEvent::ServiceResolved(info) = event {
+        //             info!("{info:?}");
+        //             for addr in info.get_addresses() {
+        //                 let response = reqwest::Client::new()
+        //                     .get(format!("http://{addr}:{}/health", info.get_port()))
+        //                     .send()
+        //                     .await;
+        //                 info!("HTTP response {response:?}");
+        //             }
+        //         }
+        //     }
+        //     Ok(())
+        // }));
 
         // context.add_service(("udp_checker", move |context: ServiceContext| async move {
         //     let mut udp_events = udp_query_store.subscribe_events();
@@ -226,6 +226,13 @@ impl Handler for ServiceHandler {
                     .await
                 {
                     info!("Discovery event {event:?}");
+                    for addr in event.ip_addresses {
+                        let response = reqwest::Client::new()
+                            .get(format!("http://{addr}:{}/health", event.port))
+                            .send()
+                            .await;
+                        info!("HTTP response {response:?}");
+                    }
                 }
                 Ok(())
             },

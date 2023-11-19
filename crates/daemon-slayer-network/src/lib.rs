@@ -199,10 +199,10 @@ impl QueryServiceName {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServiceInfo {
-    host_name: String,
-    service_name: BroadcastServiceName,
-    service_protocol: ServiceProtocol,
-    port: u16,
-    ip_addresses: HashSet<IpAddr>,
-    broadcast_data: HashMap<String, String>,
+    pub host_name: String,
+    pub service_name: BroadcastServiceName,
+    pub service_protocol: ServiceProtocol,
+    pub port: u16,
+    pub ip_addresses: HashSet<IpAddr>,
+    pub broadcast_data: HashMap<String, String>,
 }
