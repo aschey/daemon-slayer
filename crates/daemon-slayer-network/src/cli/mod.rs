@@ -1,13 +1,26 @@
-use daemon_slayer_core::cli::clap::{self, Args, FromArgMatches, Subcommand};
-use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandOutput, CommandProvider, Printer};
-use daemon_slayer_core::{async_trait, BoxedError};
+use std::time::Duration;
 
-use crate::{get_default_ip_from_route, get_default_route};
+use daemon_slayer_core::cli::clap::{self, Args, FromArgMatches, Subcommand};
+use daemon_slayer_core::cli::{
+    ActionType, CommandMatch, CommandOutput, CommandProvider, OwoColorize, Printer,
+};
+use daemon_slayer_core::server::background_service::BackgroundServiceManager;
+use daemon_slayer_core::server::EventStore;
+use daemon_slayer_core::{async_trait, BoxedError, CancellationToken};
+use futures::StreamExt;
+
+use crate::mdns::{
+    MdnsBroadcastEvent, MdnsBroadcastName, MdnsBroadcastService, MdnsQueryName, MdnsQueryService,
+    MdnsReceiverEvent,
+};
+use crate::{get_default_interface_from_route, get_default_route, ServiceProtocol};
 
 #[derive(Subcommand, Clone, Debug)]
 enum NetworkSubcommands {
     /// Show network routing info
     BroadcastInfo,
+    /// Test mDNS send/receive
+    MdnsTest,
 }
 
 #[derive(Args, Clone, Debug)]
@@ -58,14 +71,52 @@ impl CommandProvider for NetworkCliProvider {
             NetworkSubcommands::BroadcastInfo => {
                 let route = get_default_route().await?;
                 if let Some(route) = &route {
-                    let default_ip = get_default_ip_from_route(route)?.map(|ip| ip.to_string());
+                    let default_interface = get_default_interface_from_route(route)?;
                     let output = Printer::default()
-                        .with_optional_line("Default IP", default_ip)
+                        .with_optional_line(
+                            "Default IP",
+                            default_interface.as_ref().map(|i| i.ip().to_string()),
+                        )
+                        .with_optional_line("Default Interface", default_interface.map(|i| i.name))
                         .with_line("Destination", route.destination.to_string())
                         .with_optional_line("Gateway", route.gateway.map(|g| g.to_string()));
                     CommandOutput::handled(output.print())
                 } else {
                     CommandOutput::handled("Default route not found".to_string())
+                }
+            }
+            NetworkSubcommands::MdnsTest => {
+                let service_manager =
+                    BackgroundServiceManager::new(CancellationToken::new(), Default::default());
+                let mut context = service_manager.get_context();
+                let mdns_broadcast_service = MdnsBroadcastService::new(
+                    MdnsBroadcastName::new("test", "servicetest", ServiceProtocol::Tcp),
+                    4321,
+                    None,
+                );
+
+                // let mut mdns_broadcast_events =
+                //     mdns_broadcast_service.get_event_store().subscribe_events();
+                context.add_service(mdns_broadcast_service);
+                // tokio::time::sleep(Duration::from_millis(5000)).await;
+                let mdns_query_service =
+                    MdnsQueryService::new(MdnsQueryName::new("servicetest", ServiceProtocol::Tcp));
+                let mut mdns_query_events = mdns_query_service.get_event_store().subscribe_events();
+                context.add_service(mdns_query_service);
+
+                let mut service_resolved = false;
+                while let Some(Ok(query_event)) = mdns_query_events.next().await {
+                    if let MdnsReceiverEvent::ServiceResolved(_) = query_event {
+                        service_resolved = true;
+                        service_manager.stop();
+                    }
+                }
+
+                service_manager.cancel().await.unwrap();
+                if service_resolved {
+                    CommandOutput::handled("service resolved".green().to_string())
+                } else {
+                    CommandOutput::handled("service not resolved".to_string())
                 }
             }
         });

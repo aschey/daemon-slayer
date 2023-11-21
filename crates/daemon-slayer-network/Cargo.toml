@@ -13,7 +13,7 @@ recap = { git = "https://github.com/klaatu01/recap", rev = "97f7923cd18dae3b8cce
 serde = { version = "1", features = ["derive"] }
 gethostname = "0.4"
 tokio = { version = "1", features = ["sync"] }
-net-route = "0.2"
+net-route = { git = "https://github.com/aschey/net-route", rev = "5295214616effe9e35bad2d4f25aa82bce135508" }
 serde_json = "1"
 tokio-util = { version = "0.7", features = ["net", "codec"] }
 futures = "0.3"
