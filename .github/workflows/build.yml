@@ -7,10 +7,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-13-arm64
-            test: sudo cargo make test-admin
-          - os: macos-13-arm64
-            test: cargo make test
           - os: macos-13
             test: sudo cargo make test-admin
           - os: macos-13
