@@ -3,8 +3,9 @@ use std::fmt::Display;
 use std::net::IpAddr;
 
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
-use daemon_slayer_core::server::BroadcastEventStore;
+use daemon_slayer_core::server::{BroadcastEventStore, EventStore};
 use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
+use futures::StreamExt;
 use gethostname::gethostname;
 use mdns_sd::{DaemonEvent, IfKind, ServiceDaemon, ServiceInfo, UnregisterStatus};
 use recap::Recap;
@@ -13,6 +14,7 @@ use tap::TapFallible;
 use tokio::sync::broadcast;
 use tracing::{info, warn};
 
+use crate::route_listener::RouteListenerService;
 use crate::{get_default_interface, ServiceMetadata, ServiceProtocol};
 
 #[derive(Deserialize, Serialize, Debug, Recap, Clone)]
@@ -119,14 +121,14 @@ impl MdnsBroadcastService {
         BroadcastEventStore::new(self.event_tx.clone())
     }
 
-    pub(crate) async fn get_monitor(&self) -> Result<(ServiceDaemon, String), BoxedError> {
+    async fn register_service(&self, mdns: &ServiceDaemon) -> Result<String, BoxedError> {
         let (address, interface_name) = get_default_interface()
             .await?
             .map(|interface| (interface.ip().to_string(), interface.name))
             .unwrap_or_default();
 
         let hostname = gethostname().to_string_lossy().to_string();
-        let mdns = ServiceDaemon::new()?;
+
         let mut service_info = ServiceInfo::new(
             &self.service_name.service_type(),
             self.service_name.instance_name(),
@@ -148,7 +150,60 @@ impl MdnsBroadcastService {
         mdns.register(service_info)
             .expect("Failed to register mDNS service");
 
+        Ok(service_fullname)
+    }
+
+    pub(crate) async fn get_monitor(&self) -> Result<(ServiceDaemon, String), BoxedError> {
+        let mdns = ServiceDaemon::new()?;
+        let service_fullname = self.register_service(&mdns).await?;
         Ok((mdns, service_fullname))
+    }
+
+    fn handle_mdns_event(&self, event: DaemonEvent) {
+        info!("mdns register event: {event:?}");
+        let res = match event {
+            DaemonEvent::Announce(service_name, addresses) => {
+                self.event_tx.send(MdnsBroadcastEvent::Announce {
+                    service_name,
+                    addresses,
+                })
+            }
+            DaemonEvent::IpAdd(addr) => self.event_tx.send(MdnsBroadcastEvent::IpAdd(addr)),
+            DaemonEvent::IpDel(addr) => self.event_tx.send(MdnsBroadcastEvent::IpDel(addr)),
+            DaemonEvent::Error(mdns_sd::Error::ParseIpAddr(err)) => self
+                .event_tx
+                .send(MdnsBroadcastEvent::ParseIpAddrError(err)),
+            DaemonEvent::Error(mdns_sd::Error::Msg(err)) => {
+                self.event_tx.send(MdnsBroadcastEvent::Error(err))
+            }
+            _ => Ok(0),
+        };
+        res.tap_err(|e| warn!("error sending message: {e:?}")).ok();
+    }
+
+    async fn handle_route_change(
+        &self,
+        mdns: &ServiceDaemon,
+        service_fullname: &str,
+    ) -> Result<(), BoxedError> {
+        info!("route change");
+        let receiver = mdns.unregister(service_fullname).unwrap();
+        while let Ok(event) = receiver.recv_async().await {
+            info!("mdns unregister event: {event:?}");
+            match event {
+                UnregisterStatus::OK => {
+                    self.event_tx.send(MdnsBroadcastEvent::Unregistered).ok();
+                }
+                UnregisterStatus::NotFound => {
+                    self.event_tx
+                        .send(MdnsBroadcastEvent::RegistrationMissing)
+                        .ok();
+                }
+            }
+        }
+
+        self.register_service(mdns).await?;
+        Ok(())
     }
 }
 
@@ -158,34 +213,38 @@ impl BackgroundService for MdnsBroadcastService {
         "mdns_broadcast_service"
     }
 
-    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(mut self, mut context: ServiceContext) -> Result<(), BoxedError> {
         let (mdns, service_fullname) = self.get_monitor().await?;
         let monitor = mdns.monitor().unwrap();
+        let route_service = RouteListenerService::new();
+        let mut route_events = route_service.get_event_store().subscribe_events();
+        context.add_service(route_service);
+
+        let cancellation_token = context.cancellation_token();
+        loop {
+            tokio::select! {
+                event = monitor.recv_async() => {
+                    if let Ok(event) = event {
+                        self.handle_mdns_event(event);
+                    }
+                }
+                event = route_events.next() => {
+                    if let Some(Ok(_)) = event {
+                        self.handle_route_change(&mdns, &service_fullname).await?;
+                    }
+                }
+                _ = cancellation_token.cancelled() => {
+                    break;
+                }
+            }
+        }
 
         while let Ok(Ok(event)) = monitor
             .recv_async()
             .cancel_on_shutdown(&context.cancellation_token())
             .await
         {
-            info!("mdns register event: {event:?}");
-            let res = match event {
-                DaemonEvent::Announce(service_name, addresses) => {
-                    self.event_tx.send(MdnsBroadcastEvent::Announce {
-                        service_name,
-                        addresses,
-                    })
-                }
-                DaemonEvent::IpAdd(addr) => self.event_tx.send(MdnsBroadcastEvent::IpAdd(addr)),
-                DaemonEvent::IpDel(addr) => self.event_tx.send(MdnsBroadcastEvent::IpDel(addr)),
-                DaemonEvent::Error(mdns_sd::Error::ParseIpAddr(err)) => self
-                    .event_tx
-                    .send(MdnsBroadcastEvent::ParseIpAddrError(err)),
-                DaemonEvent::Error(mdns_sd::Error::Msg(err)) => {
-                    self.event_tx.send(MdnsBroadcastEvent::Error(err))
-                }
-                _ => Ok(0),
-            };
-            res.tap_err(|e| warn!("error sending message: {e:?}")).ok();
+            self.handle_mdns_event(event)
         }
 
         let receiver = mdns.unregister(&service_fullname).unwrap();

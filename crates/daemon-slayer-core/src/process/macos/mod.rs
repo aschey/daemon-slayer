@@ -17,7 +17,7 @@ pub async fn run_process_as_current_user(
     _visible: bool,
 ) -> io::Result<String> {
     let is_admin = matches!(
-        env::var(get_admin_var(&label))
+        env::var(get_admin_var(label))
             .map(|v| v.to_lowercase())
             .as_deref(),
         Ok("1" | "true")

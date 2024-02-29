@@ -1,8 +1,9 @@
 use std::fmt::Display;
 
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
-use daemon_slayer_core::server::BroadcastEventStore;
+use daemon_slayer_core::server::{BroadcastEventStore, EventStore};
 use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
+use futures::StreamExt;
 use mdns_sd::{IfKind, ServiceDaemon, ServiceEvent, ServiceInfo};
 use recap::Recap;
 use serde::{Deserialize, Serialize};
@@ -10,6 +11,7 @@ use tap::TapFallible;
 use tokio::sync::broadcast;
 use tracing::{info, warn};
 
+use crate::route_listener::RouteListenerService;
 use crate::{get_default_interface, ServiceProtocol};
 
 #[derive(Deserialize, Serialize, Debug, Recap, Clone, PartialEq, Eq)]
@@ -82,6 +84,34 @@ impl MdnsQueryService {
     pub fn get_event_store(&self) -> BroadcastEventStore<MdnsReceiverEvent> {
         BroadcastEventStore::new(self.event_tx.clone())
     }
+
+    fn handle_service_event(&self, event: ServiceEvent) {
+        info!("mdns query event: {event:?}");
+        let res = match event {
+            ServiceEvent::SearchStarted(service_type) => self
+                .event_tx
+                .send(MdnsReceiverEvent::SearchStarted(service_type)),
+            ServiceEvent::ServiceFound(service_type, full_name) => {
+                self.event_tx.send(MdnsReceiverEvent::ServiceFound {
+                    service_type,
+                    full_name,
+                })
+            }
+            ServiceEvent::ServiceResolved(info) => {
+                self.event_tx.send(MdnsReceiverEvent::ServiceResolved(info))
+            }
+            ServiceEvent::ServiceRemoved(service_type, full_name) => {
+                self.event_tx.send(MdnsReceiverEvent::ServiceRemoved {
+                    service_type,
+                    full_name,
+                })
+            }
+            ServiceEvent::SearchStopped(service_type) => self
+                .event_tx
+                .send(MdnsReceiverEvent::SearchStopped(service_type)),
+        };
+        res.tap_err(|e| warn!("failed to send message: {e:?}")).ok();
+    }
 }
 
 #[async_trait]
@@ -90,7 +120,7 @@ impl BackgroundService for MdnsQueryService {
         "mdns_query_service"
     }
 
-    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(mut self, mut context: ServiceContext) -> Result<(), BoxedError> {
         let mdns = ServiceDaemon::new()?;
 
         if let Some(interface) = get_default_interface().await? {
@@ -99,36 +129,33 @@ impl BackgroundService for MdnsQueryService {
         }
         let receiver = mdns.browse(&self.service_name.to_string()).unwrap();
 
-        while let Ok(Ok(event)) = receiver
-            .recv_async()
-            .cancel_on_shutdown(&context.cancellation_token())
-            .await
-        {
-            info!("mdns query event: {event:?}");
-            let res = match event {
-                ServiceEvent::SearchStarted(service_type) => self
-                    .event_tx
-                    .send(MdnsReceiverEvent::SearchStarted(service_type)),
-                ServiceEvent::ServiceFound(service_type, full_name) => {
-                    self.event_tx.send(MdnsReceiverEvent::ServiceFound {
-                        service_type,
-                        full_name,
-                    })
+        let route_service = RouteListenerService::new();
+        let mut route_events = route_service.get_event_store().subscribe_events();
+        context.add_service(route_service);
+
+        let cancellation_token = context.cancellation_token();
+        loop {
+            tokio::select! {
+                event = receiver.recv_async() => {
+                    if let Ok(event) = event {
+                        self.handle_service_event(event);
+                    }
                 }
-                ServiceEvent::ServiceResolved(info) => {
-                    self.event_tx.send(MdnsReceiverEvent::ServiceResolved(info))
+                event = route_events.next() => {
+                    if let Some(Ok(event)) = event {
+                        info!("route change");
+                        if let Some(interface) = get_default_interface().await? {
+                            mdns.disable_interface(IfKind::All).unwrap();
+                            mdns.enable_interface(IfKind::Name(interface.name)).unwrap();
+                        } else {
+                            mdns.enable_interface(IfKind::All).unwrap();
+                        }
+                    }
                 }
-                ServiceEvent::ServiceRemoved(service_type, full_name) => {
-                    self.event_tx.send(MdnsReceiverEvent::ServiceRemoved {
-                        service_type,
-                        full_name,
-                    })
+                _ = cancellation_token.cancelled() => {
+                    break;
                 }
-                ServiceEvent::SearchStopped(service_type) => self
-                    .event_tx
-                    .send(MdnsReceiverEvent::SearchStopped(service_type)),
-            };
-            res.tap_err(|e| warn!("failed to send message: {e:?}")).ok();
+            }
         }
 
         mdns.shutdown().unwrap();

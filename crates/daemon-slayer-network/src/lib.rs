@@ -8,13 +8,14 @@ use ipnet::{Ipv4Net, Ipv6Net};
 use net_route::Route;
 use recap::Recap;
 use serde::{Deserialize, Serialize};
+pub use {bytes, futures, serde_json, tokio_util};
 
 #[cfg(feature = "cli")]
 pub mod cli;
 pub mod discovery;
 pub mod mdns;
+pub mod route_listener;
 pub mod udp;
-pub use {bytes, futures, serde_json, tokio_util};
 
 #[derive(Deserialize, Serialize, Debug, Recap, Clone, Copy, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]

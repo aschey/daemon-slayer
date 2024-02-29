@@ -12,6 +12,7 @@ pub async fn run_as_service<T: Handler>(
 ) -> Result<(), ServiceError<T::Error>> {
     let manager =
         BackgroundServiceManager::new(CancellationToken::new(), T::background_service_settings());
+
     let handler = T::new(manager.get_context(), input_data)
         .await
         .map_err(|e| ServiceError::ExecutionFailure(e, None))?;
