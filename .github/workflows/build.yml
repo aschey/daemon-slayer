@@ -7,13 +7,17 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-12
+          - os: macos-14
             test: sudo cargo make test-admin
-          - os: macos-12
+          - os: macos-14
             test: cargo make test
-          - os: macos-11
+          - os: macos-13
             test: sudo cargo make test-admin
-          - os: macos-11
+          - os: macos-13
+            test: cargo make test
+          - os: macos-12
+            test: sudo cargo make test-admin
+          - os: macos-12
             test: cargo make test
           - os: ubuntu-latest
             test: sudo -E env PATH="$PATH" cargo make test-admin
