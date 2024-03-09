@@ -28,5 +28,5 @@ server = ["daemon-slayer-core/server"]
 
 [dev-dependencies]
 daemon-slayer-cli = { path = "../daemon-slayer-cli" }
-serde = "1.0.192"
-tempfile = "3.8.1"
+serde = "1.0.197"
+tempfile = "3.10.1"

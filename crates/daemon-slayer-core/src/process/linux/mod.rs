@@ -4,11 +4,11 @@ use std::{env, io};
 use tokio::process::Command;
 use tracing::{info, warn};
 use zbus::zvariant::OwnedObjectPath;
-use zbus::{dbus_proxy, Connection};
+use zbus::{proxy, Connection};
 
 use crate::Label;
 
-#[dbus_proxy(
+#[proxy(
     interface = "org.freedesktop.login1.Manager",
     default_service = "org.freedesktop.login1",
     default_path = "/org/freedesktop/login1"

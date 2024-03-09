@@ -10,8 +10,8 @@ daemon-slayer-core = { path = "../daemon-slayer-core" }
 num_cpus = "1"
 readonly = "0.2"
 serde = "1"
-strum = { version = "0.25", features = ["derive"] }
-sysinfo = "0.29"
+strum = { version = "0.26", features = ["derive"] }
+sysinfo = "0.30"
 
 [features]
 cli = ["daemon-slayer-core/cli"]
