@@ -15,7 +15,9 @@ use tokio_util::udp::UdpFramed;
 use tracing::error;
 
 use super::DEFAULT_BROADCAST_PORT;
-use crate::{get_default_ip, BroadcastServiceName, ServiceInfo, ServiceMetadata, ServiceProtocol};
+use crate::{
+    get_default_interface, BroadcastServiceName, ServiceInfo, ServiceMetadata, ServiceProtocol,
+};
 
 pub struct UdpBroadcastService {
     service_name: BroadcastServiceName,
@@ -70,8 +72,8 @@ impl BackgroundService for UdpBroadcastService {
         let mut framed = UdpFramed::new(sender, BytesCodec::new());
 
         let cancellation_token = context.cancellation_token();
-        let ips = match get_default_ip().await? {
-            Some(ip) => HashSet::from_iter([ip]),
+        let ips = match get_default_interface().await? {
+            Some(interface) => HashSet::from_iter([interface.ip()]),
             None => if_addrs::get_if_addrs()?
                 .into_iter()
                 .map(|addr| addr.ip())

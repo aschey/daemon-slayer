@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::net::IpAddr;
 
 use daemon_slayer_core::BoxedError;
-use if_addrs::IfAddr;
+use if_addrs::{IfAddr, Interface};
 use ipnet::{Ipv4Net, Ipv6Net};
 use net_route::Route;
 use recap::Recap;
@@ -65,22 +65,24 @@ pub(crate) async fn get_default_route() -> Result<Option<Route>, std::io::Error>
     net_handle.default_route().await
 }
 
-pub(crate) async fn get_default_ip() -> Result<Option<IpAddr>, BoxedError> {
+pub(crate) async fn get_default_interface() -> Result<Option<Interface>, BoxedError> {
     let route = get_default_route().await?;
     if let Some(route) = route {
-        get_default_ip_from_route(&route)
+        get_default_interface_from_route(&route)
     } else {
         Ok(None)
     }
 }
 
-pub(crate) fn get_default_ip_from_route(route: &Route) -> Result<Option<IpAddr>, BoxedError> {
+pub(crate) fn get_default_interface_from_route(
+    route: &Route,
+) -> Result<Option<Interface>, BoxedError> {
     if let Some(default_route) = route.gateway {
         // Try to find the address that matches the default route
         // so we don't accidentally broadcast an internal IP
         for interface in if_addrs::get_if_addrs()? {
             if is_address_in_route(&interface.addr, &default_route) {
-                return Ok(Some(interface.addr.ip()));
+                return Ok(Some(interface));
             }
         }
     }
@@ -199,10 +201,10 @@ impl QueryServiceName {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServiceInfo {
-    host_name: String,
-    service_name: BroadcastServiceName,
-    service_protocol: ServiceProtocol,
-    port: u16,
-    ip_addresses: HashSet<IpAddr>,
-    broadcast_data: HashMap<String, String>,
+    pub host_name: String,
+    pub service_name: BroadcastServiceName,
+    pub service_protocol: ServiceProtocol,
+    pub port: u16,
+    pub ip_addresses: HashSet<IpAddr>,
+    pub broadcast_data: HashMap<String, String>,
 }

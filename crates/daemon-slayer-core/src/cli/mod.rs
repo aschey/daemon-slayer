@@ -12,4 +12,5 @@ pub use action::*;
 
 mod printer;
 pub use clap;
+pub use owo_colors::OwoColorize;
 pub use printer::*;

@@ -3,12 +3,14 @@ use std::fmt::Display;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::BroadcastEventStore;
 use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
-use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
+use mdns_sd::{IfKind, ServiceDaemon, ServiceEvent, ServiceInfo};
 use recap::Recap;
 use serde::{Deserialize, Serialize};
+use tap::TapFallible;
 use tokio::sync::broadcast;
+use tracing::{info, warn};
 
-use crate::ServiceProtocol;
+use crate::{get_default_interface, ServiceProtocol};
 
 #[derive(Deserialize, Serialize, Debug, Recap, Clone, PartialEq, Eq)]
 #[recap(
@@ -90,6 +92,11 @@ impl BackgroundService for MdnsQueryService {
 
     async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
         let mdns = ServiceDaemon::new()?;
+
+        if let Some(interface) = get_default_interface().await? {
+            mdns.disable_interface(IfKind::All).unwrap();
+            mdns.enable_interface(IfKind::Name(interface.name)).unwrap();
+        }
         let receiver = mdns.browse(&self.service_name.to_string()).unwrap();
 
         while let Ok(Ok(event)) = receiver
@@ -97,40 +104,34 @@ impl BackgroundService for MdnsQueryService {
             .cancel_on_shutdown(&context.cancellation_token())
             .await
         {
-            match event {
-                ServiceEvent::SearchStarted(service_type) => {
-                    self.event_tx
-                        .send(MdnsReceiverEvent::SearchStarted(service_type))
-                        .ok();
-                }
+            info!("mdns query event: {event:?}");
+            let res = match event {
+                ServiceEvent::SearchStarted(service_type) => self
+                    .event_tx
+                    .send(MdnsReceiverEvent::SearchStarted(service_type)),
                 ServiceEvent::ServiceFound(service_type, full_name) => {
-                    self.event_tx
-                        .send(MdnsReceiverEvent::ServiceFound {
-                            service_type,
-                            full_name,
-                        })
-                        .ok();
+                    self.event_tx.send(MdnsReceiverEvent::ServiceFound {
+                        service_type,
+                        full_name,
+                    })
                 }
                 ServiceEvent::ServiceResolved(info) => {
-                    self.event_tx
-                        .send(MdnsReceiverEvent::ServiceResolved(info))
-                        .ok();
+                    self.event_tx.send(MdnsReceiverEvent::ServiceResolved(info))
                 }
                 ServiceEvent::ServiceRemoved(service_type, full_name) => {
-                    self.event_tx
-                        .send(MdnsReceiverEvent::ServiceRemoved {
-                            service_type,
-                            full_name,
-                        })
-                        .ok();
+                    self.event_tx.send(MdnsReceiverEvent::ServiceRemoved {
+                        service_type,
+                        full_name,
+                    })
                 }
-                ServiceEvent::SearchStopped(service_type) => {
-                    self.event_tx
-                        .send(MdnsReceiverEvent::SearchStopped(service_type))
-                        .ok();
-                }
-            }
+                ServiceEvent::SearchStopped(service_type) => self
+                    .event_tx
+                    .send(MdnsReceiverEvent::SearchStopped(service_type)),
+            };
+            res.tap_err(|e| warn!("failed to send message: {e:?}")).ok();
         }
+
+        mdns.shutdown().unwrap();
         Ok(())
     }
 }

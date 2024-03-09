@@ -6,13 +6,14 @@ use daemon_slayer_core::server::background_service::{BackgroundService, ServiceC
 use daemon_slayer_core::server::BroadcastEventStore;
 use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
 use gethostname::gethostname;
-use mdns_sd::{DaemonEvent, ServiceDaemon, ServiceInfo, UnregisterStatus};
+use mdns_sd::{DaemonEvent, IfKind, ServiceDaemon, ServiceInfo, UnregisterStatus};
 use recap::Recap;
 use serde::{Deserialize, Serialize};
+use tap::TapFallible;
 use tokio::sync::broadcast;
-use tracing::info;
+use tracing::{info, warn};
 
-use crate::{get_default_ip, ServiceMetadata, ServiceProtocol};
+use crate::{get_default_interface, ServiceMetadata, ServiceProtocol};
 
 #[derive(Deserialize, Serialize, Debug, Recap, Clone)]
 #[recap(
@@ -119,9 +120,9 @@ impl MdnsBroadcastService {
     }
 
     pub(crate) async fn get_monitor(&self) -> Result<(ServiceDaemon, String), BoxedError> {
-        let address = get_default_ip()
+        let (address, interface_name) = get_default_interface()
             .await?
-            .map(|ip| ip.to_string())
+            .map(|interface| (interface.ip().to_string(), interface.name))
             .unwrap_or_default();
 
         let hostname = gethostname().to_string_lossy().to_string();
@@ -137,8 +138,13 @@ impl MdnsBroadcastService {
 
         if address.is_empty() {
             service_info = service_info.enable_addr_auto();
+        } else {
+            info!("broadcasting on {address}");
+            mdns.disable_interface(IfKind::All).unwrap();
+            mdns.enable_interface(IfKind::Name(interface_name)).unwrap();
         }
         let service_fullname = service_info.get_fullname().to_owned();
+
         mdns.register(service_info)
             .expect("Failed to register mDNS service");
 
@@ -162,31 +168,24 @@ impl BackgroundService for MdnsBroadcastService {
             .await
         {
             info!("mdns register event: {event:?}");
-            match event {
+            let res = match event {
                 DaemonEvent::Announce(service_name, addresses) => {
-                    self.event_tx
-                        .send(MdnsBroadcastEvent::Announce {
-                            service_name,
-                            addresses,
-                        })
-                        .ok();
+                    self.event_tx.send(MdnsBroadcastEvent::Announce {
+                        service_name,
+                        addresses,
+                    })
                 }
-                DaemonEvent::IpAdd(addr) => {
-                    self.event_tx.send(MdnsBroadcastEvent::IpAdd(addr)).ok();
-                }
-                DaemonEvent::IpDel(addr) => {
-                    self.event_tx.send(MdnsBroadcastEvent::IpDel(addr)).ok();
-                }
-                DaemonEvent::Error(mdns_sd::Error::ParseIpAddr(err)) => {
-                    self.event_tx
-                        .send(MdnsBroadcastEvent::ParseIpAddrError(err))
-                        .ok();
-                }
+                DaemonEvent::IpAdd(addr) => self.event_tx.send(MdnsBroadcastEvent::IpAdd(addr)),
+                DaemonEvent::IpDel(addr) => self.event_tx.send(MdnsBroadcastEvent::IpDel(addr)),
+                DaemonEvent::Error(mdns_sd::Error::ParseIpAddr(err)) => self
+                    .event_tx
+                    .send(MdnsBroadcastEvent::ParseIpAddrError(err)),
                 DaemonEvent::Error(mdns_sd::Error::Msg(err)) => {
-                    self.event_tx.send(MdnsBroadcastEvent::Error(err)).ok();
+                    self.event_tx.send(MdnsBroadcastEvent::Error(err))
                 }
-                _ => {}
-            }
+                _ => Ok(0),
+            };
+            res.tap_err(|e| warn!("error sending message: {e:?}")).ok();
         }
 
         let receiver = mdns.unregister(&service_fullname).unwrap();
@@ -204,6 +203,7 @@ impl BackgroundService for MdnsBroadcastService {
             }
         }
 
+        mdns.shutdown().unwrap();
         Ok(())
     }
 }
