@@ -4,8 +4,8 @@ name = "socket-activated"
 version = "0.1.0"
 
 [dependencies]
-axum = "0.6.20"
-confique = "0.2.4"
+axum = "0.7.4"
+confique = "0.2.5"
 daemon-slayer = { path = "../../crates/daemon-slayer", features = [
     "client-standard",
     "server-standard",
@@ -20,9 +20,9 @@ daemon-slayer-logging = { path = "../../crates/daemon-slayer-logging", features 
 derive_more = { version = "0.99.17", default-features = false, features = [
     "as_ref",
 ] }
-serde = "1.0.192"
-tokio = { version = "1.34.0", features = ["macros", "rt-multi-thread"] }
-tower-http = { version = "0.4.4", features = ["trace"] }
+serde = "1.0.197"
+tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
+tower-http = { version = "0.5.2", features = ["trace"] }
 tracing = "0.1.40"
 
 [[bin]]

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::future::IntoFuture;
 use std::time::Duration;
 
 use axum::extract::{Path, State};
@@ -12,7 +13,7 @@ use daemon_slayer::cli::Cli;
 use daemon_slayer::config::cli::ConfigCliProvider;
 use daemon_slayer::config::server::ConfigService;
 use daemon_slayer::config::{AppConfig, ConfigDir};
-use daemon_slayer::core::{BoxedError, FutureExt, Label};
+use daemon_slayer::core::{BoxedError, FutureExt as CustomFutureExt, Label};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::color_eyre::eyre;
 use daemon_slayer::error_handler::ErrorSink;
@@ -270,7 +271,7 @@ impl Handler for ServiceHandler {
         if is_activated {
             app = app.layer(middleware::from_fn_with_state(
                 refresh_tx,
-                |State(tx): State<Sender<()>>, request, next: Next<_>| async move {
+                |State(tx): State<Sender<()>>, request, next: Next| async move {
                     tx.try_send(()).unwrap();
                     next.run(request).await
                 },
@@ -279,10 +280,8 @@ impl Handler for ServiceHandler {
 
         let mut signals = self.signal_store.subscribe_events();
 
-        if let Ok(res) = axum::Server::from_tcp(listener.into_std()?)
-            .unwrap()
-            .serve(app.into_make_service())
-            .with_graceful_shutdown(async {
+        if let Ok(res) = axum::serve(listener, app)
+            .with_graceful_shutdown(async move {
                 if is_activated {
                     loop {
                         let timeout = tokio::time::sleep(Duration::from_secs(10));
@@ -301,11 +300,11 @@ impl Handler for ServiceHandler {
                         }
                         return;
                     }
-                } else {
-                    signals.next().await;
-                    info!("Got shutdown signal");
                 }
+                signals.next().await;
+                info!("Got shutdown signal");
             })
+            .into_future()
             .cancel_on_shutdown_with_timeout(
                 &self.context.cancellation_token(),
                 Duration::from_secs(2),

@@ -13,9 +13,9 @@ derivative = "2"
 downcast-rs = { version = "1", optional = true }
 dyn-clonable = { version = "0.9", optional = true }
 futures = { version = "0.3" }
-owo-colors = { version = "3", optional = true }
+owo-colors = { version = "4", optional = true }
 pin-project-lite = "0.2"
-strum = { version = "0.25", features = ["derive"], optional = true }
+strum = { version = "0.26", features = ["derive"], optional = true }
 tap = "1"
 thiserror = "1"
 tokio = { version = "1", features = ["sync"] }
@@ -46,7 +46,7 @@ windows-sys = { version = "0.52", optional = true, features = [
 widestring = { version = "1", optional = true }
 
 [target.'cfg(target_os="linux")'.dependencies]
-zbus = { version = "3", optional = true, features = ["tokio"] }
+zbus = { version = "4", optional = true, features = ["tokio"] }
 
 [target.'cfg(target_os="macos")'.dependencies]
 shlex = { version = "1", optional = true }

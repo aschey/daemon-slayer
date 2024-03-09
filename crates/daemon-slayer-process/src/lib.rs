@@ -8,9 +8,7 @@ use bytesize::ByteSize;
 use chrono::{DateTime, Duration, Local, TimeZone, Utc};
 use daemon_slayer_core::cli::Printer;
 use serde::Serialize;
-use sysinfo::{
-    Pid, PidExt, Process, ProcessExt, ProcessRefreshKind, RefreshKind, Signal, System, SystemExt,
-};
+use sysinfo::{MemoryRefreshKind, Pid, Process, ProcessRefreshKind, RefreshKind, Signal, System};
 
 #[derive(Clone, Debug, Serialize)]
 #[readonly::make]
@@ -72,7 +70,7 @@ impl ProcessManager {
         let system = System::new_with_specifics(
             RefreshKind::new()
                 .with_processes(ProcessRefreshKind::everything())
-                .with_memory(),
+                .with_memory(MemoryRefreshKind::everything()),
         );
         Self {
             system,
@@ -105,10 +103,10 @@ impl ProcessManager {
 pub struct ProcessInfo {
     pub name: String,
     pub args: Vec<String>,
-    pub exe: PathBuf,
+    pub exe: Option<PathBuf>,
     pub pid: u32,
-    pub cwd: PathBuf,
-    pub root: PathBuf,
+    pub cwd: Option<PathBuf>,
+    pub root: Option<PathBuf>,
     pub memory: ByteSize,
     pub virtual_memory: ByteSize,
     pub parent_pid: Option<u32>,
@@ -136,10 +134,10 @@ impl ProcessInfo {
         Self {
             name: process.name().to_owned(),
             args: process.cmd().to_owned(),
-            exe: process.exe().to_owned(),
+            exe: process.exe().to_owned().map(|e| e.to_path_buf()),
             pid: pid.as_u32(),
-            cwd: process.cwd().to_owned(),
-            root: process.root().to_owned(),
+            cwd: process.cwd().map(|p| p.to_path_buf()),
+            root: process.root().map(|r| r.to_path_buf()),
             memory: ByteSize(process.memory()),
             virtual_memory: ByteSize(process.virtual_memory()),
             parent_pid: process.parent().map(|p| p.as_u32()),
@@ -220,10 +218,19 @@ impl ProcessInfo {
         Printer::default()
             .with_line("Name", &self.name)
             .with_line("Args", self.args.join(" "))
-            .with_line("Exe", self.exe.to_string_lossy().to_string())
+            .with_optional_line(
+                "Exe",
+                self.exe.as_ref().map(|e| e.to_string_lossy().to_string()),
+            )
             .with_line("Pid", self.pid.to_string())
-            .with_line("CWD", self.cwd.to_string_lossy().to_string())
-            .with_line("Root", self.root.to_string_lossy().to_string())
+            .with_optional_line(
+                "CWD",
+                self.cwd.as_ref().map(|c| c.to_string_lossy().to_string()),
+            )
+            .with_optional_line(
+                "Root",
+                self.root.as_ref().map(|r| r.to_string_lossy().to_string()),
+            )
             .with_line("Memory", self.memory.to_string())
             .with_line("Memory Percent", self.memory_percent(2))
             .with_line("Virtual Memory", self.virtual_memory.to_string())

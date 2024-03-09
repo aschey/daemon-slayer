@@ -494,7 +494,7 @@ fn get_label_area(num_labels: u16, left: Rect) -> (Rc<[Rect]>, Rc<[Rect]>) {
     let bounds: Vec<_> = (0..num_labels).map(|_| Constraint::Length(1)).collect();
     let vert_slices = horizontal()
         .margin(2)
-        .constraints([Constraint::Length(10), Constraint::Length(10)].as_ref())
+        .constraints([Constraint::Length(10), Constraint::Min(0)].as_ref())
         .split(left);
 
     let labels = Layout::default()

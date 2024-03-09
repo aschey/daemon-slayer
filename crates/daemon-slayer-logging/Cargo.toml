@@ -24,7 +24,7 @@ once_cell = "1"
 serde = { version = "1", optional = true }
 tap = "1"
 thiserror = "1"
-tilia = { git = "https://github.com/aschey/tilia", rev = "b241f0916761fdc06b40045e5c0a6e8d199e4834", features = [
+tilia = { git = "https://github.com/aschey/tilia", rev = "6dd5ae029904aa95e711670853f9700738f9da97", features = [
     "ipc",
 ], optional = true }
 time = "0.3"

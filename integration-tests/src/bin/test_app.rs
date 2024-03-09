@@ -68,10 +68,12 @@ impl Handler for ServiceHandler {
 
         notify_ready();
         info!("started");
+        let listener = tokio::net::TcpListener::bind(integration_tests::address())
+            .await
+            .unwrap();
         let mut signal_rx = self.signal_store.subscribe_events();
-        axum::Server::bind(&integration_tests::address())
-            .serve(app.into_make_service())
-            .with_graceful_shutdown(async {
+        axum::serve(listener, app)
+            .with_graceful_shutdown(async move {
                 let _ = signal_rx.next().await;
             })
             .await

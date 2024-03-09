@@ -75,7 +75,7 @@ async fn main() {
                 "{} {} {}",
                 status.name,
                 status.id,
-                status.timestamp.map(|t| t.to_string()).unwrap_or_default()
+                status.timestamp.map(|t| t.seconds).unwrap_or_default()
             );
         }
 

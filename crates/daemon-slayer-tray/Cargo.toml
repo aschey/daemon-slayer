@@ -7,6 +7,6 @@ version = "0.1.0"
 async-trait = "0.1"
 daemon-slayer-client = { path = "../daemon-slayer-client" }
 image = "0.24"
-tao = "0.23.0"
+tao = "0.26"
 tokio = { version = "1", features = ["sync", "macros", "time"] }
-tray-icon = "0.10"
+tray-icon = "0.12"
