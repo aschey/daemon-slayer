@@ -44,8 +44,13 @@ impl DiscoveryQueryService {
             service_protocol,
             discovery_impl: match discovery_protocol {
                 DiscoveryProtocol::Mdns => DiscoveryImpl::Mdns(mdns_name),
-                DiscoveryProtocol::Udp => DiscoveryImpl::Udp(UdpQueryService::new()),
-                DiscoveryProtocol::Both => DiscoveryImpl::Both(mdns_name, UdpQueryService::new()),
+                DiscoveryProtocol::Udp { port } => {
+                    DiscoveryImpl::Udp(UdpQueryService::new().with_broadcast_port(port))
+                }
+                DiscoveryProtocol::Both { udp_port } => DiscoveryImpl::Both(
+                    mdns_name,
+                    UdpQueryService::new().with_broadcast_port(udp_port),
+                ),
             },
         }
     }
@@ -95,6 +100,11 @@ async fn run_mdns(
                 })
                 .unwrap();
         }
+    }
+
+    let shutdown_rx = mdns.shutdown().unwrap();
+    while let Ok(event) = shutdown_rx.recv_async().await {
+        info!("mdns shutdown event: {event:?}");
     }
 
     Ok(())

@@ -7,6 +7,6 @@ pub use query::*;
 #[derive(Debug, Clone, Copy)]
 pub enum DiscoveryProtocol {
     Mdns,
-    Udp,
-    Both,
+    Udp { port: u16 },
+    Both { udp_port: u16 },
 }

@@ -14,9 +14,9 @@ pub fn run_argument() -> CommandArg {
 }
 
 pub const SOCKET_NAME: &str = "test_socket";
-pub fn sockets() -> Vec<ActivationSocketConfig> {
+pub fn sockets(port: u32) -> Vec<ActivationSocketConfig> {
     vec![ActivationSocketConfig::new_tcp(
         SOCKET_NAME,
-        "0.0.0.0:9000".parse::<SocketAddr>().unwrap(),
+        format!("0.0.0.0:{port}").parse::<SocketAddr>().unwrap(),
     )]
 }

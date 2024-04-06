@@ -97,7 +97,9 @@ impl BackgroundService for UdpBroadcastService {
                         .tap_err(|e| error!("error serializing service info {e:?}"))
                         .is_ok()
                     {
-                        framed.send((Bytes::from(buf), dest)).await.unwrap();
+                        if let Err(e) = framed.send((Bytes::from(buf), dest)).await {
+                            error!("error sending service info: {e:?}");
+                        }
                     }
                 }
                 _ = cancellation_token.cancelled() => {

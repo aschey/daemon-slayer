@@ -7,7 +7,7 @@ use daemon_slayer_core::server::{BroadcastEventStore, EventStore};
 use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
 use futures::StreamExt;
 use gethostname::gethostname;
-use mdns_sd::{DaemonEvent, IfKind, ServiceDaemon, ServiceInfo, UnregisterStatus};
+use mdns_sd::{DaemonEvent, DaemonStatus, IfKind, ServiceDaemon, ServiceInfo, UnregisterStatus};
 use recap::Recap;
 use serde::{Deserialize, Serialize};
 use tap::TapFallible;
@@ -93,6 +93,8 @@ pub enum MdnsBroadcastEvent {
     Error(String),
     Unregistered,
     RegistrationMissing,
+    ShuttingDown,
+    ShutDown,
 }
 
 pub struct MdnsBroadcastService {
@@ -181,7 +183,7 @@ impl MdnsBroadcastService {
         res.tap_err(|e| warn!("error sending message: {e:?}")).ok();
     }
 
-    async fn handle_route_change(
+    pub(crate) async fn handle_route_change(
         &self,
         mdns: &ServiceDaemon,
         service_fullname: &str,
@@ -262,7 +264,18 @@ impl BackgroundService for MdnsBroadcastService {
             }
         }
 
-        mdns.shutdown().unwrap();
+        let shutdown_rx = mdns.shutdown().unwrap();
+        while let Ok(event) = shutdown_rx.recv_async().await {
+            match event {
+                DaemonStatus::Running => {
+                    self.event_tx.send(MdnsBroadcastEvent::ShuttingDown).ok();
+                }
+                DaemonStatus::Shutdown => {
+                    self.event_tx.send(MdnsBroadcastEvent::ShutDown).ok();
+                }
+                _ => {}
+            }
+        }
         Ok(())
     }
 }

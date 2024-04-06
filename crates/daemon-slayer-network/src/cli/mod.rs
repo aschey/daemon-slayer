@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use daemon_slayer_core::cli::clap::{self, Args, FromArgMatches, Subcommand};
 use daemon_slayer_core::cli::{
     ActionType, CommandMatch, CommandOutput, CommandProvider, OwoColorize, Printer,
@@ -10,8 +8,7 @@ use daemon_slayer_core::{async_trait, BoxedError, CancellationToken};
 use futures::StreamExt;
 
 use crate::mdns::{
-    MdnsBroadcastEvent, MdnsBroadcastName, MdnsBroadcastService, MdnsQueryName, MdnsQueryService,
-    MdnsReceiverEvent,
+    MdnsBroadcastName, MdnsBroadcastService, MdnsQueryName, MdnsQueryService, MdnsReceiverEvent,
 };
 use crate::{get_default_interface_from_route, get_default_route, ServiceProtocol};
 
@@ -94,6 +91,8 @@ impl CommandProvider for NetworkCliProvider {
                     4321,
                     None,
                 );
+                let mut broadcast_events =
+                    mdns_broadcast_service.get_event_store().subscribe_events();
 
                 // let mut mdns_broadcast_events =
                 //     mdns_broadcast_service.get_event_store().subscribe_events();
@@ -113,10 +112,11 @@ impl CommandProvider for NetworkCliProvider {
                 }
 
                 service_manager.cancel().await.unwrap();
+                while let Some(Ok(_)) = broadcast_events.next().await {}
                 if service_resolved {
-                    CommandOutput::handled("service resolved".green().to_string())
+                    CommandOutput::handled("success - service resolved\n".green().to_string())
                 } else {
-                    CommandOutput::handled("service not resolved".to_string())
+                    CommandOutput::handled("error - service not resolved\n".red().to_string())
                 }
             }
         });

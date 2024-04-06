@@ -4,7 +4,7 @@ use daemon_slayer_core::server::background_service::{BackgroundService, ServiceC
 use daemon_slayer_core::server::{BroadcastEventStore, EventStore};
 use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
 use futures::StreamExt;
-use mdns_sd::{IfKind, ServiceDaemon, ServiceEvent, ServiceInfo};
+use mdns_sd::{DaemonStatus, IfKind, ServiceDaemon, ServiceEvent, ServiceInfo};
 use recap::Recap;
 use serde::{Deserialize, Serialize};
 use tap::TapFallible;
@@ -65,6 +65,8 @@ pub enum MdnsReceiverEvent {
         full_name: String,
     },
     SearchStopped(String),
+    ShuttingDown,
+    ShutDown,
 }
 
 pub struct MdnsQueryService {
@@ -142,7 +144,7 @@ impl BackgroundService for MdnsQueryService {
                     }
                 }
                 event = route_events.next() => {
-                    if let Some(Ok(event)) = event {
+                    if let Some(Ok(_)) = event {
                         info!("route change");
                         if let Some(interface) = get_default_interface().await? {
                             mdns.disable_interface(IfKind::All).unwrap();
@@ -158,7 +160,18 @@ impl BackgroundService for MdnsQueryService {
             }
         }
 
-        mdns.shutdown().unwrap();
+        let shutdown_rx = mdns.shutdown().unwrap();
+        while let Ok(event) = shutdown_rx.recv_async().await {
+            match event {
+                DaemonStatus::Running => {
+                    self.event_tx.send(MdnsReceiverEvent::ShuttingDown).ok();
+                }
+                DaemonStatus::Shutdown => {
+                    self.event_tx.send(MdnsReceiverEvent::ShutDown).ok();
+                }
+                _ => {}
+            }
+        }
         Ok(())
     }
 }

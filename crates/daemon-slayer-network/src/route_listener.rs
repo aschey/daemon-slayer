@@ -10,6 +10,12 @@ pub struct RouteListenerService {
     event_tx: broadcast::Sender<RouteChange>,
 }
 
+impl Default for RouteListenerService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RouteListenerService {
     pub fn new() -> Self {
         let (event_tx, _) = broadcast::channel(32);
@@ -33,7 +39,6 @@ impl BackgroundService for RouteListenerService {
 
         futures::pin_mut!(stream);
 
-        info!("HERE");
         while let Ok(Some(value)) = stream
             .next()
             .cancel_on_shutdown(&context.cancellation_token())
@@ -42,7 +47,7 @@ impl BackgroundService for RouteListenerService {
             info!("route change {value:?}");
             self.event_tx.send(value).ok();
         }
-        info!("HERE2");
+
         Ok(())
     }
 }
