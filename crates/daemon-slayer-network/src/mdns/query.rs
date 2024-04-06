@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::{BroadcastEventStore, EventStore};
-use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
+use daemon_slayer_core::{async_trait, BoxedError};
 use futures::StreamExt;
 use mdns_sd::{DaemonStatus, IfKind, ServiceDaemon, ServiceEvent, ServiceInfo};
 use recap::Recap;

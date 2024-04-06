@@ -1,7 +1,7 @@
 use std::env::consts::EXE_EXTENSION;
-use std::io;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::{env, io};
 
 #[cfg(feature = "docker")]
 use bollard::container;
@@ -150,6 +150,15 @@ impl Builder {
     pub fn with_autostart(mut self, autostart: bool) -> Self {
         self.autostart = autostart;
         self
+    }
+
+    pub fn with_environment_variable_if_exists(self, variable: impl Into<String>) -> Self {
+        let variable = variable.into();
+        if let Ok(value) = env::var(&variable) {
+            self.with_environment_variable(variable, value)
+        } else {
+            self
+        }
     }
 
     pub fn with_environment_variable(
