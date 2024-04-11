@@ -1,7 +1,8 @@
 use std::io;
 use std::time::Duration;
 
-use daemon_slayer_core::{async_trait, Label};
+use async_trait::async_trait;
+use daemon_slayer_core::Label;
 use regex::Regex;
 use registry::{Data, Hive, Security};
 use utfx::U16CString;

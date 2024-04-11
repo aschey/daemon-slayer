@@ -4,7 +4,8 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
-use daemon_slayer_core::{async_trait, socket_activation, Label};
+use async_trait::async_trait;
+use daemon_slayer_core::{socket_activation, Label};
 use launchd::sockets::SocketFamily;
 use launchd::{Launchd, SocketOptions, Sockets};
 use once_cell::sync::Lazy;
