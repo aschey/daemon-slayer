@@ -4,7 +4,7 @@ use std::sync::Arc;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::tokio_stream::StreamExt;
 use daemon_slayer_core::server::{BroadcastEventStore, EventStore};
-use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
+use daemon_slayer_core::{BoxedError, FutureExt};
 
 use crate::{ReloadHandle, UserConfig};
 
@@ -28,13 +28,12 @@ impl<T: LoggingConfig> LoggingUpdateService<T> {
     }
 }
 
-#[async_trait]
 impl<T: LoggingConfig> BackgroundService for LoggingUpdateService<T> {
     fn name(&self) -> &str {
         "logging_update_service"
     }
 
-    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let mut rx = self.file_events.subscribe_events();
         while let Ok(Some(Ok((_, new)))) = rx
             .next()

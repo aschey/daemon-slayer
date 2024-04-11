@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::{BroadcastEventStore, EventStore};
-use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
+use daemon_slayer_core::{BoxedError, FutureExt};
 use daemon_slayer_file_watcher::FileWatcher;
 use futures::stream::StreamExt;
 use tap::TapFallible;
@@ -33,7 +33,6 @@ where
     }
 }
 
-#[async_trait]
 impl<T> BackgroundService for ConfigService<T>
 where
     T: Configurable,
@@ -42,7 +41,7 @@ where
         "config_service"
     }
 
-    async fn run(mut self, mut context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, mut context: ServiceContext) -> Result<(), BoxedError> {
         let file_watcher = FileWatcher::builder()
             .with_watch_path(self.config.full_path())
             .build();

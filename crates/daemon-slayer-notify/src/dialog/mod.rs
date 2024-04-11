@@ -2,8 +2,9 @@ use std::env::{self, current_exe};
 use std::io;
 use std::marker::PhantomData;
 
+use async_trait::async_trait;
 use daemon_slayer_core::notify::BlockingNotification;
-use daemon_slayer_core::{async_trait, process, Label};
+use daemon_slayer_core::{process, Label};
 use native_dialog::MessageType;
 
 use super::AsyncNotification;

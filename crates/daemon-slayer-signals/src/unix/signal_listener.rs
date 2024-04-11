@@ -3,7 +3,7 @@ use std::ffi::c_int;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::BroadcastEventStore;
 use daemon_slayer_core::signal::{self, Signal};
-use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
+use daemon_slayer_core::{BoxedError, FutureExt};
 use futures::stream::StreamExt;
 use signal_hook_tokio::SignalsInfo;
 use tokio::sync::broadcast;
@@ -69,13 +69,12 @@ impl signal::Handler for SignalListener {
     }
 }
 
-#[async_trait]
 impl BackgroundService for SignalListener {
     fn name(&self) -> &str {
         "signal_listener_service"
     }
 
-    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let signals_handle = self.signals.handle();
         let cancellation_token = context.cancellation_token();
         let mut signals = self.signals.fuse();

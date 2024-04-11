@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use daemon_slayer_core::server::{BroadcastEventStore, DedupeEventStore, EventStore};
-use daemon_slayer_core::{async_trait, BoxedError, CancellationToken, FutureExt};
+use daemon_slayer_core::{BoxedError, CancellationToken, FutureExt};
 use futures::StreamExt;
 use mdns_sd::{ServiceDaemon, ServiceEvent};
 use tokio::sync::broadcast;
@@ -144,13 +144,12 @@ async fn run_udp(
     Ok(())
 }
 
-#[async_trait]
 impl BackgroundService for DiscoveryQueryService {
     fn name(&self) -> &str {
         "discovery_query_service"
     }
 
-    async fn run(mut self, mut context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, mut context: ServiceContext) -> Result<(), BoxedError> {
         let sender = self.event_tx.clone();
         let cancellation_token = context.cancellation_token();
         match self.discovery_impl {

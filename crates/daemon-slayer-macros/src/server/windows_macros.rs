@@ -31,7 +31,6 @@ pub(crate) fn define_service(ident: Ident, crate_name: proc_macro2::TokenStream)
                 .expect("Failed to send service result");
         }
 
-        #[#crate_name::async_trait]
         impl #crate_name::Service for #ident {
             async fn run_as_service(input_data: Option<Self::InputData>) -> std::result::Result<(),
             #crate_name::ServiceError<Self::Error>> {

@@ -73,7 +73,6 @@ impl FileWatcher {
     }
 }
 
-#[async_trait::async_trait]
 impl BackgroundService for FileWatcher {
     fn name(&self) -> &str {
         "file_watcher_service"

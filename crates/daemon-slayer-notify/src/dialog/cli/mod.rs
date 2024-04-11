@@ -1,7 +1,8 @@
+use async_trait::async_trait;
 use daemon_slayer_core::cli::clap::{self, Args, FromArgMatches, Subcommand};
 use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandOutput, CommandProvider};
 use daemon_slayer_core::notify::BlockingNotification;
-use daemon_slayer_core::{async_trait, BoxedError, Label};
+use daemon_slayer_core::{BoxedError, Label};
 use native_dialog::MessageType;
 use tap::TapFallible;
 use tracing::error;

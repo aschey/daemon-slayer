@@ -16,7 +16,7 @@ use daemon_slayer_core::health_check::HealthCheck;
 use daemon_slayer_core::server::background_service::{
     self, BackgroundService, BackgroundServiceManager, ServiceContext,
 };
-use daemon_slayer_core::{async_trait, BoxedError, CancellationToken, FutureExt};
+use daemon_slayer_core::{BoxedError, CancellationToken, FutureExt};
 use futures::StreamExt;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
@@ -59,7 +59,6 @@ impl HealthChecker {
     }
 }
 
-#[async_trait]
 impl BackgroundService for HealthChecker {
     fn name(&self) -> &str {
         "health_check_service"

@@ -1,20 +1,22 @@
+use std::future::Future;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
-use async_trait::async_trait;
 use daemon_slayer_client::{ServiceManager, State};
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
 use tray_icon::menu::{Menu, MenuEvent, MenuId, MenuItem};
 use tray_icon::{Icon, TrayIcon, TrayIconBuilder, TrayIconEvent};
 
-#[async_trait]
 pub trait MenuHandler: Send + Sync {
-    async fn refresh_state(&mut self);
+    fn refresh_state(&mut self) -> impl Future<Output = ()> + Send;
     fn build_menu(&mut self) -> Menu;
     fn build_tray(&mut self, menu: &Menu) -> TrayIcon;
     fn update_menu(&self, menu: &Menu);
-    async fn handle_menu_event(&mut self, event: MenuEvent) -> ControlFlow;
-    async fn handle_tray_event(&mut self, event: TrayIconEvent) -> ControlFlow;
+    fn handle_menu_event(&mut self, event: MenuEvent) -> impl Future<Output = ControlFlow> + Send;
+    fn handle_tray_event(
+        &mut self,
+        event: TrayIconEvent,
+    ) -> impl Future<Output = ControlFlow> + Send;
 }
 
 pub struct DefaultMenuHandler {
@@ -26,7 +28,6 @@ pub struct DefaultMenuHandler {
     quit_id: MenuId,
 }
 
-#[async_trait]
 impl MenuHandler for DefaultMenuHandler {
     async fn refresh_state(&mut self) {
         self.current_state = self.manager.status().await.unwrap().state;

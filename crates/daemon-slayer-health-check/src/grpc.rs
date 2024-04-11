@@ -1,7 +1,8 @@
 use std::error::Error;
 
+use async_trait::async_trait;
 use daemon_slayer_core::health_check::HealthCheck;
-use daemon_slayer_core::{async_trait, BoxedError};
+use daemon_slayer_core::BoxedError;
 use tonic_health::pb::health_check_response::ServingStatus;
 use tonic_health::pb::health_client::HealthClient;
 use tonic_health::pb::HealthCheckRequest;

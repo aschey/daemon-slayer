@@ -12,6 +12,7 @@ readonly = "0.2"
 serde = "1"
 strum = { version = "0.26", features = ["derive"] }
 sysinfo = "0.30"
+async-trait = { version = "0.1", optional = true }
 
 [features]
-cli = ["daemon-slayer-core/cli"]
+cli = ["daemon-slayer-core/cli", "async-trait"]

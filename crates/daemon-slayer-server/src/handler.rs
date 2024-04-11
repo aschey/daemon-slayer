@@ -1,17 +1,17 @@
 use std::fmt;
 
 use daemon_slayer_core::server::background_service::{self, ServiceContext};
-use daemon_slayer_core::{async_trait, Label};
+use daemon_slayer_core::Label;
+use futures::Future;
 
-#[async_trait]
 pub trait Handler: Sized + Send + Sync + 'static {
     type InputData: Clone + Send + Sync + 'static;
     type Error: fmt::Debug + Send + Sync + 'static;
 
-    async fn new(
+    fn new(
         context: ServiceContext,
         input_data: Option<Self::InputData>,
-    ) -> Result<Self, Self::Error>;
+    ) -> impl Future<Output = Result<Self, Self::Error>> + Send;
 
     fn background_service_settings() -> background_service::Settings {
         background_service::Settings::default()
@@ -19,5 +19,8 @@ pub trait Handler: Sized + Send + Sync + 'static {
 
     fn label() -> Label;
 
-    async fn run_service<F: FnOnce() + Send>(self, notify_ready: F) -> Result<(), Self::Error>;
+    fn run_service<F: FnOnce() + Send>(
+        self,
+        notify_ready: F,
+    ) -> impl Future<Output = Result<(), Self::Error>> + Send;
 }

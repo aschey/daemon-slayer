@@ -4,7 +4,7 @@ use std::net::IpAddr;
 
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::{BroadcastEventStore, EventStore};
-use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
+use daemon_slayer_core::{BoxedError, FutureExt};
 use futures::StreamExt;
 use gethostname::gethostname;
 use mdns_sd::{DaemonEvent, DaemonStatus, IfKind, ServiceDaemon, ServiceInfo, UnregisterStatus};
@@ -209,13 +209,12 @@ impl MdnsBroadcastService {
     }
 }
 
-#[async_trait]
 impl BackgroundService for MdnsBroadcastService {
     fn name(&self) -> &str {
         "mdns_broadcast_service"
     }
 
-    async fn run(mut self, mut context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, mut context: ServiceContext) -> Result<(), BoxedError> {
         let (mdns, service_fullname) = self.get_monitor().await?;
         let monitor = mdns.monitor().unwrap();
         let route_service = RouteListenerService::new();

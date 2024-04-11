@@ -26,7 +26,6 @@ pub struct ServiceHandler {
     signal_store: BroadcastEventStore<Signal>,
 }
 
-#[daemon_slayer::core::async_trait]
 impl Handler for ServiceHandler {
     type Error = BoxedError;
     type InputData = ();
@@ -46,7 +45,7 @@ impl Handler for ServiceHandler {
         Ok(Self { signal_store })
     }
 
-    async fn run_service<F: FnOnce() + Send>(mut self, notify_ready: F) -> Result<(), Self::Error> {
+    async fn run_service<F: FnOnce() + Send>(self, notify_ready: F) -> Result<(), Self::Error> {
         println!("running service");
         notify_ready();
 

@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::{BroadcastEventStore, EventStore};
-use daemon_slayer_core::{async_trait, BoxedError};
+use daemon_slayer_core::BoxedError;
 use futures::StreamExt;
 use mdns_sd::{DaemonStatus, IfKind, ServiceDaemon, ServiceEvent, ServiceInfo};
 use recap::Recap;
@@ -116,13 +116,12 @@ impl MdnsQueryService {
     }
 }
 
-#[async_trait]
 impl BackgroundService for MdnsQueryService {
     fn name(&self) -> &str {
         "mdns_query_service"
     }
 
-    async fn run(mut self, mut context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, mut context: ServiceContext) -> Result<(), BoxedError> {
         let mdns = ServiceDaemon::new()?;
 
         if let Some(interface) = get_default_interface().await? {

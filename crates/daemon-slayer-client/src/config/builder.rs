@@ -98,7 +98,7 @@ pub struct Builder {
     pub(crate) service_type: ServiceType,
     #[cfg(feature = "docker")]
     #[derivative(Debug = "ignore")]
-    pub(crate) configure_container: Option<Arc<Box<ContainerConfigFn>>>,
+    pub(crate) configure_container: Option<Arc<ContainerConfigFn>>,
 }
 
 impl Builder {
@@ -223,7 +223,7 @@ impl Builder {
         mut self,
         configure_container: impl Fn(&mut container::Config<String>) + Send + Sync + 'static,
     ) -> Self {
-        self.configure_container = Some(Arc::new(Box::new(configure_container)));
+        self.configure_container = Some(Arc::new(configure_container));
         self
     }
 

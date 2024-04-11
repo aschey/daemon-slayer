@@ -4,7 +4,7 @@ use daemon_slayer_core::notify::AsyncNotification;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::tokio_stream::StreamExt;
 use daemon_slayer_core::server::EventStore;
-use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
+use daemon_slayer_core::{BoxedError, FutureExt};
 use tap::TapFallible;
 use tracing::error;
 
@@ -41,7 +41,6 @@ where
     }
 }
 
-#[async_trait]
 impl<E, F, N> BackgroundService for NotificationService<E, F>
 where
     E: EventStore + Send,

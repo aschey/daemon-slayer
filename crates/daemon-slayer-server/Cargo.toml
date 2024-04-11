@@ -16,6 +16,7 @@ tap = "1"
 thiserror = "1"
 tracing = "0.1"
 parity-tokio-ipc = { git = "https://github.com/aschey/parity-tokio-ipc", rev = "588198a0abb32a79f6f3e656ff0472008e4ba9b8" }
+async-trait = { version = "0.1", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 registry = "1"
@@ -28,6 +29,7 @@ tokio = { version = "1", features = [
     "sync",
 ] }
 windows-service = { git = "https://github.com/aschey/windows-service-rs", rev = "32919aebe4c59f7855a8ebd72fe7d716db6a8f28" }
+
 
 [target.'cfg(unix)'.dependencies]
 tokio = { version = "1", features = [
@@ -46,5 +48,5 @@ sd-listen-fds = { version = "0.2", optional = true }
 raunch = { version = "1", optional = true }
 
 [features]
-cli = ["daemon-slayer-core/cli"]
+cli = ["daemon-slayer-core/cli", "async-trait"]
 socket-activation = ["sd-listen-fds", "raunch"]

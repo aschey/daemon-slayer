@@ -1,10 +1,11 @@
+use async_trait::async_trait;
 use daemon_slayer_core::cli::clap::{self, Args, FromArgMatches, Subcommand};
 use daemon_slayer_core::cli::{
     ActionType, CommandMatch, CommandOutput, CommandProvider, OwoColorize, Printer,
 };
 use daemon_slayer_core::server::background_service::BackgroundServiceManager;
 use daemon_slayer_core::server::EventStore;
-use daemon_slayer_core::{async_trait, BoxedError, CancellationToken};
+use daemon_slayer_core::{BoxedError, CancellationToken};
 use futures::StreamExt;
 
 use crate::mdns::{

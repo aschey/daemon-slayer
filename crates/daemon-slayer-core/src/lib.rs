@@ -20,7 +20,6 @@ use std::error::Error;
 use std::fmt::Display;
 use std::str::FromStr;
 
-pub use async_trait::async_trait;
 #[cfg(feature = "daemon-slayer-macros")]
 pub use daemon_slayer_macros::*;
 pub use futures_cancel::*;

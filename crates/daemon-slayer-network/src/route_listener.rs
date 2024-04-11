@@ -1,6 +1,6 @@
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::BroadcastEventStore;
-use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
+use daemon_slayer_core::{BoxedError, FutureExt};
 use futures::StreamExt;
 use net_route::RouteChange;
 use tokio::sync::broadcast;
@@ -27,13 +27,12 @@ impl RouteListenerService {
     }
 }
 
-#[async_trait]
 impl BackgroundService for RouteListenerService {
     fn name(&self) -> &str {
         "route_listener_service"
     }
 
-    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let handle = net_route::Handle::new().unwrap();
         let stream = handle.route_listen_stream();
 

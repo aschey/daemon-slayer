@@ -108,7 +108,6 @@ pub struct ServiceHandler {
     context: ServiceContext,
 }
 
-#[daemon_slayer::core::async_trait]
 impl Handler for ServiceHandler {
     type Error = BoxedError;
     type InputData = AppData;
@@ -181,7 +180,7 @@ impl Handler for ServiceHandler {
         })
     }
 
-    async fn run_service<F: FnOnce() + Send>(mut self, notify_ready: F) -> Result<(), Self::Error> {
+    async fn run_service<F: FnOnce() + Send>(self, notify_ready: F) -> Result<(), Self::Error> {
         info!("running service");
         notify_ready();
 

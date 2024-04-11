@@ -20,9 +20,10 @@ tap = "1"
 thiserror = "1"
 tokio = "1"
 tracing = "0.1"
+async-trait = { version = "0.1", optional = true }
 
 [features]
-cli = ["daemon-slayer-core/cli"]
+cli = ["daemon-slayer-core/cli", "async-trait"]
 pretty-print = ["bat"]
 server = ["daemon-slayer-core/server"]
 

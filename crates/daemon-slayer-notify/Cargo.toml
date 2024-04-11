@@ -19,6 +19,7 @@ native-dialog = { version = "0.7", features = [
     "windows_visual_styles",
 ], optional = true }
 tap = "1"
+async-trait = "0.1"
 
 [features]
 cli = ["daemon-slayer-core/cli"]

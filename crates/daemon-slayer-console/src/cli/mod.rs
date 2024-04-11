@@ -1,6 +1,7 @@
+use async_trait::async_trait;
 use daemon_slayer_core::cli::clap::{self, FromArgMatches, Subcommand};
-use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandOutput};
-use daemon_slayer_core::{async_trait, BoxedError};
+use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandOutput, CommandProvider};
+use daemon_slayer_core::BoxedError;
 
 use crate::Console;
 
@@ -24,7 +25,7 @@ impl ConsoleCliProvider {
     }
 }
 #[async_trait]
-impl daemon_slayer_core::cli::CommandProvider for ConsoleCliProvider {
+impl CommandProvider for ConsoleCliProvider {
     fn get_commands(&self, command: clap::Command) -> clap::Command {
         CliCommands::augment_subcommands(command)
     }

@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 use std::io;
 
+use async_trait::async_trait;
 use bollard::container::{
     CreateContainerOptions, ListContainersOptions, RemoveContainerOptions, UpdateContainerOptions,
 };
 use bollard::service::{ContainerState, HostConfig, RestartPolicy, RestartPolicyNameEnum};
 use bollard::Docker;
-use daemon_slayer_core::{async_trait, Label};
+use daemon_slayer_core::Label;
 
 use crate::config::{Builder, Config};
 use crate::{Command, Manager, State, Status};

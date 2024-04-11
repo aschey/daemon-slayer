@@ -1,6 +1,6 @@
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::EventStore;
-use daemon_slayer_core::{async_trait, BoxedError};
+use daemon_slayer_core::BoxedError;
 use futures::StreamExt;
 use tracing::info;
 
@@ -98,13 +98,12 @@ async fn run_mdns(
     Ok(())
 }
 
-#[async_trait]
 impl BackgroundService for DiscoveryBroadcastService {
     fn name(&self) -> &str {
         "discovery_broadcast_service"
     }
 
-    async fn run(mut self, mut context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, mut context: ServiceContext) -> Result<(), BoxedError> {
         match self.discovery_impl {
             DiscoveryImpl::Mdns(mdns_service) => {
                 run_mdns(mdns_service, context).await?;

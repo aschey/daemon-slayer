@@ -108,7 +108,6 @@ pub struct ServiceHandler {
     context: ServiceContext,
 }
 
-#[daemon_slayer::core::async_trait]
 impl Handler for ServiceHandler {
     type Error = BoxedError;
     type InputData = AppData;

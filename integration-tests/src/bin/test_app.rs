@@ -39,7 +39,6 @@ pub struct ServiceHandler {
     signal_store: BroadcastEventStore<Signal>,
 }
 
-#[async_trait::async_trait]
 impl Handler for ServiceHandler {
     type InputData = ();
     type Error = BoxedError;
@@ -59,7 +58,7 @@ impl Handler for ServiceHandler {
         integration_tests::label()
     }
 
-    async fn run_service<F: FnOnce() + Send>(mut self, notify_ready: F) -> Result<(), Self::Error> {
+    async fn run_service<F: FnOnce() + Send>(self, notify_ready: F) -> Result<(), Self::Error> {
         info!("running service");
 
         let app = Router::new()

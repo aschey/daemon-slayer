@@ -2,7 +2,7 @@ use std::io;
 
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::BroadcastEventStore;
-use daemon_slayer_core::{async_trait, BoxedError, FutureExt};
+use daemon_slayer_core::{BoxedError, FutureExt};
 use futures::{Stream, StreamExt};
 use serde::Deserialize;
 use tokio::net::UdpSocket;
@@ -62,13 +62,12 @@ impl UdpQueryService {
     }
 }
 
-#[async_trait]
 impl BackgroundService for UdpQueryService {
     fn name(&self) -> &str {
         "udp_query_service"
     }
 
-    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let mut framed = self.get_framed().await;
 
         let mut last_result = ServiceInfo::default();

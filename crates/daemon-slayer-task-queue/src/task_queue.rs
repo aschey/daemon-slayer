@@ -46,7 +46,7 @@ impl TaskQueue {
         info!("Running job server");
         self.runner
             .run_with_shutdown(
-                Duration::seconds(1),
+                Duration::try_seconds(1).unwrap(),
                 Box::pin(async move { cancellation_token.cancelled().await }),
             )
             .await

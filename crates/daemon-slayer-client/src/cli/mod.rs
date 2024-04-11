@@ -2,11 +2,12 @@ use std::io;
 use std::process::Stdio;
 use std::time::Duration;
 
+use async_trait::async_trait;
 use daemon_slayer_core::cli::clap::{self, FromArgMatches, Subcommand};
 use daemon_slayer_core::cli::{
     Action, ActionType, ClientAction, CommandMatch, CommandOutput, CommandProvider,
 };
-use daemon_slayer_core::{async_trait, BoxedError};
+use daemon_slayer_core::BoxedError;
 use owo_colors::OwoColorize;
 use spinoff::Spinner;
 pub use spinoff::{spinners, Color};

@@ -4,7 +4,6 @@ name = "daemon-slayer-file-watcher"
 version = "0.1.0"
 
 [dependencies]
-async-trait = "0.1"
 daemon-slayer-core = { path = "../daemon-slayer-core", features = ["server"] }
 futures = { version = "0.3", optional = true }
 notify = { version = "6", default-features = false, features = [

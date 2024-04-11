@@ -4,9 +4,8 @@ name = "daemon-slayer-tray"
 version = "0.1.0"
 
 [dependencies]
-async-trait = "0.1"
 daemon-slayer-client = { path = "../daemon-slayer-client" }
-image = "0.24"
-tao = "0.26"
+image = "0.25"
+tao = "0.27"
 tokio = { version = "1", features = ["sync", "macros", "time"] }
-tray-icon = "0.12"
+tray-icon = "0.13"

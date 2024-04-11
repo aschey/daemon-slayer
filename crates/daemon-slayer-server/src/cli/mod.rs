@@ -1,11 +1,12 @@
 use std::marker::PhantomData;
 
+use async_trait::async_trait;
 use daemon_slayer_core::cli::clap::parser::ValueSource;
 use daemon_slayer_core::cli::clap::{self, ArgAction};
 use daemon_slayer_core::cli::{
     Action, ActionType, CommandMatch, CommandOutput, CommandProvider, ServerAction,
 };
-use daemon_slayer_core::{async_trait, BoxedError, CommandArg};
+use daemon_slayer_core::{BoxedError, CommandArg};
 
 use crate::Service;
 

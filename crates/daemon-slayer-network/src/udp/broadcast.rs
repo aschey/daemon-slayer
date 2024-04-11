@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
-use daemon_slayer_core::{async_trait, BoxedError};
+use daemon_slayer_core::BoxedError;
 use futures::SinkExt;
 use gethostname::gethostname;
 use serde::Serialize;
@@ -57,13 +57,12 @@ impl UdpBroadcastService {
     }
 }
 
-#[async_trait]
 impl BackgroundService for UdpBroadcastService {
     fn name(&self) -> &str {
         "udp_broadcast_service"
     }
 
-    async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let sender = UdpSocket::bind("0.0.0.0:0").await.unwrap();
         sender.set_broadcast(true).unwrap();
         let dest: SocketAddr = format!("255.255.255.255:{}", self.broadcast_port)

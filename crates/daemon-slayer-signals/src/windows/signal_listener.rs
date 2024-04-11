@@ -1,7 +1,7 @@
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::BroadcastEventStore;
 use daemon_slayer_core::signal::{self, Signal};
-use daemon_slayer_core::{async_trait, BoxedError};
+use daemon_slayer_core::BoxedError;
 use tap::TapFallible;
 use tokio::sync::broadcast;
 use tracing::{info, warn};
@@ -43,7 +43,6 @@ impl signal::Handler for SignalListener {
     }
 }
 
-#[async_trait]
 impl BackgroundService for SignalListener {
     fn name(&self) -> &str {
         "signal_listener_service"

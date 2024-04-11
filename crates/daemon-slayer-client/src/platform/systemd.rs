@@ -1,7 +1,8 @@
 use std::io;
 
+use async_trait::async_trait;
 use daemon_slayer_core::socket_activation::SocketType;
-use daemon_slayer_core::{async_trait, Label};
+use daemon_slayer_core::Label;
 use systemd_client::manager::{self, SystemdManagerProxy};
 use systemd_client::service::SystemdServiceProxy;
 use systemd_client::{

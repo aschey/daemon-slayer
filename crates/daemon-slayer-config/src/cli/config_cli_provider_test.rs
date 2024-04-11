@@ -1,6 +1,6 @@
+use async_trait::async_trait;
 use confique::Config;
 use daemon_slayer_cli::Cli;
-use daemon_slayer_core::async_trait;
 use daemon_slayer_core::config::ConfigWatcher;
 use tempfile::tempdir;
 use tokio::sync::mpsc;

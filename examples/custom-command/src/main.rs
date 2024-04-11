@@ -63,7 +63,6 @@ pub struct ServiceHandler {
     signal_store: BroadcastEventStore<Signal>,
 }
 
-#[daemon_slayer::core::async_trait]
 impl Handler for ServiceHandler {
     type Error = BoxedError;
     type InputData = ();
