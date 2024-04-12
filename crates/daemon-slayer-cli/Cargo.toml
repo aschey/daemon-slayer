@@ -9,5 +9,5 @@ daemon-slayer-core = { path = "../daemon-slayer-core", features = ["cli"] }
 tracing = "0.1"
 
 [dev-dependencies]
-tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
 async-trait = "0.1"
