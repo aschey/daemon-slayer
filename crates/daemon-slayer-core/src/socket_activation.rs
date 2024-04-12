@@ -1,3 +1,4 @@
+use std::io;
 use std::net::SocketAddr;
 
 use parity_tokio_ipc::{IntoIpcPath, ServerId};
@@ -17,15 +18,15 @@ pub struct ActivationSocketConfig {
 }
 
 impl ActivationSocketConfig {
-    pub fn new_ipc(name: impl Into<String>, id: impl Into<String>) -> Self {
-        Self {
+    pub fn new_ipc(name: impl Into<String>, id: impl Into<String>) -> io::Result<Self> {
+        Ok(Self {
             name: name.into(),
             addr: ServerId(id.into())
-                .into_ipc_path()
+                .into_ipc_path()?
                 .to_string_lossy()
                 .to_string(),
             socket_type: SocketType::Ipc,
-        }
+        })
     }
 
     pub fn new_tcp(name: impl Into<String>, addr: impl Into<SocketAddr>) -> Self {

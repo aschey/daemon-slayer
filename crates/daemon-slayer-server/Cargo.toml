@@ -15,7 +15,7 @@ futures = { version = "0.3" }
 tap = "1"
 thiserror = "1"
 tracing = "0.1"
-parity-tokio-ipc = { git = "https://github.com/aschey/parity-tokio-ipc", rev = "588198a0abb32a79f6f3e656ff0472008e4ba9b8" }
+parity-tokio-ipc = { git = "https://github.com/aschey/parity-tokio-ipc", rev = "feb8297ed586862034faed03794d5d46519cd064" }
 async-trait = { version = "0.1", optional = true }
 
 [target.'cfg(windows)'.dependencies]

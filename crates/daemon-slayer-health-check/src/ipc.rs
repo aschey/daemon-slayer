@@ -1,3 +1,4 @@
+use std::io;
 use std::path::PathBuf;
 
 use async_trait::async_trait;
@@ -13,13 +14,13 @@ pub struct IpcHealthCheck {
 }
 
 impl IpcHealthCheck {
-    pub fn new(app_name: impl Into<String>) -> Self {
-        let sock_path = ServerId(format!("{}_health", app_name.into())).into_ipc_path();
+    pub fn new(app_name: impl Into<String>) -> io::Result<Self> {
+        let sock_path = ServerId(format!("{}_health", app_name.into())).into_ipc_path()?;
 
-        Self {
+        Ok(Self {
             sock_path,
             read_buf: [0u8; 256],
-        }
+        })
     }
 }
 

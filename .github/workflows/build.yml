@@ -46,3 +46,7 @@ jobs:
           cargo install cargo-make
           cargo make build-all
           ${{ matrix.test }}
+      - name: check examples
+        run: |
+          cd ./examples
+          cargo check
