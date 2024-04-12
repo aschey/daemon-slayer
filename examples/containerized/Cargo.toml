@@ -26,9 +26,9 @@ derive_more = { version = "0.99.17", default-features = false, features = [
 ] }
 serde = "1.0.197"
 tar = "0.4.40"
-tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.40"
-bollard = { version = "0.16.0", features = ["buildkit"] }
+bollard = { version = "0.16.1", features = ["buildkit"] }
 flate2 = "1.0.28"
 ignore = "0.4.22"
 
