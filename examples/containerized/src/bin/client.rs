@@ -77,12 +77,17 @@ async fn run() -> Result<(), BoxedError> {
     let logger_builder = LoggerBuilder::new(containerized::label()).with_config(app_config.clone());
 
     let app_config_ = app_config.clone();
-    let console = Console::new(manager.clone(), LogSource::Container)
-        .await
-        .with_config(app_config.clone())
-        .with_configure_services(|mut context| {
-            context.add_service(ConfigService::new(app_config_));
-        });
+    let console = Console::new(
+        manager.clone(),
+        LogSource::Container {
+            output_source: console::DockerLogSource::Stderr,
+        },
+    )
+    .await
+    .with_config(app_config.clone())
+    .with_configure_services(|mut context| {
+        context.add_service(ConfigService::new(app_config_));
+    });
 
     let mut cli = Cli::builder()
         .with_provider(ClientCliProvider::new(manager.clone()))

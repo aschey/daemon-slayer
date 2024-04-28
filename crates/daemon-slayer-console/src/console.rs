@@ -24,7 +24,8 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
 use ratatui::{Frame, Terminal};
-use tilia::tower_rpc::transport::ipc::ServerId;
+pub use tilia::transport::docker::LogSource as DockerLogSource;
+use tilia::transport_async::ipc::ServerId;
 use tilia_widget::transport::docker::docker_client;
 use tilia_widget::transport::ipc_client;
 use tilia_widget::LogView;
@@ -98,7 +99,7 @@ impl BackgroundService for HealthChecker {
 #[derive(Clone, Debug)]
 pub enum LogSource {
     Ipc,
-    Container,
+    Container { output_source: DockerLogSource },
 }
 
 pub struct Console {
@@ -122,7 +123,9 @@ impl Console {
             info,
             logs: match log_source {
                 LogSource::Ipc => LogView::new(ipc_client(ServerId(name + "_logger"))),
-                LogSource::Container => LogView::new(docker_client(name)),
+                LogSource::Container { output_source } => {
+                    LogView::new(docker_client(name, output_source))
+                }
             },
             button_index: 0,
             is_healthy: None,

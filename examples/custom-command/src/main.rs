@@ -84,7 +84,7 @@ impl Handler for ServiceHandler {
         Ok(Self { signal_store })
     }
 
-    async fn run_service<F: FnOnce() + Send>(mut self, notify_ready: F) -> Result<(), Self::Error> {
+    async fn run_service<F: FnOnce() + Send>(self, notify_ready: F) -> Result<(), Self::Error> {
         info!("running service");
         notify_ready();
 

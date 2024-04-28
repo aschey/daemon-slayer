@@ -25,10 +25,6 @@ use daemon_slayer::network::cli::NetworkCliProvider;
 use daemon_slayer::network::discovery::{
     DiscoveryBroadcastService, DiscoveryProtocol, DiscoveryQueryService,
 };
-use daemon_slayer::network::mdns::{
-    MdnsBroadcastName, MdnsBroadcastService, MdnsQueryName, MdnsQueryService, MdnsReceiverEvent,
-};
-use daemon_slayer::network::udp::{UdpBroadcastService, UdpQueryService};
 use daemon_slayer::network::{BroadcastServiceName, QueryServiceName, ServiceProtocol};
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::futures::StreamExt;
@@ -180,7 +176,7 @@ impl Handler for ServiceHandler {
         })
     }
 
-    async fn run_service<F: FnOnce() + Send>(mut self, notify_ready: F) -> Result<(), Self::Error> {
+    async fn run_service<F: FnOnce() + Send>(self, notify_ready: F) -> Result<(), Self::Error> {
         info!("running service");
         notify_ready();
 

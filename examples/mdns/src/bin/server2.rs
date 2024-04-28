@@ -25,10 +25,6 @@ use daemon_slayer::network::cli::NetworkCliProvider;
 use daemon_slayer::network::discovery::{
     DiscoveryBroadcastService, DiscoveryProtocol, DiscoveryQueryService,
 };
-use daemon_slayer::network::mdns::{
-    MdnsBroadcastName, MdnsBroadcastService, MdnsQueryName, MdnsQueryService, MdnsReceiverEvent,
-};
-use daemon_slayer::network::udp::{UdpBroadcastService, UdpQueryService};
 use daemon_slayer::network::{BroadcastServiceName, QueryServiceName, ServiceProtocol};
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::futures::StreamExt;

@@ -6,6 +6,7 @@ use std::sync::OnceLock;
 
 use daemon_slayer_core::config::{Accessor, CachedConfig};
 use daemon_slayer_core::{BoxedError, Label, Mergeable};
+use tilia::transport_async::Bind;
 use time::format_description::well_known::{self, Rfc3339};
 use time::UtcOffset;
 use tracing::metadata::LevelFilter;
@@ -340,20 +341,23 @@ impl LoggerBuilder {
 
         #[cfg(feature = "ipc")]
         let (ipc_writer, ipc_guard) = {
-            use tilia::tower_rpc::transport::ipc::{self, IpcSecurity, ServerId};
-            use tilia::tower_rpc::transport::CodecTransport;
-            use tilia::tower_rpc::LengthDelimitedCodec;
+            use tilia::transport_async::codec::{CodecStream, LengthDelimitedCodec};
+            use tilia::transport_async::ipc::{self, IpcSecurity, ServerId};
             let name = self.label.application.to_owned() + "_logger";
             let make_transport = move || {
                 let name = name.to_owned();
                 Box::pin(async move {
-                    let transport = ipc::create_endpoint(
-                        ServerId(name),
-                        ipc::SecurityAttributes::allow_everyone_create().unwrap(),
-                        ipc::OnConflict::Overwrite,
+                    let transport = ipc::Endpoint::bind(
+                        ipc::EndpointParams::new(
+                            ServerId(name),
+                            ipc::SecurityAttributes::allow_everyone_create().unwrap(),
+                            ipc::OnConflict::Overwrite,
+                        )
+                        .unwrap(),
                     )
+                    .await
                     .unwrap();
-                    CodecTransport::new(transport, LengthDelimitedCodec)
+                    CodecStream::new(transport, LengthDelimitedCodec)
                 })
             };
             if self.enable_ipc_logger {
