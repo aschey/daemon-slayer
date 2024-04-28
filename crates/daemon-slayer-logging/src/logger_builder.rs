@@ -6,7 +6,6 @@ use std::sync::OnceLock;
 
 use daemon_slayer_core::config::{Accessor, CachedConfig};
 use daemon_slayer_core::{BoxedError, Label, Mergeable};
-use tilia::transport_async::Bind;
 use time::format_description::well_known::{self, Rfc3339};
 use time::UtcOffset;
 use tracing::metadata::LevelFilter;
@@ -343,6 +342,7 @@ impl LoggerBuilder {
         let (ipc_writer, ipc_guard) = {
             use tilia::transport_async::codec::{CodecStream, LengthDelimitedCodec};
             use tilia::transport_async::ipc::{self, IpcSecurity, ServerId};
+            use tilia::transport_async::Bind;
             let name = self.label.application.to_owned() + "_logger";
             let make_transport = move || {
                 let name = name.to_owned();
