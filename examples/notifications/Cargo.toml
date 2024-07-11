@@ -16,11 +16,11 @@ daemon-slayer-logging = { path = "../../crates/daemon-slayer-logging", features 
     "ipc",
 ] }
 
-derive_more = { version = "0.99.17", default-features = false, features = [
+derive_more = { version = "0.99.18", default-features = false, features = [
     "as_ref",
 ] }
-serde = "1.0.197"
-tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
+serde = "1.0.204"
+tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.40"
 
 [[bin]]

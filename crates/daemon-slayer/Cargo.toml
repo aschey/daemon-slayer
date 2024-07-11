@@ -24,11 +24,6 @@ server-standard = [
   "signals",
 ]
 build-info = ["daemon-slayer-build-info"]
-build-info-build = ["daemon-slayer-build-info/build"]
-build-info-cargo = ["daemon-slayer-build-info/cargo"]
-build-info-git = ["daemon-slayer-build-info/git"]
-build-info-rustc = ["daemon-slayer-build-info/rustc"]
-build-info-si = ["daemon-slayer-build-info/si"]
 cli = [
   "daemon-slayer-cli",
   "daemon-slayer-logging?/cli",
@@ -40,7 +35,6 @@ cli = [
   "daemon-slayer-config?/cli",
   "daemon-slayer-process?/cli",
   "daemon-slayer-notify?/cli",
-  "daemon-slayer-build-info?/cli",
   "daemon-slayer-network?/cli",
 ]
 client = ["daemon-slayer-client"]

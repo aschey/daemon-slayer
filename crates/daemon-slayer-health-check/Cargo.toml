@@ -10,8 +10,8 @@ daemon-slayer-core = { path = "../daemon-slayer-core", features = [
 parity-tokio-ipc = { git = "https://github.com/aschey/parity-tokio-ipc", rev = "feb8297ed586862034faed03794d5d46519cd064", optional = true }
 reqwest = { version = "0.12", optional = true }
 tokio = { version = "1", features = ["net"] }
-tonic = { version = "0.11", optional = true }
-tonic-health = { version = "0.11", optional = true }
+tonic = { version = "0.12", optional = true }
+tonic-health = { version = "0.12", optional = true }
 async-trait = "0.1"
 
 [features]

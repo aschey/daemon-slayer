@@ -15,11 +15,11 @@ daemon-slayer-logging = { path = "../../crates/daemon-slayer-logging", features 
     "system",
     "ipc",
 ] }
-derive_more = { version = "0.99.17", default-features = false, features = [
+derive_more = { version = "0.99.18", default-features = false, features = [
     "as_ref",
 ] }
-serde = "1.0.197"
-tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
+serde = "1.0.204"
+tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.40"
 
 [[bin]]
@@ -31,11 +31,4 @@ name = "standard-server"
 path = "src/bin/server.rs"
 
 [build-dependencies]
-daemon-slayer = { path = "../../crates/daemon-slayer", features = [
-    "build-info",
-    "build-info-build",
-    "build-info-cargo",
-    "build-info-git",
-    "build-info-rustc",
-    "build-info-si",
-] }
+vergen-gix = { version = "1.0", features = ["build", "cargo", "rustc", "si"] }

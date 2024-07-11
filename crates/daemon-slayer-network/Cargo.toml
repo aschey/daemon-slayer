@@ -5,23 +5,23 @@ edition = "2021"
 
 [dependencies]
 daemon-slayer-core = { path = "../daemon-slayer-core" }
-mdns-sd = "0.10"
+mdns-sd = "0.11"
 regex = "1"
 thiserror = "1"
 validator = { version = "0.18", features = ["derive"] }
 recap = { git = "https://github.com/klaatu01/recap", rev = "97f7923cd18dae3b8ccefb00564fc27569ea812a" }
 serde = { version = "1", features = ["derive"] }
-gethostname = "0.4"
+gethostname = "0.5"
 tokio = { version = "1", features = ["sync"] }
 serde_json = "1"
 tokio-util = { version = "0.7", features = ["net", "codec"] }
 futures = "0.3"
 bytes = { version = "1", features = ["serde"] }
-if-addrs = "0.12"
+if-addrs = "0.13"
 ipnet = "2"
 tap = "1"
 tracing = "0.1.40"
-net-route = "0.4.2"
+net-route = "0.4.4"
 async-trait = { version = "0.1", optional = true }
 
 [features]
