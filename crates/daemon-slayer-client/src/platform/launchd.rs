@@ -5,7 +5,9 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 use async_trait::async_trait;
-use daemon_slayer_core::{socket_activation, Label};
+#[cfg(feature = "socket-activation")]
+use daemon_slayer_core::socket_activation;
+use daemon_slayer_core::Label;
 use launchd::sockets::SocketFamily;
 use launchd::{Launchd, SocketOptions, Sockets};
 use once_cell::sync::Lazy;
