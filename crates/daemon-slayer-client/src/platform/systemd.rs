@@ -1,6 +1,7 @@
 use std::io;
 
 use async_trait::async_trait;
+#[cfg(feature = "socket-activation")]
 use daemon_slayer_core::socket_activation::SocketType;
 use daemon_slayer_core::Label;
 use systemd_client::manager::{self, SystemdManagerProxy};
@@ -19,7 +20,7 @@ use crate::{Command, Manager, State, Status};
 
 macro_rules! systemd_run {
     ($self:ident, $run_mode:expr, $err_msg:expr, $f:expr) => {
-        if !$self.config.activation_socket_config.is_empty()
+        if $self.config.has_sockets()
             && ($run_mode == RunMode::Socket || $run_mode == RunMode::Both)
         {
             #[allow(clippy::redundant_closure_call)]
@@ -253,7 +254,8 @@ impl Manager for SystemdServiceManager {
             ))
         })?;
 
-        if !self.config.activation_socket_config.is_empty() {
+        #[cfg(feature = "socket-activation")]
+        if self.config.has_sockets() {
             let mut socket_builder = SocketConfiguration::builder()
                 .install(InstallConfiguration::builder().wanted_by("sockets.target"));
             for socket in &self.config.activation_socket_config {

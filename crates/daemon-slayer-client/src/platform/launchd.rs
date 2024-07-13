@@ -198,7 +198,7 @@ impl Manager for LaunchdServiceManager {
 
     async fn install(&self) -> io::Result<()> {
         let vars = self.config.environment_variables().into_iter().collect();
-        let file = Launchd::new(self.name(), self.config.program.full_name())
+        let mut file = Launchd::new(self.name(), self.config.program.full_name())
             .map_err(|e| from_launchd_error(self.config.program.full_name(), e))?
             .with_program_arguments(
                 self.config
@@ -207,32 +207,34 @@ impl Manager for LaunchdServiceManager {
                     .collect(),
             )
             .with_run_at_load(self.config.autostart)
-            .with_environment_variables(vars)
-            .with_socket(Sockets::Dictionary(
-                self.config
-                    .activation_socket_config
-                    .iter()
-                    .map(|c| {
-                        let mut options = SocketOptions::new();
-                        let socket_type = c.socket_type();
-                        if socket_type == socket_activation::SocketType::Ipc {
-                            options = options
-                                .with_family(SocketFamily::Unix)
-                                .with_path_name(c.addr())
-                                .unwrap();
-                        } else {
-                            let addr: SocketAddr = c.addr().parse().unwrap();
-                            options = options
-                                .with_node_name(addr.ip().to_string())
-                                .with_service_name(addr.port().to_string());
-                        }
-                        if socket_type == socket_activation::SocketType::Udp {
-                            options = options.with_type(launchd::sockets::SocketType::Dgram);
-                        }
-                        (c.name().to_owned(), options)
-                    })
-                    .collect(),
-            ));
+            .with_environment_variables(vars);
+
+        #[cfg(feature = "socket-activation")]
+        file = file.with_socket(Sockets::Dictionary(
+            self.config
+                .activation_socket_config
+                .iter()
+                .map(|c| {
+                    let mut options = SocketOptions::new();
+                    let socket_type = c.socket_type();
+                    if socket_type == socket_activation::SocketType::Ipc {
+                        options = options
+                            .with_family(SocketFamily::Unix)
+                            .with_path_name(c.addr())
+                            .unwrap();
+                    } else {
+                        let addr: SocketAddr = c.addr().parse().unwrap();
+                        options = options
+                            .with_node_name(addr.ip().to_string())
+                            .with_service_name(addr.port().to_string());
+                    }
+                    if socket_type == socket_activation::SocketType::Udp {
+                        options = options.with_type(launchd::sockets::SocketType::Dgram);
+                    }
+                    (c.name().to_owned(), options)
+                })
+                .collect(),
+        ));
 
         let path = self.get_plist_path()?;
         let created_file = File::create(&path).map_err(|e| {

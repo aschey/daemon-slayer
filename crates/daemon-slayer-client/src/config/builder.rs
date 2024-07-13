@@ -7,6 +7,7 @@ use std::{env, io};
 use bollard::container;
 use daemon_slayer_core::config::{Accessor, CachedConfig};
 use daemon_slayer_core::process::get_admin_var;
+#[cfg(feature = "socket-activation")]
 use daemon_slayer_core::socket_activation::ActivationSocketConfig;
 use daemon_slayer_core::{CommandArg, Label};
 use derivative::Derivative;
@@ -94,6 +95,7 @@ pub struct Builder {
     #[cfg_attr(not(windows), allow(unused))]
     pub(crate) windows_config: WindowsConfig,
     pub(crate) user_config: CachedConfig<UserConfig>,
+    #[cfg(feature = "socket-activation")]
     pub(crate) activation_socket_config: Vec<ActivationSocketConfig>,
     pub(crate) service_type: ServiceType,
     #[cfg(feature = "docker")]
@@ -115,6 +117,7 @@ impl Builder {
             windows_config: Default::default(),
             user_config: Default::default(),
             service_type: ServiceType::Native,
+            #[cfg(feature = "socket-activation")]
             activation_socket_config: vec![],
             #[cfg(feature = "docker")]
             configure_container: None,
@@ -205,11 +208,13 @@ impl Builder {
         self
     }
 
+    #[cfg(feature = "socket-activation")]
     pub fn with_activation_socket(mut self, socket: ActivationSocketConfig) -> Self {
         self.activation_socket_config.push(socket);
         self
     }
 
+    #[cfg(feature = "socket-activation")]
     pub fn with_activation_sockets(
         mut self,
         sockets: impl Into<Vec<ActivationSocketConfig>>,
@@ -267,6 +272,9 @@ impl Builder {
 
     #[cfg_attr(windows, allow(unused))]
     pub(crate) fn has_sockets(&self) -> bool {
-        !self.activation_socket_config.is_empty()
+        #[cfg(feature = "socket-activation")]
+        return !self.activation_socket_config.is_empty();
+        #[cfg(not(feature = "socket-activation"))]
+        return false;
     }
 }

@@ -5,7 +5,7 @@ use std::os::unix::net::UnixListener;
 
 use daemon_slayer_core::socket_activation::{ActivationSocketConfig, SocketType};
 use futures::future;
-use parity_tokio_ipc::Endpoint;
+use tipsy::IpcStream;
 use tokio::net::{TcpListener, UdpSocket};
 
 use super::{
@@ -80,7 +80,7 @@ async fn create_activated_socket(
                 .set_nonblocking(true)
                 .map_err(SocketActivationError::CreationFailure)?;
             SocketResult::Ipc(
-                Endpoint::from_std_listener(std_listener)
+                IpcStream::from_std_listener(std_listener)
                     .map_err(SocketActivationError::CreationFailure)?,
             )
         }

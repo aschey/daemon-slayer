@@ -71,7 +71,10 @@ server = [
   "daemon-slayer-config?/server",
   "daemon-slayer-logging?/server",
 ]
-socket-activation = ["daemon-slayer-server?/socket-activation"]
+socket-activation = [
+  "daemon-slayer-server?/socket-activation",
+  "daemon-slayer-client?/socket-activation",
+]
 signals = ["daemon-slayer-signals"]
 task-queue = ["daemon-slayer-task-queue"]
 tray = ["daemon-slayer-tray", "client"]

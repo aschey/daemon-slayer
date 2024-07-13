@@ -1,7 +1,7 @@
 use std::io;
 use std::net::SocketAddr;
 
-use parity_tokio_ipc::{IntoIpcPath, ServerId};
+use tipsy::{IntoIpcPath, ServerId};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SocketType {

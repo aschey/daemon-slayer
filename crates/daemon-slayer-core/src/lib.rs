@@ -13,6 +13,7 @@ pub mod process;
 pub mod server;
 #[cfg(feature = "signal")]
 pub mod signal;
+#[cfg(feature = "socket-activation")]
 pub mod socket_activation;
 
 use std::any::Any;

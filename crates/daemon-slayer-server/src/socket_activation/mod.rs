@@ -9,9 +9,7 @@ use std::path::PathBuf;
 
 use daemon_slayer_core::socket_activation::{ActivationSocketConfig, SocketType};
 use futures::future;
-use parity_tokio_ipc::{
-    Endpoint, IpcEndpoint, IpcSecurity, IpcStream, OnConflict, SecurityAttributes,
-};
+use tipsy::{Endpoint, IpcStream, OnConflict, SecurityAttributes};
 use tokio::net::{TcpListener, UdpSocket};
 #[cfg(unix)]
 pub use unix::*;

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use async_trait::async_trait;
 use daemon_slayer_core::health_check::HealthCheck;
 use daemon_slayer_core::BoxedError;
-use parity_tokio_ipc::{Endpoint, IntoIpcPath, IpcEndpoint, ServerId};
+use tipsy::{Endpoint, IntoIpcPath, ServerId};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[derive(Clone)]
