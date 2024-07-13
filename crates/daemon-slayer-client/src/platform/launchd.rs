@@ -198,7 +198,7 @@ impl Manager for LaunchdServiceManager {
 
     async fn install(&self) -> io::Result<()> {
         let vars = self.config.environment_variables().into_iter().collect();
-        let mut file = Launchd::new(self.name(), self.config.program.full_name())
+        let file = Launchd::new(self.name(), self.config.program.full_name())
             .map_err(|e| from_launchd_error(self.config.program.full_name(), e))?
             .with_program_arguments(
                 self.config
@@ -210,7 +210,7 @@ impl Manager for LaunchdServiceManager {
             .with_environment_variables(vars);
 
         #[cfg(feature = "socket-activation")]
-        file = file.with_socket(Sockets::Dictionary(
+        let file = file.with_socket(Sockets::Dictionary(
             self.config
                 .activation_socket_config
                 .iter()
