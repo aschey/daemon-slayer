@@ -129,7 +129,7 @@ impl MdnsBroadcastService {
             .map(|interface| (interface.ip().to_string(), interface.name))
             .unwrap_or_default();
 
-        let hostname = gethostname().to_string_lossy().to_string();
+        let hostname = format!("{}.local.", gethostname().to_string_lossy());
 
         let mut service_info = ServiceInfo::new(
             &self.service_name.service_type(),
