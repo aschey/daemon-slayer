@@ -45,12 +45,12 @@ pub(super) async fn create_socket(
 ) -> Result<SocketResult, SocketActivationError> {
     Ok(match config.socket_type() {
         SocketType::Ipc => {
-            let mut endpoint = Endpoint::new(PathBuf::from(config.addr()), OnConflict::Overwrite)
-                .map_err(SocketActivationError::CreationFailure)?;
-            endpoint.set_security_attributes(
-                SecurityAttributes::allow_everyone_create()
-                    .map_err(SocketActivationError::CreationFailure)?,
-            );
+            let endpoint = Endpoint::new(PathBuf::from(config.addr()), OnConflict::Overwrite)
+                .map_err(SocketActivationError::CreationFailure)?
+                .security_attributes(
+                    SecurityAttributes::allow_everyone_create()
+                        .map_err(SocketActivationError::CreationFailure)?,
+                );
             SocketResult::Ipc(
                 endpoint
                     .incoming()

@@ -21,7 +21,8 @@ impl ActivationSocketConfig {
     pub fn new_ipc(name: impl Into<String>, id: impl Into<String>) -> io::Result<Self> {
         Ok(Self {
             name: name.into(),
-            addr: ServerId(id.into())
+            addr: ServerId::new(id.into())
+                .parent_folder("/tmp")
                 .into_ipc_path()?
                 .to_string_lossy()
                 .to_string(),

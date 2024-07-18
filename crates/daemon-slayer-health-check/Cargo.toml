@@ -7,7 +7,7 @@ version = "0.1.0"
 daemon-slayer-core = { path = "../daemon-slayer-core", features = [
     "health-check",
 ] }
-tipsy = { version = "0.2", optional = true }
+tipsy = { version = "0.3", optional = true }
 reqwest = { version = "0.12", optional = true }
 tokio = { version = "1", features = ["net"] }
 tonic = { version = "0.12", optional = true }

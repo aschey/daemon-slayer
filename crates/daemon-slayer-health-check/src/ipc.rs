@@ -15,7 +15,9 @@ pub struct IpcHealthCheck {
 
 impl IpcHealthCheck {
     pub fn new(app_name: impl Into<String>) -> io::Result<Self> {
-        let sock_path = ServerId(format!("{}_health", app_name.into())).into_ipc_path()?;
+        let sock_path = ServerId::new(format!("{}_health", app_name.into()))
+            .parent_folder("/tmp")
+            .into_ipc_path()?;
 
         Ok(Self {
             sock_path,
