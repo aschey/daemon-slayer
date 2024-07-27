@@ -3,6 +3,7 @@ use std::io;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::sync::LazyLock;
 
 use async_trait::async_trait;
 #[cfg(feature = "socket-activation")]
@@ -10,7 +11,6 @@ use daemon_slayer_core::socket_activation;
 use daemon_slayer_core::Label;
 use launchd::sockets::SocketFamily;
 use launchd::{Launchd, SocketOptions, Sockets};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use tokio::process::Command;
 
@@ -19,7 +19,7 @@ use crate::{Manager, State, Status};
 
 macro_rules! regex {
     ($name:ident, $re:literal $(,)?) => {
-        static $name: Lazy<Regex> = Lazy::new(|| Regex::new($re).unwrap());
+        static $name: LazyLock<Regex> = LazyLock::new(|| Regex::new($re).unwrap());
     };
 }
 

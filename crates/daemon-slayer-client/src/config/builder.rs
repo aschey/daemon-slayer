@@ -90,7 +90,7 @@ pub struct Builder {
     pub(crate) arguments: Vec<String>,
     pub(crate) service_level: Level,
     pub(crate) autostart: bool,
-    #[cfg_attr(not(platform = "linux"), allow(unused))]
+    #[cfg_attr(not(target_os = "linux"), allow(unused))]
     pub(crate) systemd_config: SystemdConfig,
     #[cfg_attr(not(windows), allow(unused))]
     pub(crate) windows_config: WindowsConfig,
