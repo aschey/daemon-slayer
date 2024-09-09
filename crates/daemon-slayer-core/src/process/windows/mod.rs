@@ -27,16 +27,15 @@ use crate::Label;
 
 // Largely ported from the C# implementation here https://github.com/murrayju/CreateProcessAsUser
 // and the examples here
-// https://stackoverflow.com/questions/35969730/how-to-read-output-from-cmd-exe-using-createprocess-
-//and-createpipe
+// https://stackoverflow.com/questions/35969730/how-to-read-output-from-cmd-exe-using-createprocess-and-createpipe
 
-fn get_session_user_token() -> io::Result<isize> {
+fn get_session_user_token() -> io::Result<Foundation::HANDLE> {
     unsafe {
         let session_id = get_active_session_id()?;
-        let mut phtoken: Foundation::HANDLE = 0;
+        let mut phtoken: Foundation::HANDLE = ptr::null_mut();
         check_err(|| WTSQueryUserToken(session_id, &mut phtoken))?;
 
-        let mut user_token = 0;
+        let mut user_token: Foundation::HANDLE = ptr::null_mut();
 
         check_err(|| {
             DuplicateTokenEx(
@@ -83,15 +82,15 @@ pub async fn run_process_as_current_user(
     visible: bool,
 ) -> io::Result<String> {
     let cmd = cmd.to_owned();
-    tokio::task::spawn_blocking(move || run_process_as_current_user_(&cmd, visible))
+    tokio::task::spawn_blocking(move || run_process_as_current_user_blocking(&cmd, visible))
         .await
         .unwrap()
 }
 
-fn run_process_as_current_user_(cmd: &str, visible: bool) -> io::Result<String> {
+fn run_process_as_current_user_blocking(cmd: &str, visible: bool) -> io::Result<String> {
     unsafe {
-        let mut h_out_read_pipe: HANDLE = 0;
-        let mut h_out_write_pipe: HANDLE = 0;
+        let mut h_out_read_pipe: HANDLE = ptr::null_mut();
+        let mut h_out_write_pipe: HANDLE = ptr::null_mut();
         let security_attrs = SECURITY_ATTRIBUTES {
             nLength: std::mem::size_of::<SECURITY_ATTRIBUTES>() as u32,
             bInheritHandle: 1,
@@ -135,8 +134,8 @@ fn run_process_as_current_user_(cmd: &str, visible: bool) -> io::Result<String> 
             hStdError: h_out_write_pipe,
         };
         let mut process_info = PROCESS_INFORMATION {
-            hProcess: 0,
-            hThread: 0,
+            hProcess: ptr::null_mut(),
+            hThread: ptr::null_mut(),
             dwProcessId: 0,
             dwThreadId: 0,
         };

@@ -49,7 +49,6 @@ impl BackgroundService for SignalListener {
     }
 
     async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
-        let cancellation_token = context.cancellation_token();
         let mut signal_rx = self.signal_tx.subscribe();
         info!("Registering signal handlers");
         let mut ctrl_c_stream = tokio::signal::windows::ctrl_c().unwrap();
@@ -83,7 +82,7 @@ impl BackgroundService for SignalListener {
             _ = signal_rx.recv() => {
                 info!("Received signal from channel");
             }
-            _ = cancellation_token.cancelled() => {
+            _ = context.cancelled() => {
                 info!("Shutdown requested. Stopping signal handler.");
                 self.signal_tx.send(Signal::SIGINT)
                     .tap_err(|_| warn!("Failed to send signal")).ok();
@@ -92,7 +91,7 @@ impl BackgroundService for SignalListener {
         };
 
         info!("Signal received. Requesting global shutdown.");
-        cancellation_token.cancel();
-        return Ok(());
+        context.cancel_all();
+        Ok(())
     }
 }

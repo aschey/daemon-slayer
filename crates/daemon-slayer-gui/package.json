@@ -22,6 +22,7 @@
     "@tanstack/solid-virtual": "3.0.0-beta.18",
     "@tauri-apps/api": "^1.1.0",
     "ansicolor": "^1.1.100",
+    "daemon-slayer-gui": "file:",
     "solid-js": "^1.4.7",
     "solid-styled-components": "^0.28.5",
     "solid-toast": "^0.3.5"
