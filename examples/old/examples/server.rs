@@ -64,7 +64,7 @@ impl Handler for ServiceHandler {
             .add_event_service::<SignalListener>(SignalListener::all())
             .await;
         context
-            .add_service(ipc_health_check::Server::new(
+            .spawn(ipc_health_check::Server::new(
                 "daemon_slayer_server".to_owned(),
             ))
             .await;

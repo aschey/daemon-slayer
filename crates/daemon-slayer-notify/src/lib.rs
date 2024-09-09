@@ -53,12 +53,7 @@ where
 
     async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
         let mut event_stream = self.event_store.subscribe_events();
-        let cancellation_token = context.cancellation_token();
-        while let Ok(Some(event)) = event_stream
-            .next()
-            .cancel_on_shutdown(&cancellation_token)
-            .await
-        {
+        while let Ok(Some(event)) = event_stream.next().cancel_with(context.cancelled()).await {
             if let Some(notification) = (self.create_notification)(event) {
                 notification
                     .show()

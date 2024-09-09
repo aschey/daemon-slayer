@@ -101,8 +101,8 @@ impl Handler for ServiceHandler {
             .await;
         let mut shutdown_rx = self.signal_store.subscribe_events();
         Server::builder()
-            .add_service(GreeterServer::new(greeter))
-            .add_service(health_service)
+            .spawn(GreeterServer::new(greeter))
+            .spawn(health_service)
             .serve_with_shutdown(addr, async {
                 shutdown_rx.next().await;
             })

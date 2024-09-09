@@ -41,20 +41,16 @@ where
         "config_service"
     }
 
-    async fn run(self, mut context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let file_watcher = FileWatcher::builder()
             .with_watch_path(self.config.full_path())
             .build();
         let event_store = file_watcher.get_event_store();
-        context.add_service(file_watcher);
+        context.spawn(file_watcher);
 
         let mut event_stream = event_store.subscribe_events();
 
-        while let Ok(Some(_)) = event_stream
-            .next()
-            .cancel_on_shutdown(&context.cancellation_token())
-            .await
-        {
+        while let Ok(Some(_)) = event_stream.next().cancel_with(context.cancelled()).await {
             let current = self.config.snapshot();
             if self.config.read_config().tap_err(|e| error!("{e}")).is_ok() {
                 let new = self.config.snapshot();

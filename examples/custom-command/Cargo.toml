@@ -11,7 +11,7 @@ daemon-slayer = { path = "../../crates/daemon-slayer", features = [
     "client-standard",
     "server-standard",
 ] }
-derive_more = { version = "0.99.18", default-features = false, features = [
+derive_more = { version = "1.0.0", default-features = false, features = [
     "as_ref",
 ] }
 serde = "1.0.204"

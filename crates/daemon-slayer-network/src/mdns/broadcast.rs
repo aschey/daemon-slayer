@@ -214,14 +214,13 @@ impl BackgroundService for MdnsBroadcastService {
         "mdns_broadcast_service"
     }
 
-    async fn run(self, mut context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let (mdns, service_fullname) = self.get_monitor().await?;
         let monitor = mdns.monitor().unwrap();
         let route_service = RouteListenerService::new();
         let mut route_events = route_service.get_event_store().subscribe_events();
-        context.add_service(route_service);
+        context.spawn(route_service);
 
-        let cancellation_token = context.cancellation_token();
         loop {
             tokio::select! {
                 event = monitor.recv_async() => {
@@ -234,17 +233,13 @@ impl BackgroundService for MdnsBroadcastService {
                         self.handle_route_change(&mdns, &service_fullname).await?;
                     }
                 }
-                _ = cancellation_token.cancelled() => {
+                _ = context.cancelled() => {
                     break;
                 }
             }
         }
 
-        while let Ok(Ok(event)) = monitor
-            .recv_async()
-            .cancel_on_shutdown(&context.cancellation_token())
-            .await
-        {
+        while let Ok(Ok(event)) = monitor.recv_async().cancel_with(context.cancelled()).await {
             self.handle_mdns_event(event)
         }
 

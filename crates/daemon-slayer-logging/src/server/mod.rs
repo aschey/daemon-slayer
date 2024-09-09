@@ -37,7 +37,7 @@ impl<T: LoggingConfig> BackgroundService for LoggingUpdateService<T> {
         let mut rx = self.file_events.subscribe_events();
         while let Ok(Some(Ok((_, new)))) = rx
             .next()
-            .cancel_on_shutdown(&context.cancellation_token())
+            .cancel_with(context.cancelled())
             .await
         {
             let log_level = new.deref().as_ref().log_level.to_level_filter();

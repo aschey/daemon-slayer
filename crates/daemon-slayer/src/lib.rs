@@ -37,10 +37,10 @@ pub mod tray {
 pub mod config {
     pub use daemon_slayer_config::*;
 }
-#[cfg(feature = "task-queue")]
-pub mod task_queue {
-    pub use daemon_slayer_task_queue::*;
-}
+// #[cfg(feature = "task-queue")]
+// pub mod task_queue {
+//     pub use daemon_slayer_task_queue::*;
+// }
 #[cfg(feature = "signals")]
 pub mod signals {
     pub use daemon_slayer_signals::*;

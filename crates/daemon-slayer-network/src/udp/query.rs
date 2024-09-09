@@ -73,7 +73,7 @@ impl BackgroundService for UdpQueryService {
         let mut last_result = ServiceInfo::default();
         while let Ok(Some(Ok(service_info))) = framed
             .next()
-            .cancel_on_shutdown(&context.cancellation_token())
+            .cancel_with(context.cancelled())
             .await
         {
             if service_info != last_result {

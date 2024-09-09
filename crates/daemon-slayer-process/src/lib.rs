@@ -8,7 +8,10 @@ use bytesize::ByteSize;
 use chrono::{DateTime, Duration, Local, TimeZone, Utc};
 use daemon_slayer_core::cli::Printer;
 use serde::Serialize;
-use sysinfo::{MemoryRefreshKind, Pid, Process, ProcessRefreshKind, RefreshKind, Signal, System};
+use sysinfo::{
+    MemoryRefreshKind, Pid, Process, ProcessRefreshKind, ProcessesToUpdate, RefreshKind, Signal,
+    System,
+};
 
 #[derive(Clone, Debug, Serialize)]
 #[readonly::make]
@@ -89,7 +92,8 @@ impl ProcessManager {
 
     pub fn process_info(&mut self) -> Option<ProcessInfo> {
         self.system.refresh_memory();
-        self.system.refresh_process(self.pid);
+        self.system
+            .refresh_processes(ProcessesToUpdate::Some(&[self.pid]));
         let total_memory = self.system.total_memory();
         let all_processes = self.system.processes();
         self.system
@@ -132,8 +136,12 @@ impl ProcessInfo {
         };
 
         Self {
-            name: process.name().to_owned(),
-            args: process.cmd().to_owned(),
+            name: process.name().to_owned().to_string_lossy().to_string(),
+            args: process
+                .cmd()
+                .iter()
+                .map(|p| p.to_string_lossy().to_string())
+                .collect(),
             exe: process.exe().to_owned().map(|e| e.to_path_buf()),
             pid: pid.as_u32(),
             cwd: process.cwd().map(|p| p.to_path_buf()),

@@ -6,7 +6,7 @@ version = "0.1.0"
 [dependencies]
 arc-swap = { version = "1", optional = true }
 async-trait = "0.1"
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "15db3730c47a7bd6221c65cbb68b2a9373ff41f0", optional = true }
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "2d4f0dd65c86b50585827cd12adaa57de3f8b214", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
 daemon-slayer-macros = { path = "../daemon-slayer-macros", optional = true }
 derivative = "2"
@@ -30,7 +30,7 @@ tipsy = { version = "0.3", optional = true }
 async-stream = { version = "0.3", optional = true }
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.52", optional = true, features = [
+windows-sys = { version = "0.59", optional = true, features = [
     "Win32_Foundation",
     "Win32_Storage",
     "Win32_Storage_FileSystem",

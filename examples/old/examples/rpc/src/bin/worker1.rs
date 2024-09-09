@@ -66,9 +66,9 @@ pub struct ServiceHandler {
 impl Handler for ServiceHandler {
     async fn new(context: &mut ServiceContext) -> Self {
         let (_, signal_store) = context.add_event_service(SignalHandler::all()).await;
-        context.add_service(get_rpc_service()).await;
+        context.spawn(get_rpc_service()).await;
         let publisher = context
-            .add_service(PublisherServer::<Topic, Message>::new(
+            .spawn(PublisherServer::<Topic, Message>::new(
                 "daemon_slayer_ipc",
                 Codec::Bincode,
             ))

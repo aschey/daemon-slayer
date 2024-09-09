@@ -121,7 +121,7 @@ impl BackgroundService for MdnsQueryService {
         "mdns_query_service"
     }
 
-    async fn run(self, mut context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let mdns = ServiceDaemon::new()?;
 
         if let Some(interface) = get_default_interface().await? {
@@ -132,9 +132,8 @@ impl BackgroundService for MdnsQueryService {
 
         let route_service = RouteListenerService::new();
         let mut route_events = route_service.get_event_store().subscribe_events();
-        context.add_service(route_service);
+        context.spawn(route_service);
 
-        let cancellation_token = context.cancellation_token();
         loop {
             tokio::select! {
                 event = receiver.recv_async() => {
@@ -153,7 +152,7 @@ impl BackgroundService for MdnsQueryService {
                         }
                     }
                 }
-                _ = cancellation_token.cancelled() => {
+                _ = context.cancelled() => {
                     break;
                 }
             }

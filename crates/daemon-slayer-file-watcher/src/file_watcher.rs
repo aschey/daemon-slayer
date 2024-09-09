@@ -82,7 +82,7 @@ impl BackgroundService for FileWatcher {
         while let Ok(Some(command)) = self
             .command_rx
             .recv()
-            .cancel_on_shutdown(&context.cancellation_token())
+            .cancel_with(context.cancelled())
             .await
         {
             match command {

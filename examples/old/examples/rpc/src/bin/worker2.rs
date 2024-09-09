@@ -70,7 +70,7 @@ impl Handler for ServiceHandler {
             .add_event_service::<SignalHandler>(SignalHandler::all())
             .await;
         let subscriber = context
-            .add_service(SubscriberServer::<Topic, Message>::new(
+            .spawn(SubscriberServer::<Topic, Message>::new(
                 "daemon_slayer_ipc",
                 Codec::Bincode,
             ))

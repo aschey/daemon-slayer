@@ -3,7 +3,7 @@ use daemon_slayer_core::cli::clap::{self, Args, FromArgMatches, Subcommand};
 use daemon_slayer_core::cli::{
     ActionType, CommandMatch, CommandOutput, CommandProvider, OwoColorize, Printer,
 };
-use daemon_slayer_core::server::background_service::BackgroundServiceManager;
+use daemon_slayer_core::server::background_service::Manager;
 use daemon_slayer_core::server::EventStore;
 use daemon_slayer_core::{BoxedError, CancellationToken};
 use futures::StreamExt;
@@ -84,9 +84,8 @@ impl CommandProvider for NetworkCliProvider {
                 }
             }
             NetworkSubcommands::MdnsTest => {
-                let service_manager =
-                    BackgroundServiceManager::new(CancellationToken::new(), Default::default());
-                let mut context = service_manager.get_context();
+                let service_manager = Manager::new(CancellationToken::new(), Default::default());
+                let context = service_manager.get_context();
                 let mdns_broadcast_service = MdnsBroadcastService::new(
                     MdnsBroadcastName::new("test", "servicetest", ServiceProtocol::Tcp),
                     4321,
@@ -97,12 +96,12 @@ impl CommandProvider for NetworkCliProvider {
 
                 // let mut mdns_broadcast_events =
                 //     mdns_broadcast_service.get_event_store().subscribe_events();
-                context.add_service(mdns_broadcast_service);
+                context.spawn(mdns_broadcast_service);
                 // tokio::time::sleep(Duration::from_millis(5000)).await;
                 let mdns_query_service =
                     MdnsQueryService::new(MdnsQueryName::new("servicetest", ServiceProtocol::Tcp));
                 let mut mdns_query_events = mdns_query_service.get_event_store().subscribe_events();
-                context.add_service(mdns_query_service);
+                context.spawn(mdns_query_service);
 
                 let mut service_resolved = false;
                 while let Some(Ok(query_event)) = mdns_query_events.next().await {

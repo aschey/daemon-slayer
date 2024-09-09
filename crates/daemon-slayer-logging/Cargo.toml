@@ -15,7 +15,7 @@ system = ["linux-journald", "mac-oslog", "windows-eventlog"]
 windows-eventlog = ["tracing-eventlog"]
 
 [dependencies]
-confique = { version = ">= 0.2.2", optional = true }
+confique = { version = "0.2.2", optional = true }
 ctor = "0.2"
 daemon-slayer-core = { path = "../daemon-slayer-core", features = ["config"] }
 directories = { version = "5", optional = true }
@@ -23,7 +23,7 @@ futures = { version = "0.3", optional = true }
 serde = { version = "1", optional = true }
 tap = "1"
 thiserror = "1"
-tilia = { git = "https://github.com/aschey/tilia", rev = "9aa29cd4f2966fddec1ab2f233cb1f8c4a668bfc", features = [
+tilia = { git = "https://github.com/aschey/tilia", rev = "08dbdb67abbee6a6f7ec6442e6ad590222d630c3", features = [
     "ipc",
 ], optional = true }
 time = "0.3"

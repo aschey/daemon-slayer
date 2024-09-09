@@ -70,7 +70,6 @@ impl BackgroundService for UdpBroadcastService {
             .unwrap();
         let mut framed = UdpFramed::new(sender, BytesCodec::new());
 
-        let cancellation_token = context.cancellation_token();
         let ips = match get_default_interface().await? {
             Some(interface) => HashSet::from_iter([interface.ip()]),
             None => if_addrs::get_if_addrs()?
@@ -101,7 +100,7 @@ impl BackgroundService for UdpBroadcastService {
                         }
                     }
                 }
-                _ = cancellation_token.cancelled() => {
+                _ = context.cancelled() => {
                     break;
                 }
             }

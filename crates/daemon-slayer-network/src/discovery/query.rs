@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use daemon_slayer_core::server::{BroadcastEventStore, DedupeEventStore, EventStore};
-use daemon_slayer_core::{BoxedError, CancellationToken, FutureExt};
+use daemon_slayer_core::{BoxedError, FutureExt};
 use futures::StreamExt;
 use mdns_sd::{ServiceDaemon, ServiceEvent};
 use tokio::sync::broadcast;
@@ -65,16 +65,12 @@ impl DiscoveryQueryService {
 async fn run_mdns(
     sender: broadcast::Sender<ServiceInfo>,
     mdns_name: MdnsQueryName,
-    cancellation_token: CancellationToken,
+    context: ServiceContext,
 ) -> Result<(), BoxedError> {
     let mdns = ServiceDaemon::new()?;
     let receiver = mdns.browse(&mdns_name.to_string()).unwrap();
 
-    while let Ok(Ok(event)) = receiver
-        .recv_async()
-        .cancel_on_shutdown(&cancellation_token)
-        .await
-    {
+    while let Ok(Ok(event)) = receiver.recv_async().cancel_with(context.cancelled()).await {
         info!("mdns receiver event: {event:?}");
         if let ServiceEvent::ServiceResolved(info) = event {
             let mdns_broadcast_name: MdnsBroadcastName = info.get_fullname().parse().unwrap();
@@ -115,14 +111,12 @@ async fn run_udp(
     udp_query_service: UdpQueryService,
     search_service_name: QueryServiceName,
     service_protocol: ServiceProtocol,
-    cancellation_token: CancellationToken,
+    context: ServiceContext,
 ) -> Result<(), BoxedError> {
     let mut framed = udp_query_service.get_framed().await;
 
     let mut last_result = ServiceInfo::default();
-    while let Ok(Some(Ok(service_info))) =
-        framed.next().cancel_on_shutdown(&cancellation_token).await
-    {
+    while let Ok(Some(Ok(service_info))) = framed.next().cancel_with(context.cancelled()).await {
         let subdomain_matches = match (
             service_info.service_name.subdomain(),
             search_service_name.subdomain(),
@@ -149,12 +143,11 @@ impl BackgroundService for DiscoveryQueryService {
         "discovery_query_service"
     }
 
-    async fn run(self, mut context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let sender = self.event_tx.clone();
-        let cancellation_token = context.cancellation_token();
         match self.discovery_impl {
             DiscoveryImpl::Mdns(mdns_name) => {
-                run_mdns(sender, mdns_name, cancellation_token).await?;
+                run_mdns(sender, mdns_name, context.clone()).await?;
             }
             DiscoveryImpl::Udp(udp_service) => {
                 run_udp(
@@ -162,23 +155,23 @@ impl BackgroundService for DiscoveryQueryService {
                     udp_service,
                     self.service_name,
                     self.service_protocol,
-                    cancellation_token,
+                    context.clone(),
                 )
                 .await?
             }
             DiscoveryImpl::Both(mdns_name, udp_service) => {
                 let sender_ = sender.clone();
 
-                context.add_service((
+                context.spawn((
                     "discovery_mdns_service",
                     move |context: ServiceContext| async move {
-                        run_mdns(sender_, mdns_name, context.cancellation_token()).await?;
+                        run_mdns(sender_, mdns_name, context.clone()).await?;
                         Ok(())
                     },
                 ));
                 let service_name = self.service_name;
                 let service_protocol = self.service_protocol;
-                context.add_service((
+                context.spawn((
                     "discovery_udp_service",
                     move |context: ServiceContext| async move {
                         run_udp(
@@ -186,7 +179,7 @@ impl BackgroundService for DiscoveryQueryService {
                             udp_service,
                             service_name,
                             service_protocol,
-                            context.cancellation_token(),
+                            context.clone(),
                         )
                         .await?;
                         Ok(())

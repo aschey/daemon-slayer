@@ -38,11 +38,7 @@ impl BackgroundService for RouteListenerService {
 
         futures::pin_mut!(stream);
 
-        while let Ok(Some(value)) = stream
-            .next()
-            .cancel_on_shutdown(&context.cancellation_token())
-            .await
-        {
+        while let Ok(Some(value)) = stream.next().cancel_with(context.cancelled()).await {
             info!("route change {value:?}");
             self.event_tx.send(value).ok();
         }

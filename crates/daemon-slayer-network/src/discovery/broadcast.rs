@@ -57,16 +57,15 @@ impl DiscoveryBroadcastService {
 
 async fn run_mdns(
     mdns_service: MdnsBroadcastService,
-    mut context: ServiceContext,
+    context: ServiceContext,
 ) -> Result<(), BoxedError> {
     let route_service = RouteListenerService::new();
     let mut route_events = route_service.get_event_store().subscribe_events();
-    context.add_service(route_service);
+    context.spawn(route_service);
 
     let (mdns, service_fullname) = mdns_service.get_monitor().await?;
     let monitor = mdns.monitor().unwrap();
 
-    let cancellation_token = context.cancellation_token();
     loop {
         tokio::select! {
             event = monitor.recv_async() => {
@@ -79,7 +78,7 @@ async fn run_mdns(
                     mdns_service.handle_route_change(&mdns, &service_fullname).await?;
                 }
             }
-            _ = cancellation_token.cancelled() => {
+            _ = context.cancelled() => {
                 break;
             }
         }
@@ -103,7 +102,7 @@ impl BackgroundService for DiscoveryBroadcastService {
         "discovery_broadcast_service"
     }
 
-    async fn run(self, mut context: ServiceContext) -> Result<(), BoxedError> {
+    async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         match self.discovery_impl {
             DiscoveryImpl::Mdns(mdns_service) => {
                 run_mdns(mdns_service, context).await?;
@@ -112,13 +111,13 @@ impl BackgroundService for DiscoveryBroadcastService {
                 udp_service.run(context.clone()).await?;
             }
             DiscoveryImpl::Both(mdns_service, udp_service) => {
-                context.add_service((
+                context.spawn((
                     "discovery_mdns_service",
                     move |context: ServiceContext| async move {
                         run_mdns(mdns_service, context).await
                     },
                 ));
-                context.add_service(udp_service);
+                context.spawn(udp_service);
             }
         }
         Ok(())

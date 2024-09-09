@@ -1,4 +1,4 @@
-use daemon_slayer_core::server::background_service::BackgroundServiceManager;
+use daemon_slayer_core::server::background_service::Manager;
 use daemon_slayer_core::CancellationToken;
 #[cfg_attr(target_os = "macos", allow(unused_imports))]
 use tap::TapFallible;
@@ -10,8 +10,7 @@ use crate::{Handler, ServiceError};
 pub async fn run_as_service<T: Handler>(
     input_data: Option<T::InputData>,
 ) -> Result<(), ServiceError<T::Error>> {
-    let manager =
-        BackgroundServiceManager::new(CancellationToken::new(), T::background_service_settings());
+    let manager = Manager::new(CancellationToken::new(), T::background_service_settings());
 
     let handler = T::new(manager.get_context(), input_data)
         .await

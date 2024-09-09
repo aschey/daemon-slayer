@@ -76,14 +76,13 @@ impl BackgroundService for SignalListener {
 
     async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let signals_handle = self.signals.handle();
-        let cancellation_token = context.cancellation_token();
         let mut signals = self.signals.fuse();
-        while let Ok(Some(signal)) = signals.next().cancel_on_shutdown(&cancellation_token).await {
+        while let Ok(Some(signal)) = signals.next().cancel_with(context.cancelled()).await {
             let signal_name = signal_hook::low_level::signal_name(signal).unwrap_or("unknown");
             let signal: Signal = signal_name.into();
             self.signal_tx.send(signal.clone()).ok();
             if let Signal::SIGTERM | Signal::SIGQUIT | Signal::SIGINT = signal {
-                context.cancellation_token().cancel();
+                context.cancel_all();
                 signals_handle.close();
                 return Ok(());
             }

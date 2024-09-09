@@ -85,8 +85,8 @@ async fn run() -> Result<(), BoxedError> {
     )
     .await
     .with_config(app_config.clone())
-    .with_configure_services(|mut context| {
-        context.add_service(ConfigService::new(app_config_));
+    .with_configure_services(|context| {
+        context.spawn(ConfigService::new(app_config_));
     });
 
     let mut cli = Cli::builder()

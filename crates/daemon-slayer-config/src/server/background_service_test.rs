@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use confique::Config;
-use daemon_slayer_core::server::background_service::{self, BackgroundServiceManager};
+use daemon_slayer_core::server::background_service::{self, Manager};
 use daemon_slayer_core::server::EventStore;
 use daemon_slayer_core::CancellationToken;
 use futures::StreamExt;
@@ -13,7 +13,7 @@ use crate::{AppConfig, ConfigDir};
 #[tokio::test]
 async fn test_serivce() {
     let cancellation_token = CancellationToken::new();
-    let service_manager = BackgroundServiceManager::new(
+    let service_manager = Manager::new(
         cancellation_token.clone(),
         background_service::Settings::default(),
     );
@@ -25,7 +25,7 @@ async fn test_serivce() {
 
     let service = ConfigService::new(test_config.clone());
     let mut events = service.get_event_store().subscribe_events();
-    service_manager.get_context().add_service(service);
+    service_manager.get_context().spawn(service);
     tokio::time::sleep(Duration::from_millis(50)).await;
     std::fs::write(test_config.full_path(), "test = false").unwrap();
     let (current, new) = events.next().await.unwrap().unwrap();

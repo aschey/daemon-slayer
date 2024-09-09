@@ -106,18 +106,18 @@ impl Handler for ServiceHandler {
     }
 
     async fn new(
-        mut context: ServiceContext,
+        context: ServiceContext,
         input_data: Option<Self::InputData>,
     ) -> Result<Self, Self::Error> {
         let input_data = input_data.unwrap();
         let signal_listener = SignalListener::termination();
         let signal_store = signal_listener.get_event_store();
-        context.add_service(signal_listener);
+        context.spawn(signal_listener);
 
         let config_service = ConfigService::new(input_data.config);
         let file_events = config_service.get_event_store();
-        context.add_service(config_service);
-        context.add_service(LoggingUpdateService::new(
+        context.spawn(config_service);
+        context.spawn(LoggingUpdateService::new(
             input_data.reload_handle,
             file_events,
         ));
@@ -188,10 +188,7 @@ impl Handler for ServiceHandler {
                 info!("Got shutdown signal");
             })
             .into_future()
-            .cancel_on_shutdown_with_timeout(
-                &self.context.cancellation_token(),
-                Duration::from_secs(2),
-            )
+            .cancel_with_timeout(self.context.cancelled(), Duration::from_secs(2))
             .await
         {
             res?;

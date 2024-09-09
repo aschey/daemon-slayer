@@ -73,13 +73,10 @@ impl Handler for ServiceHandler {
             .expect("Should parse the label")
     }
 
-    async fn new(
-        mut context: ServiceContext,
-        _: Option<Self::InputData>,
-    ) -> Result<Self, Self::Error> {
+    async fn new(context: ServiceContext, _: Option<Self::InputData>) -> Result<Self, Self::Error> {
         let signal_listener = SignalListener::termination();
         let signal_store = signal_listener.get_event_store();
-        context.add_service(signal_listener);
+        context.spawn(signal_listener);
 
         Ok(Self { signal_store })
     }

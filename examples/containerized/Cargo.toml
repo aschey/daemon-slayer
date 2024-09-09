@@ -21,14 +21,14 @@ daemon-slayer = { path = "../../crates/daemon-slayer", features = [
 #     "system",
 #     "ipc",
 # ] }
-derive_more = { version = "0.99.18", default-features = false, features = [
+derive_more = { version = "1.0.0", default-features = false, features = [
     "as_ref",
 ] }
 serde = "1.0.204"
 tar = "0.4.41"
 tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.40"
-bollard = { version = "0.16.1", features = ["buildkit"] }
+bollard = { version = "0.17.1", features = ["buildkit"] }
 flate2 = "1.0.30"
 ignore = "0.4.22"
 

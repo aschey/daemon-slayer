@@ -112,7 +112,7 @@ pub async fn run_async() -> Result<(), BoxedError> {
             let app_config = app_config_.clone();
             async move {
                 context
-                    .add_service(ConfigService::new(app_config))
+                    .spawn(ConfigService::new(app_config))
                     .await
                     .unwrap();
             }
@@ -171,17 +171,17 @@ impl Handler for ServiceHandler {
         let input_data = input_data.unwrap();
         let signal_listener = SignalListener::all();
         let signal_store = signal_listener.get_event_store();
-        context.add_service(signal_listener).await?;
+        context.spawn(signal_listener).await?;
         context
-            .add_service(daemon_slayer::ipc::health_check::Server::new(
+            .spawn(daemon_slayer::ipc::health_check::Server::new(
                 Self::label().application,
             ))
             .await?;
         let config_service = ConfigService::new(input_data.config);
         let file_events = config_service.get_event_store();
-        context.add_service(config_service).await?;
+        context.spawn(config_service).await?;
         context
-            .add_service(LoggingUpdateService::new(
+            .spawn(LoggingUpdateService::new(
                 input_data.logger_guard,
                 file_events,
             ))

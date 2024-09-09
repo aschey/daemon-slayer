@@ -76,7 +76,7 @@ impl Handler for ServiceHandler {
             .add_event_service::<SignalListener>(SignalListener::all())
             .await;
         let task_queue_client = context
-            .add_service(
+            .spawn(
                 TaskQueue::builder()
                     .with_job_handler(MyJob {})
                     .build()

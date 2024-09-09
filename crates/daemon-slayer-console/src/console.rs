@@ -14,7 +14,7 @@ use daemon_slayer_client::{ServiceManager, State, Status};
 use daemon_slayer_core::config::{Accessor, CachedConfig};
 use daemon_slayer_core::health_check::HealthCheck;
 use daemon_slayer_core::server::background_service::{
-    self, BackgroundService, BackgroundServiceManager, ServiceContext,
+    self, BackgroundService, Manager, ServiceContext,
 };
 use daemon_slayer_core::{BoxedError, CancellationToken, FutureExt};
 use futures::StreamExt;
@@ -70,7 +70,7 @@ impl BackgroundService for HealthChecker {
         while let Ok(res) = self
             .health_check
             .invoke()
-            .cancel_on_shutdown(&context.cancellation_token())
+            .cancel_with(context.cancelled())
             .await
         {
             match res {
@@ -122,7 +122,7 @@ impl Console {
             manager,
             info,
             logs: match log_source {
-                LogSource::Ipc => LogView::new(ipc_client(ServerId(name + "_logger"))),
+                LogSource::Ipc => LogView::new(ipc_client(ServerId::new(name + "_logger"))),
                 LogSource::Container { output_source } => {
                     LogView::new(docker_client(name, output_source))
                 }
@@ -193,7 +193,7 @@ impl Console {
         terminal: &mut Terminal<CrosstermBackend<Stdout>>,
         cancellation_token: CancellationToken,
     ) -> Result<(), BoxedError> {
-        let manager = BackgroundServiceManager::new(
+        let manager = Manager::new(
             cancellation_token.child_token(),
             background_service::Settings::default(),
         );
@@ -207,8 +207,8 @@ impl Console {
         if let Some(health_check) = self.health_check.take() {
             let health_checker =
                 HealthChecker::new(self.user_config.clone(), health_check, health_tx);
-            let mut context = manager.get_context();
-            context.add_service(health_checker);
+            let context = manager.get_context();
+            context.spawn(health_checker);
         }
 
         let mut event_reader = EventStream::new().fuse();
@@ -296,7 +296,7 @@ impl Console {
     }
 
     fn ui(&mut self, f: &mut Frame) {
-        let size = f.size();
+        let size = f.area();
 
         // Main border
         let main_block = get_main_block();

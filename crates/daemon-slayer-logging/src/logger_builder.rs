@@ -341,7 +341,7 @@ impl LoggerBuilder {
         #[cfg(feature = "ipc")]
         let (ipc_writer, ipc_guard) = {
             use tilia::transport_async::codec::{CodecStream, LengthDelimitedCodec};
-            use tilia::transport_async::ipc::{self, IpcSecurity, ServerId};
+            use tilia::transport_async::ipc::{self, ServerId};
             use tilia::transport_async::Bind;
             let name = self.label.application.to_owned() + "_logger";
             let make_transport = move || {
@@ -349,7 +349,7 @@ impl LoggerBuilder {
                 Box::pin(async move {
                     let transport = ipc::Endpoint::bind(
                         ipc::EndpointParams::new(
-                            ServerId(name),
+                            ServerId::new(name),
                             ipc::SecurityAttributes::allow_everyone_create().unwrap(),
                             ipc::OnConflict::Overwrite,
                         )

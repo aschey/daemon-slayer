@@ -87,7 +87,7 @@ impl Handler for ServiceHandler {
     async fn new(mut context: ServiceContext) -> Self {
         let (_, signal_store) = context.add_event_service(SignalListener::all()).await;
         context
-            .add_service(ipc_health_check::Server::new(
+            .spawn(ipc_health_check::Server::new(
                 "daemon_slayer_file_watcher".to_owned(),
             ))
             .await;

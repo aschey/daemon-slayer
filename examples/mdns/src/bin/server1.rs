@@ -113,23 +113,23 @@ impl Handler for ServiceHandler {
     }
 
     async fn new(
-        mut context: ServiceContext,
+        context: ServiceContext,
         input_data: Option<Self::InputData>,
     ) -> Result<Self, Self::Error> {
         let input_data = input_data.unwrap();
         let signal_listener = SignalListener::termination();
         let signal_store = signal_listener.get_event_store();
-        context.add_service(signal_listener);
+        context.spawn(signal_listener);
 
         let config_service = ConfigService::new(input_data.config);
         let file_events = config_service.get_event_store();
-        context.add_service(config_service);
-        context.add_service(LoggingUpdateService::new(
+        context.spawn(config_service);
+        context.spawn(LoggingUpdateService::new(
             input_data.reload_handle,
             file_events,
         ));
 
-        context.add_service(DiscoveryBroadcastService::new(
+        context.spawn(DiscoveryBroadcastService::new(
             DiscoveryProtocol::Both { udp_port: 33533 },
             BroadcastServiceName::new("test", "discoverytest"),
             ServiceProtocol::Tcp,
@@ -145,16 +145,16 @@ impl Handler for ServiceHandler {
 
         let discovery_query_store = discovery_query_service.get_event_store();
 
-        context.add_service(discovery_query_service);
+        context.spawn(discovery_query_service);
 
-        context.add_service((
+        context.spawn((
             "discovery_checker",
             move |context: ServiceContext| async move {
                 let mut discovery_events = discovery_query_store.subscribe_events();
                 tokio::time::sleep(Duration::from_secs(3)).await;
                 while let Ok(Some(Ok(event))) = discovery_events
                     .next()
-                    .cancel_on_shutdown(&context.cancellation_token())
+                    .cancel_with(context.cancelled())
                     .await
                 {
                     info!("Discovery event {event:?}");
@@ -236,10 +236,7 @@ impl Handler for ServiceHandler {
                 info!("Got shutdown signal");
             })
             .into_future()
-            .cancel_on_shutdown_with_timeout(
-                &self.context.cancellation_token(),
-                Duration::from_secs(2),
-            )
+            .cancel_with_timeout(self.context.cancelled(), Duration::from_secs(2))
             .await
         {
             res?;
