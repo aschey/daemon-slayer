@@ -41,9 +41,10 @@ jobs:
           sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libayatana-appindicator3-dev librsvg2-dev libxdo-dev
       - name: clippy
         run: cargo clippy --all-features
+      - name: Install cargo-make
+        uses: taiki-e/install-action@cargo-make
       - name: test
         run: |
-          cargo install cargo-make
           cargo make build-all
           ${{ matrix.test }}
       - name: check examples
