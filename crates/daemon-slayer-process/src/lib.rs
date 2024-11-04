@@ -81,13 +81,13 @@ impl ProcessManager {
         }
     }
 
-    pub fn kill(pid: u32) {
+    pub fn kill(pid: u32) -> Option<bool> {
         let system = System::new_with_specifics(
             RefreshKind::new().with_processes(ProcessRefreshKind::everything()),
         );
 
         let proc = system.process(Pid::from_u32(pid)).unwrap();
-        proc.kill_with(Signal::Kill);
+        proc.kill_with(Signal::Kill)
     }
 
     pub fn process_info(&mut self) -> Option<ProcessInfo> {

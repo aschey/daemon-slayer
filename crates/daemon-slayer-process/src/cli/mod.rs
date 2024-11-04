@@ -75,8 +75,12 @@ impl CommandProvider for ProcessCliProvider {
                     .pretty_print(),
             ),
             ProcessSubcommands::Kill => {
-                ProcessManager::kill(*pid);
-                CommandOutput::handled("Process killed".to_owned())
+                let message = match ProcessManager::kill(*pid) {
+                    Some(true) => "Kill signal sent",
+                    Some(false) => "Failed to send kill signal",
+                    None => "Process not found",
+                };
+                CommandOutput::handled(message.to_owned())
             }
         });
     }
