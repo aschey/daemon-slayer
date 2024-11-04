@@ -5,20 +5,20 @@ version = "0.1.0"
 
 [dependencies]
 axum = "0.7.5"
-confique = "0.2.5"
+confique = "0.3.0"
 daemon-slayer = { path = "../../crates/daemon-slayer", features = [
-    "client-standard",
-    "server-standard",
-    "tray",
-    "build-info",
-    "socket-activation",
+  "client-standard",
+  "server-standard",
+  "tray",
+  "build-info",
+  "socket-activation",
 ] }
 daemon-slayer-logging = { path = "../../crates/daemon-slayer-logging", features = [
-    "system",
-    "ipc",
+  "system",
+  "ipc",
 ] }
 derive_more = { version = "1.0.0", default-features = false, features = [
-    "as_ref",
+  "as_ref",
 ] }
 serde = "1.0.204"
 tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
@@ -36,5 +36,5 @@ path = "src/bin/server.rs"
 [build-dependencies]
 vergen-gix = { version = "1.0", features = ["build", "cargo", "rustc", "si"] }
 daemon-slayer = { path = "../../crates/daemon-slayer", features = [
-    "build-info",
+  "build-info",
 ] }

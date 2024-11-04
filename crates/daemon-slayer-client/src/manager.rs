@@ -28,6 +28,7 @@ pub(crate) trait Manager: std::fmt::Debug + Clone + Send + Sync + 'static {
     async fn enable_autostart(&mut self) -> io::Result<()>;
     async fn disable_autostart(&mut self) -> io::Result<()>;
     async fn status(&self) -> io::Result<Status>;
+    async fn pid(&self) -> io::Result<Option<u32>>;
 }
 
 pub struct Command {
@@ -108,6 +109,10 @@ impl ServiceManager {
 
     pub async fn status(&self) -> io::Result<Status> {
         self.inner.status().await
+    }
+
+    pub async fn pid(&self) -> io::Result<Option<u32>> {
+        self.inner.pid().await
     }
 }
 

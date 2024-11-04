@@ -10,9 +10,9 @@ use daemon_slayer::config::{AppConfig, ConfigDir};
 use daemon_slayer::console::cli::ConsoleCliProvider;
 use daemon_slayer::console::{self, Console, LogSource};
 use daemon_slayer::core::BoxedError;
+use daemon_slayer::error_handler::ErrorSink;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::color_eyre::eyre;
-use daemon_slayer::error_handler::ErrorSink;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{self, LoggerBuilder};
@@ -77,12 +77,9 @@ async fn run() -> Result<(), BoxedError> {
     let logger_builder = LoggerBuilder::new(containerized::label()).with_config(app_config.clone());
 
     let app_config_ = app_config.clone();
-    let console = Console::new(
-        manager.clone(),
-        LogSource::Container {
-            output_source: console::DockerLogSource::Stderr,
-        },
-    )
+    let console = Console::new(manager.clone(), LogSource::Container {
+        output_source: console::DockerLogSource::Stderr,
+    })
     .await
     .with_config(app_config.clone())
     .with_configure_services(|context| {
@@ -91,7 +88,7 @@ async fn run() -> Result<(), BoxedError> {
 
     let mut cli = Cli::builder()
         .with_provider(ClientCliProvider::new(manager.clone()))
-        .with_provider(ProcessCliProvider::new(manager.status().await?.pid))
+        .with_provider(ProcessCliProvider::new(manager.pid().await?))
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(LoggingCliProvider::new(logger_builder))
         .with_provider(ErrorHandlerCliProvider::default())

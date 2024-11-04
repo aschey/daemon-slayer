@@ -58,14 +58,14 @@ pub struct SystemdServiceManager {
 impl SystemdServiceManager {
     pub(crate) async fn from_builder(builder: Builder) -> io::Result<Self> {
         let client = if builder.is_user() {
-            manager::build_nonblock_user_proxy().await.map_err(|e| {
+            manager::build_nonblocking_user_proxy().await.map_err(|e| {
                 io::Error::new(
                     io::ErrorKind::ConnectionRefused,
                     format!("Error connecting to systemd user proxy: {e:?}"),
                 )
             })
         } else {
-            manager::build_nonblock_proxy().await.map_err(|e| {
+            manager::build_nonblocking_proxy().await.map_err(|e| {
                 io::Error::new(
                     io::ErrorKind::ConnectionRefused,
                     format!("Error connecting to systemd proxy: {e:?}"),
@@ -133,9 +133,9 @@ impl SystemdServiceManager {
         svc_unit_path: OwnedObjectPath,
     ) -> io::Result<SystemdUnitProxy> {
         if self.config.is_user() {
-            unit::build_nonblock_user_proxy(svc_unit_path.clone()).await
+            unit::build_nonblocking_user_proxy(svc_unit_path.clone()).await
         } else {
-            unit::build_nonblock_proxy(svc_unit_path.clone()).await
+            unit::build_nonblocking_proxy(svc_unit_path.clone()).await
         }
         .map_err(|e| {
             io_error(format!(
@@ -150,9 +150,9 @@ impl SystemdServiceManager {
         svc_unit_path: OwnedObjectPath,
     ) -> io::Result<SystemdServiceProxy> {
         if self.config.is_user() {
-            service::build_nonblock_user_proxy(svc_unit_path).await
+            service::build_nonblocking_user_proxy(svc_unit_path).await
         } else {
-            service::build_nonblock_proxy(svc_unit_path).await
+            service::build_nonblocking_proxy(svc_unit_path).await
         }
         .map_err(|e| io_error(format!("Error creating unit proxy: {e:?}")))
     }
@@ -500,6 +500,17 @@ impl Manager for SystemdServiceManager {
                 args: vec!["status".to_owned(), service],
             })
         }
+    }
+
+    async fn pid(&self) -> io::Result<Option<u32>> {
+        let svc_unit_path = self.get_unit_path(&self.service_file_name).await?;
+
+        let service_client = self.get_service_client(svc_unit_path).await?;
+        let service_props = service_client
+            .get_properties()
+            .await
+            .map_err(|e| io_error(format!("Error getting service properties: {e:?}")))?;
+        Ok(Some(service_props.exec_main_pid))
     }
 
     fn display_name(&self) -> &str {

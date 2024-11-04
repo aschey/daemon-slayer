@@ -5,7 +5,7 @@ version = "0.1.0"
 
 [dependencies]
 daemon-slayer-core = { path = "../daemon-slayer-core", features = [
-    "health-check",
+  "health-check",
 ] }
 tipsy = { version = "0.3", optional = true }
 reqwest = { version = "0.12", optional = true }

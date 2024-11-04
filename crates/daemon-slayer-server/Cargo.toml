@@ -5,11 +5,11 @@ version = "0.1.0"
 
 [dependencies]
 daemon-slayer-core = { path = "../daemon-slayer-core", features = [
-    "server",
-    "signal",
+  "server",
+  "signal",
 ] }
 daemon-slayer-macros = { path = "../daemon-slayer-macros", features = [
-    "server",
+  "server",
 ] }
 futures = { version = "0.3" }
 tap = "1"
@@ -22,22 +22,22 @@ async-trait = { version = "0.1", optional = true }
 registry = "1"
 signal-hook = { version = "0.3", optional = true }
 tokio = { version = "1", features = [
-    "rt-multi-thread",
-    "signal",
-    "net",
-    "macros",
-    "sync",
+  "rt-multi-thread",
+  "signal",
+  "net",
+  "macros",
+  "sync",
 ] }
 windows-service = { git = "https://github.com/aschey/windows-service-rs", rev = "32919aebe4c59f7855a8ebd72fe7d716db6a8f28" }
 
 
 [target.'cfg(unix)'.dependencies]
 tokio = { version = "1", features = [
-    "rt-multi-thread",
-    "net",
-    "io-util",
-    "sync",
-    "macros",
+  "rt-multi-thread",
+  "net",
+  "io-util",
+  "sync",
+  "macros",
 ] }
 
 [target.'cfg(target_os="linux")'.dependencies]
@@ -50,8 +50,8 @@ raunch = { version = "1", optional = true }
 [features]
 cli = ["daemon-slayer-core/cli", "async-trait"]
 socket-activation = [
-    "sd-listen-fds",
-    "raunch",
-    "daemon-slayer-core/socket-activation",
-    "tipsy",
+  "sd-listen-fds",
+  "raunch",
+  "daemon-slayer-core/socket-activation",
+  "tipsy",
 ]

@@ -8,4 +8,4 @@ daemon-slayer-client = { path = "../daemon-slayer-client" }
 image = "0.25"
 tao = "0.30"
 tokio = { version = "1", features = ["sync", "macros", "time"] }
-tray-icon = "0.17"
+tray-icon = "0.19"

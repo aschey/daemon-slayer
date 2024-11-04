@@ -23,7 +23,7 @@ tokio-stream = { version = "0.1", features = ["sync"], optional = true }
 tokio-util = { version = "0.7" }
 tracing = "0.1"
 serde = { version = "1", features = ["derive"] }
-unicode-width = { version = "0.1", optional = true }
+unicode-width = { version = "0.2", optional = true }
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
 strip-ansi-escapes = { version = "0.2", optional = true }
 tipsy = { version = "0.3", optional = true }
@@ -31,22 +31,22 @@ async-stream = { version = "0.3", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", optional = true, features = [
-    "Win32_Foundation",
-    "Win32_Storage",
-    "Win32_Storage_FileSystem",
-    "Win32_Security",
-    "Win32_System_IO",
-    "Win32_System_Console",
-    "Win32_System_Pipes",
-    "Win32_System_Threading",
-    "Win32_System_RemoteDesktop",
-    "Win32_System_Environment",
-    "Win32_UI_WindowsAndMessaging",
+  "Win32_Foundation",
+  "Win32_Storage",
+  "Win32_Storage_FileSystem",
+  "Win32_Security",
+  "Win32_System_IO",
+  "Win32_System_Console",
+  "Win32_System_Pipes",
+  "Win32_System_Threading",
+  "Win32_System_RemoteDesktop",
+  "Win32_System_Environment",
+  "Win32_UI_WindowsAndMessaging",
 ] }
 widestring = { version = "1", optional = true }
 
 [target.'cfg(target_os="linux")'.dependencies]
-zbus = { version = "4", optional = true, features = ["tokio"] }
+zbus = { version = "5", optional = true, features = ["tokio"] }
 
 [target.'cfg(target_os="macos")'.dependencies]
 shlex = { version = "1", optional = true }
@@ -54,29 +54,29 @@ regex = { version = "1", optional = true }
 
 [features]
 cli = [
-    "clap",
-    "strum",
-    "owo-colors",
-    "unicode-width",
-    "downcast-rs",
-    "strip-ansi-escapes",
+  "clap",
+  "strum",
+  "owo-colors",
+  "unicode-width",
+  "downcast-rs",
+  "strip-ansi-escapes",
 ]
 config = [
-    "arc-swap",
-    "dyn-clonable",
-    "daemon-slayer-macros",
-    "daemon-slayer-macros/config",
+  "arc-swap",
+  "dyn-clonable",
+  "daemon-slayer-macros",
+  "daemon-slayer-macros/config",
 ]
 health-check = []
 server = ["tokio-stream", "async-stream", "background-service"]
 signal = []
 notify = []
 process = [
-    "windows-sys",
-    "widestring",
-    "zbus",
-    "tokio/process",
-    "shlex",
-    "regex",
+  "windows-sys",
+  "widestring",
+  "zbus",
+  "tokio/process",
+  "shlex",
+  "regex",
 ]
 socket-activation = ["tipsy"]

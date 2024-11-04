@@ -27,6 +27,15 @@ impl DockerServiceManager {
             .map_err(|e| io::Error::new(io::ErrorKind::ConnectionRefused, e))?;
         Ok(Self { config, docker })
     }
+
+    async fn get_container_state(&self) -> ContainerState {
+        let inspect = self
+            .docker
+            .inspect_container(&self.name(), None)
+            .await
+            .unwrap();
+        inspect.state.unwrap()
+    }
 }
 
 #[async_trait]
@@ -217,13 +226,7 @@ impl Manager for DockerServiceManager {
                 }) => State::Started,
                 _ => State::Stopped,
             };
-            let inspect = self
-                .docker
-                .inspect_container(&self.name(), None)
-                .await
-                .unwrap();
-            let container_state = inspect.state.unwrap();
-
+            let container_state = self.get_container_state().await;
             let autostart = if matches!(
                 inspect.host_config,
                 Some(HostConfig {
@@ -262,5 +265,9 @@ impl Manager for DockerServiceManager {
         };
 
         Ok(info)
+    }
+
+    async fn pid(&self) -> io::Result<Option<u32>> {
+        Ok(self.get_container_state().await.pid.map(|p| p as u32))
     }
 }

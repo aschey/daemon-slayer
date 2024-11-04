@@ -6,10 +6,10 @@ version = "0.1.0"
 [dependencies]
 arc-swap = { version = "1" }
 bat = { version = "0.24", default-features = false, features = [
-    "regex-onig",
-    "paging",
+  "regex-onig",
+  "paging",
 ], optional = true }
-confique = ">= 0.2.2"
+confique = { version = "0.3", features = ["toml", "yaml", "json5"] }
 daemon-slayer-core = { path = "../daemon-slayer-core", features = ["config"] }
 daemon-slayer-file-watcher = { path = "../daemon-slayer-file-watcher" }
 derivative = "2"

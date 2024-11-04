@@ -15,7 +15,7 @@ system = ["linux-journald", "mac-oslog", "windows-eventlog"]
 windows-eventlog = ["tracing-eventlog"]
 
 [dependencies]
-confique = { version = "0.2.2", optional = true }
+confique = { version = "0.3.0", optional = true }
 ctor = "0.2"
 daemon-slayer-core = { path = "../daemon-slayer-core", features = ["config"] }
 directories = { version = "5", optional = true }
@@ -24,35 +24,35 @@ serde = { version = "1", optional = true }
 tap = "1"
 thiserror = "1"
 tilia = { git = "https://github.com/aschey/tilia", rev = "08dbdb67abbee6a6f7ec6442e6ad590222d630c3", features = [
-    "ipc",
+  "ipc",
 ], optional = true }
 time = "0.3"
 tracing = "0.1"
 tracing-appender = { version = "0.2" }
 tracing-error = { version = "0.2" }
 tracing-subscriber = { version = "0.3", features = [
-    "local-time",
-    "env-filter",
+  "local-time",
+  "env-filter",
 ] }
 async-trait = { version = "0.1", optional = true }
 
 
 [target.'cfg(windows)'.dependencies]
 tokio = { version = "1", features = [
-    "rt-multi-thread",
-    "signal",
-    "net",
-    "io-util",
-    "sync",
+  "rt-multi-thread",
+  "signal",
+  "net",
+  "io-util",
+  "sync",
 ], optional = true }
 tracing-eventlog = { git = "https://github.com/aschey/tracing-eventlog", rev = "ba94d7635b20f8866067baae2bfb3d28bc883e63", optional = true }
 
 [target.'cfg(unix)'.dependencies]
 tokio = { version = "1", features = [
-    "rt-multi-thread",
-    "net",
-    "io-util",
-    "sync",
+  "rt-multi-thread",
+  "net",
+  "io-util",
+  "sync",
 ], optional = true }
 
 [target.'cfg(target_os="linux")'.dependencies]

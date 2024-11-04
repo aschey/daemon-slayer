@@ -35,11 +35,7 @@ impl<T: LoggingConfig> BackgroundService for LoggingUpdateService<T> {
 
     async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let mut rx = self.file_events.subscribe_events();
-        while let Ok(Some(Ok((_, new)))) = rx
-            .next()
-            .cancel_with(context.cancelled())
-            .await
-        {
+        while let Ok(Some(Ok((_, new)))) = rx.next().cancel_with(context.cancelled()).await {
             let log_level = new.deref().as_ref().log_level.to_level_filter();
 
             self.reload_handle.update_log_level(log_level);

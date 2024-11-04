@@ -93,7 +93,7 @@ impl ProcessManager {
     pub fn process_info(&mut self) -> Option<ProcessInfo> {
         self.system.refresh_memory();
         self.system
-            .refresh_processes(ProcessesToUpdate::Some(&[self.pid]));
+            .refresh_processes(ProcessesToUpdate::Some(&[self.pid]), true);
         let total_memory = self.system.total_memory();
         let all_processes = self.system.processes();
         self.system

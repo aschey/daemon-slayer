@@ -14,7 +14,7 @@ client-standard = [
   "process",
 ]
 extras = [
-  "file-watcher", 
+  "file-watcher",
   #"task-queue"
 ]
 server-standard = [

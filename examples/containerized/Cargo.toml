@@ -4,25 +4,25 @@ name = "containerized"
 version = "0.1.0"
 
 [dependencies]
-confique = "0.2.5"
+confique = "0.3.0"
 daemon-slayer = { path = "../../crates/daemon-slayer", features = [
-    "console",
-    "client",
-    "cli",
-    "config",
-    "error-handler",
-    "process",
-    "logging",
-    "signals",
-    "server",
-    "docker",
+  "console",
+  "client",
+  "cli",
+  "config",
+  "error-handler",
+  "process",
+  "logging",
+  "signals",
+  "server",
+  "docker",
 ] }
 # daemon-slayer-logging = { path = "../../crates/daemon-slayer-logging", features = [
 #     "system",
 #     "ipc",
 # ] }
 derive_more = { version = "1.0.0", default-features = false, features = [
-    "as_ref",
+  "as_ref",
 ] }
 serde = "1.0.204"
 tar = "0.4.41"

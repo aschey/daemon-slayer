@@ -71,10 +71,7 @@ impl BackgroundService for UdpQueryService {
         let mut framed = self.get_framed().await;
 
         let mut last_result = ServiceInfo::default();
-        while let Ok(Some(Ok(service_info))) = framed
-            .next()
-            .cancel_with(context.cancelled())
-            .await
+        while let Ok(Some(Ok(service_info))) = framed.next().cancel_with(context.cancelled()).await
         {
             if service_info != last_result {
                 self.event_tx.send(service_info.clone()).unwrap();

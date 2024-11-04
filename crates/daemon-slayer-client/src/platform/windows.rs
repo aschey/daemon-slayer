@@ -613,7 +613,7 @@ fn from_registry_value_error(value: &str, path: &str, err: registry::value::Erro
         ),
         registry::value::Error::InvalidUtf16(err) => io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("Invalid UTF-16 daata for registry value {value} in path {path}: {err:?}"),
+            format!("Invalid UTF-16 data for registry value {value} in path {path}: {err:?}"),
         ),
         registry::value::Error::Unknown(_, err) => io::Error::new(
             err.kind(),

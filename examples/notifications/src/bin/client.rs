@@ -2,8 +2,8 @@ use std::env::current_exe;
 
 use daemon_slayer::cli::Cli;
 use daemon_slayer::client::cli::ClientCliProvider;
-use daemon_slayer::client::config::windows::{ServiceAccess, Trustee, WindowsConfig};
 use daemon_slayer::client::config::Level;
+use daemon_slayer::client::config::windows::{ServiceAccess, Trustee, WindowsConfig};
 use daemon_slayer::client::{self};
 use daemon_slayer::config::cli::ConfigCliProvider;
 use daemon_slayer::config::server::ConfigService;
@@ -11,9 +11,9 @@ use daemon_slayer::config::{AppConfig, ConfigDir};
 use daemon_slayer::console::cli::ConsoleCliProvider;
 use daemon_slayer::console::{self, Console, LogSource};
 use daemon_slayer::core::BoxedError;
+use daemon_slayer::error_handler::ErrorSink;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::color_eyre::eyre;
-use daemon_slayer::error_handler::ErrorSink;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{self, LoggerBuilder};
@@ -81,7 +81,7 @@ async fn run() -> Result<(), BoxedError> {
 
     let mut cli = Cli::builder()
         .with_provider(ClientCliProvider::new(manager.clone()))
-        .with_provider(ProcessCliProvider::new(manager.status().await?.pid))
+        .with_provider(ProcessCliProvider::new(manager.pid().await?))
         .with_provider(ConsoleCliProvider::new(console))
         .with_provider(LoggingCliProvider::new(logger_builder))
         .with_provider(ErrorHandlerCliProvider::default())
