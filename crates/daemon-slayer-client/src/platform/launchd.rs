@@ -170,6 +170,11 @@ impl LaunchdServiceManager {
 
         Ok(())
     }
+
+    fn find_pid(&self, output: &str) -> Option<u32> {
+        self.get_match_or_default(&PID_RE, output)
+            .map(|pid| pid.parse::<u32>().unwrap_or(0))
+    }
 }
 
 #[async_trait]
@@ -353,9 +358,7 @@ impl Manager for LaunchdServiceManager {
             }
         };
 
-        let pid = self
-            .get_match_or_default(&PID_RE, &output)
-            .map(|pid| pid.parse::<u32>().unwrap_or(0));
+        let pid = self.find_pid(&output);
 
         // We get the autostart status from the plist file instead of the print command because
         // the format changed sometime between Mac OS 11 and 12 so it seems that it's not very
@@ -374,6 +377,13 @@ impl Manager for LaunchdServiceManager {
             autostart,
             last_exit_code,
         })
+    }
+
+    async fn pid(&self) -> io::Result<Option<u32>> {
+        let output = self
+            .run_launchctl(vec!["print", &self.service_target().await?])
+            .await?;
+        Ok(self.find_pid(&output))
     }
 
     fn display_name(&self) -> &str {
