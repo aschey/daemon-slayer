@@ -545,6 +545,22 @@ impl Manager for WindowsServiceManager {
         }
     }
 
+    async fn pid(&self) -> io::Result<Option<u32>> {
+        let Some(service_name) =  self.current_service_name()? else {
+            return Ok(None)
+        };
+        let Ok(service) = self.open_service(&service_name, ServiceAccessMode::Read) else {
+            return Ok(None);
+        };
+
+        let service_status = service.query_status().map_err(|e| {
+            io_error(format!(
+                "Error getting status for service {service_name}: {e:?}"
+            ))
+        })?;
+        Ok(service_status.process_id)
+    }
+
     fn arguments(&self) -> &Vec<String> {
         &self.config.arguments
     }
