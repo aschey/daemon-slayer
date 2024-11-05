@@ -67,13 +67,13 @@ impl CommandProvider for ProcessCliProvider {
             ));
         };
         return Ok(match args.commands {
-            ProcessSubcommands::Info => CommandOutput::handled(
-                ProcessManager::new(*pid)
-                    .process_info()
-                    // This shouldn't happen since we have a pid
-                    .expect("Failed to load process info")
-                    .pretty_print(),
-            ),
+            ProcessSubcommands::Info => {
+                let message = match ProcessManager::new(*pid).process_info() {
+                    Some(info) => info.pretty_print(),
+                    None => "Process not found".to_owned(),
+                };
+                CommandOutput::handled(message)
+            }
             ProcessSubcommands::Kill => {
                 let message = match ProcessManager::kill(*pid) {
                     Some(true) => "Kill signal sent",
