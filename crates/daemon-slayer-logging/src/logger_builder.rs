@@ -4,7 +4,7 @@ use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::OnceLock;
 
-use daemon_slayer_core::config::{Accessor, CachedConfig};
+use daemon_slayer_core::config::Accessor;
 use daemon_slayer_core::{BoxedError, Label, Mergeable};
 use time::format_description::well_known::{self, Rfc3339};
 use time::UtcOffset;
@@ -114,6 +114,26 @@ pub struct UserConfig {
 }
 
 #[derive(Debug, Clone)]
+pub struct EnvConfig {
+    var_name: String,
+    default_if_missing: LevelFilter,
+}
+
+impl EnvConfig {
+    pub fn new(var_name: String) -> Self {
+        Self {
+            var_name,
+            default_if_missing: LevelFilter::ERROR,
+        }
+    }
+
+    pub fn with_default(mut self, default: LevelFilter) -> Self {
+        self.default_if_missing = default;
+        self
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct LoggerBuilder {
     #[allow(dead_code)]
     label: Label,
@@ -121,13 +141,13 @@ pub struct LoggerBuilder {
     file_rotation_period: tracing_appender::rolling::Rotation,
     timezone: Timezone,
     output_buffer_limit: usize,
-    user_config: CachedConfig<UserConfig>,
     target_directives: HashMap<LogTarget, Vec<Directive>>,
     env_filter_directives: Vec<Directive>,
     log_to_stdout: bool,
     log_to_stderr: bool,
     #[cfg(feature = "ipc")]
     enable_ipc_logger: bool,
+    env_config: Option<EnvConfig>,
 }
 
 impl LoggerBuilder {
@@ -141,13 +161,13 @@ impl LoggerBuilder {
             // We aren't logging a ton of messages so setting this value somewhat low is fine in
             // order to conserve memory
             output_buffer_limit: 256,
-            user_config: Default::default(),
             log_to_stdout: false,
             log_to_stderr: true,
             #[cfg(feature = "ipc")]
             enable_ipc_logger: false,
             target_directives: Default::default(),
             env_filter_directives: vec![],
+            env_config: None,
         }
     }
 
@@ -180,14 +200,6 @@ impl LoggerBuilder {
         self
     }
 
-    pub fn with_config<S>(mut self, service: S) -> Self
-    where
-        S: Accessor<UserConfig> + Clone + Unpin + 'static,
-    {
-        self.user_config = service.access();
-        self
-    }
-
     pub fn with_env_filter_directive(mut self, directive: Directive) -> Self {
         self.env_filter_directives.push(directive);
         self
@@ -196,6 +208,11 @@ impl LoggerBuilder {
     #[cfg(feature = "ipc")]
     pub fn with_ipc_logger(mut self, enable_ipc_logger: bool) -> Self {
         self.enable_ipc_logger = enable_ipc_logger;
+        self
+    }
+
+    pub fn with_env_config(mut self, config: EnvConfig) -> Self {
+        self.env_config = Some(config);
         self
     }
 
@@ -208,9 +225,21 @@ impl LoggerBuilder {
         self
     }
 
+    fn get_base_env_filter(&self) -> EnvFilter {
+        if let Some(config) = &self.env_config {
+            EnvFilter::try_from_env(config.var_name.clone()).unwrap_or_else(|_| {
+                EnvFilter::default().add_directive(config.default_if_missing.into())
+            })
+        } else {
+            EnvFilter::default()
+        }
+    }
+
     fn get_filter_for_target(&self, target: LogTarget) -> EnvFilter {
-        // Don't filer anything by default
-        let mut env_filter = EnvFilter::default().add_directive(LevelFilter::TRACE.into());
+        let mut env_filter = self.get_base_env_filter();
+        for directive in &self.env_filter_directives {
+            env_filter = env_filter.add_directive(directive.clone());
+        }
         if let Some(directives) = self.target_directives.get(&target) {
             for directive in directives {
                 env_filter = env_filter.add_directive(directive.clone());
@@ -241,13 +270,8 @@ impl LoggerBuilder {
 
     pub fn build(
         self,
-    ) -> Result<
-        (
-            impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
-            ReloadHandle,
-        ),
-        LoggerCreationError,
-    > {
+    ) -> Result<impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>, LoggerCreationError>
+    {
         let offset = match (&self.timezone, LOCAL_TIME.get()) {
             (Timezone::Local, Some(Ok(offset))) => offset.to_owned(),
             (Timezone::Local, Some(Err(e))) => {
@@ -257,7 +281,7 @@ impl LoggerBuilder {
             _ => OffsetTime::new(UtcOffset::UTC, well_known::Rfc3339),
         };
 
-        let mut env_filter = EnvFilter::default().add_directive(LevelFilter::TRACE.into());
+        let mut env_filter = self.get_base_env_filter();
         for directive in &self.env_filter_directives {
             env_filter = env_filter.add_directive(directive.clone());
         }
@@ -409,14 +433,31 @@ impl LoggerBuilder {
                 .with_filter(self.get_filter_for_target(LogTarget::EventLog)),
         );
 
-        let (filter, reload_handle) =
-            reload::Layer::new(self.user_config.snapshot().log_level.0.into());
+        LOGGER_GUARD.set(Some(guard)).ok();
+        Ok(collector)
+    }
+
+    pub fn build_with_reload<S>(
+        self,
+        service: S,
+    ) -> Result<
+        (
+            impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
+            ReloadHandle,
+        ),
+        LoggerCreationError,
+    >
+    where
+        S: Accessor<UserConfig> + Clone + Unpin + 'static,
+    {
+        let user_config = service.access();
+        let collector = self.build()?;
+        let (filter, reload_handle) = reload::Layer::new(user_config.snapshot().log_level.0.into());
         let reload_fn = Box::new(move |level_filter: LevelFilter| {
             reload_handle.modify(|l| *l = level_filter).ok();
         });
 
         let collector = collector.with(filter);
-        LOGGER_GUARD.set(Some(guard)).ok();
         Ok((collector, ReloadHandle::new(reload_fn)))
     }
 }

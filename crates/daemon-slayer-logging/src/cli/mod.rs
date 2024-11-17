@@ -2,12 +2,13 @@ use async_trait::async_trait;
 use daemon_slayer_core::cli::{
     clap, Action, ActionType, ClientAction, CommandMatch, CommandOutput, CommandProvider,
 };
+use daemon_slayer_core::config::Accessor;
 use daemon_slayer_core::BoxedError;
 use tracing::Subscriber;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::util::SubscriberInitExt;
 
-use crate::{LoggerBuilder, LoggerCreationError, ReloadHandle};
+use crate::{LoggerBuilder, LoggerCreationError, ReloadHandle, UserConfig};
 
 #[derive(thiserror::Error, Debug)]
 pub enum LoggerInitializationError {
@@ -29,13 +30,30 @@ impl LoggingCliProvider {
         }
     }
 
-    pub fn get_logger(
+    pub fn get_logger_with_reload<S>(
         mut self,
+        service: S,
     ) -> Result<
         (
             impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
             ReloadHandle,
         ),
+        LoggerInitializationError,
+    >
+    where
+        S: Accessor<UserConfig> + Clone + Unpin + 'static,
+    {
+        self.builder
+            .take()
+            .ok_or(LoggerInitializationError::AlreadyCreated)?
+            .build_with_reload(service)
+            .map_err(LoggerInitializationError::CreationFailure)
+    }
+
+    pub fn get_logger(
+        mut self,
+    ) -> Result<
+        impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>,
         LoggerInitializationError,
     > {
         self.builder

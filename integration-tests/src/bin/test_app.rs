@@ -28,7 +28,7 @@ pub async fn main() {
         .unwrap();
 
     let logger_provider = cli.take_provider::<LoggingCliProvider>();
-    let (logger, _) = logger_provider.get_logger().unwrap();
+    let logger = logger_provider.get_logger().unwrap();
     logger.init();
 
     cli.handle_input().await.unwrap();
