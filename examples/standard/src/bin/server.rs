@@ -49,8 +49,7 @@ async fn run() -> Result<(), BoxedError> {
     let app_config =
         AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(standard::label())).build()?;
 
-    let logger_builder =
-        LoggerBuilder::new(ServiceHandler::label()).with_config(app_config.clone());
+    let logger_builder = LoggerBuilder::new(ServiceHandler::label());
     let pretty = vergen_pretty::PrettyBuilder::default()
         .env(vergen_pretty::vergen_pretty_env!())
         .category(false)
@@ -67,7 +66,9 @@ async fn run() -> Result<(), BoxedError> {
         .with_provider(BuildInfoCliProvider::new(pretty))
         .initialize()?;
 
-    let (logger, reload_handle) = cli.take_provider::<LoggingCliProvider>().get_logger()?;
+    let (logger, reload_handle) = cli
+        .take_provider::<LoggingCliProvider>()
+        .get_logger_with_reload(app_config.clone())?;
 
     logger.init();
 

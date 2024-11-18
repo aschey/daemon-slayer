@@ -46,7 +46,7 @@ async fn run() -> Result<(), BoxedError> {
         .with_provider(ErrorHandlerCliProvider::default())
         .initialize()?;
 
-    let (logger, _) = cli.take_provider::<LoggingCliProvider>().get_logger()?;
+    let logger = cli.take_provider::<LoggingCliProvider>().get_logger()?;
     logger.init();
 
     if let (InputState::Unhandled, matches) = cli.handle_input().await? {

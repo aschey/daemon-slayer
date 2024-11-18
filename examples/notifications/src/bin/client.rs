@@ -2,8 +2,8 @@ use std::env::current_exe;
 
 use daemon_slayer::cli::Cli;
 use daemon_slayer::client::cli::ClientCliProvider;
-use daemon_slayer::client::config::Level;
 use daemon_slayer::client::config::windows::{ServiceAccess, Trustee, WindowsConfig};
+use daemon_slayer::client::config::Level;
 use daemon_slayer::client::{self};
 use daemon_slayer::config::cli::ConfigCliProvider;
 use daemon_slayer::config::server::ConfigService;
@@ -11,9 +11,9 @@ use daemon_slayer::config::{AppConfig, ConfigDir};
 use daemon_slayer::console::cli::ConsoleCliProvider;
 use daemon_slayer::console::{self, Console, LogSource};
 use daemon_slayer::core::BoxedError;
-use daemon_slayer::error_handler::ErrorSink;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::color_eyre::eyre;
+use daemon_slayer::error_handler::ErrorSink;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{self, LoggerBuilder};
@@ -69,7 +69,7 @@ async fn run() -> Result<(), BoxedError> {
     .build()
     .await?;
 
-    let logger_builder = LoggerBuilder::new(notifications::label()).with_config(app_config.clone());
+    let logger_builder = LoggerBuilder::new(notifications::label());
 
     let app_config_ = app_config.clone();
     let console = Console::new(manager.clone(), LogSource::Ipc)
@@ -90,7 +90,9 @@ async fn run() -> Result<(), BoxedError> {
         )
         .initialize()?;
 
-    let (logger, _) = cli.take_provider::<LoggingCliProvider>().get_logger()?;
+    let (logger, _) = cli
+        .take_provider::<LoggingCliProvider>()
+        .get_logger_with_reload(app_config.clone())?;
     logger.init();
 
     cli.handle_input().await?;
