@@ -6,15 +6,17 @@ version = "0.1.0"
 [dependencies]
 axum = "0.7.5"
 confique = "0.3.0"
-daemon-slayer = { path = "../../crates/daemon-slayer", features = [
+daemon-slayer = { path = "../../../crates/daemon-slayer", features = [
   "client-standard",
   "server-standard",
   "tray",
   "build-info",
   "socket-activation",
-  "network",
 ] }
-daemon-slayer-logging = { path = "../../crates/daemon-slayer-logging", features = [
+daemon-slayer-network = { path = "../../daemon-slayer-network", features = [
+  "cli",
+] }
+daemon-slayer-logging = { path = "../../../crates/daemon-slayer-logging", features = [
   "system",
   "ipc",
 ] }
@@ -39,6 +41,6 @@ path = "src/bin/server2.rs"
 
 [build-dependencies]
 vergen-gix = { version = "1.0", features = ["build", "cargo", "rustc", "si"] }
-daemon-slayer = { path = "../../crates/daemon-slayer", features = [
+daemon-slayer = { path = "../../../crates/daemon-slayer", features = [
   "build-info",
 ] }

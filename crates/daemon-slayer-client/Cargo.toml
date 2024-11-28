@@ -19,7 +19,7 @@ owo-colors = { version = "4", features = ["supports-colors"] }
 serde = { version = "1", features = ["derive"] }
 spinoff = { version = "0.8", optional = true }
 strum = { version = "0.26", features = ["derive"] }
-thiserror = "1"
+thiserror = "2"
 tokio = { version = "1", features = ["time"] }
 async-trait = "0.1"
 

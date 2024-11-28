@@ -4,10 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-daemon-slayer-core = { path = "../daemon-slayer-core" }
-mdns-sd = "0.11"
+daemon-slayer-core = { path = "../../crates/daemon-slayer-core", features = [
+    "server",
+] }
+mdns-sd = "0.12"
 regex = "1"
-thiserror = "1"
+thiserror = "2"
 validator = { version = "0.19", features = ["derive"] }
 recap = { git = "https://github.com/klaatu01/recap", rev = "97f7923cd18dae3b8ccefb00564fc27569ea812a" }
 serde = { version = "1", features = ["derive"] }

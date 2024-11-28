@@ -61,7 +61,7 @@ pub mod notify {
 pub mod build_info {
     pub use daemon_slayer_build_info::*;
 }
-#[cfg(feature = "network")]
-pub mod network {
-    pub use daemon_slayer_network::*;
-}
+// #[cfg(feature = "network")]
+// pub mod network {
+//     pub use daemon_slayer_network::*;
+// }

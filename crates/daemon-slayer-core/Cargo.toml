@@ -17,7 +17,7 @@ owo-colors = { version = "4", optional = true }
 pin-project-lite = "0.2"
 strum = { version = "0.26", features = ["derive"], optional = true }
 tap = "1"
-thiserror = "1"
+thiserror = "2"
 tokio = { version = "1", features = ["sync"] }
 tokio-stream = { version = "0.1", features = ["sync"], optional = true }
 tokio-util = { version = "0.7" }

@@ -22,7 +22,7 @@ directories = { version = "5", optional = true }
 futures = { version = "0.3", optional = true }
 serde = { version = "1", optional = true }
 tap = "1"
-thiserror = "1"
+thiserror = "2"
 tilia = { git = "https://github.com/aschey/tilia", rev = "08dbdb67abbee6a6f7ec6442e6ad590222d630c3", features = [
   "ipc",
 ], optional = true }

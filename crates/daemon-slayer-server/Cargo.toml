@@ -13,7 +13,7 @@ daemon-slayer-macros = { path = "../daemon-slayer-macros", features = [
 ] }
 futures = { version = "0.3" }
 tap = "1"
-thiserror = "1"
+thiserror = "2"
 tracing = "0.1"
 tipsy = { version = "0.3", optional = true }
 async-trait = { version = "0.1", optional = true }
