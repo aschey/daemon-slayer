@@ -27,6 +27,7 @@ use daemon_slayer::server::{
     BroadcastEventStore, EventStore, Handler, ServiceContext, Signal, SignalHandler,
 };
 use daemon_slayer::signals::SignalListener;
+use daemon_slayer_logging::EnvConfig;
 use derive_more::AsRef;
 use socket_activated::SOCKET_NAME;
 use tokio::sync::mpsc::Sender;
@@ -58,7 +59,9 @@ async fn run() -> Result<(), BoxedError> {
     let app_config =
         AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(socket_activated::label())).build()?;
 
-    let logger_builder = LoggerBuilder::new(ServiceHandler::label());
+    let logger_builder = LoggerBuilder::new(ServiceHandler::label()).with_env_config(
+        EnvConfig::new("DAEMON_SLAYER_LOG".to_string()).with_default(tracing::Level::INFO.into()),
+    );
     let pretty = vergen_pretty::PrettyBuilder::default()
         .env(vergen_pretty::vergen_pretty_env!())
         .category(false)

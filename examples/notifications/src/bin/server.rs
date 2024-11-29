@@ -22,6 +22,7 @@ use daemon_slayer::notify::NotificationService;
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::{Handler, ServiceContext, SignalHandler};
 use daemon_slayer::signals::SignalListener;
+use daemon_slayer_logging::EnvConfig;
 use derive_more::AsRef;
 use tracing::{error, info};
 
@@ -50,7 +51,9 @@ async fn run() -> Result<(), BoxedError> {
     let app_config =
         AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(notifications::label())).build()?;
 
-    let logger_builder = LoggerBuilder::new(ServiceHandler::label());
+    let logger_builder = LoggerBuilder::new(ServiceHandler::label()).with_env_config(
+        EnvConfig::new("DAEMON_SLAYER_LOG".to_string()).with_default(tracing::Level::INFO.into()),
+    );
 
     let mut cli = Cli::builder()
         .with_provider(ServerCliProvider::<ServiceHandler>::new(

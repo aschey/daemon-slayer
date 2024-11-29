@@ -96,14 +96,19 @@ impl LaunchdServiceManager {
             .to_owned())
     }
 
-    async fn service_target(&self) -> io::Result<String> {
+    async fn domain_target(&self) -> io::Result<String> {
         match self.config.service_level {
-            Level::System => Ok(format!("system/{}", self.name())),
+            Level::System => Ok("system".to_string()),
             Level::User => {
                 let id = self.run_cmd("id", vec!["-u"]).await?;
-                Ok(format!("gui/{id}/{}", self.name()))
+                Ok(format!("gui/{id}"))
             }
         }
+    }
+
+    async fn service_target(&self) -> io::Result<String> {
+        let domain_target = self.domain_target().await?;
+        Ok(format!("{domain_target}/{}", self.name()))
     }
 
     fn user_agent_dir(&self) -> io::Result<PathBuf> {
@@ -151,16 +156,14 @@ impl LaunchdServiceManager {
 
         config = config.with_run_at_load(self.config.autostart);
         let path = self.get_plist_path()?;
-        self.run_launchctl(vec!["unload", &path.to_string_lossy()])
-            .await?;
+        self.launchctl_bootout().await?;
         let created_file = std::fs::File::create(&path).map_err(|e| {
             io::Error::new(e.kind(), format!("Error creating plist path {path:#?}"))
         })?;
         config
             .to_writer_xml(created_file)
             .map_err(|e| from_launchd_error(&path, e))?;
-        self.run_launchctl(vec!["load", &path.to_string_lossy()])
-            .await?;
+        self.launchctl_bootstrap().await?;
 
         if was_started {
             self.start().await?;
@@ -174,6 +177,50 @@ impl LaunchdServiceManager {
     fn find_pid(&self, output: &str) -> Option<u32> {
         self.get_match_or_default(&PID_RE, output)
             .map(|pid| pid.parse::<u32>().unwrap_or(0))
+    }
+
+    async fn launchctl_bootout(&self) -> io::Result<()> {
+        let path = self.get_plist_path()?;
+        self.run_launchctl(vec![
+            "bootout",
+            &self.service_target().await?,
+            &path.to_string_lossy(),
+        ])
+        .await?;
+        Ok(())
+    }
+
+    async fn launchctl_bootstrap(&self) -> io::Result<()> {
+        let path = self.get_plist_path()?;
+        self.run_launchctl(vec![
+            "bootstrap",
+            &self.domain_target().await?,
+            &path.to_string_lossy(),
+        ])
+        .await?;
+        Ok(())
+    }
+
+    async fn launchctl_print(&self) -> io::Result<String> {
+        self.run_launchctl(vec!["print", &self.service_target().await?])
+            .await
+    }
+
+    async fn launchctl_kickstart(&self) -> io::Result<()> {
+        self.run_launchctl(vec!["kickstart", &self.service_target().await?])
+            .await?;
+        Ok(())
+    }
+
+    async fn launchctl_restart(&self) -> io::Result<()> {
+        self.run_launchctl(vec!["kickstart", "-k", &self.service_target().await?])
+            .await?;
+        Ok(())
+    }
+
+    async fn launchctl_stop(&self) -> io::Result<()> {
+        self.run_launchctl(vec!["stop", &self.name()]).await?;
+        Ok(())
     }
 }
 
@@ -193,9 +240,7 @@ impl Manager for LaunchdServiceManager {
         let current_state = self.status().await?.state;
         self.config.user_config.reload();
         self.stop().await?;
-        let path = self.get_plist_path()?;
-        self.run_launchctl(vec!["unload", &path.to_string_lossy()])
-            .await?;
+        self.launchctl_bootout().await?;
         self.install().await?;
         if current_state == State::Started {
             self.start().await?;
@@ -253,16 +298,13 @@ impl Manager for LaunchdServiceManager {
         file.to_writer_xml(created_file)
             .map_err(|e| from_launchd_error(&path, e))?;
 
-        self.run_launchctl(vec!["load", &path.to_string_lossy()])
-            .await?;
-
+        self.launchctl_bootstrap().await?;
         Ok(())
     }
 
     async fn uninstall(&self) -> io::Result<()> {
         let path = self.get_plist_path()?;
-        self.run_launchctl(vec!["unload", &path.to_string_lossy()])
-            .await?;
+        self.launchctl_bootout().await?;
         if path.exists() {
             fs::remove_file(&path).map_err(|e| {
                 io::Error::new(e.kind(), format!("Error removing plist file {path:?}"))
@@ -274,20 +316,18 @@ impl Manager for LaunchdServiceManager {
 
     async fn start(&self) -> io::Result<()> {
         if self.config.has_sockets() {
-            self.run_launchctl(vec!["load", &self.get_plist_path()?.to_string_lossy()])
-                .await?;
+            self.launchctl_bootstrap().await?;
         } else {
-            self.run_launchctl(vec!["start", &self.name()]).await?;
+            self.launchctl_kickstart().await?;
         }
 
         Ok(())
     }
 
     async fn stop(&self) -> io::Result<()> {
-        self.run_launchctl(vec!["stop", &self.name()]).await?;
+        self.launchctl_stop().await?;
         if self.config.has_sockets() {
-            self.run_launchctl(vec!["unload", &self.get_plist_path()?.to_string_lossy()])
-                .await?;
+            self.launchctl_bootout().await?;
         }
 
         Ok(())
@@ -308,8 +348,7 @@ impl Manager for LaunchdServiceManager {
     async fn restart(&self) -> io::Result<()> {
         match self.status().await?.state {
             State::Started => {
-                self.run_launchctl(vec!["kickstart", "-k", &self.service_target().await?])
-                    .await?;
+                self.launchctl_restart().await?;
             }
             State::Listening => {}
             _ => {
@@ -333,10 +372,7 @@ impl Manager for LaunchdServiceManager {
         }
         let plist =
             Launchd::from_file(&plist_path).map_err(|e| from_launchd_error(plist_path, e))?;
-        let output = self
-            .run_launchctl(vec!["print", &self.service_target().await?])
-            .await?;
-
+        let output = self.launchctl_print().await?;
         let found = !output.contains(NOT_FOUND);
         if !found && !self.config.has_sockets() {
             return Ok(Status {
@@ -380,9 +416,7 @@ impl Manager for LaunchdServiceManager {
     }
 
     async fn pid(&self) -> io::Result<Option<u32>> {
-        let output = self
-            .run_launchctl(vec!["print", &self.service_target().await?])
-            .await?;
+        let output = self.launchctl_print().await?;
         Ok(self.find_pid(&output))
     }
 

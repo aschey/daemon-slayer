@@ -12,7 +12,7 @@ use daemon_slayer::error_handler::ErrorSink;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::server::LoggingUpdateService;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
-use daemon_slayer::logging::{self, LoggerBuilder, ReloadHandle};
+use daemon_slayer::logging::{self, EnvConfig, LoggerBuilder, ReloadHandle};
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::futures::StreamExt;
 use daemon_slayer::server::{
@@ -47,7 +47,9 @@ async fn run() -> Result<(), BoxedError> {
     let app_config =
         AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(containerized::label())).build()?;
 
-    let logger_builder = LoggerBuilder::new(ServiceHandler::label());
+    let logger_builder = LoggerBuilder::new(ServiceHandler::label()).with_env_config(
+        EnvConfig::new("DAEMON_SLAYER_LOG".to_string()).with_default(tracing::Level::INFO.into()),
+    );
 
     let mut cli = Cli::builder()
         .with_provider(ServerCliProvider::<ServiceHandler>::new(
