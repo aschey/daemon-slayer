@@ -186,7 +186,7 @@ impl CommandProvider for ClientCliProvider {
                     {
                         if self.manager.config().service_level == crate::config::Level::User {
                             self.wait_for_condition(
-                                manager.install(),
+                                async move { manager.install().await },
                                 |_| true,
                                 "Installing...",
                                 "Failed to install",
