@@ -2,6 +2,7 @@ use daemon_slayer_core::server::background_service::Manager;
 use daemon_slayer_core::CancellationToken;
 #[cfg_attr(target_os = "macos", allow(unused_imports))]
 use tap::TapFallible;
+use tracing::info;
 #[cfg_attr(target_os = "macos", allow(unused_imports))]
 use tracing::{error, warn};
 
@@ -31,5 +32,6 @@ pub async fn run_as_service<T: Handler>(
         .ok();
 
     let background_service_errors = manager.cancel().await;
+    info!("shutdown successful");
     ServiceError::from_service_result(result, background_service_errors)
 }

@@ -146,30 +146,18 @@ impl LaunchdServiceManager {
     }
 
     async fn update_autostart(&mut self) -> io::Result<()> {
-        let was_started = self.status().await?.state == State::Started;
-        if was_started {
-            self.stop().await?;
-        }
         let plist_path = self.get_plist_path()?;
         let mut config =
             Launchd::from_file(&plist_path).map_err(|e| from_launchd_error(plist_path, e))?;
 
         config = config.with_run_at_load(self.config.autostart);
         let path = self.get_plist_path()?;
-        self.launchctl_bootout().await?;
         let created_file = std::fs::File::create(&path).map_err(|e| {
             io::Error::new(e.kind(), format!("Error creating plist path {path:#?}"))
         })?;
         config
             .to_writer_xml(created_file)
             .map_err(|e| from_launchd_error(&path, e))?;
-        self.launchctl_bootstrap().await?;
-
-        if was_started {
-            self.start().await?;
-        } else {
-            self.stop().await?;
-        }
 
         Ok(())
     }
@@ -237,12 +225,15 @@ impl Manager for LaunchdServiceManager {
     }
 
     async fn reload_config(&mut self) -> io::Result<()> {
-        let current_state = self.status().await?.state;
+        let current_status = self.status().await?;
+        if let Some(autostart) = current_status.autostart {
+            self.config.autostart = autostart;
+        }
         self.config.user_config.reload();
         self.stop().await?;
         self.launchctl_bootout().await?;
         self.install().await?;
-        if current_state == State::Started {
+        if current_status.state == State::Started {
             self.start().await?;
         }
         Ok(())
@@ -304,6 +295,9 @@ impl Manager for LaunchdServiceManager {
 
     async fn uninstall(&self) -> io::Result<()> {
         let path = self.get_plist_path()?;
+        if self.config.has_sockets() && self.status().await?.state == State::Stopped {
+            self.launchctl_bootstrap().await?;
+        }
         self.launchctl_bootout().await?;
         if path.exists() {
             fs::remove_file(&path).map_err(|e| {
@@ -316,7 +310,10 @@ impl Manager for LaunchdServiceManager {
 
     async fn start(&self) -> io::Result<()> {
         if self.config.has_sockets() {
-            self.launchctl_bootstrap().await?;
+            if self.status().await?.state == State::Stopped {
+                // bootstrap errors if already started
+                self.launchctl_bootstrap().await?;
+            }
         } else {
             self.launchctl_kickstart().await?;
         }

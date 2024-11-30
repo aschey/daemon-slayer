@@ -172,5 +172,6 @@ pub async fn get_direct_handler<T: Handler>(
 
     let result = handler.run_service(|| {}).await;
     let background_service_errors = manager.cancel().await;
+    info!("shutdown successful");
     ServiceError::from_service_result(result, background_service_errors)
 }

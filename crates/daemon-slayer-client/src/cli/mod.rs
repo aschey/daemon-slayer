@@ -1,3 +1,4 @@
+use std::future::Future;
 use std::io;
 use std::process::Stdio;
 use std::time::Duration;
@@ -22,6 +23,14 @@ pub struct ClientCliProvider {
     spinner_type: spinners::SpinnerFrames,
     spinner_color: Color,
     matched_command: Option<CliCommands>,
+}
+
+struct SpinnerHandle(Spinner);
+
+impl Drop for SpinnerHandle {
+    fn drop(&mut self) {
+        self.0.clear();
+    }
 }
 
 #[derive(Subcommand, PartialEq, Eq, Clone, Debug)]
@@ -76,21 +85,33 @@ impl ClientCliProvider {
         }
     }
 
-    async fn wait_for_condition(
-        &self,
-        condition: impl Fn(&Status) -> bool,
-        wait_message: &str,
-        failure_message: &str,
-    ) -> io::Result<CommandOutput> {
+    fn get_spinner(&self, message: &str) -> SpinnerHandle {
         #[cfg(windows)]
         colored::control::set_virtual_terminal(true).unwrap();
 
-        println!();
-        let mut sp = Spinner::new(
+        SpinnerHandle(Spinner::new(
             self.spinner_type.clone(),
-            wait_message.dimmed().to_string(),
+            message.dimmed().to_string(),
             self.spinner_color,
-        );
+        ))
+    }
+
+    async fn wait_for_condition<Fut>(
+        &self,
+        task: Fut,
+        condition: impl Fn(&Status) -> bool,
+        wait_message: &str,
+        failure_message: &str,
+    ) -> io::Result<CommandOutput>
+    where
+        Fut: Future<Output = io::Result<()>> + Send + 'static,
+    {
+        println!();
+        let mut _sp = self.get_spinner(wait_message);
+        let cmd = task.await;
+        if let Err(e) = cmd {
+            return Ok(CommandOutput::handled(e.red().to_string()));
+        }
 
         // State changes can be asynchronous, wait for the desired state
         // Starting a service can take a while on certain platforms so we'll be conservative with
@@ -98,15 +119,12 @@ impl ClientCliProvider {
         let max_attempts = 10;
         for _ in 0..max_attempts {
             let info = self.manager.status().await?;
+
             if condition(&info) {
-                sp.stop();
-                println!();
                 return Ok(CommandOutput::handled(info.pretty_print()));
             }
             sleep(Duration::from_secs(1)).await;
         }
-        sp.stop();
-        println!();
         Ok(CommandOutput::handled(failure_message.red().to_string()))
     }
 }
@@ -142,9 +160,10 @@ impl CommandProvider for ClientCliProvider {
         if let Some(matched_command) = &self.matched_command {
             let state = self.manager.status().await?.state;
             if state == State::NotInstalled
-                && *matched_command != CliCommands::Install
-                && *matched_command != CliCommands::Uninstall
-                && !matches!(matched_command, CliCommands::Status { .. })
+                && !matches!(
+                    matched_command,
+                    CliCommands::Install | CliCommands::Status { .. }
+                )
             {
                 return Ok(CommandOutput::handled(
                     "Cannot complete action because service is not installed"
@@ -153,19 +172,36 @@ impl CommandProvider for ClientCliProvider {
                 ));
             }
 
+            if state != State::NotInstalled && matches!(matched_command, CliCommands::Install) {
+                return Ok(CommandOutput::handled(
+                    "Cannot complete action because service is already installed"
+                        .red()
+                        .to_string(),
+                ));
+            }
+            let mut manager = self.manager.clone();
             match matched_command {
                 CliCommands::Install => {
-                    self.manager.install().await?;
-
                     #[cfg(windows)]
-                    if self.manager.config().service_level == crate::config::Level::User {
-                        return Ok(CommandOutput::handled(
-                            "Please log out to complete service installation".to_owned(),
-                        ));
+                    {
+                        if self.manager.config().service_level == crate::config::Level::User {
+                            self.wait_for_condition(
+                                manager.install(),
+                                |_| true,
+                                "Installing...",
+                                "Failed to install",
+                            )
+                            .await?;
+
+                            return Ok(CommandOutput::handled(
+                                "Please log out to complete service installation".to_owned(),
+                            ));
+                        }
                     }
 
                     return Ok(self
                         .wait_for_condition(
+                            async move { manager.install().await },
                             |info| info.state != State::NotInstalled,
                             "Installing...",
                             "Failed to install",
@@ -173,9 +209,9 @@ impl CommandProvider for ClientCliProvider {
                         .await?);
                 }
                 CliCommands::Uninstall => {
-                    self.manager.uninstall().await?;
                     return Ok(self
                         .wait_for_condition(
+                            async move { manager.uninstall().await },
                             |info| info.state == State::NotInstalled,
                             "Uninstalling...",
                             "Failed to uninstall",
@@ -194,17 +230,19 @@ impl CommandProvider for ClientCliProvider {
                         .await?;
                 }
                 CliCommands::Status { native: false } => {
+                    let _sp = self.get_spinner("Loading...");
                     let status = self.manager.status().await?;
                     return Ok(CommandOutput::handled(status.pretty_print()));
                 }
                 CliCommands::Info => {
+                    let _sp = self.get_spinner("Loading...");
                     let config = self.manager.config();
                     return Ok(CommandOutput::handled(config.pretty_print()));
                 }
                 CliCommands::Start => {
-                    self.manager.start().await?;
                     return Ok(self
                         .wait_for_condition(
+                            async move { manager.start().await },
                             |info| info.state == State::Started || info.state == State::Listening,
                             "Starting...",
                             "Failed to start",
@@ -212,9 +250,9 @@ impl CommandProvider for ClientCliProvider {
                         .await?);
                 }
                 CliCommands::Stop => {
-                    self.manager.stop().await?;
                     return Ok(self
                         .wait_for_condition(
+                            async move { manager.stop().await },
                             |info| info.state == State::Stopped,
                             "Stopping...",
                             "Failed to stop",
@@ -222,20 +260,24 @@ impl CommandProvider for ClientCliProvider {
                         .await?);
                 }
                 CliCommands::Restart => {
-                    self.manager.restart().await?;
                     return Ok(self
                         .wait_for_condition(
+                            async move { manager.restart().await },
                             |info| info.state == State::Started || info.state == State::Listening,
                             "Restarting...",
                             "Failed to restart",
                         )
                         .await?);
                 }
-                CliCommands::Reload => self.manager.reload_config().await?,
+                CliCommands::Reload => {
+                    let _sp = self.get_spinner("Reloading...");
+                    self.manager.reload_config().await?;
+                    return Ok(CommandOutput::handled("Reloaded".to_string()));
+                }
                 CliCommands::Enable => {
-                    self.manager.enable_autostart().await?;
                     return Ok(self
                         .wait_for_condition(
+                            async move { manager.enable_autostart().await },
                             |info| info.autostart == Some(true),
                             "Enabling autostart...",
                             "Failed to enable autostart",
@@ -243,9 +285,9 @@ impl CommandProvider for ClientCliProvider {
                         .await?);
                 }
                 CliCommands::Disable => {
-                    self.manager.disable_autostart().await?;
                     return Ok(self
                         .wait_for_condition(
+                            async move { manager.disable_autostart().await },
                             |info| info.autostart == Some(false),
                             "Disabling autostart...",
                             "Failed to disable autostart",
@@ -253,6 +295,7 @@ impl CommandProvider for ClientCliProvider {
                         .await?);
                 }
                 CliCommands::Pid => {
+                    let _sp = self.get_spinner("Loading...");
                     let pid = self.manager.status().await?.pid;
                     return Ok(CommandOutput::handled(
                         pid.map(|p| p.to_string())

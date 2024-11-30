@@ -138,7 +138,7 @@ impl Handler for ServiceHandler {
 
         let mut socket_result = get_activation_sockets(socket_activated::sockets()).await?;
         let is_activated = socket_result.is_activated;
-
+        info!("is_activated: {is_activated}");
         let socket = socket_result
             .sockets
             .remove(SOCKET_NAME)
