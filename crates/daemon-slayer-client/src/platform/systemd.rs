@@ -299,6 +299,7 @@ impl Manager for SystemdServiceManager {
     }
 
     async fn uninstall(&self) -> io::Result<()> {
+        self.stop().await?;
         if self.config.is_user() {
             delete_user_unit_configuration_file(&self.service_file_name).unwrap();
             delete_user_unit_configuration_file(&self.socket_file_name)
