@@ -5,7 +5,7 @@ version = "0.1.0"
 
 [dependencies]
 arc-swap = { version = "1" }
-bollard = { version = "0.17", optional = true }
+bollard = { version = "0.18", optional = true }
 confique = { version = "0.3", optional = true }
 daemon-slayer-core = { path = "../daemon-slayer-core", features = [
   "config",
@@ -28,14 +28,14 @@ regex = "1"
 registry = "1"
 utfx = "0.1"
 windows-args = "0.2"
-colored = { version = "2", optional = true }
+colored = { version = "3", optional = true }
 windows-service = { git = "https://github.com/aschey/windows-service-rs", rev = "32919aebe4c59f7855a8ebd72fe7d716db6a8f28" }
 
 [target.'cfg(target_os="linux")'.dependencies]
 systemd_client = { git = "https://github.com/aschey/systemd-client", rev = "5306cc133e68e54e0b11aaa5478706ba41f4037e" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-directories = "5"
+directories = "6"
 launchd = { git = "https://github.com/aschey/launchd", rev = "087fa6edcce3973e6fd0f4f5929c869da4572afc" }
 regex = "1"
 tokio = { version = "1", features = ["time", "process"] }

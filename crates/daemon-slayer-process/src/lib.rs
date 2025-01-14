@@ -71,7 +71,7 @@ pub struct ProcessManager {
 impl ProcessManager {
     pub fn new(pid: u32) -> Self {
         let system = System::new_with_specifics(
-            RefreshKind::new()
+            RefreshKind::default()
                 .with_processes(ProcessRefreshKind::everything())
                 .with_memory(MemoryRefreshKind::everything()),
         );
@@ -83,7 +83,7 @@ impl ProcessManager {
 
     pub fn kill(pid: u32) -> Option<bool> {
         let system = System::new_with_specifics(
-            RefreshKind::new().with_processes(ProcessRefreshKind::everything()),
+            RefreshKind::default().with_processes(ProcessRefreshKind::everything()),
         );
 
         let proc = system.process(Pid::from_u32(pid)).unwrap();

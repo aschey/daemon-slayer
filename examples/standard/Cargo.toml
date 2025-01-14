@@ -18,9 +18,9 @@ daemon-slayer-logging = { path = "../../crates/daemon-slayer-logging", features 
 derive_more = { version = "1.0.0", default-features = false, features = [
   "as_ref",
 ] }
-serde = "1.0.204"
-tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
-tracing = "0.1.40"
+serde = "1.0.217"
+tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
+tracing = "0.1.41"
 
 [[bin]]
 name = "standard-client"

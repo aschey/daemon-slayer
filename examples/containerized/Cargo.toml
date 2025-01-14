@@ -24,13 +24,13 @@ daemon-slayer = { path = "../../crates/daemon-slayer", features = [
 derive_more = { version = "1.0.0", default-features = false, features = [
   "as_ref",
 ] }
-serde = "1.0.204"
-tar = "0.4.41"
-tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
-tracing = "0.1.40"
-bollard = { version = "0.17.1", features = ["buildkit"] }
-flate2 = "1.0.30"
-ignore = "0.4.22"
+serde = "1.0.217"
+tar = "0.4.43"
+tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
+tracing = "0.1.41"
+bollard = { version = "0.18.1", features = ["buildkit"] }
+flate2 = "1.0.35"
+ignore = "0.4.23"
 
 [[bin]]
 name = "containerized-client"

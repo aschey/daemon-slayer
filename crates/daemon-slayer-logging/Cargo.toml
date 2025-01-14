@@ -18,12 +18,12 @@ windows-eventlog = ["tracing-eventlog"]
 confique = { version = "0.3.0", optional = true }
 ctor = "0.2"
 daemon-slayer-core = { path = "../daemon-slayer-core", features = ["config"] }
-directories = { version = "5", optional = true }
+directories = { version = "6", optional = true }
 futures = { version = "0.3", optional = true }
 serde = { version = "1", optional = true }
 tap = "1"
 thiserror = "2"
-tilia = { git = "https://github.com/aschey/tilia", rev = "08dbdb67abbee6a6f7ec6442e6ad590222d630c3", features = [
+tilia = { git = "https://github.com/aschey/tilia", rev = "054cacf457cd2f5e9723bbd06eae0ae752ca79d1", features = [
   "ipc",
 ], optional = true }
 time = "0.3"
