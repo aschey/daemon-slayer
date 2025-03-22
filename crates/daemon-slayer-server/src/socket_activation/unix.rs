@@ -9,7 +9,7 @@ use tipsy::IpcStream;
 use tokio::net::{TcpListener, UdpSocket};
 
 use super::{
-    create_sockets, to_hash_map, SocketActivationError, SocketActivationResult, SocketResult,
+    SocketActivationError, SocketActivationResult, SocketResult, create_sockets, to_hash_map,
 };
 
 pub async fn get_activation_sockets(

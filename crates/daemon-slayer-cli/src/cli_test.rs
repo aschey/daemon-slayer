@@ -1,12 +1,12 @@
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use async_trait::async_trait;
 use clap::{Args, FromArgMatches, Subcommand};
+use daemon_slayer_core::BoxedError;
 use daemon_slayer_core::cli::{
     ActionType, CommandMatch, CommandOutput, CommandProvider, InputState,
 };
-use daemon_slayer_core::BoxedError;
 
 use crate::Cli;
 

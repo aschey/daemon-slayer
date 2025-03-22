@@ -1,17 +1,17 @@
 use std::io;
 
 use async_trait::async_trait;
+use daemon_slayer_core::Label;
 #[cfg(feature = "socket-activation")]
 use daemon_slayer_core::socket_activation::SocketType;
-use daemon_slayer_core::Label;
 use systemd_client::manager::{self, SystemdManagerProxy};
 use systemd_client::service::SystemdServiceProxy;
 use systemd_client::{
-    create_unit_configuration_file, create_user_unit_configuration_file,
-    delete_unit_configuration_file, delete_user_unit_configuration_file, service, unit,
     InstallConfiguration, NotifyAccess, OwnedObjectPath, ServiceConfiguration, ServiceType,
     ServiceUnitConfiguration, SocketConfiguration, SystemdUnitProxy, UnitActiveStateType,
     UnitConfiguration, UnitFileState, UnitLoadStateType, UnitProps, UnitSubStateType,
+    create_unit_configuration_file, create_user_unit_configuration_file,
+    delete_unit_configuration_file, delete_user_unit_configuration_file, service, unit,
 };
 
 use crate::config::systemd::SocketActivationBehavior;

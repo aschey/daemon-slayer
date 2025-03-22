@@ -1,9 +1,9 @@
 use async_trait::async_trait;
+use daemon_slayer_core::BoxedError;
 use daemon_slayer_core::cli::{
-    clap, Action, ActionType, ClientAction, CommandMatch, CommandOutput, CommandProvider,
+    Action, ActionType, ClientAction, CommandMatch, CommandOutput, CommandProvider, clap,
 };
 use daemon_slayer_core::config::Accessor;
-use daemon_slayer_core::BoxedError;
 use tracing::Subscriber;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::util::SubscriberInitExt;

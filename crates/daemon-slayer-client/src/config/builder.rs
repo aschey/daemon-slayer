@@ -15,7 +15,7 @@ use derivative::Derivative;
 use super::systemd::SystemdConfig;
 use super::windows::WindowsConfig;
 use super::{EnvironmentVariable, Level, UserConfig};
-use crate::{get_manager, ServiceManager};
+use crate::{ServiceManager, get_manager};
 
 #[derive(thiserror::Error, Debug)]
 pub enum IntoProgramError {

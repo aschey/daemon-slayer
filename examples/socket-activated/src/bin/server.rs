@@ -4,7 +4,7 @@ use std::time::Duration;
 use axum::extract::{Path, State};
 use axum::middleware::Next;
 use axum::routing::get;
-use axum::{middleware, Router};
+use axum::{Router, middleware};
 use confique::Config;
 use daemon_slayer::build_info::cli::BuildInfoCliProvider;
 use daemon_slayer::build_info::vergen_pretty::{self, Style};
@@ -13,16 +13,16 @@ use daemon_slayer::config::cli::ConfigCliProvider;
 use daemon_slayer::config::server::ConfigService;
 use daemon_slayer::config::{AppConfig, ConfigDir};
 use daemon_slayer::core::{BoxedError, FutureExt, Label};
+use daemon_slayer::error_handler::ErrorSink;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::color_eyre::eyre;
-use daemon_slayer::error_handler::ErrorSink;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::server::LoggingUpdateService;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{self, LoggerBuilder, ReloadHandle};
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::futures::StreamExt;
-use daemon_slayer::server::socket_activation::{get_activation_sockets, SocketResult};
+use daemon_slayer::server::socket_activation::{SocketResult, get_activation_sockets};
 use daemon_slayer::server::{
     BroadcastEventStore, EventStore, Handler, ServiceContext, Signal, SignalHandler,
 };

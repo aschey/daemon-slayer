@@ -1,9 +1,9 @@
 use std::fs::{self, File};
 use std::io::Write;
 
+use bollard::Docker;
 use bollard::image::{BuildImageOptions, BuilderVersion};
 use bollard::service::BuildInfoAux;
-use bollard::Docker;
 use daemon_slayer::core::server::tokio_stream::StreamExt;
 use ignore::Walk;
 

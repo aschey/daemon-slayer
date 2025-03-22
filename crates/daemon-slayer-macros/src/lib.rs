@@ -1,10 +1,10 @@
 mod server;
 
 use proc_macro::TokenStream;
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::Span;
-use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Ident};
+use syn::{DeriveInput, Ident, parse_macro_input};
 
 #[cfg(feature = "server")]
 #[proc_macro_derive(Service, attributes(DataType))]

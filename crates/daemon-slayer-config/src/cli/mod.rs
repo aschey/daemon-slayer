@@ -1,10 +1,10 @@
 use async_trait::async_trait;
+use daemon_slayer_core::BoxedError;
 use daemon_slayer_core::cli::clap::{
     Args, FromArgMatches, Subcommand, {self},
 };
 use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandOutput, CommandProvider};
 use daemon_slayer_core::config::ConfigWatcher;
-use daemon_slayer_core::BoxedError;
 use derivative::Derivative;
 use tap::TapFallible;
 use tracing::error;

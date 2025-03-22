@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 
 use async_trait::async_trait;
 use daemon_slayer_core::notify::BlockingNotification;
-use daemon_slayer_core::{process, Label};
+use daemon_slayer_core::{Label, process};
 use native_dialog::MessageType;
 
 use super::AsyncNotification;

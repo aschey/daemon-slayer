@@ -6,8 +6,8 @@ mod user_config;
 pub mod windows;
 
 pub use builder::*;
-use daemon_slayer_core::config::CachedConfig;
 use daemon_slayer_core::Label;
+use daemon_slayer_core::config::CachedConfig;
 pub use environment_variable::*;
 pub use level::*;
 pub use user_config::*;

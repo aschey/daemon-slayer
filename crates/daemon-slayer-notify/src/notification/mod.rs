@@ -2,7 +2,7 @@ use std::env::{self, current_exe};
 use std::io;
 
 use async_trait::async_trait;
-use daemon_slayer_core::{process, Label};
+use daemon_slayer_core::{Label, process};
 use notify_rust::{Hint, Timeout, Urgency};
 use tap::TapFallible;
 use tracing::error;

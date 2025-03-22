@@ -3,12 +3,12 @@ use std::time::{Duration, Instant};
 use clap::{FromArgMatches as _, Parser, Subcommand as _};
 use daemon_slayer::cli::{Cli, InputState};
 use daemon_slayer::core::{BoxedError, Label};
+use daemon_slayer::error_handler::ErrorSink;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::color_eyre::eyre;
-use daemon_slayer::error_handler::ErrorSink;
+use daemon_slayer::logging::LoggerBuilder;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
-use daemon_slayer::logging::LoggerBuilder;
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::futures::StreamExt;
 use daemon_slayer::server::{

@@ -6,9 +6,9 @@ use std::process::Stdio;
 use std::sync::LazyLock;
 
 use async_trait::async_trait;
+use daemon_slayer_core::Label;
 #[cfg(feature = "socket-activation")]
 use daemon_slayer_core::socket_activation;
-use daemon_slayer_core::Label;
 use launchd::sockets::SocketFamily;
 use launchd::{Launchd, SocketOptions, Sockets};
 use regex::Regex;

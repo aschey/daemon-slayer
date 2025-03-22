@@ -1,6 +1,6 @@
 use daemon_slayer_core::socket_activation::ActivationSocketConfig;
 
-use super::{create_sockets, to_hash_map, SocketActivationError, SocketActivationResult};
+use super::{SocketActivationError, SocketActivationResult, create_sockets, to_hash_map};
 
 pub async fn get_activation_sockets(
     socket_config: Vec<ActivationSocketConfig>,

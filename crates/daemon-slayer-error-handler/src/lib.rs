@@ -5,8 +5,8 @@ use std::fmt::{Debug, Display};
 use std::sync::OnceLock;
 
 pub use color_eyre;
-pub use color_eyre::config::Theme;
 use color_eyre::Report;
+pub use color_eyre::config::Theme;
 use tap::TapFallible;
 use tracing::error;
 

@@ -1,7 +1,7 @@
-use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
-use daemon_slayer_core::server::BroadcastEventStore;
-use daemon_slayer_core::signal::{self, Signal};
 use daemon_slayer_core::BoxedError;
+use daemon_slayer_core::server::BroadcastEventStore;
+use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
+use daemon_slayer_core::signal::{self, Signal};
 use tap::TapFallible;
 use tokio::sync::broadcast;
 use tracing::{info, warn};

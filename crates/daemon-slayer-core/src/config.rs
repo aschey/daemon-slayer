@@ -2,8 +2,8 @@ use std::io;
 use std::sync::Arc;
 
 pub use arc_swap;
-use arc_swap::access::{DynAccess, Map};
 use arc_swap::ArcSwap;
+use arc_swap::access::{DynAccess, Map};
 use async_trait::async_trait;
 use derivative::Derivative;
 use dyn_clonable::clonable;

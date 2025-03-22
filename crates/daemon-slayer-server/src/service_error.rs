@@ -1,7 +1,7 @@
 use std::fmt;
 
-use daemon_slayer_core::server::background_service::error::BackgroundServiceErrors;
 use daemon_slayer_core::BoxedError;
+use daemon_slayer_core::server::background_service::error::BackgroundServiceErrors;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ServiceError<E: fmt::Debug + Send + Sync + 'static> {

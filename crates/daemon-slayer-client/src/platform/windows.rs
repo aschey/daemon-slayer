@@ -546,8 +546,8 @@ impl Manager for WindowsServiceManager {
     }
 
     async fn pid(&self) -> io::Result<Option<u32>> {
-        let Some(service_name) =  self.current_service_name()? else {
-            return Ok(None)
+        let Some(service_name) = self.current_service_name()? else {
+            return Ok(None);
         };
         let Ok(service) = self.open_service(&service_name, ServiceAccessMode::Read) else {
             return Ok(None);

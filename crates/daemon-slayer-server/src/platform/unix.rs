@@ -1,5 +1,5 @@
-use daemon_slayer_core::server::background_service::Manager;
 use daemon_slayer_core::CancellationToken;
+use daemon_slayer_core::server::background_service::Manager;
 #[cfg_attr(target_os = "macos", allow(unused_imports))]
 use tap::TapFallible;
 use tracing::info;

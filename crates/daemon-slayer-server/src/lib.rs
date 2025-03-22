@@ -7,12 +7,12 @@ mod service_error;
 #[cfg(feature = "socket-activation")]
 pub mod socket_activation;
 
+pub use daemon_slayer_core::AsAny;
 pub use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 pub use daemon_slayer_core::server::{BroadcastEventStore, EventStore};
 pub use daemon_slayer_core::signal::{
     Client as SignalHandlerClient, Handler as SignalHandler, Signal,
 };
-pub use daemon_slayer_core::AsAny;
 pub use daemon_slayer_macros::*;
 pub use handler::*;
 #[cfg(target_os = "linux")]

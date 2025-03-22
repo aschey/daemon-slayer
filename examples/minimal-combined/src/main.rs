@@ -2,8 +2,8 @@ use std::env::current_exe;
 use std::time::{Duration, Instant};
 
 use clap::Parser;
-use daemon_slayer::client::config::windows::{ServiceAccess, Trustee, WindowsConfig};
 use daemon_slayer::client::config::Level;
+use daemon_slayer::client::config::windows::{ServiceAccess, Trustee, WindowsConfig};
 use daemon_slayer::client::{self};
 use daemon_slayer::core::{BoxedError, Label};
 use daemon_slayer::server::futures::StreamExt;

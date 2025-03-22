@@ -3,23 +3,23 @@ use std::{io, ptr, slice};
 
 use widestring::U16CString;
 use windows_sys::Win32::Foundation::{
-    self, CloseHandle, SetHandleInformation, HANDLE, HANDLE_FLAG_INHERIT, WAIT_FAILED,
+    self, CloseHandle, HANDLE, HANDLE_FLAG_INHERIT, SetHandleInformation, WAIT_FAILED,
 };
 use windows_sys::Win32::Security::{
-    DuplicateTokenEx, SecurityImpersonation, TokenPrimary, SECURITY_ATTRIBUTES,
+    DuplicateTokenEx, SECURITY_ATTRIBUTES, SecurityImpersonation, TokenPrimary,
 };
 use windows_sys::Win32::Storage::FileSystem::ReadFile;
 use windows_sys::Win32::System::Console::{GetStdHandle, STD_INPUT_HANDLE};
 use windows_sys::Win32::System::Environment::{CreateEnvironmentBlock, DestroyEnvironmentBlock};
 use windows_sys::Win32::System::Pipes::CreatePipe;
 use windows_sys::Win32::System::RemoteDesktop::{
-    WTSActive, WTSEnumerateSessionsW, WTSFreeMemory, WTSGetActiveConsoleSessionId,
-    WTSQueryUserToken, WTS_CURRENT_SERVER_HANDLE,
+    WTS_CURRENT_SERVER_HANDLE, WTSActive, WTSEnumerateSessionsW, WTSFreeMemory,
+    WTSGetActiveConsoleSessionId, WTSQueryUserToken,
 };
 use windows_sys::Win32::System::Threading::{
-    CreateProcessAsUserW, GetExitCodeProcess, WaitForSingleObject, CREATE_NEW_CONSOLE,
-    CREATE_NO_WINDOW, CREATE_UNICODE_ENVIRONMENT, INFINITE, PROCESS_INFORMATION,
-    STARTF_USESTDHANDLES, STARTUPINFOW,
+    CREATE_NEW_CONSOLE, CREATE_NO_WINDOW, CREATE_UNICODE_ENVIRONMENT, CreateProcessAsUserW,
+    GetExitCodeProcess, INFINITE, PROCESS_INFORMATION, STARTF_USESTDHANDLES, STARTUPINFOW,
+    WaitForSingleObject,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{SW_HIDE, SW_SHOW};
 

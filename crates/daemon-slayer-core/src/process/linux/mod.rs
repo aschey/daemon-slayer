@@ -4,7 +4,7 @@ use std::{env, io};
 use tokio::process::Command;
 use tracing::{info, warn};
 use zbus::zvariant::OwnedObjectPath;
-use zbus::{proxy, Connection};
+use zbus::{Connection, proxy};
 
 use crate::Label;
 

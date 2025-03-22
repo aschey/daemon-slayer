@@ -1,9 +1,9 @@
 use std::time::Duration;
 
 use confique::Config;
-use daemon_slayer_core::server::background_service::{self, Manager};
-use daemon_slayer_core::server::EventStore;
 use daemon_slayer_core::CancellationToken;
+use daemon_slayer_core::server::EventStore;
+use daemon_slayer_core::server::background_service::{self, Manager};
 use futures::StreamExt;
 use tempfile::tempdir;
 

@@ -6,8 +6,8 @@ use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 use tracing::info;
 
-use crate::process::get_admin_var;
 use crate::Label;
+use crate::process::get_admin_var;
 
 // from https://scriptingosx.com/2020/02/getting-the-current-user-in-macos-update/
 

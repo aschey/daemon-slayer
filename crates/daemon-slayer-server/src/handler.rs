@@ -1,7 +1,7 @@
 use std::fmt;
 
-use daemon_slayer_core::server::background_service::{self, ServiceContext};
 use daemon_slayer_core::Label;
+use daemon_slayer_core::server::background_service::{self, ServiceContext};
 use futures::Future;
 
 pub trait Handler: Sized + Send + Sync + 'static {

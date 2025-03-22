@@ -8,7 +8,7 @@ use crossterm::event::{
 };
 use crossterm::execute;
 use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
 use daemon_slayer_client::{ServiceManager, State, Status};
 use daemon_slayer_core::config::{Accessor, CachedConfig};
@@ -26,9 +26,9 @@ use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
 use ratatui::{Frame, Terminal};
 pub use tilia::transport::docker::LogSource as DockerLogSource;
 use tilia::transport_async::ipc::ServerId;
+use tilia_widget::LogView;
 use tilia_widget::transport::docker::docker_client;
 use tilia_widget::transport::ipc_client;
-use tilia_widget::LogView;
 use tokio::sync::mpsc;
 
 #[derive(daemon_slayer_core::Mergeable, Debug, Clone, Default, PartialEq, Eq)]

@@ -1,8 +1,8 @@
 use std::any::TypeId;
 
 use clap::builder::StyledStr;
-use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandProvider, InputState};
 use daemon_slayer_core::BoxedError;
+use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandProvider, InputState};
 
 use crate::Builder;
 

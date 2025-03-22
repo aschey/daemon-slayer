@@ -19,8 +19,8 @@ use windows::*;
 
 #[cfg(target_os = "macos")]
 use self::launchd::*;
-use crate::config::{Builder, Program, ServiceType};
 use crate::ServiceManager;
+use crate::config::{Builder, Program, ServiceType};
 
 pub fn builder(label: Label, program: Program) -> Builder {
     Builder::new(label, program)

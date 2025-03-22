@@ -1,7 +1,7 @@
 use async_trait::async_trait;
+use daemon_slayer_core::BoxedError;
 use daemon_slayer_core::cli::clap::{self, FromArgMatches, Subcommand};
 use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandOutput, CommandProvider};
-use daemon_slayer_core::BoxedError;
 
 use crate::Console;
 

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
+use daemon_slayer_core::BoxedError;
 use daemon_slayer_core::cli::clap::{self, Args, FromArgMatches};
 use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandOutput, CommandProvider};
-use daemon_slayer_core::BoxedError;
 use vergen_pretty::Pretty;
 
 #[derive(Args)]

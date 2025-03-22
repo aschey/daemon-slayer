@@ -1,7 +1,7 @@
 use std::ffi::OsString;
 
-use daemon_slayer_core::cli::CommandProvider;
 use daemon_slayer_core::BoxedError;
+use daemon_slayer_core::cli::CommandProvider;
 
 use crate::Cli;
 

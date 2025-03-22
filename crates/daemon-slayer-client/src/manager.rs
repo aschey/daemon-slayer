@@ -1,12 +1,12 @@
 use std::io;
 
 use async_trait::async_trait;
-use daemon_slayer_core::config::ConfigWatcher;
 use daemon_slayer_core::Label;
+use daemon_slayer_core::config::ConfigWatcher;
 use dyn_clonable::clonable;
 
-use crate::config::Config;
 use crate::Status;
+use crate::config::Config;
 
 #[clonable]
 #[async_trait]

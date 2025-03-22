@@ -1,17 +1,17 @@
-use std::fs::{create_dir_all, File};
+use std::fs::{File, create_dir_all};
 use std::io::{self, Write};
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use arc_swap::ArcSwap;
-use confique::{json5, toml, yaml, Config};
+use confique::{Config, json5, toml, yaml};
 use daemon_slayer_core::config::{Accessor, CachedConfig, Mergeable};
 use directories::ProjectDirs;
 use tracing::{debug, error};
 
 use crate::{
-    io_error, AppConfigBuilder, ConfigDir, ConfigEditError, ConfigFileType,
-    ConfigInitializationError, ConfigLoadError,
+    AppConfigBuilder, ConfigDir, ConfigEditError, ConfigFileType, ConfigInitializationError,
+    ConfigLoadError, io_error,
 };
 
 pub trait Configurable: Config + Default + Send + Sync + Clone + 'static {}

@@ -2,8 +2,8 @@ use std::io;
 use std::path::PathBuf;
 
 use async_trait::async_trait;
-use daemon_slayer_core::health_check::HealthCheck;
 use daemon_slayer_core::BoxedError;
+use daemon_slayer_core::health_check::HealthCheck;
 use tipsy::{Endpoint, IntoIpcPath, ServerId};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
