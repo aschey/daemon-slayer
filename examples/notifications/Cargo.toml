@@ -1,5 +1,5 @@
 [package]
-edition = "2021"
+edition = "2024"
 name = "notifications"
 version = "0.1.0"
 
@@ -16,11 +16,11 @@ daemon-slayer-logging = { path = "../../crates/daemon-slayer-logging", features 
   "ipc",
 ] }
 
-derive_more = { version = "1.0.0", default-features = false, features = [
+derive_more = { version = "2.0.1", default-features = false, features = [
   "as_ref",
 ] }
-serde = "1.0.217"
-tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
+serde = "1.0.219"
+tokio = { version = "1.44.1", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
 
 [[bin]]

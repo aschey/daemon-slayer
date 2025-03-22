@@ -1,0 +1,15 @@
+[config]
+default_to_workspace = false
+
+[tasks.update]
+args = ["update"]
+command = "cargo"
+install_crate = "cargo-edit"
+
+[tasks.upgrade]
+args = ["upgrade", "--incompatible"]
+command = "cargo"
+install_crate = "cargo-edit"
+
+[tasks.update-all]
+dependencies = ["update", "upgrade"]

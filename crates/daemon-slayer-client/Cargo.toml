@@ -1,5 +1,5 @@
 [package]
-edition = "2021"
+edition = "2024"
 name = "daemon-slayer-client"
 version = "0.1.0"
 
@@ -18,7 +18,7 @@ eyre = "0.6"
 owo-colors = { version = "4", features = ["supports-colors"] }
 serde = { version = "1", features = ["derive"] }
 spinoff = { version = "0.8", optional = true }
-strum = { version = "0.26", features = ["derive"] }
+strum = { version = "0.27", features = ["derive"] }
 thiserror = "2"
 tokio = { version = "1", features = ["time"] }
 async-trait = "0.1"

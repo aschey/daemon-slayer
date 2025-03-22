@@ -1,4 +1,4 @@
 [workspace]
 members = ["crates/*", "integration-tests"]
 exclude = ["experimental"]
-resolver = "2"
+resolver = "3"

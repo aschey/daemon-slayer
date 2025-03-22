@@ -1,5 +1,5 @@
 [package]
-edition = "2021"
+edition = "2024"
 name = "daemon-slayer-cli"
 version = "0.1.0"
 
@@ -9,5 +9,5 @@ daemon-slayer-core = { path = "../daemon-slayer-core", features = ["cli"] }
 tracing = "0.1"
 
 [dev-dependencies]
-tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.44.1", features = ["macros", "rt-multi-thread"] }
 async-trait = "0.1"

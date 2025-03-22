@@ -2,4 +2,4 @@
 [workspace]
 exclude = ["old", "target", "assets"]
 members = ["*"]
-resolver = "2"
+resolver = "3"

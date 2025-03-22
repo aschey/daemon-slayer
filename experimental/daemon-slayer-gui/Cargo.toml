@@ -1,7 +1,7 @@
 [package]
 authors = ["you"]
 description = "A Tauri App"
-edition = "2021"
+edition = "2024"
 license = ""
 name = "daemon-slayer-gui-root"
 repository = ""

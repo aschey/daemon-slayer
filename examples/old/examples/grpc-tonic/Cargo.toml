@@ -1,5 +1,5 @@
 [package]
-edition = "2021"
+edition = "2024"
 name = "grpc-tonic"
 version = "0.1.0"
 

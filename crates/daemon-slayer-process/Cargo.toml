@@ -1,16 +1,16 @@
 [package]
-edition = "2021"
+edition = "2024"
 name = "daemon-slayer-process"
 version = "0.1.0"
 
 [dependencies]
-bytesize = { version = "1", features = ["serde"] }
+bytesize = { version = "2", features = ["serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 daemon-slayer-core = { path = "../daemon-slayer-core" }
 num_cpus = "1"
 readonly = "0.2"
 serde = "1"
-strum = { version = "0.26", features = ["derive"] }
+strum = { version = "0.27", features = ["derive"] }
 sysinfo = "0.33"
 async-trait = { version = "0.1", optional = true }
 
