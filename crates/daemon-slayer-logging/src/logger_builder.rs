@@ -2,28 +2,28 @@ use std::collections::HashMap;
 use std::io::{self, stderr, stdout};
 use std::ops::Deref;
 use std::str::FromStr;
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 
 use daemon_slayer_core::config::Accessor;
 use daemon_slayer_core::{BoxedError, Label, Mergeable};
-use time::format_description::well_known::{self, Rfc3339};
 use time::UtcOffset;
+use time::format_description::well_known::{self, Rfc3339};
 use tracing::metadata::LevelFilter;
-use tracing::{debug, Level, Subscriber};
+use tracing::{Level, Subscriber, debug};
 use tracing_appender::non_blocking::NonBlockingBuilder;
 use tracing_subscriber::filter::Directive;
-use tracing_subscriber::fmt::time::OffsetTime;
 use tracing_subscriber::fmt::Layer;
+use tracing_subscriber::fmt::time::OffsetTime;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{reload, EnvFilter, Layer as SubscriberLayer};
+use tracing_subscriber::{EnvFilter, Layer as SubscriberLayer, reload};
 
 use super::logger_guard::LoggerGuard;
 use super::timezone::Timezone;
 use crate::ReloadHandle;
 
-static LOGGER_GUARD: OnceLock<Option<LoggerGuard>> = OnceLock::new();
+static LOGGER_GUARD: OnceLock<Mutex<Option<LoggerGuard>>> = OnceLock::new();
 
 static LOCAL_TIME: OnceLock<Result<OffsetTime<Rfc3339>, time::error::IndeterminateOffset>> =
     OnceLock::new();
@@ -34,7 +34,7 @@ pub struct GlobalLoggerGuard;
 impl Drop for GlobalLoggerGuard {
     fn drop(&mut self) {
         debug!("Dropping global logger guard");
-        LOGGER_GUARD.get().take();
+        LOGGER_GUARD.get().unwrap().lock().unwrap().take();
     }
 }
 
@@ -364,9 +364,9 @@ impl LoggerBuilder {
 
         #[cfg(feature = "ipc")]
         let (ipc_writer, ipc_guard) = {
+            use tilia::transport_async::Bind;
             use tilia::transport_async::codec::{CodecStream, LengthDelimitedCodec};
             use tilia::transport_async::ipc::{self, ServerId};
-            use tilia::transport_async::Bind;
             let name = self.label.application.to_owned() + "_logger";
             let make_transport = move || {
                 let name = name.to_owned();
@@ -433,7 +433,7 @@ impl LoggerBuilder {
                 .with_filter(self.get_filter_for_target(LogTarget::EventLog)),
         );
 
-        LOGGER_GUARD.set(Some(guard)).ok();
+        LOGGER_GUARD.set(Mutex::new(Some(guard))).ok();
         Ok(collector)
     }
 
