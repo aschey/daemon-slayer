@@ -78,7 +78,7 @@ async fn test_config_watcher() {
     let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
         .build()
         .unwrap();
-    std::env::set_var("EDITOR", "true");
+    unsafe { std::env::set_var("EDITOR", "true") };
     let (tx, mut rx) = mpsc::channel(32);
     // Clone sender to ensure it isn't dropped before calling recv()
     let _tx = tx.clone();

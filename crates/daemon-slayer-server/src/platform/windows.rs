@@ -1,9 +1,9 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use daemon_slayer_core::CancellationToken;
 use daemon_slayer_core::server::background_service::Manager;
 use daemon_slayer_core::signal::{self, Signal};
-use daemon_slayer_core::CancellationToken;
 use tap::TapFallible;
 use tokio::runtime::Runtime;
 use tokio::sync::broadcast;
@@ -22,6 +22,9 @@ const USER_SHARE_PROCESS_TEMPLATE: u32 = 0x60;
 pub fn get_service_main<T: Handler>(
     input_data: Option<T::InputData>,
 ) -> Result<(), ServiceError<T::Error>> {
+    // Set environment variables before spawning any other threads to be safe
+    set_env_vars::<T>();
+
     let rt = Runtime::new().expect("Tokio runtime failed to initialize");
     rt.block_on(get_service_main_impl::<T>(input_data))
 }
@@ -29,7 +32,6 @@ pub fn get_service_main<T: Handler>(
 async fn get_service_main_impl<T: Handler>(
     input_data: Option<T::InputData>,
 ) -> Result<(), ServiceError<T::Error>> {
-    set_env_vars::<T>();
     let (signal_tx, _) = broadcast::channel(32);
     signal::set_sender(signal_tx.clone());
 
@@ -156,7 +158,10 @@ fn set_env_vars<T: Handler>() {
             for env_var in environment_vars {
                 let var_str = env_var.to_string_lossy();
                 let parts = var_str.split('=').collect::<Vec<_>>();
-                std::env::set_var(parts[0], parts[1]);
+                // SAFETY: This is safe on Windows
+                unsafe {
+                    std::env::set_var(parts[0], parts[1]);
+                }
             }
         }
     }
