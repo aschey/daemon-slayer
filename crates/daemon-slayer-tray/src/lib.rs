@@ -150,7 +150,12 @@ impl<T: MenuHandler> Tray<T> {
     pub fn start(mut self) {
         self.menu_handler.refresh_state();
 
-        let event_loop = EventLoopBuilder::new().build();
+        let mut event_loop = EventLoopBuilder::new().build();
+        #[cfg(target_os = "macos")]
+        {
+            use tao::platform::macos::EventLoopExtMacOS;
+            event_loop.set_dock_visibility(false);
+        }
 
         let menu = self.menu_handler.get_menu();
         self.menu_handler.refresh_state();
