@@ -36,6 +36,6 @@ pub fn main() -> Result<(), BoxedError> {
         )
         .unwrap();
 
-    Tray::with_default_handler(manager, icon_path).start();
+    Tray::with_default_handler(manager, icon_path).run();
     Ok(())
 }

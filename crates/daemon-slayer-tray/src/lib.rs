@@ -12,9 +12,8 @@ use tray_icon::{Icon, TrayIcon, TrayIconBuilder, TrayIconEvent};
 
 pub trait MenuHandler {
     fn refresh_state(&mut self);
-    fn get_menu(&mut self) -> Menu;
-    fn build_tray(&mut self, menu: &Menu) -> TrayIcon;
-    fn update_menu(&self, menu: &Menu);
+    fn build_tray(&mut self) -> TrayIcon;
+    fn update_menu(&self);
     fn handle_menu_event(&mut self, event: MenuEvent) -> ControlFlow;
     fn handle_tray_event(&mut self, event: TrayIconEvent) -> ControlFlow;
 }
@@ -24,6 +23,7 @@ pub struct DefaultMenuHandler {
     icon_path: std::path::PathBuf,
     current_state: State,
     menu: Menu,
+    start_stop: MenuItem,
     start_stop_id: MenuId,
     restart_id: MenuId,
     quit_id: MenuId,
@@ -45,6 +45,7 @@ impl DefaultMenuHandler {
             tx,
             icon_path,
             start_stop_id: start_stop.id().clone(),
+            start_stop,
             restart_id: restart.id().clone(),
             quit_id: quit.id().clone(),
             menu,
@@ -86,21 +87,16 @@ impl MenuHandler for DefaultMenuHandler {
         self.current_state = state_rx.blocking_recv().unwrap();
     }
 
-    fn get_menu(&mut self) -> Menu {
-        self.menu.clone()
-    }
-
-    fn build_tray(&mut self, menu: &Menu) -> TrayIcon {
+    fn build_tray(&mut self) -> TrayIcon {
         TrayIconBuilder::new()
-            .with_menu(Box::new(menu.clone()))
+            .with_menu(Box::new(self.menu.clone()))
             .with_icon(load_icon(&self.icon_path))
             .build()
             .unwrap()
     }
 
-    fn update_menu(&self, menu: &Menu) {
-        menu.items()[0]
-            .as_menuitem_unchecked()
+    fn update_menu(&self) {
+        self.start_stop
             .set_text(get_start_stop_text(&self.current_state));
     }
 
@@ -147,9 +143,10 @@ impl<T: MenuHandler> Tray<T> {
         }
     }
 
-    pub fn start(mut self) {
+    pub fn run(mut self) {
         self.menu_handler.refresh_state();
 
+        #[allow(unused_mut)]
         let mut event_loop = EventLoopBuilder::new().build();
         #[cfg(target_os = "macos")]
         {
@@ -157,10 +154,9 @@ impl<T: MenuHandler> Tray<T> {
             event_loop.set_dock_visibility(false);
         }
 
-        let menu = self.menu_handler.get_menu();
         self.menu_handler.refresh_state();
-        self.menu_handler.update_menu(&menu);
-        let mut tray_icon = Some(self.menu_handler.build_tray(&menu));
+        self.menu_handler.update_menu();
+        let mut tray_icon = Some(self.menu_handler.build_tray());
 
         let menu_channel = MenuEvent::receiver();
         let tray_channel = TrayIconEvent::receiver();
@@ -170,11 +166,11 @@ impl<T: MenuHandler> Tray<T> {
             if let Ok(event) = menu_channel.try_recv() {
                 *control_flow = self.menu_handler.handle_menu_event(event);
                 self.menu_handler.refresh_state();
-                self.menu_handler.update_menu(&menu)
+                self.menu_handler.update_menu()
             } else if let Ok(event) = tray_channel.try_recv() {
                 *control_flow = self.menu_handler.handle_tray_event(event);
                 self.menu_handler.refresh_state();
-                self.menu_handler.update_menu(&menu)
+                self.menu_handler.update_menu()
             } else {
                 let now = Instant::now();
                 if now.duration_since(last_update_time) >= Duration::from_secs(1) {
