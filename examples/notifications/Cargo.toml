@@ -20,7 +20,7 @@ derive_more = { version = "2.0.1", default-features = false, features = [
   "as_ref",
 ] }
 serde = "1.0.219"
-tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.45.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
 
 [[bin]]

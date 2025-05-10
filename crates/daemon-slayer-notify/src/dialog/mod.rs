@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use async_trait::async_trait;
 use daemon_slayer_core::notify::BlockingNotification;
 use daemon_slayer_core::{Label, process};
-use native_dialog::MessageType;
+use native_dialog::{DialogBuilder, MessageLevel};
 
 use super::AsyncNotification;
 
@@ -27,7 +27,7 @@ pub struct MessageDialog<T: DialogType> {
     label: Label,
     title: String,
     text: String,
-    message_type: MessageType,
+    message_level: MessageLevel,
     _phantom: PhantomData<T>,
 }
 
@@ -37,7 +37,7 @@ impl<T: DialogType> MessageDialog<T> {
             title: Default::default(),
             text: Default::default(),
             label,
-            message_type: MessageType::Info,
+            message_level: MessageLevel::Info,
             _phantom: Default::default(),
         }
     }
@@ -58,18 +58,18 @@ impl<T: DialogType> MessageDialog<T> {
         }
     }
 
-    pub fn with_type(self, message_type: MessageType) -> Self {
+    pub fn with_level(self, message_level: MessageLevel) -> Self {
         Self {
-            message_type,
+            message_level,
             ..self
         }
     }
 
     fn to_args(&self) -> String {
-        let message_type = match self.message_type {
-            MessageType::Info => "info",
-            MessageType::Warning => "warning",
-            MessageType::Error => "error",
+        let message_type = match self.message_level {
+            MessageLevel::Info => "info",
+            MessageLevel::Warning => "warning",
+            MessageLevel::Error => "error",
         };
         let mut args = format!("\"{}\" -m \"{}\"", self.text, message_type);
         if !self.title.is_empty() {
@@ -113,13 +113,14 @@ impl BlockingNotification for MessageDialog<Alert> {
     type Output = ();
 
     fn show_blocking(&self) -> io::Result<Self::Output> {
-        native_dialog::MessageDialog::default()
+        DialogBuilder::message()
             .set_title(&self.title)
             .set_text(&self.text)
-            .set_type(self.message_type)
-            .show_alert()
+            .set_level(self.message_level)
+            .alert()
+            .show()
             .map_err(|e| match e {
-                native_dialog::Error::IoFailure(e) => e,
+                native_dialog::Error::Io(e) => e,
                 e => io::Error::new(io::ErrorKind::Other, e.to_string()),
             })
     }
@@ -170,13 +171,14 @@ impl BlockingNotification for MessageDialog<Confirm> {
     type Output = bool;
 
     fn show_blocking(&self) -> io::Result<Self::Output> {
-        native_dialog::MessageDialog::default()
+        DialogBuilder::message()
             .set_title(&self.title)
             .set_text(&self.text)
-            .set_type(self.message_type)
-            .show_confirm()
+            .set_level(self.message_level)
+            .confirm()
+            .show()
             .map_err(|e| match e {
-                native_dialog::Error::IoFailure(e) => e,
+                native_dialog::Error::Io(e) => e,
                 e => io::Error::new(io::ErrorKind::Other, e.to_string()),
             })
     }

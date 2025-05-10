@@ -3,7 +3,7 @@ use daemon_slayer_core::cli::clap::{self, Args, FromArgMatches, Subcommand};
 use daemon_slayer_core::cli::{ActionType, CommandMatch, CommandOutput, CommandProvider};
 use daemon_slayer_core::notify::BlockingNotification;
 use daemon_slayer_core::{BoxedError, Label};
-use native_dialog::MessageType;
+use native_dialog::MessageLevel;
 use tap::TapFallible;
 use tracing::error;
 
@@ -21,14 +21,14 @@ struct DialogArgs {
     title: Option<String>,
     text: String,
     #[arg(short, long, value_parser = message_type_parser)]
-    message_type: Option<MessageType>,
+    message_level: Option<MessageLevel>,
 }
 
-fn message_type_parser(val: &str) -> Result<MessageType, String> {
+fn message_type_parser(val: &str) -> Result<MessageLevel, String> {
     match val.to_lowercase().as_str() {
-        "info" => Ok(MessageType::Info),
-        "warn" | "warning" => Ok(MessageType::Warning),
-        "error" => Ok(MessageType::Error),
+        "info" => Ok(MessageLevel::Info),
+        "warn" | "warning" => Ok(MessageLevel::Warning),
+        "error" => Ok(MessageLevel::Error),
         other => Err(format!("Invalid message type {other}")),
     }
 }
@@ -72,6 +72,9 @@ impl CommandProvider for DialogCliProvider {
                 let mut dialog = MessageDialog::<Alert>::new(self.label);
                 if let Some(title) = &args.title {
                     dialog = dialog.with_title(title);
+                }
+                if let Some(level) = args.message_level {
+                    dialog = dialog.with_level(level);
                 }
                 dialog = dialog.with_text(&args.text);
 

@@ -45,7 +45,7 @@ tokio = { version = "1", features = [
   "io-util",
   "sync",
 ], optional = true }
-tracing-eventlog = { git = "https://github.com/aschey/tracing-eventlog", rev = "ba94d7635b20f8866067baae2bfb3d28bc883e63", optional = true }
+tracing-eventlog = { git = "https://github.com/aschey/tracing-eventlog", rev = "a7942ec723de2590ee843f1fda1c8042ab25fa18", optional = true }
 
 [target.'cfg(unix)'.dependencies]
 tokio = { version = "1", features = [
