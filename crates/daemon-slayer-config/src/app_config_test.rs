@@ -7,7 +7,7 @@ use crate::{AppConfig, ConfigDir, ConfigFileType};
 
 #[test]
 fn test_initial_load() {
-    let config_dir = tempdir().unwrap().into_path();
+    let config_dir = tempdir().unwrap().keep();
 
     let config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
         .build()
@@ -18,7 +18,7 @@ fn test_initial_load() {
 
 #[test]
 fn test_load_config() {
-    let config_dir = tempdir().unwrap().into_path();
+    let config_dir = tempdir().unwrap().keep();
     let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir))
         .build()
         .unwrap();
@@ -28,7 +28,7 @@ fn test_load_config() {
 
 #[test]
 fn test_with_config_filename() {
-    let config_dir = tempdir().unwrap().into_path();
+    let config_dir = tempdir().unwrap().keep();
     AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
         .with_config_filename("test.toml")
         .build()
@@ -39,7 +39,7 @@ fn test_with_config_filename() {
 
 #[test]
 fn test_contents() {
-    let config_dir = tempdir().unwrap().into_path();
+    let config_dir = tempdir().unwrap().keep();
     let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir))
         .build()
         .unwrap();
@@ -52,7 +52,7 @@ fn test_contents() {
 
 #[test]
 fn test_change_file_type() {
-    let config_dir = tempdir().unwrap().into_path();
+    let config_dir = tempdir().unwrap().keep();
     let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
         .with_config_file_type(ConfigFileType::Json5)
         .build()
@@ -67,7 +67,7 @@ fn test_change_file_type() {
 
 #[test]
 fn test_snapshot() {
-    let config_dir = tempdir().unwrap().into_path();
+    let config_dir = tempdir().unwrap().keep();
     let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
         .build()
         .unwrap();
@@ -80,7 +80,7 @@ fn test_snapshot() {
 
 #[test]
 fn test_overwrite() {
-    let config_dir = tempdir().unwrap().into_path();
+    let config_dir = tempdir().unwrap().keep();
     let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
         .build()
         .unwrap();
@@ -93,7 +93,7 @@ fn test_overwrite() {
 
 #[test]
 fn test_access() {
-    let config_dir = tempdir().unwrap().into_path();
+    let config_dir = tempdir().unwrap().keep();
     let test_config = AppConfig::<TestConfig2>::builder(ConfigDir::Custom(config_dir))
         .build()
         .unwrap();

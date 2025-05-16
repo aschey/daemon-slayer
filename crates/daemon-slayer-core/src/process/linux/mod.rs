@@ -32,13 +32,10 @@ pub async fn run_process_as_current_user(
     let sessions = proxy
         .list_sessions()
         .await
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+        .map_err(|e| io::Error::other(e.to_string()))?;
 
     if sessions.is_empty() {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
-            "Unable to locate user session",
-        ));
+        return Err(io::Error::other("Unable to locate user session"));
     }
 
     if sessions.len() > 1 {

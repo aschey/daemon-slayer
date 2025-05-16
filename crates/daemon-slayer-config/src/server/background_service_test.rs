@@ -17,7 +17,7 @@ async fn test_serivce() {
         cancellation_token.clone(),
         background_service::Settings::default(),
     );
-    let config_dir = tempdir().unwrap().into_path();
+    let config_dir = tempdir().unwrap().keep();
     let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
         .build()
         .unwrap();

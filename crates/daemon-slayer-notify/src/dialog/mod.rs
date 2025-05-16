@@ -105,7 +105,7 @@ impl AsyncNotification for MessageDialog<Alert> {
         let this = self.clone();
         tokio::task::spawn_blocking(move || this.show_blocking())
             .await
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?
+            .map_err(|e| io::Error::other(e.to_string()))?
     }
 }
 
@@ -121,7 +121,7 @@ impl BlockingNotification for MessageDialog<Alert> {
             .show()
             .map_err(|e| match e {
                 native_dialog::Error::Io(e) => e,
-                e => io::Error::new(io::ErrorKind::Other, e.to_string()),
+                e => io::Error::other(e.to_string()),
             })
     }
 }
@@ -163,7 +163,7 @@ impl AsyncNotification for MessageDialog<Confirm> {
         let this = self.clone();
         tokio::task::spawn_blocking(move || this.show_blocking())
             .await
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?
+            .map_err(|e| io::Error::other(e.to_string()))?
     }
 }
 
@@ -179,7 +179,7 @@ impl BlockingNotification for MessageDialog<Confirm> {
             .show()
             .map_err(|e| match e {
                 native_dialog::Error::Io(e) => e,
-                e => io::Error::new(io::ErrorKind::Other, e.to_string()),
+                e => io::Error::other(e.to_string()),
             })
     }
 }

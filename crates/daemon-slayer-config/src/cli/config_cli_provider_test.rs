@@ -10,7 +10,7 @@ use crate::{AppConfig, ConfigDir};
 
 #[tokio::test]
 async fn test_config_path() {
-    let config_dir = tempdir().unwrap().into_path();
+    let config_dir = tempdir().unwrap().keep();
     let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
         .build()
         .unwrap();
@@ -31,7 +31,7 @@ async fn test_config_path() {
 
 #[tokio::test]
 async fn test_config_validate() {
-    let config_dir = tempdir().unwrap().into_path();
+    let config_dir = tempdir().unwrap().keep();
     let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
         .build()
         .unwrap();
@@ -49,7 +49,7 @@ async fn test_config_validate() {
 
 #[tokio::test]
 async fn test_print() {
-    let config_dir = tempdir().unwrap().into_path();
+    let config_dir = tempdir().unwrap().keep();
     let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
         .build()
         .unwrap();
@@ -74,7 +74,7 @@ async fn test_print() {
 
 #[tokio::test]
 async fn test_config_watcher() {
-    let config_dir = tempdir().unwrap().into_path();
+    let config_dir = tempdir().unwrap().keep();
     let test_config = AppConfig::<TestConfig>::builder(ConfigDir::Custom(config_dir.clone()))
         .build()
         .unwrap();

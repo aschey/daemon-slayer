@@ -540,5 +540,5 @@ impl Manager for SystemdServiceManager {
 }
 
 fn io_error(message: String) -> io::Error {
-    io::Error::new(io::ErrorKind::Other, message)
+    io::Error::other(message)
 }
