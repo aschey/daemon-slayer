@@ -209,7 +209,7 @@ fn run_process_as_current_user_blocking(cmd: &str, visible: bool) -> io::Result<
 
 fn check_err<F>(f: F) -> io::Result<()>
 where
-    F: FnOnce() -> Foundation::BOOL,
+    F: FnOnce() -> windows_sys::core::BOOL,
 {
     if f() == 0 {
         return Err(io::Error::last_os_error());
