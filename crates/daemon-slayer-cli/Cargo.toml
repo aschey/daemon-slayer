@@ -4,10 +4,10 @@ name = "daemon-slayer-cli"
 version = "0.1.0"
 
 [dependencies]
-clap = { version = "4", features = ["string"] }
-daemon-slayer-core = { path = "../daemon-slayer-core", features = ["cli"] }
-tracing = "0.1"
+clap = { workspace = true, features = ["string"] }
+daemon-slayer-core = { workspace = true, features = ["cli"] }
+tracing = { workspace = true }
 
 [dev-dependencies]
-tokio = { version = "1.45.0", features = ["macros", "rt-multi-thread"] }
-async-trait = "0.1"
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+async-trait = { workspace = true }

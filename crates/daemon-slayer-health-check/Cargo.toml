@@ -4,15 +4,13 @@ name = "daemon-slayer-health-check"
 version = "0.1.0"
 
 [dependencies]
-daemon-slayer-core = { path = "../daemon-slayer-core", features = [
-  "health-check",
-] }
-tipsy = { version = "0.6", optional = true }
-reqwest = { version = "0.12", optional = true }
-tokio = { version = "1", features = ["net"] }
-tonic = { version = "0.13", optional = true }
-tonic-health = { version = "0.13", optional = true }
-async-trait = "0.1"
+daemon-slayer-core = { workspace = true, features = ["health-check"] }
+tipsy = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+tokio = { workspace = true, features = ["net"] }
+tonic = { workspace = true, optional = true }
+tonic-health = { workspace = true, optional = true }
+async-trait = { workspace = true }
 
 [features]
 cli = ["daemon-slayer-core/cli"]

@@ -13,7 +13,7 @@ use daemon_slayer::error_handler::color_eyre::eyre;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::server::LoggingUpdateService;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
-use daemon_slayer::logging::{self, LoggerBuilder, ReloadHandle};
+use daemon_slayer::logging::{self, EnvConfig, LoggerBuilder, ReloadHandle};
 use daemon_slayer::notify::NotificationService;
 use daemon_slayer::notify::dialog::cli::DialogCliProvider;
 use daemon_slayer::notify::dialog::{Alert, Confirm, MessageDialog};
@@ -22,7 +22,6 @@ use daemon_slayer::notify::notification::cli::NotifyCliProvider;
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::{Handler, ServiceContext, SignalHandler};
 use daemon_slayer::signals::SignalListener;
-use daemon_slayer_logging::EnvConfig;
 use derive_more::AsRef;
 use tracing::{error, info};
 

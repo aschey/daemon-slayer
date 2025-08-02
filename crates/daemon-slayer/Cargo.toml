@@ -86,20 +86,20 @@ dialog = ["notify", "daemon-slayer-notify/dialog"]
 # network = ["daemon-slayer-network"]
 
 [dependencies]
-daemon-slayer-cli = { path = "../daemon-slayer-cli", optional = true }
-daemon-slayer-client = { path = "../daemon-slayer-client", optional = true }
-daemon-slayer-config = { path = "../daemon-slayer-config", optional = true }
-daemon-slayer-console = { path = "../daemon-slayer-console", optional = true }
-daemon-slayer-core = { path = "../daemon-slayer-core" }
-daemon-slayer-error-handler = { path = "../daemon-slayer-error-handler", optional = true }
-daemon-slayer-file-watcher = { path = "../daemon-slayer-file-watcher", optional = true }
-daemon-slayer-health-check = { path = "../daemon-slayer-health-check", optional = true }
-daemon-slayer-logging = { path = "../daemon-slayer-logging", optional = true }
-daemon-slayer-process = { path = "../daemon-slayer-process", optional = true }
-daemon-slayer-server = { path = "../daemon-slayer-server", optional = true }
-daemon-slayer-signals = { path = "../daemon-slayer-signals", optional = true }
-# daemon-slayer-task-queue = { path = "../daemon-slayer-task-queue", optional = true }
-daemon-slayer-tray = { path = "../daemon-slayer-tray", optional = true }
-daemon-slayer-notify = { path = "../daemon-slayer-notify", optional = true }
-daemon-slayer-build-info = { path = "../daemon-slayer-build-info", optional = true }
-# daemon-slayer-network = { path = "../daemon-slayer-network", optional = true }
+daemon-slayer-cli = { workspace = true, optional = true }
+daemon-slayer-client = { workspace = true, optional = true }
+daemon-slayer-config = { workspace = true, optional = true }
+daemon-slayer-console = { workspace = true, optional = true }
+daemon-slayer-core = { workspace = true }
+daemon-slayer-error-handler = { workspace = true, optional = true }
+daemon-slayer-file-watcher = { workspace = true, optional = true }
+daemon-slayer-health-check = { workspace = true, optional = true }
+daemon-slayer-logging = { workspace = true, optional = true }
+daemon-slayer-process = { workspace = true, optional = true }
+daemon-slayer-server = { workspace = true, optional = true }
+daemon-slayer-signals = { workspace = true, optional = true }
+# daemon-slayer-task-queue = { workspace = true, optional = true }
+daemon-slayer-tray = { workspace = true, optional = true }
+daemon-slayer-notify = { workspace = true, optional = true }
+daemon-slayer-build-info = { workspace = true, optional = true }
+# daemon-slayer-network = { workspace = true, optional = true }

@@ -4,18 +4,15 @@ name = "daemon-slayer-signals"
 version = "0.1.0"
 
 [dependencies]
-daemon-slayer-core = { path = "../daemon-slayer-core", features = [
-  "server",
-  "signal",
-] }
-futures = { version = "0.3" }
-tracing = "0.1"
-tap = "1"
+daemon-slayer-core = { workspace = true, features = ["server", "signal"] }
+futures = { workspace = true }
+tracing = { workspace = true }
+tap = { workspace = true }
 
 [target.'cfg(unix)'.dependencies]
-signal-hook = "0.3"
-signal-hook-tokio = { version = "0.3", features = ["futures-v0_3"] }
-tokio = { version = "1", features = [
+signal-hook = { workspace = true }
+signal-hook-tokio = { workspace = true, features = ["futures-v0_3"] }
+tokio = { workspace = true, features = [
   "rt-multi-thread",
   "net",
   "io-util",
@@ -24,8 +21,8 @@ tokio = { version = "1", features = [
 ] }
 
 [target.'cfg(windows)'.dependencies]
-signal-hook = { version = "0.3" }
-tokio = { version = "1", features = [
+signal-hook = { workspace = true }
+tokio = { workspace = true, features = [
   "rt-multi-thread",
   "net",
   "io-util",

@@ -4,13 +4,12 @@ name = "daemon-slayer-macros"
 version = "0.1.0"
 [lib]
 proc-macro = true
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-proc-macro-crate = "3"
-proc-macro2 = "1"
-quote = "1"
-syn = "2"
+proc-macro-crate = { workspace = true }
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }
 
 [features]
 config = []

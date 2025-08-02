@@ -5,22 +5,22 @@ publish = false
 version = "0.1.0"
 
 [dependencies]
-axum = "0.8.4"
-cargo_metadata = "0.19.2"
-confique = "0.3.0"
-daemon-slayer = { path = "../crates/daemon-slayer", features = [
+axum = { workspace = true }
+cargo_metadata = { workspace = true }
+confique = { workspace = true }
+daemon-slayer = { workspace = true, features = [
   "server-standard",
   "client-standard",
   "extras",
 ] }
-futures = "0.3.31"
-reqwest = { version = "0.12.15" }
-serde = "1.0.219"
-tokio = { version = "1.45.0", features = ["rt-multi-thread"] }
-tracing = "0.1.41"
+futures = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+tracing = { workspace = true }
 
 [dev-dependencies]
-assert_cmd = "2.0.17"
+assert_cmd = { workspace = true }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)'] }

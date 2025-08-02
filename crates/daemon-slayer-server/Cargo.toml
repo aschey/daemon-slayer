@@ -4,24 +4,19 @@ name = "daemon-slayer-server"
 version = "0.1.0"
 
 [dependencies]
-daemon-slayer-core = { path = "../daemon-slayer-core", features = [
-  "server",
-  "signal",
-] }
-daemon-slayer-macros = { path = "../daemon-slayer-macros", features = [
-  "server",
-] }
-futures = { version = "0.3" }
-tap = "1"
-thiserror = "2"
-tracing = "0.1"
-tipsy = { version = "0.6", optional = true }
-async-trait = { version = "0.1", optional = true }
+daemon-slayer-core = { workspace = true, features = ["server", "signal"] }
+daemon-slayer-macros = { workspace = true, features = ["server"] }
+futures = { workspace = true }
+tap = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tipsy = { workspace = true, optional = true }
+async-trait = { workspace = true, optional = true }
 
 [target.'cfg(windows)'.dependencies]
-registry = "1"
-signal-hook = { version = "0.3", optional = true }
-tokio = { version = "1", features = [
+registry = { workspace = true }
+signal-hook = { workspace = true, optional = true }
+tokio = { workspace = true, features = [
   "rt-multi-thread",
   "signal",
   "net",
@@ -32,7 +27,7 @@ windows-service = { git = "https://github.com/aschey/windows-service-rs", rev = 
 
 
 [target.'cfg(unix)'.dependencies]
-tokio = { version = "1", features = [
+tokio = { workspace = true, features = [
   "rt-multi-thread",
   "net",
   "io-util",
@@ -41,11 +36,11 @@ tokio = { version = "1", features = [
 ] }
 
 [target.'cfg(target_os="linux")'.dependencies]
-sd-notify = "0.4"
-sd-listen-fds = { version = "0.2", optional = true }
+sd-notify = { workspace = true }
+sd-listen-fds = { workspace = true, optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-raunch = { version = "1", optional = true }
+raunch = { workspace = true, optional = true }
 
 [features]
 cli = ["daemon-slayer-core/cli", "async-trait"]

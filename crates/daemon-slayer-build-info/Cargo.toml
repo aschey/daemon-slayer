@@ -3,10 +3,8 @@ name = "daemon-slayer-build-info"
 version = "0.1.0"
 edition = "2024"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-console = { version = "0.15" }
-daemon-slayer-core = { path = "../daemon-slayer-core", features = ["cli"] }
-vergen-pretty = { version = "1.0", features = ["color"] }
-async-trait = { version = "0.1" }
+console = { workspace = true }
+daemon-slayer-core = { workspace = true, features = ["cli"] }
+vergen-pretty = { workspace = true, features = ["color"] }
+async-trait = { workspace = true }

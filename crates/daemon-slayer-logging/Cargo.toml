@@ -15,40 +15,38 @@ system = ["linux-journald", "mac-oslog", "windows-eventlog"]
 windows-eventlog = ["tracing-eventlog"]
 
 [dependencies]
-confique = { version = "0.3.0", optional = true }
-ctor = "0.4"
-daemon-slayer-core = { path = "../daemon-slayer-core", features = ["config"] }
-directories = { version = "6", optional = true }
-futures = { version = "0.3", optional = true }
-serde = { version = "1", optional = true }
-tap = "1"
-thiserror = "2"
-tilia = { git = "https://github.com/aschey/tilia", rev = "054cacf457cd2f5e9723bbd06eae0ae752ca79d1", features = [
-  "ipc",
-], optional = true }
-time = "0.3"
-tracing = "0.1"
-tracing-appender = { version = "0.2" }
-tracing-error = { version = "0.2" }
-tracing-subscriber = { version = "0.3", features = [
+confique = { workspace = true, optional = true }
+ctor = { workspace = true }
+daemon-slayer-core = { workspace = true, features = ["config"] }
+directories = { workspace = true, optional = true }
+futures = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+tap = { workspace = true }
+thiserror = { workspace = true }
+tilia = { workspace = true, features = ["ipc"], optional = true }
+time = { workspace = true }
+tracing = { workspace = true }
+tracing-appender = { workspace = true }
+tracing-error = { workspace = true }
+tracing-subscriber = { workspace = true, features = [
   "local-time",
   "env-filter",
 ] }
-async-trait = { version = "0.1", optional = true }
+async-trait = { workspace = true, optional = true }
 
 
 [target.'cfg(windows)'.dependencies]
-tokio = { version = "1", features = [
+tokio = { workspace = true, features = [
   "rt-multi-thread",
   "signal",
   "net",
   "io-util",
   "sync",
 ], optional = true }
-tracing-eventlog = { git = "https://github.com/aschey/tracing-eventlog", rev = "a7942ec723de2590ee843f1fda1c8042ab25fa18", optional = true }
+tracing-eventlog = { workspace = true, optional = true }
 
 [target.'cfg(unix)'.dependencies]
-tokio = { version = "1", features = [
+tokio = { workspace = true, features = [
   "rt-multi-thread",
   "net",
   "io-util",
@@ -56,7 +54,7 @@ tokio = { version = "1", features = [
 ], optional = true }
 
 [target.'cfg(target_os="linux")'.dependencies]
-tracing-journald = { version = "0.3", optional = true }
+tracing-journald = { workspace = true, optional = true }
 
 [target.'cfg(target_os="macos")'.dependencies]
-tracing-oslog = { version = "0.2", optional = true }
+tracing-oslog = { workspace = true, optional = true }

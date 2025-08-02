@@ -20,7 +20,7 @@ use windows::*;
 #[cfg(target_os = "macos")]
 use self::launchd::*;
 use crate::ServiceManager;
-use crate::config::{Builder, Program, ServiceType};
+use crate::config::{Builder, Program};
 
 pub fn builder(label: Label, program: Program) -> Builder {
     Builder::new(label, program)
@@ -28,7 +28,7 @@ pub fn builder(label: Label, program: Program) -> Builder {
 
 pub(crate) async fn get_manager(builder: Builder) -> io::Result<ServiceManager> {
     #[cfg(feature = "docker")]
-    if builder.service_type == ServiceType::Container {
+    if builder.service_type == crate::config::ServiceType::Container {
         return Ok(ServiceManager::new(
             DockerServiceManager::from_builder(builder).await?,
         ));

@@ -4,13 +4,13 @@ name = "minimal-separate"
 version = "0.1.0"
 
 [dependencies]
-clap = { version = "4.5.38", features = ["derive"] }
+clap = { workspace = true, features = ["derive"] }
 daemon-slayer = { path = "../../crates/daemon-slayer", features = [
-    "client",
-    "server",
-    "signals",
+  "client",
+  "server",
+  "signals",
 ] }
-tokio = { version = "1.45.0", features = ["macros", "rt-multi-thread"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [[bin]]
 name = "minimal-client"

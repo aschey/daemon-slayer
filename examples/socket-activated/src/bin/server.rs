@@ -19,7 +19,7 @@ use daemon_slayer::error_handler::color_eyre::eyre;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::server::LoggingUpdateService;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
-use daemon_slayer::logging::{self, LoggerBuilder, ReloadHandle};
+use daemon_slayer::logging::{self, EnvConfig, LoggerBuilder, ReloadHandle};
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::futures::StreamExt;
 use daemon_slayer::server::socket_activation::{SocketResult, get_activation_sockets};
@@ -27,7 +27,6 @@ use daemon_slayer::server::{
     BroadcastEventStore, EventStore, Handler, ServiceContext, Signal, SignalHandler,
 };
 use daemon_slayer::signals::SignalListener;
-use daemon_slayer_logging::EnvConfig;
 use derive_more::AsRef;
 use socket_activated::SOCKET_NAME;
 use tokio::sync::mpsc::Sender;

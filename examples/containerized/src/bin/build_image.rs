@@ -2,9 +2,10 @@ use std::fs::{self, File};
 use std::io::Write;
 
 use bollard::Docker;
-use bollard::image::{BuildImageOptions, BuilderVersion};
+use bollard::query_parameters::{BuildImageOptions, BuilderVersion};
 use bollard::service::BuildInfoAux;
 use daemon_slayer::core::server::tokio_stream::StreamExt;
+use http_body_util::{Either, Full};
 use ignore::Walk;
 
 #[tokio::main]
@@ -51,16 +52,19 @@ async fn main() {
     let compressed = c.finish().unwrap();
 
     let build_image_options = BuildImageOptions {
-        t: "myapp",
-        dockerfile: "Dockerfile",
+        t: "myapp".to_string().into(),
+        dockerfile: "Dockerfile".to_string(),
         version: BuilderVersion::BuilderBuildKit,
-        pull: true,
+        pull: "true".to_string().into(),
         session: Some(String::from("myapp")),
         ..Default::default()
     };
 
-    let mut image_build_stream =
-        docker.build_image(build_image_options, None, Some(compressed.into()));
+    let mut image_build_stream = docker.build_image(
+        build_image_options,
+        None,
+        Some(Either::Left(Full::new(compressed.into()))),
+    );
 
     while let Some(Ok(bollard::models::BuildInfo {
         aux: Some(BuildInfoAux::BuildKit(inner)),

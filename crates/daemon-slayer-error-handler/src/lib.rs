@@ -7,6 +7,7 @@ use std::sync::OnceLock;
 pub use color_eyre;
 use color_eyre::Report;
 pub use color_eyre::config::Theme;
+#[cfg(feature = "notify")]
 use tap::TapFallible;
 use tracing::error;
 

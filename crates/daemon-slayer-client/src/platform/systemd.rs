@@ -8,10 +8,10 @@ use systemd_client::manager::{self, SystemdManagerProxy};
 use systemd_client::service::SystemdServiceProxy;
 use systemd_client::{
     InstallConfiguration, NotifyAccess, OwnedObjectPath, ServiceConfiguration, ServiceType,
-    ServiceUnitConfiguration, SocketConfiguration, SystemdUnitProxy, UnitActiveStateType,
-    UnitConfiguration, UnitFileState, UnitLoadStateType, UnitProps, UnitSubStateType,
-    create_unit_configuration_file, create_user_unit_configuration_file,
-    delete_unit_configuration_file, delete_user_unit_configuration_file, service, unit,
+    ServiceUnitConfiguration, SystemdUnitProxy, UnitActiveStateType, UnitConfiguration,
+    UnitFileState, UnitLoadStateType, UnitProps, UnitSubStateType, create_unit_configuration_file,
+    create_user_unit_configuration_file, delete_unit_configuration_file,
+    delete_user_unit_configuration_file, service, unit,
 };
 
 use crate::config::systemd::SocketActivationBehavior;
@@ -256,7 +256,7 @@ impl Manager for SystemdServiceManager {
 
         #[cfg(feature = "socket-activation")]
         if self.config.has_sockets() {
-            let mut socket_builder = SocketConfiguration::builder()
+            let mut socket_builder = systemd_client::SocketConfiguration::builder()
                 .install(InstallConfiguration::builder().wanted_by("sockets.target"));
             for socket in &self.config.activation_socket_config {
                 match socket.socket_type() {

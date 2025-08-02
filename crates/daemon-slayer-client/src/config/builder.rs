@@ -1,10 +1,7 @@
 use std::env::consts::EXE_EXTENSION;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::{env, io};
 
-#[cfg(feature = "docker")]
-use bollard::container;
 use daemon_slayer_core::config::{Accessor, CachedConfig};
 use daemon_slayer_core::process::get_admin_var;
 #[cfg(feature = "socket-activation")]
@@ -76,7 +73,7 @@ pub enum ServiceType {
 }
 
 #[cfg(feature = "docker")]
-pub type ContainerConfigFn = dyn Fn(&mut container::Config<String>) + Send + Sync;
+pub type ContainerConfigFn = dyn Fn(&mut bollard::secret::ContainerCreateBody) + Send + Sync;
 
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
@@ -100,7 +97,7 @@ pub struct Builder {
     pub(crate) service_type: ServiceType,
     #[cfg(feature = "docker")]
     #[derivative(Debug = "ignore")]
-    pub(crate) configure_container: Option<Arc<ContainerConfigFn>>,
+    pub(crate) configure_container: Option<std::sync::Arc<ContainerConfigFn>>,
 }
 
 impl Builder {
@@ -226,9 +223,9 @@ impl Builder {
     #[cfg(feature = "docker")]
     pub fn with_configure_container(
         mut self,
-        configure_container: impl Fn(&mut container::Config<String>) + Send + Sync + 'static,
+        configure_container: impl Fn(&mut bollard::secret::ContainerCreateBody) + Send + Sync + 'static,
     ) -> Self {
-        self.configure_container = Some(Arc::new(configure_container));
+        self.configure_container = Some(std::sync::Arc::new(configure_container));
         self
     }
 

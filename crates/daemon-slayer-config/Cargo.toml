@@ -4,23 +4,23 @@ name = "daemon-slayer-config"
 version = "0.1.0"
 
 [dependencies]
-arc-swap = { version = "1" }
-bat = { version = "0.25", default-features = false, features = [
+arc-swap = { workspace = true }
+bat = { workspace = true, default-features = false, features = [
   "regex-onig",
   "paging",
 ], optional = true }
-confique = { version = "0.3", features = ["toml", "yaml", "json5"] }
-daemon-slayer-core = { path = "../daemon-slayer-core", features = ["config"] }
-daemon-slayer-file-watcher = { path = "../daemon-slayer-file-watcher" }
-derivative = "2"
-directories = "6"
-edit = "0.1"
-futures = "0.3"
-tap = "1"
-thiserror = "2"
-tokio = "1"
-tracing = "0.1"
-async-trait = { version = "0.1", optional = true }
+confique = { workspace = true, features = ["toml", "yaml", "json5"] }
+daemon-slayer-core = { workspace = true, features = ["config"] }
+daemon-slayer-file-watcher = { workspace = true }
+derivative = { workspace = true }
+directories = { workspace = true }
+edit = { workspace = true }
+futures = { workspace = true }
+tap = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+async-trait = { workspace = true, optional = true }
 
 [features]
 cli = ["daemon-slayer-core/cli", "async-trait"]
@@ -28,6 +28,6 @@ pretty-print = ["bat"]
 server = ["daemon-slayer-core/server"]
 
 [dev-dependencies]
-daemon-slayer-cli = { path = "../daemon-slayer-cli" }
-serde = "1.0.219"
-tempfile = "3.20.0"
+daemon-slayer-cli = { workspace = true }
+serde = { workspace = true }
+tempfile = { workspace = true }

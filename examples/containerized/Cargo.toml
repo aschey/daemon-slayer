@@ -4,8 +4,8 @@ name = "containerized"
 version = "0.1.0"
 
 [dependencies]
-confique = "0.3.0"
-daemon-slayer = { path = "../../crates/daemon-slayer", features = [
+confique = { workspace = true }
+daemon-slayer = { workspace = true, features = [
   "console",
   "client",
   "cli",
@@ -17,20 +17,17 @@ daemon-slayer = { path = "../../crates/daemon-slayer", features = [
   "server",
   "docker",
 ] }
-# daemon-slayer-logging = { path = "../../crates/daemon-slayer-logging", features = [
-#     "system",
-#     "ipc",
-# ] }
-derive_more = { version = "2.0.1", default-features = false, features = [
+derive_more = { workspace = true, default-features = false, features = [
   "as_ref",
 ] }
-serde = "1.0.219"
-tar = "0.4.44"
-tokio = { version = "1.45.0", features = ["macros", "rt-multi-thread"] }
-tracing = "0.1.41"
-bollard = { version = "0.18.1", features = ["buildkit"] }
-flate2 = "1.1.1"
-ignore = "0.4.23"
+serde = { workspace = true }
+tar = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tracing = { workspace = true }
+bollard = { workspace = true, features = ["buildkit"] }
+flate2 = { workspace = true }
+ignore = { workspace = true }
+http-body-util = { workspace = true }
 
 [[bin]]
 name = "containerized-client"

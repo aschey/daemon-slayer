@@ -4,19 +4,19 @@ name = "daemon-slayer-file-watcher"
 version = "0.1.0"
 
 [dependencies]
-daemon-slayer-core = { path = "../daemon-slayer-core", features = ["server"] }
-futures = { version = "0.3", optional = true }
-notify = { version = "8", default-features = false, features = [
+daemon-slayer-core = { workspace = true, features = ["server"] }
+futures = { workspace = true, optional = true }
+notify = { workspace = true, default-features = false, features = [
   "fsevent-sys",
   "macos_fsevent",
 ] }
-notify-debouncer-mini = { version = "0.6", default-features = false }
-tap = "1"
-tokio = { version = "1", features = [
+notify-debouncer-mini = { workspace = true, default-features = false }
+tap = { workspace = true }
+tokio = { workspace = true, features = [
   "rt-multi-thread",
   "net",
   "io-util",
   "sync",
   "macros",
 ] }
-tracing = "0.1"
+tracing = { workspace = true }

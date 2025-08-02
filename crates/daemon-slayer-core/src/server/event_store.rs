@@ -50,11 +50,10 @@ where
         let stream = async_stream::stream! {
             let mut last = None;
             for await value in inner_stream {
-                if let Some(last_val) = last.as_ref() {
-                    if last_val == &value {
+                if let Some(last_val) = last.as_ref()
+                    && last_val == &value {
                         continue;
                     }
-                }
                 last = Some(value.clone());
                 yield value;
             }

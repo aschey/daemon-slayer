@@ -4,41 +4,38 @@ name = "daemon-slayer-client"
 version = "0.1.0"
 
 [dependencies]
-arc-swap = { version = "1" }
-bollard = { version = "0.18", optional = true }
-confique = { version = "0.3", optional = true }
-daemon-slayer-core = { path = "../daemon-slayer-core", features = [
-  "config",
-  "process",
-] }
-derivative = "2"
-dyn-clonable = "0.9"
-enumflags2 = "0.7"
-eyre = "0.6"
-owo-colors = { version = "4", features = ["supports-colors"] }
-serde = { version = "1", features = ["derive"] }
-spinoff = { version = "0.8", optional = true }
-strum = { version = "0.27", features = ["derive"] }
-thiserror = "2"
-tokio = { version = "1", features = ["time"] }
-async-trait = "0.1"
+arc-swap = { workspace = true }
+bollard = { workspace = true, optional = true }
+confique = { workspace = true, optional = true }
+daemon-slayer-core = { workspace = true, features = ["config", "process"] }
+derivative = { workspace = true }
+dyn-clonable = { workspace = true }
+enumflags2 = { workspace = true }
+eyre = { workspace = true }
+owo-colors = { workspace = true, features = ["supports-colors"] }
+serde = { workspace = true, features = ["derive"] }
+spinoff = { workspace = true, optional = true }
+strum = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["time"] }
+async-trait = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
-regex = "1"
-registry = "1"
-utfx = "0.1"
-windows-args = "0.2"
-colored = { version = "3", optional = true }
-windows-service = { git = "https://github.com/aschey/windows-service-rs", rev = "32919aebe4c59f7855a8ebd72fe7d716db6a8f28" }
+regex = { workspace = true }
+registry = { workspace = true }
+utfx = { workspace = true }
+windows-args = { workspace = true }
+colored = { workspace = true, optional = true }
+windows-service = { workspace = true }
 
 [target.'cfg(target_os="linux")'.dependencies]
-systemd_client = { git = "https://github.com/aschey/systemd-client", rev = "5306cc133e68e54e0b11aaa5478706ba41f4037e" }
+systemd_client = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-directories = "6"
-launchd = { git = "https://github.com/aschey/launchd", rev = "087fa6edcce3973e6fd0f4f5929c869da4572afc" }
-regex = "1"
-tokio = { version = "1", features = ["time", "process"] }
+directories = { workspace = true }
+launchd = { workspace = true }
+regex = { workspace = true }
+tokio = { workspace = true, features = ["time", "process"] }
 
 [features]
 cli = ["daemon-slayer-core/cli", "spinoff", "colored"]

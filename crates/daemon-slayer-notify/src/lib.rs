@@ -63,17 +63,15 @@ where
             }
         }
 
-        if let Some(timeout) = self.shutdown_timeout {
-            if let Ok(Some(event)) = tokio::time::timeout(timeout, event_stream.next()).await {
-                if let Some(notification) = (self.create_notification)(event) {
+        if let Some(timeout) = self.shutdown_timeout
+            && let Ok(Some(event)) = tokio::time::timeout(timeout, event_stream.next()).await
+                && let Some(notification) = (self.create_notification)(event) {
                     notification
                         .show()
                         .await
                         .tap_err(|e| error!("Error showing notification: {e}"))
                         .ok();
                 }
-            }
-        }
 
         Ok(())
     }

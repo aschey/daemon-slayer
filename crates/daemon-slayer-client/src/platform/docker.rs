@@ -3,9 +3,11 @@ use std::io;
 
 use async_trait::async_trait;
 use bollard::Docker;
-use bollard::container::{
-    CreateContainerOptions, ListContainersOptions, RemoveContainerOptions, UpdateContainerOptions,
+use bollard::query_parameters::{
+    CreateContainerOptions, InspectContainerOptions, ListContainersOptions, RemoveContainerOptions,
+    RestartContainerOptions, StartContainerOptions, StopContainerOptions,
 };
+use bollard::secret::{ContainerCreateBody, ContainerUpdateBody};
 use bollard::service::{ContainerState, HostConfig, RestartPolicy, RestartPolicyNameEnum};
 use daemon_slayer_core::Label;
 
@@ -31,7 +33,7 @@ impl DockerServiceManager {
     async fn get_container_state(&self) -> ContainerState {
         let inspect = self
             .docker
-            .inspect_container(&self.name(), None)
+            .inspect_container(&self.name(), None::<InspectContainerOptions>)
             .await
             .unwrap();
         inspect.state.unwrap()
@@ -97,7 +99,7 @@ impl Manager for DockerServiceManager {
     }
 
     async fn install(&self) -> io::Result<()> {
-        let mut config = bollard::container::Config {
+        let mut config = ContainerCreateBody {
             image: Some(self.config.program.name().to_owned()),
             env: Some(
                 self.config
@@ -115,9 +117,9 @@ impl Manager for DockerServiceManager {
         }
 
         self.docker
-            .create_container::<&str, String>(
+            .create_container(
                 Some(CreateContainerOptions {
-                    name: &self.name(),
+                    name: Some(self.name()),
                     ..Default::default()
                 }),
                 config,
@@ -145,7 +147,7 @@ impl Manager for DockerServiceManager {
 
     async fn start(&self) -> io::Result<()> {
         self.docker
-            .start_container::<&str>(&self.name(), None)
+            .start_container(&self.name(), None::<StartContainerOptions>)
             .await
             .unwrap();
 
@@ -154,7 +156,7 @@ impl Manager for DockerServiceManager {
 
     async fn stop(&self) -> io::Result<()> {
         self.docker
-            .stop_container(&self.name(), None)
+            .stop_container(&self.name(), None::<StopContainerOptions>)
             .await
             .unwrap();
         Ok(())
@@ -162,7 +164,7 @@ impl Manager for DockerServiceManager {
 
     async fn restart(&self) -> io::Result<()> {
         self.docker
-            .restart_container(&self.name(), None)
+            .restart_container(&self.name(), None::<RestartContainerOptions>)
             .await
             .unwrap();
         Ok(())
@@ -170,9 +172,9 @@ impl Manager for DockerServiceManager {
 
     async fn enable_autostart(&mut self) -> io::Result<()> {
         self.docker
-            .update_container::<&str>(
+            .update_container(
                 &self.name(),
-                UpdateContainerOptions {
+                ContainerUpdateBody {
                     restart_policy: Some(RestartPolicy {
                         name: Some(RestartPolicyNameEnum::ALWAYS),
                         maximum_retry_count: None,
@@ -187,9 +189,9 @@ impl Manager for DockerServiceManager {
 
     async fn disable_autostart(&mut self) -> io::Result<()> {
         self.docker
-            .update_container::<&str>(
+            .update_container(
                 &self.name(),
-                UpdateContainerOptions {
+                ContainerUpdateBody {
                     restart_policy: Some(RestartPolicy {
                         name: Some(RestartPolicyNameEnum::NO),
                         maximum_retry_count: None,
@@ -205,9 +207,9 @@ impl Manager for DockerServiceManager {
     async fn status(&self) -> io::Result<Status> {
         let containers = self
             .docker
-            .list_containers(Some(ListContainersOptions::<&str> {
+            .list_containers(Some(ListContainersOptions {
                 all: true,
-                filters: HashMap::from([("name", vec![self.name().as_str()])]),
+                filters: HashMap::from([("name".to_string(), vec![self.name()])]).into(),
                 ..Default::default()
             }))
             .await
@@ -215,7 +217,7 @@ impl Manager for DockerServiceManager {
         if !containers.is_empty() {
             let inspect = self
                 .docker
-                .inspect_container(&self.name(), None)
+                .inspect_container(&self.name(), None::<InspectContainerOptions>)
                 .await
                 .unwrap();
             let state = match inspect.state {

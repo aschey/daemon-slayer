@@ -1,25 +1,23 @@
 [package]
 name = "daemon-slayer-notify"
-version = "0.1.0"
 edition = "2024"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version = "0.1.0"
 
 [dependencies]
-daemon-slayer-core = { path = "../daemon-slayer-core", features = [
+daemon-slayer-core = { workspace = true, features = [
   "server",
   "notify",
   "process",
 ] }
-tokio = { version = "1", features = ["time"] }
-tracing = "0.1"
-notify-rust = { version = "4", optional = true, features = ["async"] }
-native-dialog = { version = "0.9", features = [
+tokio = { workspace = true, features = ["time"] }
+tracing = { workspace = true }
+notify-rust = { workspace = true, optional = true, features = ["async"] }
+native-dialog = { workspace = true, features = [
   "windows_dpi_awareness",
   "windows_visual_styles",
 ], optional = true }
-tap = "1"
-async-trait = "0.1"
+tap = { workspace = true }
+async-trait = { workspace = true }
 
 [features]
 cli = ["daemon-slayer-core/cli"]

@@ -4,33 +4,33 @@ name = "daemon-slayer-core"
 version = "0.1.0"
 
 [dependencies]
-arc-swap = { version = "1", optional = true }
-async-trait = "0.1"
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "2d4f0dd65c86b50585827cd12adaa57de3f8b214", optional = true }
-clap = { version = "4", features = ["derive"], optional = true }
-daemon-slayer-macros = { path = "../daemon-slayer-macros", optional = true }
-derivative = "2"
-downcast-rs = { version = "2", optional = true }
-dyn-clonable = { version = "0.9", optional = true }
-futures = { version = "0.3" }
-owo-colors = { version = "4", optional = true }
-pin-project-lite = "0.2"
-strum = { version = "0.27", features = ["derive"], optional = true }
-tap = "1"
-thiserror = "2"
-tokio = { version = "1", features = ["sync"] }
-tokio-stream = { version = "0.1", features = ["sync"], optional = true }
-tokio-util = { version = "0.7" }
-tracing = "0.1"
-serde = { version = "1", features = ["derive"] }
-unicode-width = { version = "0.2", optional = true }
-futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
-strip-ansi-escapes = { version = "0.2", optional = true }
-tipsy = { version = "0.6", optional = true }
-async-stream = { version = "0.3", optional = true }
+arc-swap = { workspace = true, optional = true }
+async-trait = { workspace = true }
+background-service = { workspace = true, optional = true }
+clap = { workspace = true, features = ["derive"], optional = true }
+daemon-slayer-macros = { workspace = true, optional = true }
+derivative = { workspace = true }
+downcast-rs = { workspace = true, optional = true }
+dyn-clonable = { workspace = true, optional = true }
+futures = { workspace = true }
+owo-colors = { workspace = true, optional = true }
+pin-project-lite = { workspace = true }
+strum = { workspace = true, features = ["derive"], optional = true }
+tap = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+tokio-stream = { workspace = true, features = ["sync"], optional = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+unicode-width = { workspace = true, optional = true }
+futures-cancel = { workspace = true }
+strip-ansi-escapes = { workspace = true, optional = true }
+tipsy = { workspace = true, optional = true }
+async-stream = { workspace = true, optional = true }
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.59", optional = true, features = [
+windows-sys = { workspace = true, optional = true, features = [
   "Win32_Foundation",
   "Win32_Storage",
   "Win32_Storage_FileSystem",
@@ -43,14 +43,14 @@ windows-sys = { version = "0.59", optional = true, features = [
   "Win32_System_Environment",
   "Win32_UI_WindowsAndMessaging",
 ] }
-widestring = { version = "1", optional = true }
+widestring = { workspace = true, optional = true }
 
 [target.'cfg(target_os="linux")'.dependencies]
-zbus = { version = "5", optional = true, features = ["tokio"] }
+zbus = { workspace = true, optional = true, features = ["tokio"] }
 
 [target.'cfg(target_os="macos")'.dependencies]
-shlex = { version = "1", optional = true }
-regex = { version = "1", optional = true }
+shlex = { workspace = true, optional = true }
+regex = { workspace = true, optional = true }
 
 [features]
 cli = [

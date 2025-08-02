@@ -2,3 +2,114 @@
 members = ["crates/*", "integration-tests"]
 exclude = ["experimental"]
 resolver = "3"
+
+[workspace.dependencies]
+daemon-slayer = { path = "./crates/daemon-slayer" }
+daemon-slayer-cli = { path = "./crates/daemon-slayer-cli" }
+daemon-slayer-client = { path = "./crates/daemon-slayer-client" }
+daemon-slayer-config = { path = "./crates/daemon-slayer-config" }
+daemon-slayer-console = { path = "./crates/daemon-slayer-console" }
+daemon-slayer-core = { path = "./crates/daemon-slayer-core" }
+daemon-slayer-error-handler = { path = "./crates/daemon-slayer-error-handler" }
+daemon-slayer-file-watcher = { path = "./crates/daemon-slayer-file-watcher" }
+daemon-slayer-health-check = { path = "./crates/daemon-slayer-health-check" }
+daemon-slayer-logging = { path = "./crates/daemon-slayer-logging" }
+daemon-slayer-process = { path = "./crates/daemon-slayer-process" }
+daemon-slayer-server = { path = "./crates/daemon-slayer-server" }
+daemon-slayer-signals = { path = "./crates/daemon-slayer-signals" }
+# daemon-slayer-task-queue = { path = "./crates/daemon-slayer-task-queue" }
+daemon-slayer-tray = { path = "./crates/daemon-slayer-tray" }
+daemon-slayer-notify = { path = "./crates/daemon-slayer-notify" }
+daemon-slayer-build-info = { path = "./crates/daemon-slayer-build-info" }
+daemon-slayer-macros = { path = "./crates/daemon-slayer-macros" }
+# daemon-slayer-network = { path = "../daemon-slayer-network" }
+
+console = { version = "0.15" }
+vergen-pretty = { version = "1.0" }
+async-trait = { version = "0.1" }
+clap = { version = "4" }
+tracing = "0.1"
+arc-swap = { version = "1" }
+bollard = { version = "0.19" }
+confique = { version = "0.3" }
+derivative = "2"
+dyn-clonable = "0.9"
+enumflags2 = "0.7"
+eyre = "0.6"
+owo-colors = { version = "4" }
+serde = { version = "1" }
+spinoff = { version = "0.8" }
+strum = { version = "0.27" }
+thiserror = "2"
+tokio = { version = "1" }
+regex = "1"
+registry = "1"
+utfx = "0.1"
+windows-args = "0.2"
+colored = { version = "3" }
+windows-service = { git = "https://github.com/aschey/windows-service-rs", rev = "32919aebe4c59f7855a8ebd72fe7d716db6a8f28" }
+systemd_client = { git = "https://github.com/aschey/systemd-client", rev = "5306cc133e68e54e0b11aaa5478706ba41f4037e" }
+directories = "6"
+launchd = { git = "https://github.com/aschey/launchd", rev = "087fa6edcce3973e6fd0f4f5929c869da4572afc" }
+bat = { version = "0.25", default-features = false }
+edit = "0.1"
+futures = "0.3"
+tap = "1"
+crossterm = { version = "0.28.1" }
+tilia-widget = { git = "https://github.com/aschey/tilia", rev = "b47c67a00a5c3afd946a5e82c0ab68711b5fd536" }
+tilia = { git = "https://github.com/aschey/tilia", rev = "b47c67a00a5c3afd946a5e82c0ab68711b5fd536" }
+ratatui = { version = "0.29" }
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "2d4f0dd65c86b50585827cd12adaa57de3f8b214" }
+downcast-rs = { version = "2" }
+pin-project-lite = "0.2"
+tokio-stream = { version = "0.1" }
+tokio-util = { version = "0.7" }
+unicode-width = { version = "0.2" }
+futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
+strip-ansi-escapes = { version = "0.2" }
+tipsy = { version = "0.6" }
+async-stream = { version = "0.3" }
+color-eyre = "0.6"
+notify = { version = "8", default-features = false }
+notify-debouncer-mini = { version = "0.6", default-features = false }
+reqwest = { version = "0.12" }
+tonic = { version = "0.14" }
+tonic-health = { version = "0.14" }
+ctor = "0.4"
+time = "0.3"
+tracing-appender = { version = "0.2" }
+tracing-error = { version = "0.2" }
+tracing-subscriber = { version = "0.3", features = [
+  "local-time",
+  "env-filter",
+] }
+tracing-journald = "0.3"
+tracing-oslog = "0.3"
+tracing-eventlog = { git = "https://github.com/aschey/tracing-eventlog", rev = "a7942ec723de2590ee843f1fda1c8042ab25fa18" }
+proc-macro-crate = "3"
+proc-macro2 = "1"
+quote = "1"
+syn = "2"
+notify-rust = { version = "4" }
+native-dialog = { version = "0.9" }
+bytesize = { version = "2" }
+chrono = { version = "0.4" }
+num_cpus = "1"
+readonly = "0.2"
+sysinfo = "0.36"
+signal-hook = { version = "0.3" }
+signal-hook-tokio = { version = "0.3" }
+sd-notify = "0.4"
+sd-listen-fds = { version = "0.2" }
+raunch = { version = "1" }
+image = "0.25"
+tao = "0.34"
+tray-icon = "0.21.1"
+tempfile = "3"
+zbus = "5"
+shlex = "1"
+widestring = "1"
+windows-sys = "0.59"
+axum = "0.8"
+cargo_metadata = "0.21"
+assert_cmd = "2"
