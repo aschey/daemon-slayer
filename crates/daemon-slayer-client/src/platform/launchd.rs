@@ -1,5 +1,6 @@
 use std::fs::{self, File};
 use std::io;
+#[cfg(feature = "socket-activation")]
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -9,8 +10,11 @@ use async_trait::async_trait;
 use daemon_slayer_core::Label;
 #[cfg(feature = "socket-activation")]
 use daemon_slayer_core::socket_activation;
+use launchd::Launchd;
+#[cfg(feature = "socket-activation")]
 use launchd::sockets::SocketFamily;
-use launchd::{Launchd, SocketOptions, Sockets};
+#[cfg(feature = "socket-activation")]
+use launchd::{SocketOptions, Sockets};
 use regex::Regex;
 use tokio::process::Command;
 
@@ -64,10 +68,9 @@ impl LaunchdServiceManager {
             if output_lower.contains(NOT_FOUND) {
                 return Ok(output_lower);
             }
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Error running launchd command \"{command} {arguments:?}\": {output}"),
-            ));
+            return Err(io::Error::other(format!(
+                "Error running launchd command \"{command} {arguments:?}\": {output}"
+            )));
         }
 
         let out = self
@@ -462,24 +465,15 @@ fn from_launchd_error(path: impl AsRef<Path>, err: launchd::Error) -> io::Error 
                 io_err.kind(),
                 format!("Error reading path {path:#?}: {io_err:?}: {e:?}"),
             ),
-            None => io::Error::new(
-                io::ErrorKind::Other,
-                format!("Error reading path {path:#?}: {e:?}"),
-            ),
+            None => io::Error::other(format!("Error reading path {path:#?}: {e:?}")),
         },
         launchd::Error::Write(e) => match e.as_io() {
             Some(io_err) => io::Error::new(
                 io_err.kind(),
                 format!("Error writing path {path:#?}: {io_err:?}: {e:?}"),
             ),
-            None => io::Error::new(
-                io::ErrorKind::Other,
-                format!("Error writing path {path:#?}: {e:?}"),
-            ),
+            None => io::Error::other(format!("Error writing path {path:#?}: {e:?}")),
         },
-        _ => io::Error::new(
-            io::ErrorKind::Other,
-            format!("Unknown plist error: {path:#?}"),
-        ),
+        _ => io::Error::other(format!("Unknown plist error: {path:#?}")),
     }
 }
