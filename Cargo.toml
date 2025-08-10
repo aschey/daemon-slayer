@@ -56,8 +56,8 @@ edit = "0.1"
 futures = "0.3"
 tap = "1"
 crossterm = { version = "0.28.1" }
-tilia-widget = { git = "https://github.com/aschey/tilia", rev = "bd581e98a03731694d88c30917056b0762ec0899" }
-tilia = { git = "https://github.com/aschey/tilia", rev = "bd581e98a03731694d88c30917056b0762ec0899" }
+tilia-widget = { git = "https://github.com/aschey/tilia", rev = "c6c42f73121bcbbb73d3289e1dc9a663d18c9aaa" }
+tilia = { git = "https://github.com/aschey/tilia", rev = "c6c42f73121bcbbb73d3289e1dc9a663d18c9aaa" }
 ratatui = { version = "0.29" }
 background-service = { git = "https://github.com/aschey/background-service-rs", rev = "6d9a1ddb2b57ac4fe305eff84545168d70171a5d" }
 downcast-rs = { version = "2" }
