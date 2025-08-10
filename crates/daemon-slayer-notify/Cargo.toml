@@ -17,6 +17,7 @@ native-dialog = { workspace = true, features = [
   "windows_visual_styles",
 ], optional = true }
 tap = { workspace = true }
+tokio-util = { workspace = true }
 async-trait = { workspace = true }
 
 [features]

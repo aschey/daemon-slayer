@@ -24,7 +24,6 @@ tokio-util = { workspace = true }
 tracing = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 unicode-width = { workspace = true, optional = true }
-futures-cancel = { workspace = true }
 strip-ansi-escapes = { workspace = true, optional = true }
 tipsy = { workspace = true, optional = true }
 async-stream = { workspace = true, optional = true }

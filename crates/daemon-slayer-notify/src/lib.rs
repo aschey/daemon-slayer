@@ -1,11 +1,12 @@
 use std::time::Duration;
 
+use daemon_slayer_core::BoxedError;
 use daemon_slayer_core::notify::AsyncNotification;
 use daemon_slayer_core::server::EventStore;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::tokio_stream::StreamExt;
-use daemon_slayer_core::{BoxedError, FutureExt};
 use tap::TapFallible;
+use tokio_util::future::FutureExt;
 use tracing::error;
 
 #[cfg(feature = "dialog")]
@@ -53,7 +54,12 @@ where
 
     async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
         let mut event_stream = self.event_store.subscribe_events();
-        while let Ok(Some(event)) = event_stream.next().cancel_with(context.cancelled()).await {
+        while let Some(event) = event_stream
+            .next()
+            .with_cancellation_token(context.cancellation_token())
+            .await
+            .flatten()
+        {
             if let Some(notification) = (self.create_notification)(event) {
                 notification
                     .show()
@@ -65,13 +71,14 @@ where
 
         if let Some(timeout) = self.shutdown_timeout
             && let Ok(Some(event)) = tokio::time::timeout(timeout, event_stream.next()).await
-                && let Some(notification) = (self.create_notification)(event) {
-                    notification
-                        .show()
-                        .await
-                        .tap_err(|e| error!("Error showing notification: {e}"))
-                        .ok();
-                }
+            && let Some(notification) = (self.create_notification)(event)
+        {
+            notification
+                .show()
+                .await
+                .tap_err(|e| error!("Error showing notification: {e}"))
+                .ok();
+        }
 
         Ok(())
     }

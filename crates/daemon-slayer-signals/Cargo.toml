@@ -8,6 +8,7 @@ daemon-slayer-core = { workspace = true, features = ["server", "signal"] }
 futures = { workspace = true }
 tracing = { workspace = true }
 tap = { workspace = true }
+tokio-util = { workspace = true }
 
 [target.'cfg(unix)'.dependencies]
 signal-hook = { workspace = true }

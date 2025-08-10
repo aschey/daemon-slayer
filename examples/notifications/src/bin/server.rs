@@ -143,7 +143,12 @@ impl Handler for ServiceHandler {
 
         let start_time = Instant::now();
         loop {
-            match tokio::time::timeout(Duration::from_secs(1), self.context.cancelled()).await {
+            match tokio::time::timeout(
+                Duration::from_secs(1),
+                self.context.cancellation_token().cancelled(),
+            )
+            .await
+            {
                 Ok(_) => {
                     info!("stopping service");
                     return Err("Simulated error".into());

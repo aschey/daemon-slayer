@@ -32,6 +32,7 @@ tracing-subscriber = { workspace = true, features = [
   "local-time",
   "env-filter",
 ] }
+tokio-util = { workspace = true }
 async-trait = { workspace = true, optional = true }
 
 

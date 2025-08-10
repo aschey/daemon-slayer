@@ -1,13 +1,14 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
+use daemon_slayer_core::BoxedError;
 use daemon_slayer_core::server::BroadcastEventStore;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
-use daemon_slayer_core::{BoxedError, FutureExt};
 use notify::RecommendedWatcher;
 use notify_debouncer_mini::{DebouncedEvent, Debouncer, new_debouncer};
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
+use tokio_util::future::FutureExt;
 use tracing::{error, info, warn};
 
 use super::file_watcher_client::FileWatcherClient;
@@ -79,11 +80,12 @@ impl BackgroundService for FileWatcher {
     }
 
     async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
-        while let Ok(Some(command)) = self
+        while let Some(command) = self
             .command_rx
             .recv()
-            .cancel_with(context.cancelled())
+            .with_cancellation_token(context.cancellation_token())
             .await
+            .flatten()
         {
             match command {
                 FileWatcherCommand::Watch(path, recursive_mode) => self

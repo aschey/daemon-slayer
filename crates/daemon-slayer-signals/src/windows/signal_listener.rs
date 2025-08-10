@@ -82,7 +82,7 @@ impl BackgroundService for SignalListener {
             _ = signal_rx.recv() => {
                 info!("Received signal from channel");
             }
-            _ = context.cancelled() => {
+            _ = context.cancellation_token().cancelled() => {
                 info!("Shutdown requested. Stopping signal handler.");
                 self.signal_tx.send(Signal::SIGINT)
                     .tap_err(|_| warn!("Failed to send signal")).ok();

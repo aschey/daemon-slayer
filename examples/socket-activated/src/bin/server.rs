@@ -12,7 +12,7 @@ use daemon_slayer::cli::Cli;
 use daemon_slayer::config::cli::ConfigCliProvider;
 use daemon_slayer::config::server::ConfigService;
 use daemon_slayer::config::{AppConfig, ConfigDir};
-use daemon_slayer::core::{BoxedError, FutureExt, Label};
+use daemon_slayer::core::{BoxedError, Label};
 use daemon_slayer::error_handler::ErrorSink;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::color_eyre::eyre;
@@ -30,6 +30,8 @@ use daemon_slayer::signals::SignalListener;
 use derive_more::AsRef;
 use socket_activated::SOCKET_NAME;
 use tokio::sync::mpsc::Sender;
+use tokio_util::future::FutureExt;
+use tokio_util::sync::CancellationToken;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 
@@ -165,8 +167,19 @@ impl Handler for ServiceHandler {
         }
 
         let mut signals = self.signal_store.subscribe_events();
+        let cancellation = self.context.cancellation_token().clone();
+        let timeout_cancellation = CancellationToken::new();
 
-        if let Ok(res) = axum::serve(listener, app)
+        tokio::spawn({
+            let timeout_cancellation = timeout_cancellation.clone();
+            async move {
+                cancellation.cancelled().await;
+                tokio::time::sleep(Duration::from_secs(2)).await;
+                timeout_cancellation.cancel();
+            }
+        });
+
+        if let Some(res) = axum::serve(listener, app)
             .with_graceful_shutdown(async move {
                 if is_activated {
                     loop {
@@ -191,7 +204,7 @@ impl Handler for ServiceHandler {
                 info!("Got shutdown signal");
             })
             .into_future()
-            .cancel_with_timeout(self.context.cancelled(), Duration::from_secs(2))
+            .with_cancellation_token(&timeout_cancellation)
             .await
         {
             res?;

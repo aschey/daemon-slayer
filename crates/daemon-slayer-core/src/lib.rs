@@ -23,7 +23,6 @@ use std::str::FromStr;
 
 #[cfg(feature = "daemon-slayer-macros")]
 pub use daemon_slayer_macros::*;
-pub use futures_cancel::*;
 pub use label::*;
 pub use tokio_util::sync::CancellationToken;
 

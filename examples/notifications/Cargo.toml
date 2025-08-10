@@ -19,6 +19,7 @@ derive_more = { workspace = true, default-features = false, features = [
 ] }
 serde = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tokio-util = { workspace = true }
 tracing = { workspace = true }
 
 [[bin]]

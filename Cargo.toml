@@ -56,22 +56,21 @@ edit = "0.1"
 futures = "0.3"
 tap = "1"
 crossterm = { version = "0.28.1" }
-tilia-widget = { git = "https://github.com/aschey/tilia", rev = "b47c67a00a5c3afd946a5e82c0ab68711b5fd536" }
-tilia = { git = "https://github.com/aschey/tilia", rev = "b47c67a00a5c3afd946a5e82c0ab68711b5fd536" }
+tilia-widget = { git = "https://github.com/aschey/tilia", rev = "bd581e98a03731694d88c30917056b0762ec0899" }
+tilia = { git = "https://github.com/aschey/tilia", rev = "bd581e98a03731694d88c30917056b0762ec0899" }
 ratatui = { version = "0.29" }
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "2d4f0dd65c86b50585827cd12adaa57de3f8b214" }
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "6d9a1ddb2b57ac4fe305eff84545168d70171a5d" }
 downcast-rs = { version = "2" }
 pin-project-lite = "0.2"
 tokio-stream = { version = "0.1" }
-tokio-util = { version = "0.7" }
+tokio-util = { version = "0.7.16" }
 unicode-width = { version = "0.2" }
-futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
 strip-ansi-escapes = { version = "0.2" }
 tipsy = { version = "0.6" }
 async-stream = { version = "0.3" }
 color-eyre = "0.6"
 notify = { version = "8", default-features = false }
-notify-debouncer-mini = { version = "0.6", default-features = false }
+notify-debouncer-mini = { version = "0.7", default-features = false }
 reqwest = { version = "0.12" }
 tonic = { version = "0.14" }
 tonic-health = { version = "0.14" }

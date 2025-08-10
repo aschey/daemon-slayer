@@ -20,6 +20,7 @@ derive_more = { workspace = true, default-features = false, features = [
 ] }
 serde = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tokio-util = { workspace = true }
 tower-http = { workspace = true, features = ["trace"] }
 tracing = { workspace = true }
 

@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
+use daemon_slayer_core::BoxedError;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::{BroadcastEventStore, EventStore};
-use daemon_slayer_core::{BoxedError, FutureExt};
 use daemon_slayer_file_watcher::FileWatcher;
 use futures::stream::StreamExt;
 use tap::TapFallible;
 use tokio::sync::broadcast;
+use tokio_util::future::FutureExt;
 use tracing::error;
 
 use crate::{AppConfig, Configurable};
@@ -50,7 +51,13 @@ where
 
         let mut event_stream = event_store.subscribe_events();
 
-        while let Ok(Some(_)) = event_stream.next().cancel_with(context.cancelled()).await {
+        while event_stream
+            .next()
+            .with_cancellation_token(context.cancellation_token())
+            .await
+            .flatten()
+            .is_some()
+        {
             let current = self.config.snapshot();
             if self.config.read_config().tap_err(|e| error!("{e}")).is_ok() {
                 let new = self.config.snapshot();

@@ -17,6 +17,7 @@ serde = { workspace = true, optional = true }
 tilia-widget = { workspace = true, features = ["ipc", "docker"] }
 tilia = { workspace = true, features = ["ipc", "docker"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tokio-util = { workspace = true }
 ratatui = { workspace = true }
 async-trait = { workspace = true, optional = true }
 

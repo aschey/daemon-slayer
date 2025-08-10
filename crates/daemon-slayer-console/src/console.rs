@@ -16,7 +16,7 @@ use daemon_slayer_core::health_check::HealthCheck;
 use daemon_slayer_core::server::background_service::{
     self, BackgroundService, Manager, ServiceContext,
 };
-use daemon_slayer_core::{BoxedError, CancellationToken, FutureExt};
+use daemon_slayer_core::{BoxedError, CancellationToken};
 use futures::StreamExt;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
@@ -30,6 +30,7 @@ use tilia_widget::LogView;
 use tilia_widget::transport::docker::docker_client;
 use tilia_widget::transport::ipc_client;
 use tokio::sync::mpsc;
+use tokio_util::future::FutureExt;
 
 #[derive(daemon_slayer_core::Mergeable, Debug, Clone, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "config", derive(confique::Config, serde::Deserialize))]
@@ -67,10 +68,10 @@ impl BackgroundService for HealthChecker {
 
     async fn run(mut self, context: ServiceContext) -> Result<(), BoxedError> {
         let mut is_healthy: Option<bool> = None;
-        while let Ok(res) = self
+        while let Some(res) = self
             .health_check
             .invoke()
-            .cancel_with(context.cancelled())
+            .with_cancellation_token(context.cancellation_token())
             .await
         {
             match res {

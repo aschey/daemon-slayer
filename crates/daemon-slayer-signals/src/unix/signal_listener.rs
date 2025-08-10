@@ -1,12 +1,13 @@
 use std::ffi::c_int;
 
+use daemon_slayer_core::BoxedError;
 use daemon_slayer_core::server::BroadcastEventStore;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::signal::{self, Signal};
-use daemon_slayer_core::{BoxedError, FutureExt};
 use futures::stream::StreamExt;
 use signal_hook_tokio::SignalsInfo;
 use tokio::sync::broadcast;
+use tokio_util::future::FutureExt;
 
 use super::SignalListenerClient;
 
@@ -77,7 +78,12 @@ impl BackgroundService for SignalListener {
     async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let signals_handle = self.signals.handle();
         let mut signals = self.signals.fuse();
-        while let Ok(Some(signal)) = signals.next().cancel_with(context.cancelled()).await {
+        while let Some(signal) = signals
+            .next()
+            .with_cancellation_token(context.cancellation_token())
+            .await
+            .flatten()
+        {
             let signal_name = signal_hook::low_level::signal_name(signal).unwrap_or("unknown");
             let signal: Signal = signal_name.into();
             self.signal_tx.send(signal.clone()).ok();
