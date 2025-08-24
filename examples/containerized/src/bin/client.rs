@@ -14,6 +14,8 @@ use daemon_slayer::error_handler::ErrorSink;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::color_eyre::eyre;
 use daemon_slayer::logging::cli::LoggingCliProvider;
+use daemon_slayer::logging::time::format_description::well_known::Rfc3339;
+use daemon_slayer::logging::tracing_subscriber::fmt::time::OffsetTime;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{self, LoggerBuilder};
 use daemon_slayer::process::cli::ProcessCliProvider;
@@ -32,15 +34,21 @@ struct MyConfig {
     logging_config: logging::UserConfig,
 }
 
+pub fn main() -> Result<(), ErrorSink> {
+    async_main(OffsetTime::local_rfc_3339().unwrap())
+}
+
 #[tokio::main]
-pub async fn main() -> Result<(), ErrorSink> {
+async fn async_main(offset_time: OffsetTime<Rfc3339>) -> Result<(), ErrorSink> {
     let guard = daemon_slayer::logging::init();
-    let result = run().await.map_err(|e| ErrorSink::new(eyre::eyre!(e)));
+    let result = run(offset_time)
+        .await
+        .map_err(|e| ErrorSink::new(eyre::eyre!(e)));
     drop(guard);
     result
 }
 
-async fn run() -> Result<(), BoxedError> {
+async fn run(offset_time: OffsetTime<Rfc3339>) -> Result<(), BoxedError> {
     let app_config =
         AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(containerized::label())).build()?;
 
@@ -74,7 +82,7 @@ async fn run() -> Result<(), BoxedError> {
         .build()
         .await?;
 
-    let logger_builder = LoggerBuilder::new(containerized::label());
+    let logger_builder = LoggerBuilder::new(containerized::label(), offset_time);
 
     let app_config_ = app_config.clone();
     let console = Console::new(
@@ -101,7 +109,7 @@ async fn run() -> Result<(), BoxedError> {
         .initialize()?;
 
     let (logger, _) = cli
-        .take_provider::<LoggingCliProvider>()
+        .take_provider::<LoggingCliProvider<Rfc3339>>()
         .get_logger_with_reload(app_config.clone())?;
     logger.init();
 

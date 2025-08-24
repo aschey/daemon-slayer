@@ -12,6 +12,8 @@ use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::color_eyre::eyre;
 use daemon_slayer::logging::cli::LoggingCliProvider;
 use daemon_slayer::logging::server::LoggingUpdateService;
+use daemon_slayer::logging::time::format_description::well_known::Rfc3339;
+use daemon_slayer::logging::tracing_subscriber::fmt::time::OffsetTime;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::logging::{self, EnvConfig, LoggerBuilder, ReloadHandle};
 use daemon_slayer::notify::NotificationService;
@@ -32,25 +34,31 @@ struct MyConfig {
     logging_config: logging::UserConfig,
 }
 
-#[tokio::main]
-pub async fn main() -> Result<(), ErrorSink> {
-    let guard = daemon_slayer::logging::init();
-    let result = run().await.map_err(|e| ErrorSink::new(eyre::eyre!(e)));
-    drop(guard);
-    result
-}
-
 #[derive(Clone)]
 pub struct AppData {
     config: AppConfig<MyConfig>,
     reload_handle: ReloadHandle,
 }
 
-async fn run() -> Result<(), BoxedError> {
+pub fn main() -> Result<(), ErrorSink> {
+    async_main(OffsetTime::local_rfc_3339().unwrap())
+}
+
+#[tokio::main]
+async fn async_main(offset_time: OffsetTime<Rfc3339>) -> Result<(), ErrorSink> {
+    let guard = daemon_slayer::logging::init();
+    let result = run(offset_time)
+        .await
+        .map_err(|e| ErrorSink::new(eyre::eyre!(e)));
+    drop(guard);
+    result
+}
+
+async fn run(offset_time: OffsetTime<Rfc3339>) -> Result<(), BoxedError> {
     let app_config =
         AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(notifications::label())).build()?;
 
-    let logger_builder = LoggerBuilder::new(ServiceHandler::label()).with_env_config(
+    let logger_builder = LoggerBuilder::new(ServiceHandler::label(), offset_time).with_env_config(
         EnvConfig::new("DAEMON_SLAYER_LOG".to_string()).with_default(tracing::Level::INFO.into()),
     );
 
@@ -68,7 +76,7 @@ async fn run() -> Result<(), BoxedError> {
         .initialize()?;
 
     let (logger, reload_handle) = cli
-        .take_provider::<LoggingCliProvider>()
+        .take_provider::<LoggingCliProvider<Rfc3339>>()
         .get_logger_with_reload(app_config.clone())?;
 
     logger.init();

@@ -16,7 +16,6 @@ windows-eventlog = ["tracing-eventlog"]
 
 [dependencies]
 confique = { workspace = true, optional = true }
-ctor = { workspace = true }
 daemon-slayer-core = { workspace = true, features = ["config"] }
 directories = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }

@@ -4,6 +4,7 @@ use daemon_slayer_core::cli::{
     Action, ActionType, ClientAction, CommandMatch, CommandOutput, CommandProvider, clap,
 };
 use daemon_slayer_core::config::Accessor;
+use time::formatting::Formattable;
 use tracing::Subscriber;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -19,12 +20,15 @@ pub enum LoggerInitializationError {
 }
 
 #[derive(Debug)]
-pub struct LoggingCliProvider {
-    pub builder: Option<LoggerBuilder>,
+pub struct LoggingCliProvider<T> {
+    pub builder: Option<LoggerBuilder<T>>,
 }
 
-impl LoggingCliProvider {
-    pub fn new(builder: LoggerBuilder) -> Self {
+impl<T> LoggingCliProvider<T>
+where
+    T: Formattable + Clone + Send + Sync + 'static,
+{
+    pub fn new(builder: LoggerBuilder<T>) -> Self {
         Self {
             builder: Some(builder),
         }
@@ -65,7 +69,10 @@ impl LoggingCliProvider {
 }
 
 #[async_trait]
-impl CommandProvider for LoggingCliProvider {
+impl<T> CommandProvider for LoggingCliProvider<T>
+where
+    T: Formattable + Clone + Send + Sync + 'static,
+{
     fn get_commands(&self, command: clap::Command) -> clap::Command {
         command
     }

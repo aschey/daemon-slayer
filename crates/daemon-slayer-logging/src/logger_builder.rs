@@ -6,8 +6,7 @@ use std::sync::{Mutex, OnceLock};
 
 use daemon_slayer_core::config::Accessor;
 use daemon_slayer_core::{BoxedError, Label, Mergeable};
-use time::UtcOffset;
-use time::format_description::well_known::{self, Rfc3339};
+use time::formatting::Formattable;
 use tracing::metadata::LevelFilter;
 use tracing::{Level, Subscriber, debug};
 use tracing_appender::non_blocking::NonBlockingBuilder;
@@ -20,13 +19,9 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer as SubscriberLayer, reload};
 
 use super::logger_guard::LoggerGuard;
-use super::timezone::Timezone;
 use crate::ReloadHandle;
 
 static LOGGER_GUARD: OnceLock<Mutex<Option<LoggerGuard>>> = OnceLock::new();
-
-static LOCAL_TIME: OnceLock<Result<OffsetTime<Rfc3339>, time::error::IndeterminateOffset>> =
-    OnceLock::new();
 
 #[must_use]
 pub struct GlobalLoggerGuard;
@@ -36,11 +31,6 @@ impl Drop for GlobalLoggerGuard {
         debug!("Dropping global logger guard");
         LOGGER_GUARD.get().unwrap().lock().unwrap().take();
     }
-}
-
-#[ctor::ctor]
-fn init_time() {
-    LOCAL_TIME.set(OffsetTime::local_rfc_3339()).ok();
 }
 
 pub fn init() -> GlobalLoggerGuard {
@@ -134,12 +124,12 @@ impl EnvConfig {
 }
 
 #[derive(Debug, Clone)]
-pub struct LoggerBuilder {
+pub struct LoggerBuilder<T> {
     #[allow(dead_code)]
     label: Label,
     #[cfg(feature = "file")]
     file_rotation_period: tracing_appender::rolling::Rotation,
-    timezone: Timezone,
+    offset_time: OffsetTime<T>,
     output_buffer_limit: usize,
     target_directives: HashMap<LogTarget, Vec<Directive>>,
     env_filter_directives: Vec<Directive>,
@@ -150,13 +140,16 @@ pub struct LoggerBuilder {
     env_config: Option<EnvConfig>,
 }
 
-impl LoggerBuilder {
-    pub fn new(label: Label) -> Self {
+impl<T> LoggerBuilder<T>
+where
+    T: Formattable + Clone + Send + Sync + 'static,
+{
+    pub fn new(label: Label, offset_time: OffsetTime<T>) -> Self {
         Self {
             label,
             #[cfg(feature = "file")]
             file_rotation_period: tracing_appender::rolling::Rotation::HOURLY,
-            timezone: Timezone::Local,
+            offset_time,
             // The default number of buffered lines is quite large and uses a ton of memory
             // We aren't logging a ton of messages so setting this value somewhat low is fine in
             // order to conserve memory
@@ -177,11 +170,6 @@ impl LoggerBuilder {
         rotation: tracing_appender::rolling::Rotation,
     ) -> Self {
         self.file_rotation_period = rotation;
-        self
-    }
-
-    pub fn with_timezone(mut self, timezone: Timezone) -> Self {
-        self.timezone = timezone;
         self
     }
 
@@ -272,15 +260,6 @@ impl LoggerBuilder {
         self,
     ) -> Result<impl SubscriberInitExt + Subscriber + for<'a> LookupSpan<'a>, LoggerCreationError>
     {
-        let offset = match (&self.timezone, LOCAL_TIME.get()) {
-            (Timezone::Local, Some(Ok(offset))) => offset.to_owned(),
-            (Timezone::Local, Some(Err(e))) => {
-                println!("Error getting local time: {e}");
-                OffsetTime::new(UtcOffset::UTC, well_known::Rfc3339)
-            }
-            _ => OffsetTime::new(UtcOffset::UTC, well_known::Rfc3339),
-        };
-
         let mut env_filter = self.get_base_env_filter();
         for directive in &self.env_filter_directives {
             env_filter = env_filter.add_directive(directive.clone());
@@ -314,7 +293,7 @@ impl LoggerBuilder {
         #[cfg(feature = "file")]
         let collector = collector.with({
             Layer::new()
-                .with_timer(offset.clone())
+                .with_timer(self.offset_time.clone())
                 .with_thread_ids(true)
                 .with_thread_names(true)
                 .with_ansi(false)
@@ -336,7 +315,7 @@ impl LoggerBuilder {
             .with({
                 Layer::new()
                     .pretty()
-                    .with_timer(offset.clone())
+                    .with_timer(self.offset_time.clone())
                     .with_thread_ids(true)
                     .with_thread_names(true)
                     .with_writer(non_blocking_stdout)
@@ -350,7 +329,7 @@ impl LoggerBuilder {
                 #[allow(clippy::redundant_clone)]
                 Layer::new()
                     .pretty()
-                    .with_timer(offset.clone())
+                    .with_timer(self.offset_time.clone())
                     .with_thread_ids(true)
                     .with_thread_names(true)
                     .with_writer(non_blocking_stderr)
@@ -404,7 +383,7 @@ impl LoggerBuilder {
         let collector = collector.with({
             Layer::new()
                 .compact()
-                .with_timer(offset)
+                .with_timer(self.offset_time.clone())
                 .with_thread_ids(true)
                 .with_thread_names(true)
                 .with_writer(ipc_writer)

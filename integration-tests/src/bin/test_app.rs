@@ -5,6 +5,8 @@ use daemon_slayer::core::{BoxedError, Label};
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::logging::LoggerBuilder;
 use daemon_slayer::logging::cli::LoggingCliProvider;
+use daemon_slayer::logging::time::format_description::well_known::Rfc3339;
+use daemon_slayer::logging::tracing_subscriber::fmt::time::OffsetTime;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::{
@@ -14,9 +16,14 @@ use daemon_slayer::signals::SignalListener;
 use futures::StreamExt;
 use tracing::info;
 
+fn main() {
+    let local_time = OffsetTime::local_rfc_3339().unwrap();
+    async_main(local_time);
+}
+
 #[tokio::main]
-pub async fn main() {
-    let logger_builder = LoggerBuilder::new(ServiceHandler::label());
+async fn async_main(local_time: OffsetTime<Rfc3339>) {
+    let logger_builder = LoggerBuilder::new(ServiceHandler::label(), local_time);
 
     let mut cli = Cli::builder()
         .with_provider(ServerCliProvider::<ServiceHandler>::new(
@@ -27,7 +34,7 @@ pub async fn main() {
         .initialize()
         .unwrap();
 
-    let logger_provider = cli.take_provider::<LoggingCliProvider>();
+    let logger_provider = cli.take_provider::<LoggingCliProvider<Rfc3339>>();
     let logger = logger_provider.get_logger().unwrap();
     logger.init();
 

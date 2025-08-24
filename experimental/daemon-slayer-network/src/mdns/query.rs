@@ -124,7 +124,7 @@ impl BackgroundService for MdnsQueryService {
 
     async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let mdns = ServiceDaemon::new()?;
-        mdns.use_service_data(true);
+        mdns.use_service_data(true).unwrap();
 
         if let Some(interface) = get_default_interface().await? {
             mdns.disable_interface(IfKind::All).unwrap();

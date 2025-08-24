@@ -8,6 +8,8 @@ use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::color_eyre::eyre;
 use daemon_slayer::logging::LoggerBuilder;
 use daemon_slayer::logging::cli::LoggingCliProvider;
+use daemon_slayer::logging::time::format_description::well_known::Rfc3339;
+use daemon_slayer::logging::tracing_subscriber::fmt::time::OffsetTime;
 use daemon_slayer::logging::tracing_subscriber::util::SubscriberInitExt;
 use daemon_slayer::server::cli::ServerCliProvider;
 use daemon_slayer::server::futures::StreamExt;
@@ -25,16 +27,22 @@ enum Subcommands {
     },
 }
 
+pub fn main() -> Result<(), ErrorSink> {
+    async_main(OffsetTime::local_rfc_3339().unwrap())
+}
+
 #[tokio::main]
-pub async fn main() -> Result<(), ErrorSink> {
+async fn async_main(offset_time: OffsetTime<Rfc3339>) -> Result<(), ErrorSink> {
     let guard = daemon_slayer::logging::init();
-    let result = run().await.map_err(|e| ErrorSink::new(eyre::eyre!(e)));
+    let result = run(offset_time)
+        .await
+        .map_err(|e| ErrorSink::new(eyre::eyre!(e)));
     drop(guard);
     result
 }
 
-async fn run() -> Result<(), BoxedError> {
-    let logger_builder = LoggerBuilder::new(ServiceHandler::label());
+async fn run(offset_time: OffsetTime<Rfc3339>) -> Result<(), BoxedError> {
+    let logger_builder = LoggerBuilder::new(ServiceHandler::label(), offset_time);
 
     let clap_cmd = Subcommands::augment_subcommands(clap::Command::default());
     let mut cli = Cli::builder()
@@ -46,7 +54,9 @@ async fn run() -> Result<(), BoxedError> {
         .with_provider(ErrorHandlerCliProvider::default())
         .initialize()?;
 
-    let logger = cli.take_provider::<LoggingCliProvider>().get_logger()?;
+    let logger = cli
+        .take_provider::<LoggingCliProvider<Rfc3339>>()
+        .get_logger()?;
     logger.init();
 
     if let (InputState::Unhandled, matches) = cli.handle_input().await? {
