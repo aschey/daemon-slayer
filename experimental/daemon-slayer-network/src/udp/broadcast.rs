@@ -3,8 +3,8 @@ use std::net::SocketAddr;
 use std::time::Duration;
 
 use bytes::Bytes;
-use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::BoxedError;
+use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use futures::SinkExt;
 use gethostname::gethostname;
 use serde::Serialize;
@@ -16,7 +16,7 @@ use tracing::error;
 
 use super::DEFAULT_BROADCAST_PORT;
 use crate::{
-    get_default_interface, BroadcastServiceName, ServiceInfo, ServiceMetadata, ServiceProtocol,
+    BroadcastServiceName, ServiceInfo, ServiceMetadata, ServiceProtocol, get_default_interface,
 };
 
 pub struct UdpBroadcastService {
@@ -100,7 +100,7 @@ impl BackgroundService for UdpBroadcastService {
                         }
                     }
                 }
-                _ = context.cancelled() => {
+                _ = context.cancellation_token().cancelled() => {
                     break;
                 }
             }

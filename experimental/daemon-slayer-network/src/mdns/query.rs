@@ -1,10 +1,10 @@
 use std::fmt::Display;
 
+use daemon_slayer_core::BoxedError;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::{BroadcastEventStore, EventStore};
-use daemon_slayer_core::BoxedError;
 use futures::StreamExt;
-use mdns_sd::{DaemonStatus, IfKind, ServiceDaemon, ServiceEvent, ServiceInfo};
+use mdns_sd::{DaemonStatus, IfKind, ResolvedService, ServiceDaemon, ServiceEvent};
 use recap::Recap;
 use serde::{Deserialize, Serialize};
 use tap::TapFallible;
@@ -12,7 +12,7 @@ use tokio::sync::broadcast;
 use tracing::{info, warn};
 
 use crate::route_listener::RouteListenerService;
-use crate::{get_default_interface, ServiceProtocol};
+use crate::{ServiceProtocol, get_default_interface};
 
 #[derive(Deserialize, Serialize, Debug, Recap, Clone, PartialEq, Eq)]
 #[recap(
@@ -59,7 +59,7 @@ pub enum MdnsReceiverEvent {
         service_type: String,
         full_name: String,
     },
-    ServiceResolved(ServiceInfo),
+    ServiceData(Box<ResolvedService>),
     ServiceRemoved {
         service_type: String,
         full_name: String,
@@ -99,8 +99,8 @@ impl MdnsQueryService {
                     full_name,
                 })
             }
-            ServiceEvent::ServiceResolved(info) => {
-                self.event_tx.send(MdnsReceiverEvent::ServiceResolved(info))
+            ServiceEvent::ServiceData(data) => {
+                self.event_tx.send(MdnsReceiverEvent::ServiceData(data))
             }
             ServiceEvent::ServiceRemoved(service_type, full_name) => {
                 self.event_tx.send(MdnsReceiverEvent::ServiceRemoved {
@@ -111,6 +111,7 @@ impl MdnsQueryService {
             ServiceEvent::SearchStopped(service_type) => self
                 .event_tx
                 .send(MdnsReceiverEvent::SearchStopped(service_type)),
+            _ => Ok(0),
         };
         res.tap_err(|e| warn!("failed to send message: {e:?}")).ok();
     }
@@ -123,6 +124,7 @@ impl BackgroundService for MdnsQueryService {
 
     async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let mdns = ServiceDaemon::new()?;
+        mdns.use_service_data(true);
 
         if let Some(interface) = get_default_interface().await? {
             mdns.disable_interface(IfKind::All).unwrap();
@@ -152,7 +154,7 @@ impl BackgroundService for MdnsQueryService {
                         }
                     }
                 }
-                _ = context.cancelled() => {
+                _ = context.cancellation_token().cancelled() => {
                     break;
                 }
             }

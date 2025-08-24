@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::net::IpAddr;
 
+use daemon_slayer_core::BoxedError;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::{BroadcastEventStore, EventStore};
-use daemon_slayer_core::{BoxedError, FutureExt};
 use futures::StreamExt;
 use gethostname::gethostname;
 use mdns_sd::{DaemonEvent, DaemonStatus, IfKind, ServiceDaemon, ServiceInfo, UnregisterStatus};
@@ -12,10 +12,11 @@ use recap::Recap;
 use serde::{Deserialize, Serialize};
 use tap::TapFallible;
 use tokio::sync::broadcast;
+use tokio_util::future::FutureExt;
 use tracing::{info, warn};
 
 use crate::route_listener::RouteListenerService;
-use crate::{get_default_interface, ServiceMetadata, ServiceProtocol};
+use crate::{ServiceMetadata, ServiceProtocol, get_default_interface};
 
 #[derive(Deserialize, Serialize, Debug, Recap, Clone)]
 #[recap(
@@ -233,13 +234,17 @@ impl BackgroundService for MdnsBroadcastService {
                         self.handle_route_change(&mdns, &service_fullname).await?;
                     }
                 }
-                _ = context.cancelled() => {
+                _ = context.cancellation_token().cancelled() => {
                     break;
                 }
             }
         }
 
-        while let Ok(Ok(event)) = monitor.recv_async().cancel_with(context.cancelled()).await {
+        while let Some(Ok(event)) = monitor
+            .recv_async()
+            .with_cancellation_token(context.cancellation_token())
+            .await
+        {
             self.handle_mdns_event(event)
         }
 

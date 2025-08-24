@@ -3,15 +3,15 @@ use daemon_slayer_core::cli::clap::{self, Args, FromArgMatches, Subcommand};
 use daemon_slayer_core::cli::{
     ActionType, CommandMatch, CommandOutput, CommandProvider, OwoColorize, Printer,
 };
-use daemon_slayer_core::server::background_service::Manager;
 use daemon_slayer_core::server::EventStore;
+use daemon_slayer_core::server::background_service::Manager;
 use daemon_slayer_core::{BoxedError, CancellationToken};
 use futures::StreamExt;
 
 use crate::mdns::{
     MdnsBroadcastName, MdnsBroadcastService, MdnsQueryName, MdnsQueryService, MdnsReceiverEvent,
 };
-use crate::{get_default_interface_from_route, get_default_route, ServiceProtocol};
+use crate::{ServiceProtocol, get_default_interface_from_route, get_default_route};
 
 #[derive(Subcommand, Clone, Debug)]
 enum NetworkSubcommands {
@@ -105,7 +105,7 @@ impl CommandProvider for NetworkCliProvider {
 
                 let mut service_resolved = false;
                 while let Some(Ok(query_event)) = mdns_query_events.next().await {
-                    if let MdnsReceiverEvent::ServiceResolved(_) = query_event {
+                    if let MdnsReceiverEvent::ServiceData(_) = query_event {
                         service_resolved = true;
                         service_manager.stop();
                     }

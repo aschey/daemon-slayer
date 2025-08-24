@@ -1,9 +1,10 @@
-use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
+use daemon_slayer_core::BoxedError;
 use daemon_slayer_core::server::BroadcastEventStore;
-use daemon_slayer_core::{BoxedError, FutureExt};
+use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use futures::StreamExt;
 use net_route::RouteChange;
 use tokio::sync::broadcast;
+use tokio_util::future::FutureExt;
 use tracing::info;
 
 pub struct RouteListenerService {
@@ -38,7 +39,12 @@ impl BackgroundService for RouteListenerService {
 
         futures::pin_mut!(stream);
 
-        while let Ok(Some(value)) = stream.next().cancel_with(context.cancelled()).await {
+        while let Some(value) = stream
+            .next()
+            .with_cancellation_token(context.cancellation_token())
+            .await
+            .flatten()
+        {
             info!("route change {value:?}");
             self.event_tx.send(value).ok();
         }

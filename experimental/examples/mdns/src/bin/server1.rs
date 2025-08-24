@@ -13,7 +13,7 @@ use daemon_slayer::cli::Cli;
 use daemon_slayer::config::cli::ConfigCliProvider;
 use daemon_slayer::config::server::ConfigService;
 use daemon_slayer::config::{AppConfig, ConfigDir};
-use daemon_slayer::core::{BoxedError, FutureExt as CustomFutureExt, Label};
+use daemon_slayer::core::{BoxedError, Label};
 use daemon_slayer::error_handler::ErrorSink;
 use daemon_slayer::error_handler::cli::ErrorHandlerCliProvider;
 use daemon_slayer::error_handler::color_eyre::eyre;
@@ -32,6 +32,7 @@ use daemon_slayer_network::cli::NetworkCliProvider;
 use daemon_slayer_network::discovery::{
     DiscoveryBroadcastService, DiscoveryProtocol, DiscoveryQueryService,
 };
+use daemon_slayer_network::tokio_util::future::FutureExt;
 use daemon_slayer_network::{BroadcastServiceName, QueryServiceName, ServiceProtocol};
 use derive_more::AsRef;
 use mdns::SOCKET_NAME;
@@ -65,12 +66,12 @@ async fn run() -> Result<(), BoxedError> {
         AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(mdns::label())).build()?;
 
     let logger_builder = LoggerBuilder::new(ServiceHandler::label());
-    let pretty = vergen_pretty::PrettyBuilder::default()
+    let pretty = vergen_pretty::Pretty::builder()
         .env(vergen_pretty::vergen_pretty_env!())
         .category(false)
         .key_style(Style::new().bold().cyan())
         .value_style(Style::new())
-        .build()?;
+        .build();
     let mut cli = Cli::builder()
         .with_provider(ServerCliProvider::<ServiceHandler>::new(
             &mdns::run_argument(),
@@ -153,10 +154,11 @@ impl Handler for ServiceHandler {
             move |context: ServiceContext| async move {
                 let mut discovery_events = discovery_query_store.subscribe_events();
                 tokio::time::sleep(Duration::from_secs(3)).await;
-                while let Ok(Some(Ok(event))) = discovery_events
+                while let Some(Ok(event)) = discovery_events
                     .next()
-                    .cancel_with(context.cancelled())
+                    .with_cancellation_token(context.cancellation_token())
                     .await
+                    .flatten()
                 {
                     info!("Discovery event {event:?}");
                     for addr in event.ip_addresses {
@@ -212,7 +214,7 @@ impl Handler for ServiceHandler {
 
         let mut signals = self.signal_store.subscribe_events();
 
-        if let Ok(res) = axum::serve(listener, app)
+        if let Some(res) = axum::serve(listener, app)
             .with_graceful_shutdown(async move {
                 if is_activated {
                     loop {
@@ -237,7 +239,7 @@ impl Handler for ServiceHandler {
                 info!("Got shutdown signal");
             })
             .into_future()
-            .cancel_with_timeout(self.context.cancelled(), Duration::from_secs(2))
+            .with_cancellation_token(self.context.cancellation_token())
             .await
         {
             res?;

@@ -52,12 +52,12 @@ async fn run() -> Result<(), BoxedError> {
     let logger_builder = LoggerBuilder::new(ServiceHandler::label()).with_env_config(
         EnvConfig::new("DAEMON_SLAYER_LOG".to_string()).with_default(tracing::Level::INFO.into()),
     );
-    let pretty = vergen_pretty::PrettyBuilder::default()
+    let pretty = vergen_pretty::Pretty::builder()
         .env(vergen_pretty::vergen_pretty_env!())
         .category(false)
         .key_style(Style::new().bold().cyan())
         .value_style(Style::new())
-        .build()?;
+        .build();
     let mut cli = Cli::builder()
         .with_provider(ServerCliProvider::<ServiceHandler>::new(
             &standard::run_argument(),

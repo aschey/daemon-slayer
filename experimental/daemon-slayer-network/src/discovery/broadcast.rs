@@ -1,6 +1,6 @@
-use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
-use daemon_slayer_core::server::EventStore;
 use daemon_slayer_core::BoxedError;
+use daemon_slayer_core::server::EventStore;
+use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use futures::StreamExt;
 use tracing::info;
 
@@ -78,7 +78,7 @@ async fn run_mdns(
                     mdns_service.handle_route_change(&mdns, &service_fullname).await?;
                 }
             }
-            _ = context.cancelled() => {
+            _ = context.cancellation_token().cancelled() => {
                 break;
             }
         }

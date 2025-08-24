@@ -1,13 +1,14 @@
 use std::io;
 
-use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
+use daemon_slayer_core::BoxedError;
 use daemon_slayer_core::server::BroadcastEventStore;
-use daemon_slayer_core::{BoxedError, FutureExt};
+use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use futures::{Stream, StreamExt};
 use serde::Deserialize;
 use tokio::net::UdpSocket;
 use tokio::sync::broadcast;
 use tokio_util::codec::BytesCodec;
+use tokio_util::future::FutureExt;
 use tokio_util::udp::UdpFramed;
 
 use super::DEFAULT_BROADCAST_PORT;
@@ -71,7 +72,11 @@ impl BackgroundService for UdpQueryService {
         let mut framed = self.get_framed().await;
 
         let mut last_result = ServiceInfo::default();
-        while let Ok(Some(Ok(service_info))) = framed.next().cancel_with(context.cancelled()).await
+        while let Some(Ok(service_info)) = framed
+            .next()
+            .with_cancellation_token(context.cancellation_token())
+            .await
+            .flatten()
         {
             if service_info != last_result {
                 self.event_tx.send(service_info.clone()).unwrap();

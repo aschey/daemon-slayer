@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
+use daemon_slayer_core::BoxedError;
 use daemon_slayer_core::server::background_service::{BackgroundService, ServiceContext};
 use daemon_slayer_core::server::tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use daemon_slayer_core::server::{BroadcastEventStore, DedupeEventStore, EventStore};
-use daemon_slayer_core::{BoxedError, FutureExt};
 use futures::StreamExt;
 use mdns_sd::{ServiceDaemon, ServiceEvent};
 use tokio::sync::broadcast;
+use tokio_util::future::FutureExt;
 use tracing::info;
 
 use super::DiscoveryProtocol;
@@ -57,7 +58,7 @@ impl DiscoveryQueryService {
 
     pub fn get_event_store(
         &self,
-    ) -> impl EventStore<Item = Result<ServiceInfo, BroadcastStreamRecvError>> {
+    ) -> impl EventStore<Item = Result<ServiceInfo, BroadcastStreamRecvError>> + use<> {
         DedupeEventStore::new(BroadcastEventStore::new(self.event_tx.clone()))
     }
 }
@@ -70,7 +71,11 @@ async fn run_mdns(
     let mdns = ServiceDaemon::new()?;
     let receiver = mdns.browse(&mdns_name.to_string()).unwrap();
 
-    while let Ok(Ok(event)) = receiver.recv_async().cancel_with(context.cancelled()).await {
+    while let Some(Ok(event)) = receiver
+        .recv_async()
+        .with_cancellation_token(context.cancellation_token())
+        .await
+    {
         info!("mdns receiver event: {event:?}");
         if let ServiceEvent::ServiceResolved(info) = event {
             let mdns_broadcast_name: MdnsBroadcastName = info.get_fullname().parse().unwrap();
@@ -116,7 +121,12 @@ async fn run_udp(
     let mut framed = udp_query_service.get_framed().await;
 
     let mut last_result = ServiceInfo::default();
-    while let Ok(Some(Ok(service_info))) = framed.next().cancel_with(context.cancelled()).await {
+    while let Some(Ok(service_info)) = framed
+        .next()
+        .with_cancellation_token(context.cancellation_token())
+        .await
+        .flatten()
+    {
         let subdomain_matches = match (
             service_info.service_name.subdomain(),
             search_service_name.subdomain(),
