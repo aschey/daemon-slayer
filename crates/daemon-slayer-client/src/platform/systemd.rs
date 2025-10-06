@@ -131,7 +131,7 @@ impl SystemdServiceManager {
     async fn get_unit_client(
         &self,
         svc_unit_path: OwnedObjectPath,
-    ) -> io::Result<SystemdUnitProxy> {
+    ) -> io::Result<SystemdUnitProxy<'_>> {
         if self.config.is_user() {
             unit::build_nonblocking_user_proxy(svc_unit_path.clone()).await
         } else {
@@ -148,7 +148,7 @@ impl SystemdServiceManager {
     async fn get_service_client(
         &self,
         svc_unit_path: OwnedObjectPath,
-    ) -> io::Result<SystemdServiceProxy> {
+    ) -> io::Result<SystemdServiceProxy<'_>> {
         if self.config.is_user() {
             service::build_nonblocking_user_proxy(svc_unit_path).await
         } else {

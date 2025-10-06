@@ -442,7 +442,7 @@ fn get_main_block() -> Block<'static> {
         .title_alignment(Alignment::Center)
 }
 
-fn get_button(text: &str, color: Color, selected: bool, disabled: bool) -> Span {
+fn get_button(text: &str, color: Color, selected: bool, disabled: bool) -> Span<'_> {
     let mut style = Style::default().bg(color).fg(Color::Rgb(240, 240, 240));
 
     if disabled {
@@ -481,7 +481,7 @@ fn get_main_sections(parent: Rect, num_labels: u16) -> (Rect, Rect, Rect) {
     (left_right[0], left_right[1], top_bottom[1])
 }
 
-fn get_label(label: &str) -> Paragraph {
+fn get_label(label: &str) -> Paragraph<'_> {
     Paragraph::new(label)
         .alignment(Alignment::Right)
         .style(Style::default().add_modifier(Modifier::BOLD))

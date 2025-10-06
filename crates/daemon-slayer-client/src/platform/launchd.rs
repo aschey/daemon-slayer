@@ -311,6 +311,7 @@ impl Manager for LaunchdServiceManager {
         Ok(())
     }
 
+    // TODO: sometimes this fails after a rebuild until you run bootout/bootstrap again
     async fn start(&self) -> io::Result<()> {
         if self.config.has_sockets() {
             if self.status().await?.state == State::Stopped {
