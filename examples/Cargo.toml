@@ -5,7 +5,7 @@ members = ["*"]
 resolver = "3"
 
 [workspace.dependencies]
-confique = "0.3.1"
+confique = "0.4.0"
 daemon-slayer = { path = "../crates/daemon-slayer" }
 derive_more = { version = "2.0.1", default-features = false }
 serde = "1.0.219"
