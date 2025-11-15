@@ -183,10 +183,9 @@ fn run_process_as_current_user_blocking(cmd: &str, visible: bool) -> io::Result<
                     &mut bytes_read,
                     ptr::null_mut(),
                 )
-            }) {
-                if e.kind() != io::ErrorKind::BrokenPipe {
-                    return Err(e);
-                }
+            }) && e.kind() != io::ErrorKind::BrokenPipe
+            {
+                return Err(e);
             }
 
             if bytes_read > 0 {

@@ -152,16 +152,15 @@ fn set_env_vars<T: Handler>() {
 
     // User services don't copy over the environment variables from the template so we need to
     // inject them manually
-    if is_user_service {
-        if let Ok(registry::Data::MultiString(environment_vars)) = services_key.value("Environment")
-        {
-            for env_var in environment_vars {
-                let var_str = env_var.to_string_lossy();
-                let parts = var_str.split('=').collect::<Vec<_>>();
-                // SAFETY: This is safe on Windows
-                unsafe {
-                    std::env::set_var(parts[0], parts[1]);
-                }
+    if is_user_service
+        && let Ok(registry::Data::MultiString(environment_vars)) = services_key.value("Environment")
+    {
+        for env_var in environment_vars {
+            let var_str = env_var.to_string_lossy();
+            let parts = var_str.split('=').collect::<Vec<_>>();
+            // SAFETY: This is safe on Windows
+            unsafe {
+                std::env::set_var(parts[0], parts[1]);
             }
         }
     }

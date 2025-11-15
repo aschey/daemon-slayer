@@ -11,7 +11,7 @@ use super::ConfigService;
 use crate::{AppConfig, ConfigDir};
 
 #[tokio::test]
-async fn test_serivce() {
+async fn test_service() {
     let cancellation_token = CancellationToken::new();
     let service_manager = Manager::new(
         cancellation_token.clone(),

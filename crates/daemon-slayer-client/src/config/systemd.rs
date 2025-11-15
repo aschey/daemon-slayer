@@ -1,13 +1,8 @@
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum SocketActivationBehavior {
     EnableAll,
+    #[default]
     EnableSocket,
-}
-
-impl Default for SocketActivationBehavior {
-    fn default() -> Self {
-        Self::EnableSocket
-    }
 }
 
 #[derive(Default, Clone, Debug)]

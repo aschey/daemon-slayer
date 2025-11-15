@@ -14,15 +14,25 @@ use integration_tests::TestConfig;
 async fn run() {
     if std::env::var("RUN_AS_SYSTEM") == Ok("true".to_owned()) {
         run_tests(false).await;
-    } else if !cfg!(windows) {
-        run_tests(true).await;
+    } else {
+        run_tests(!cfg!(windows)).await;
     }
 }
 
 async fn run_tests(is_user_service: bool) {
     let bin_name = "test_app";
     let metadata = cargo_metadata::MetadataCommand::new().exec().unwrap();
-    let llvm_cov_target = metadata.target_directory.join("llvm-cov-target");
+    let target_base = if cfg!(coverage) {
+        "llvm-cov-target/"
+    } else {
+        ""
+    };
+    let target_dir = if cfg!(debug_assertions) {
+        format!("{target_base}debug")
+    } else {
+        format!("{target_base}release")
+    };
+    let base_dir = metadata.target_directory.join(target_dir);
     let app_config =
         AppConfig::<TestConfig>::builder(ConfigDir::ProjectDir(integration_tests::label()))
             .build()
@@ -33,20 +43,7 @@ async fn run_tests(is_user_service: bool) {
 
     let mut manager = client::config::Builder::new(
         integration_tests::label(),
-        if cfg!(coverage) {
-            llvm_cov_target
-                .join(if cfg!(debug_assertions) {
-                    "debug"
-                } else {
-                    "release"
-                })
-                .join(bin_name)
-                .to_string()
-                .try_into()
-                .unwrap()
-        } else {
-            assert_cmd::cargo::cargo_bin(bin_name).try_into().unwrap()
-        },
+        base_dir.join(bin_name).to_string().try_into().unwrap(),
     )
     .with_arg(&integration_tests::service_arg())
     .with_service_level(if is_user_service {
@@ -57,9 +54,7 @@ async fn run_tests(is_user_service: bool) {
     .with_user_config(app_config.clone())
     .with_environment_variable(
         "LLVM_PROFILE_FILE",
-        llvm_cov_target
-            .join("daemon-slayer-%p-%m.profraw")
-            .to_string(),
+        base_dir.join("daemon-slayer-%p-%m.profraw").to_string(),
     )
     .build()
     .await

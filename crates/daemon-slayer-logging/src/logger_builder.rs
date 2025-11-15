@@ -29,7 +29,9 @@ pub struct GlobalLoggerGuard;
 impl Drop for GlobalLoggerGuard {
     fn drop(&mut self) {
         debug!("Dropping global logger guard");
-        LOGGER_GUARD.get().unwrap().lock().unwrap().take();
+        if let Some(guard) = LOGGER_GUARD.get() {
+            guard.lock().unwrap().take();
+        }
     }
 }
 

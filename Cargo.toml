@@ -47,7 +47,7 @@ registry = "1"
 utfx = "0.1"
 windows-args = "0.2"
 colored = { version = "3" }
-windows-service = { git = "https://github.com/aschey/windows-service-rs", rev = "32919aebe4c59f7855a8ebd72fe7d716db6a8f28" }
+windows-service = { git = "https://github.com/aschey/windows-service-rs", rev = "24f91e5c33f014be055c9f599ac48590745ae1df" }
 systemd_client = { git = "https://github.com/aschey/systemd-client", rev = "5306cc133e68e54e0b11aaa5478706ba41f4037e" }
 directories = "6"
 launchd = { git = "https://github.com/aschey/launchd", rev = "087fa6edcce3973e6fd0f4f5929c869da4572afc" }
@@ -103,11 +103,10 @@ raunch = { version = "1" }
 image = "0.25"
 tao = "0.34"
 tray-icon = "0.21.1"
-tempfile = "3"
+tempfile = "3.20"
 zbus = "5"
 shlex = "1"
 widestring = "1"
 windows-sys = "0.61"
 axum = "0.8"
 cargo_metadata = "0.23"
-assert_cmd = "2"

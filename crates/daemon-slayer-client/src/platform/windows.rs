@@ -66,7 +66,7 @@ impl WindowsServiceManager {
         };
 
         let service_status = service.query_status().map_err(|e| {
-            io_error(format!(
+            io::Error::other(format!(
                 "Error getting status for service {service_name}: {e:?}"
             ))
         })?;
@@ -89,7 +89,7 @@ impl WindowsServiceManager {
 
         let autostart = autostart_service
             .query_config()
-            .map_err(|e| io_error(format!("Error querying service config: {e:?}")))?
+            .map_err(|e| io::Error::other(format!("Error querying service config: {e:?}")))?
             .start_type
             == ServiceStartType::AutoStart;
         Ok(Status {
@@ -119,7 +119,7 @@ impl WindowsServiceManager {
         let manager = self.get_manager(mode)?;
         let user_service = manager
             .get_all_services(ListServiceType::WIN32, ServiceActiveState::ALL)
-            .map_err(|e| io_error(format!("Error getting list of services: {e:?}")))?
+            .map_err(|e| io::Error::other(format!("Error getting list of services: {e:?}")))?
             .into_iter()
             .find(|service| {
                 service.status.service_type.contains(service_type) && re.is_match(&service.name)
@@ -167,7 +167,7 @@ impl WindowsServiceManager {
                     }
                 },
             )
-            .map_err(|e| io_error(format!("Error opening service {service}: {e:?}")))?;
+            .map_err(|e| io::Error::other(format!("Error opening service {service}: {e:?}")))?;
         Ok(service)
     }
 
@@ -195,18 +195,19 @@ impl WindowsServiceManager {
     ) -> io::Result<()> {
         // For user-level services, the service won't show up in the service list so we have to
         // attempt to open it to see if it exists
-        if self.config.service_level == Level::User && service_type == ServiceType::OWN_PROCESS {
-            if let Ok(service) = self.open_service(service_name, ServiceAccessMode::Write) {
-                service.delete().map_err(|e| {
-                    io_error(format!("Error deleting user service {service_name}: {e:?}"))
-                })?;
-                return Ok(());
-            }
+        if self.config.service_level == Level::User
+            && service_type == ServiceType::OWN_PROCESS
+            && let Ok(service) = self.open_service(service_name, ServiceAccessMode::Write)
+        {
+            service.delete().map_err(|e| {
+                io::Error::other(format!("Error deleting user service {service_name}: {e:?}"))
+            })?;
+            return Ok(());
         }
         if self.query_info(service_name, service_type).await?.state != State::NotInstalled {
             let service = self.open_service(service_name, ServiceAccessMode::Write)?;
             service.delete().map_err(|e| {
-                io_error(format!(
+                io::Error::other(format!(
                     "Error deleting system service {service_name}: {e:?}"
                 ))
             })?;
@@ -222,7 +223,9 @@ impl WindowsServiceManager {
                 _ => ServiceManagerAccess::CONNECT | ServiceManagerAccess::ENUMERATE_SERVICE,
             },
         )
-        .map_err(|e| io_error(format!("Error connecting to local service manager: {e:?}")))?;
+        .map_err(|e| {
+            io::Error::other(format!("Error connecting to local service manager: {e:?}"))
+        })?;
         Ok(service_manager)
     }
 
@@ -266,7 +269,7 @@ impl WindowsServiceManager {
         let service = self.open_base_service(ServiceAccessMode::ChangeConfig)?;
         let mut config = service
             .query_config()
-            .map_err(|e| io_error(format!("Error querying service config: {e:?}")))?;
+            .map_err(|e| io::Error::other(format!("Error querying service config: {e:?}")))?;
         config.start_type = if enabled {
             ServiceStartType::AutoStart
         } else {
@@ -306,7 +309,7 @@ impl WindowsServiceManager {
         };
         service
             .change_config(&info)
-            .map_err(|e| io_error(format!("Error changing service config: {e:?}")))?;
+            .map_err(|e| io::Error::other(format!("Error changing service config: {e:?}")))?;
         Ok(())
     }
 
@@ -402,7 +405,7 @@ impl Manager for WindowsServiceManager {
                     ServiceAccess::CHANGE_CONFIG | ServiceAccess::START,
                 )
                 .map_err(|e| {
-                    io_error(format!(
+                    io::Error::other(format!(
                         "Error creating service {:?}: {e:?}",
                         service_info.name
                     ))
@@ -411,7 +414,7 @@ impl Manager for WindowsServiceManager {
             service
                 .set_description(&self.config.description)
                 .map_err(|e| {
-                    io_error(format!(
+                    io::Error::other(format!(
                         "Error setting service description to \"{}\": {e:?}",
                         self.config.description
                     ))
@@ -450,7 +453,7 @@ impl Manager for WindowsServiceManager {
                 service
                     .grant_user_access(trustee, service_access)
                     .map_err(|e| {
-                        io_error(format!(
+                        io::Error::other(format!(
                             "Error granting user access: {service_access:?}: {e:?}"
                         ))
                     })?;
@@ -467,14 +470,14 @@ impl Manager for WindowsServiceManager {
             self.stop().await?;
             self.wait_for_state(State::Stopped).await?;
         }
-        if self.config.is_user() {
-            if let Some(current_service_name) = self.current_service_name()? {
-                self.delete_service(&current_service_name, ServiceType::USER_OWN_PROCESS)
-                    .await?;
-            };
-            // Still attempt to delete the service template if the user service wasn't found
-            // Could be that the user service wasn't created yet
-        }
+        if self.config.is_user()
+            && let Some(current_service_name) = self.current_service_name()?
+        {
+            self.delete_service(&current_service_name, ServiceType::USER_OWN_PROCESS)
+                .await?;
+        };
+        // Still attempt to delete the service template if the user service wasn't found
+        // Could be that the user service wasn't created yet
         let name = self.name();
         self.delete_service(&name, ServiceType::OWN_PROCESS).await?;
 
@@ -489,7 +492,7 @@ impl Manager for WindowsServiceManager {
         let service = self.open_current_service(ServiceAccessMode::Execute)?;
         service
             .start::<String>(&[])
-            .map_err(|e| io_error(format!("Error starting service: {e:?}")))?;
+            .map_err(|e| io::Error::other(format!("Error starting service: {e:?}")))?;
         Ok(())
     }
 
@@ -500,7 +503,7 @@ impl Manager for WindowsServiceManager {
         let service = self.open_current_service(ServiceAccessMode::Execute)?;
         service
             .stop()
-            .map_err(|e| io_error(format!("Error stopping service: {e:?}")))?;
+            .map_err(|e| io::Error::other(format!("Error stopping service: {e:?}")))?;
         Ok(())
     }
 
@@ -554,7 +557,7 @@ impl Manager for WindowsServiceManager {
         };
 
         let service_status = service.query_status().map_err(|e| {
-            io_error(format!(
+            io::Error::other(format!(
                 "Error getting status for service {service_name}: {e:?}"
             ))
         })?;
@@ -568,10 +571,6 @@ impl Manager for WindowsServiceManager {
     fn description(&self) -> &str {
         &self.config.description
     }
-}
-
-fn io_error(message: String) -> io::Error {
-    io::Error::new(io::ErrorKind::Other, message)
 }
 
 fn from_registry_key_error(path: &str, err: registry::key::Error) -> io::Error {
@@ -591,7 +590,7 @@ fn from_registry_key_error(path: &str, err: registry::key::Error) -> io::Error {
             io::ErrorKind::InvalidData,
             format!("Registry key contains an invalid null character: {err:?}"),
         ),
-        err => io_error(format!(
+        err => io::Error::other(format!(
             "Unknown error opening registry path {path}: {err:?}"
         )),
     }
@@ -635,9 +634,8 @@ fn from_registry_value_error(value: &str, path: &str, err: registry::value::Erro
             err.kind(),
             format!("Unknown error for registry value {value} in path {path}: {err:?}"),
         ),
-        err => io::Error::new(
-            io::ErrorKind::Other,
-            format!("Unknown error for registry value {value} in path {path}: {err:?}"),
-        ),
+        err => io::Error::other(format!(
+            "Unknown error for registry value {value} in path {path}: {err:?}"
+        )),
     }
 }
