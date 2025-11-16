@@ -29,7 +29,6 @@ jobs:
             test: sudo -E env PATH="$PATH" cargo make test-admin
             rustflags: ""
           - os: ubuntu-latest
-            rustflags: ""
             test: cargo make test
             rustflags: ""
           - os: windows-latest
