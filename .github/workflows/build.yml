@@ -9,24 +9,36 @@ jobs:
         include:
           - os: macos-15
             test: sudo cargo make test-admin
+            rustflags: ""
           - os: macos-15
             test: cargo make test
+            rustflags: ""
           - os: macos-14
             test: sudo cargo make test-admin
+            rustflags: ""
           - os: macos-14
             test: cargo make test
+            rustflags: ""
           - os: macos-13
             test: sudo cargo make test-admin
+            rustflags: ""
           - os: macos-13
             test: cargo make test
+            rustflags: ""
           - os: ubuntu-latest
             test: sudo -E env PATH="$PATH" cargo make test-admin
+            rustflags: ""
           - os: ubuntu-latest
+            rustflags: ""
             test: cargo make test
+            rustflags: ""
           - os: windows-latest
             test: cargo make test-admin
+            rustflags: -Csymbol-mangling-version=v0
       fail-fast: false
     name: Run ${{ matrix.test }} on ${{ matrix.os }}
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
