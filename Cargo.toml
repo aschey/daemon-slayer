@@ -50,7 +50,7 @@ colored = { version = "3" }
 windows-service = { git = "https://github.com/aschey/windows-service-rs", rev = "24f91e5c33f014be055c9f599ac48590745ae1df" }
 systemd_client = { git = "https://github.com/aschey/systemd-client", rev = "5306cc133e68e54e0b11aaa5478706ba41f4037e" }
 directories = "6"
-launchd = { git = "https://github.com/aschey/launchd", rev = "087fa6edcce3973e6fd0f4f5929c869da4572afc" }
+launchd = { git = "https://github.com/aschey/launchd", rev = "1c1338dd82346c279f6236252e3f28ae10effc1f" }
 bat = { version = "0.26", default-features = false }
 edit = "0.1"
 futures = "0.3"
@@ -83,7 +83,7 @@ tracing-subscriber = { version = "0.3", features = [
 ] }
 tracing-journald = "0.3"
 tracing-oslog = "0.3"
-tracing-eventlog = { git = "https://github.com/aschey/tracing-eventlog", rev = "a7942ec723de2590ee843f1fda1c8042ab25fa18" }
+tracing-eventlog = { git = "https://github.com/aschey/tracing-eventlog", rev = "b37960f9a7fb331d776afc7c6de8a3ac47f9d927" }
 proc-macro-crate = "3"
 proc-macro2 = "1"
 quote = "1"
