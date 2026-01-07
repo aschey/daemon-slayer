@@ -51,19 +51,19 @@ windows-service = { git = "https://github.com/aschey/windows-service-rs", rev = 
 systemd_client = { git = "https://github.com/aschey/systemd-client", rev = "5306cc133e68e54e0b11aaa5478706ba41f4037e" }
 directories = "6"
 launchd = { git = "https://github.com/aschey/launchd", rev = "087fa6edcce3973e6fd0f4f5929c869da4572afc" }
-bat = { version = "0.25", default-features = false }
+bat = { version = "0.26", default-features = false }
 edit = "0.1"
 futures = "0.3"
 tap = "1"
-crossterm = { version = "0.28.1" }
-tilia-widget = { git = "https://github.com/aschey/tilia", rev = "c6c42f73121bcbbb73d3289e1dc9a663d18c9aaa" }
-tilia = { git = "https://github.com/aschey/tilia", rev = "c6c42f73121bcbbb73d3289e1dc9a663d18c9aaa" }
-ratatui = { version = "0.29" }
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "6d9a1ddb2b57ac4fe305eff84545168d70171a5d" }
+crossterm = { version = "0.29.0" }
+tilia-widget = { git = "https://github.com/aschey/tilia", rev = "83c6ac96db5fdf1a35d604af0e4e190b520eedbe" }
+tilia = { git = "https://github.com/aschey/tilia", rev = "83c6ac96db5fdf1a35d604af0e4e190b520eedbe" }
+ratatui = { version = "0.30" }
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "e932670ce7998022d8cf56a593f2e39c3c0362b5" }
 downcast-rs = { version = "2" }
 pin-project-lite = "0.2"
 tokio-stream = { version = "0.1" }
-tokio-util = { version = "0.7.16" }
+tokio-util = { version = "0.7.18" }
 unicode-width = { version = "0.2" }
 strip-ansi-escapes = { version = "0.2" }
 tipsy = { version = "0.6" }
@@ -71,7 +71,7 @@ async-stream = { version = "0.3" }
 color-eyre = "0.6"
 notify = { version = "8", default-features = false }
 notify-debouncer-mini = { version = "0.7", default-features = false }
-reqwest = { version = "0.12" }
+reqwest = { version = "0.13" }
 tonic = { version = "0.14" }
 tonic-health = { version = "0.14" }
 time = "0.3"
@@ -95,15 +95,15 @@ chrono = { version = "0.4" }
 num_cpus = "1"
 readonly = "0.2"
 sysinfo = "0.37"
-signal-hook = { version = "0.3" }
-signal-hook-tokio = { version = "0.3" }
+signal-hook = { version = "0.4" }
+signal-hook-tokio = { version = "0.4" }
 sd-notify = "0.4"
 sd-listen-fds = { version = "0.2" }
 raunch = { version = "1" }
 image = "0.25"
 tao = "0.34"
-tray-icon = "0.21.1"
-tempfile = "3.20"
+tray-icon = "0.21.3"
+tempfile = "3.24"
 zbus = "5"
 shlex = "1"
 widestring = "1"

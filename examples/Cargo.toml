@@ -7,17 +7,17 @@ resolver = "3"
 [workspace.dependencies]
 confique = "0.4.0"
 daemon-slayer = { path = "../crates/daemon-slayer" }
-derive_more = { version = "2.0.1", default-features = false }
-serde = "1.0.219"
+derive_more = { version = "2.1.1", default-features = false }
+serde = "1.0.228"
 tar = "0.4.44"
-tokio = { version = "1.45.0" }
-tokio-util = { version = "0.7.16" }
-tracing = "0.1.41"
-bollard = { version = "0.19.2" }
-flate2 = "1.1.2"
-ignore = "0.4.23"
-clap = { version = "4.5.42" }
+tokio = { version = "1.49.0" }
+tokio-util = { version = "0.7.18" }
+tracing = "0.1.44"
+bollard = { version = "0.19.4" }
+flate2 = "1.1.5"
+ignore = "0.4.25"
+clap = { version = "4.5.54" }
 http-body-util = "0.1.3"
-tower-http = "0.6.6"
+tower-http = "0.6.8"
 vergen-gix = "1.0.9"
-axum = "0.8.4"
+axum = "0.8.8"
