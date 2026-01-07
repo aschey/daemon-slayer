@@ -7,6 +7,12 @@ jobs:
     strategy:
       matrix:
         include:
+          - os: macos-26
+            test: sudo cargo make test-admin
+            rustflags: ""
+          - os: macos-26
+            test: cargo make test
+            rustflags: ""
           - os: macos-15
             test: sudo cargo make test-admin
             rustflags: ""
@@ -17,12 +23,6 @@ jobs:
             test: sudo cargo make test-admin
             rustflags: ""
           - os: macos-14
-            test: cargo make test
-            rustflags: ""
-          - os: macos-13
-            test: sudo cargo make test-admin
-            rustflags: ""
-          - os: macos-13
             test: cargo make test
             rustflags: ""
           - os: ubuntu-latest
