@@ -25,12 +25,12 @@ daemon-slayer-macros = { path = "./crates/daemon-slayer-macros" }
 # daemon-slayer-network = { path = "../daemon-slayer-network" }
 
 console = { version = "0.16" }
-vergen-pretty = { version = "2" }
+vergen-pretty = { version = "9" }
 async-trait = { version = "0.1" }
 clap = { version = "4" }
 tracing = "0.1"
 arc-swap = { version = "1" }
-bollard = { version = "0.19" }
+bollard = { version = "0.20" }
 confique = { version = "0.4" }
 derivative = "2"
 dyn-clonable = "0.9"
@@ -56,8 +56,8 @@ edit = "0.1"
 futures = "0.3"
 tap = "1"
 crossterm = { version = "0.29.0" }
-tilia-widget = { git = "https://github.com/aschey/tilia", rev = "83c6ac96db5fdf1a35d604af0e4e190b520eedbe" }
-tilia = { git = "https://github.com/aschey/tilia", rev = "83c6ac96db5fdf1a35d604af0e4e190b520eedbe" }
+tilia-widget = { git = "https://github.com/aschey/tilia", rev = "7709df293f47611354ab429aab7ee589315aa642" }
+tilia = { git = "https://github.com/aschey/tilia", rev = "7709df293f47611354ab429aab7ee589315aa642" }
 ratatui = { version = "0.30" }
 background-service = { git = "https://github.com/aschey/background-service-rs", rev = "e932670ce7998022d8cf56a593f2e39c3c0362b5" }
 downcast-rs = { version = "2" }
