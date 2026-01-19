@@ -71,12 +71,12 @@ async fn run(offset_time: OffsetTime<Rfc3339>) -> Result<(), BoxedError> {
     let logger_builder = LoggerBuilder::new(ServiceHandler::label(), offset_time).with_env_config(
         EnvConfig::new("DAEMON_SLAYER_LOG".to_string()).with_default(tracing::Level::INFO.into()),
     );
-    let pretty = vergen_pretty::Pretty::builder()
+    let pretty = vergen_pretty::PrettyBuilder::default()
         .env(vergen_pretty::vergen_pretty_env!())
         .category(false)
         .key_style(Style::new().bold().cyan())
         .value_style(Style::new())
-        .build();
+        .build()?;
     let mut cli = Cli::builder()
         .with_provider(ServerCliProvider::<ServiceHandler>::new(
             &socket_activated::run_argument(),

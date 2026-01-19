@@ -24,7 +24,7 @@ serde = { workspace = true }
 tar = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tracing = { workspace = true }
-bollard = { workspace = true, features = ["buildkit"] }
+bollard = { workspace = true, features = ["buildkit", "chrono"] }
 flate2 = { workspace = true }
 ignore = { workspace = true }
 http-body-util = { workspace = true }

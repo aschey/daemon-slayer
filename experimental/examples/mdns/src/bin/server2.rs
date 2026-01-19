@@ -74,12 +74,12 @@ async fn run(offset_time: OffsetTime<Rfc3339>) -> Result<(), BoxedError> {
         AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(mdns::label())).build()?;
 
     let logger_builder = LoggerBuilder::new(ServiceHandler::label(), offset_time);
-    let pretty = vergen_pretty::Pretty::builder()
+    let pretty = vergen_pretty::PrettyBuilder::default()
         .env(vergen_pretty::vergen_pretty_env!())
         .category(false)
         .key_style(Style::new().bold().cyan())
         .value_style(Style::new())
-        .build();
+        .build()?;
     let mut cli = Cli::builder()
         .with_provider(ServerCliProvider::<ServiceHandler>::new(
             &mdns::run_argument(),
