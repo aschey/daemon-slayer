@@ -38,6 +38,7 @@ pub enum ProcessStatus {
     LockBlocked,
     #[strum(serialize = "Uninterruptible Disk Sleep")]
     UninterruptibleDiskSleep,
+    Suspended,
     Unknown(u32),
 }
 
@@ -58,6 +59,7 @@ impl ProcessStatus {
             sysinfo::ProcessStatus::UninterruptibleDiskSleep => {
                 ProcessStatus::UninterruptibleDiskSleep
             }
+            sysinfo::ProcessStatus::Suspended => ProcessStatus::Suspended,
             sysinfo::ProcessStatus::Unknown(status) => ProcessStatus::Unknown(status),
         }
     }

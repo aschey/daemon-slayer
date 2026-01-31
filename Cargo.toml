@@ -94,7 +94,7 @@ bytesize = { version = "2" }
 chrono = { version = "0.4" }
 num_cpus = "1"
 readonly = "0.2"
-sysinfo = "0.37"
+sysinfo = "0.38"
 signal-hook = { version = "0.4" }
 signal-hook-tokio = { version = "0.4" }
 sd-notify = "0.4"
