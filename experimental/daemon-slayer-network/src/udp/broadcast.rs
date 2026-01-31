@@ -85,6 +85,7 @@ impl BackgroundService for UdpBroadcastService {
             ip_addresses: ips,
             broadcast_data: self.broadcast_data,
         };
+
         loop {
             tokio::select! {
                 _ = tokio::time::sleep(self.broadcast_interval) => {
@@ -94,11 +95,11 @@ impl BackgroundService for UdpBroadcastService {
                         .serialize(&mut serializer)
                         .tap_err(|e| error!("error serializing service info {e:?}"))
                         .is_ok()
+                        && let Err(e) = framed.send((Bytes::from(buf), dest)).await
                     {
-                        if let Err(e) = framed.send((Bytes::from(buf), dest)).await {
-                            error!("error sending service info: {e:?}");
-                        }
+                        error!("error sending service info: {e:?}");
                     }
+
                 }
                 _ = context.cancellation_token().cancelled() => {
                     break;

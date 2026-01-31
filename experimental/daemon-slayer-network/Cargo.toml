@@ -7,7 +7,7 @@ edition = "2024"
 daemon-slayer-core = { path = "../../crates/daemon-slayer-core", features = [
   "server",
 ] }
-mdns-sd = "0.14"
+mdns-sd = "0.17"
 regex = "1"
 thiserror = "2"
 validator = { version = "0.20", features = ["derive"] }

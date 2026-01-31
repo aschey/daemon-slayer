@@ -28,6 +28,7 @@ use daemon_slayer::server::{
     BroadcastEventStore, EventStore, Handler, ServiceContext, Signal, SignalHandler,
 };
 use daemon_slayer::signals::SignalListener;
+use daemon_slayer_logging::EnvConfig;
 use daemon_slayer_logging::time::format_description::well_known::Rfc3339;
 use daemon_slayer_logging::tracing_subscriber::fmt::time::OffsetTime;
 use daemon_slayer_network::cli::NetworkCliProvider;
@@ -73,7 +74,9 @@ async fn run(offset_time: OffsetTime<Rfc3339>) -> Result<(), BoxedError> {
     let app_config =
         AppConfig::<MyConfig>::builder(ConfigDir::ProjectDir(mdns::label())).build()?;
 
-    let logger_builder = LoggerBuilder::new(ServiceHandler::label(), offset_time);
+    let logger_builder = LoggerBuilder::new(ServiceHandler::label(), offset_time).with_env_config(
+        EnvConfig::new("DAEMON_SLAYER_LOG".to_string()).with_default(tracing::Level::INFO.into()),
+    );
     let pretty = vergen_pretty::PrettyBuilder::default()
         .env(vergen_pretty::vergen_pretty_env!())
         .category(false)
@@ -169,7 +172,7 @@ impl Handler for ServiceHandler {
                     .flatten()
                 {
                     info!("Discovery event {event:?}");
-                    for addr in event.ip_addresses {
+                    for addr in event.ip_addresses.iter().filter(|i| i.is_ipv4()) {
                         let response = reqwest::Client::new()
                             .get(format!("http://{addr}:{}/health", event.port))
                             .send()
@@ -207,7 +210,7 @@ impl Handler for ServiceHandler {
         let (refresh_tx, mut refresh_rx) = tokio::sync::mpsc::channel(32);
 
         let mut app = Router::new()
-            .route("/hello/:name", get(greeter))
+            .route("/hello/{name}", get(greeter))
             .route("/health", get(health))
             .layer(TraceLayer::new_for_http());
         if is_activated {

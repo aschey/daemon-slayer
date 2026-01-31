@@ -59,7 +59,7 @@ pub enum MdnsReceiverEvent {
         service_type: String,
         full_name: String,
     },
-    ServiceData(Box<ResolvedService>),
+    ServiceResolved(Box<ResolvedService>),
     ServiceRemoved {
         service_type: String,
         full_name: String,
@@ -99,8 +99,8 @@ impl MdnsQueryService {
                     full_name,
                 })
             }
-            ServiceEvent::ServiceData(data) => {
-                self.event_tx.send(MdnsReceiverEvent::ServiceData(data))
+            ServiceEvent::ServiceResolved(data) => {
+                self.event_tx.send(MdnsReceiverEvent::ServiceResolved(data))
             }
             ServiceEvent::ServiceRemoved(service_type, full_name) => {
                 self.event_tx.send(MdnsReceiverEvent::ServiceRemoved {
@@ -124,7 +124,6 @@ impl BackgroundService for MdnsQueryService {
 
     async fn run(self, context: ServiceContext) -> Result<(), BoxedError> {
         let mdns = ServiceDaemon::new()?;
-        mdns.use_service_data(true).unwrap();
 
         if let Some(interface) = get_default_interface().await? {
             mdns.disable_interface(IfKind::All).unwrap();

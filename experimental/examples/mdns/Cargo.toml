@@ -4,8 +4,8 @@ name = "mdns"
 version = "0.1.0"
 
 [dependencies]
-axum = "0.7.5"
-confique = "0.3.0"
+axum = "0.8.8"
+confique = "0.4.0"
 daemon-slayer = { path = "../../../crates/daemon-slayer", features = [
   "client-standard",
   "server-standard",
@@ -18,13 +18,10 @@ daemon-slayer-network = { path = "../../daemon-slayer-network", features = [
 ] }
 daemon-slayer-logging = { path = "../../../crates/daemon-slayer-logging", features = [
   "system",
-  "ipc",
 ] }
-derive_more = { version = "1.0.0", default-features = false, features = [
-  "as_ref",
-] }
+derive_more = { version = "2", default-features = false, features = ["as_ref"] }
 futures = "0.3.30"
-reqwest = "0.12.5"
+reqwest = "0.13.1"
 serde = "1.0.204"
 tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
 tower-http = { version = "0.6.1", features = ["trace"] }
@@ -40,7 +37,7 @@ name = "mdns-server2"
 path = "src/bin/server2.rs"
 
 [build-dependencies]
-vergen-gix = { version = "1.0", features = ["build", "cargo", "rustc", "si"] }
+vergen-gix = { version = "9", features = ["build", "cargo", "rustc", "si"] }
 daemon-slayer = { path = "../../../crates/daemon-slayer", features = [
   "build-info",
 ] }

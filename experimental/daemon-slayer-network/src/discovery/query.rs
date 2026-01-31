@@ -92,7 +92,11 @@ async fn run_mdns(
                     service_name: broadcast_service_name,
                     service_protocol: mdns_broadcast_name.service_protocol(),
                     port: info.get_port(),
-                    ip_addresses: info.get_addresses().to_owned(),
+                    ip_addresses: info
+                        .get_addresses()
+                        .iter()
+                        .map(|i| i.to_ip_addr())
+                        .collect(),
                     broadcast_data: HashMap::from_iter(
                         info.get_properties()
                             .iter()

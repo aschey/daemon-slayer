@@ -105,7 +105,7 @@ impl CommandProvider for NetworkCliProvider {
 
                 let mut service_resolved = false;
                 while let Some(Ok(query_event)) = mdns_query_events.next().await {
-                    if let MdnsReceiverEvent::ServiceData(_) = query_event {
+                    if let MdnsReceiverEvent::ServiceResolved(_) = query_event {
                         service_resolved = true;
                         service_manager.stop();
                     }
