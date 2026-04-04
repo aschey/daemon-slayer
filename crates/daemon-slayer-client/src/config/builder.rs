@@ -73,7 +73,7 @@ pub enum ServiceType {
 }
 
 #[cfg(feature = "docker")]
-pub type ContainerConfigFn = dyn Fn(&mut bollard::secret::ContainerCreateBody) + Send + Sync;
+pub type ContainerConfigFn = dyn Fn(&mut bollard::models::ContainerCreateBody) + Send + Sync;
 
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
@@ -223,7 +223,7 @@ impl Builder {
     #[cfg(feature = "docker")]
     pub fn with_configure_container(
         mut self,
-        configure_container: impl Fn(&mut bollard::secret::ContainerCreateBody) + Send + Sync + 'static,
+        configure_container: impl Fn(&mut bollard::models::ContainerCreateBody) + Send + Sync + 'static,
     ) -> Self {
         self.configure_container = Some(std::sync::Arc::new(configure_container));
         self

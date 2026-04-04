@@ -39,7 +39,7 @@ eyre = "0.6"
 owo-colors = { version = "4" }
 serde = { version = "1" }
 spinoff = { version = "0.8" }
-strum = { version = "0.27" }
+strum = { version = "0.28" }
 thiserror = "2"
 tokio = { version = "1" }
 regex = "1"
@@ -56,8 +56,8 @@ edit = "0.1"
 futures = "0.3"
 tap = "1"
 crossterm = { version = "0.29.0" }
-tilia-widget = { git = "https://github.com/aschey/tilia", rev = "7709df293f47611354ab429aab7ee589315aa642" }
-tilia = { git = "https://github.com/aschey/tilia", rev = "7709df293f47611354ab429aab7ee589315aa642" }
+tilia-widget = { git = "https://github.com/aschey/tilia", rev = "9cc627db58fddaa1bcbf6e970025cc1779c1854f" }
+tilia = { git = "https://github.com/aschey/tilia", rev = "9cc627db58fddaa1bcbf6e970025cc1779c1854f" }
 ratatui = { version = "0.30" }
 background-service = { git = "https://github.com/aschey/background-service-rs", rev = "e932670ce7998022d8cf56a593f2e39c3c0362b5" }
 downcast-rs = { version = "2" }
@@ -66,7 +66,7 @@ tokio-stream = { version = "0.1" }
 tokio-util = { version = "0.7.18" }
 unicode-width = { version = "0.2" }
 strip-ansi-escapes = { version = "0.2" }
-tipsy = { version = "0.6" }
+tipsy = { version = "0.7" }
 async-stream = { version = "0.3" }
 color-eyre = "0.6"
 notify = { version = "8", default-features = false }
@@ -97,13 +97,13 @@ readonly = "0.2"
 sysinfo = "0.38"
 signal-hook = { version = "0.4" }
 signal-hook-tokio = { version = "0.4" }
-sd-notify = "0.4"
+sd-notify = "0.5"
 sd-listen-fds = { version = "0.2" }
 raunch = { version = "1" }
 image = "0.25"
-tao = "0.34"
-tray-icon = "0.21.3"
-tempfile = "3.24"
+tao = "0.35"
+tray-icon = "0.22.0"
+tempfile = "3.27"
 zbus = "5"
 shlex = "1"
 widestring = "1"

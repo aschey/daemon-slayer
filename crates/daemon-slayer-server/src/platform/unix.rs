@@ -20,14 +20,14 @@ pub async fn run_as_service<T: Handler>(
     let result = handler
         .run_service(|| {
             #[cfg(target_os = "linux")]
-            sd_notify::notify(false, &[sd_notify::NotifyState::Ready])
+            sd_notify::notify(&[sd_notify::NotifyState::Ready])
                 .tap_err(|e| error!("Error sending ready notification: {e:?}"))
                 .ok();
         })
         .await;
 
     #[cfg(target_os = "linux")]
-    sd_notify::notify(false, &[sd_notify::NotifyState::Stopping])
+    sd_notify::notify(&[sd_notify::NotifyState::Stopping])
         .tap_err(|e| warn!("Error sending stopping notification: {e:?}"))
         .ok();
 

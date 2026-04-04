@@ -3,11 +3,11 @@ use std::io;
 
 use async_trait::async_trait;
 use bollard::Docker;
+use bollard::models::{ContainerCreateBody, ContainerUpdateBody};
 use bollard::query_parameters::{
     CreateContainerOptions, InspectContainerOptions, ListContainersOptions, RemoveContainerOptions,
     RestartContainerOptions, StartContainerOptions, StopContainerOptions,
 };
-use bollard::secret::{ContainerCreateBody, ContainerUpdateBody};
 use bollard::service::{ContainerState, HostConfig, RestartPolicy, RestartPolicyNameEnum};
 use daemon_slayer_core::Label;
 
