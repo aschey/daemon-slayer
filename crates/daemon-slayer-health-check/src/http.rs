@@ -42,7 +42,7 @@ impl HealthCheck for HttpHealthCheck {
 
         let status = response.status();
         if !status.is_success() {
-            return Err(format!("Received status {status}"))?;
+            Err(format!("Received status {status}"))?
         }
 
         Ok(())

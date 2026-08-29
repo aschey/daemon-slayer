@@ -139,7 +139,7 @@ impl AsyncNotification for Notification {
         {
             let cmd = format!(
                 "{} notify {}",
-                &current_exe().unwrap().to_string_lossy(),
+                current_exe().unwrap().to_string_lossy(),
                 self.to_args()
             );
 

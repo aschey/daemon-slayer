@@ -46,7 +46,7 @@ pub async fn get_activation_sockets(
     }
 
     if activated {
-        let sockets = future::try_join_all(fds.into_iter().zip(socket_config.into_iter()).map(
+        let sockets = future::try_join_all(fds.into_iter().zip(socket_config).map(
             |(fd, config)| async {
                 Ok((
                     config.name().to_owned(),

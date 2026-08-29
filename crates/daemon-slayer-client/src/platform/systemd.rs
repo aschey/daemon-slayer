@@ -310,7 +310,7 @@ impl Manager for SystemdServiceManager {
         .map_err(|e| {
             io_error(format!(
                 "Error removing systemd config file {:?}: {e:?}",
-                &self.service_file_name
+                self.service_file_name
             ))
         })?;
         Ok(())

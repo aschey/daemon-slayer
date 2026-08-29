@@ -95,7 +95,7 @@ impl AsyncNotification for MessageDialog<Alert> {
         if is_admin || cfg!(target_os = "macos") {
             let cmd = format!(
                 "{} alert {}",
-                &current_exe().unwrap().to_string_lossy(),
+                current_exe().unwrap().to_string_lossy(),
                 self.to_args()
             );
 
@@ -141,7 +141,7 @@ impl AsyncNotification for MessageDialog<Confirm> {
         if is_admin || cfg!(target_os = "macos") {
             let cmd = format!(
                 "{} confirm {}",
-                &current_exe().unwrap().to_string_lossy(),
+                current_exe().unwrap().to_string_lossy(),
                 self.to_args()
             );
 
