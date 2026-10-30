@@ -3,8 +3,7 @@ use std::{env, io};
 
 use tokio::process::Command;
 use tracing::{info, warn};
-use zbus::zvariant::OwnedObjectPath;
-use zbus::{Connection, proxy};
+use zbus::{Connection, OwnedObjectPath, proxy};
 
 use crate::Label;
 

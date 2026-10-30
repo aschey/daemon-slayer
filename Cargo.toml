@@ -63,7 +63,7 @@ background-service = { git = "https://github.com/aschey/background-service-rs", 
 downcast-rs = { version = "2" }
 pin-project-lite = "0.2"
 tokio-stream = { version = "0.1" }
-tokio-util = { version = "0.7.18" }
+tokio-util = { version = "0.7.20" }
 unicode-width = { version = "0.2" }
 strip-ansi-escapes = { version = "0.2" }
 tipsy = { version = "0.7" }
@@ -94,7 +94,7 @@ bytesize = { version = "2" }
 chrono = { version = "0.4" }
 num_cpus = "1"
 readonly = "0.2"
-sysinfo = "0.39"
+sysinfo = "0.40"
 signal-hook = { version = "0.4" }
 signal-hook-tokio = { version = "0.4" }
 sd-notify = "0.5"
@@ -102,9 +102,9 @@ sd-listen-fds = { version = "0.2" }
 raunch = { version = "1" }
 image = "0.25"
 tao = "0.37"
-tray-icon = "0.24"
+tray-icon = "0.26"
 tempfile = "3.27"
-zbus = "5"
+zbus = "6"
 shlex = "2"
 widestring = "1"
 windows-sys = "0.61"

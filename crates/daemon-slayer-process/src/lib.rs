@@ -76,7 +76,8 @@ impl ProcessManager {
             RefreshKind::default()
                 .with_processes(ProcessRefreshKind::everything())
                 .with_memory(MemoryRefreshKind::everything()),
-        );
+        )
+        .unwrap();
         Self {
             system,
             pid: Pid::from_u32(pid),
@@ -86,7 +87,8 @@ impl ProcessManager {
     pub fn kill(pid: u32) -> Option<bool> {
         let system = System::new_with_specifics(
             RefreshKind::default().with_processes(ProcessRefreshKind::everything()),
-        );
+        )
+        .unwrap();
 
         let proc = system.process(Pid::from_u32(pid)).unwrap();
         proc.kill_with(Signal::Kill)
